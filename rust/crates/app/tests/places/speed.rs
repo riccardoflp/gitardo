@@ -13,7 +13,8 @@ use std::fmt::Write as _;
 use std::time::{Duration, Instant};
 
 use app::store::{Effect, JobKind, Message, State};
-use app::work::jobs::{find_repositories, read_repository};
+use app::work::jobs::find_repositories;
+use app::work::pages::read_repository_at_once;
 use git::CancelToken;
 use model::filter::{BranchesShown, Preset, preset, show_only};
 use model::graph::PageSize;
@@ -97,8 +98,8 @@ fn opening_a_repository_of_56000_commits_and_loading_its_next_pages() {
         let _ = repository.git(&["commit-graph", "write", "--reachable"]);
     }
     let folder = repository.path().to_path_buf();
-    let (_, commits) = read_repository(&folder, &first_page(), &CancelToken::new()).unwrap();
-    assert_eq!(commits.rows.len(), 1_000);
+    let (_, commits) = read_repository_at_once(&folder, &first_page(), &CancelToken::new()).unwrap();
+    assert_eq!(commits.rows.len(), 56_000);
     let mut slowest_open = Duration::ZERO;
     for attempt in 1..=3 {
         let started = Instant::now();
@@ -229,9 +230,9 @@ fn first_page() -> app::store::TimelineRequest {
     }
 }
 
-/// The whole history of the repository `GITARDO_PERF_REPOSITORY` names, in the window as `app` reads and lays it out
-/// today: opened, then every next page asked for as the list is scrolled to its end, each read and laid out over every
-/// row. Run by `cargo xtask perf <folder>`; it prints the times, and asserts nothing about them.
+/// The whole history of the repository `GITARDO_PERF_REPOSITORY` names, in the window as `app` reads and lays it out:
+/// opened, each page of the read taken as the worker sends it, and every next read asked for past those. Run by
+/// `cargo xtask perf <folder>`; it prints the times, and asserts nothing about them.
 #[test]
 #[ignore = "times the repository GITARDO_PERF_REPOSITORY names; run by cargo xtask perf"]
 fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() {
@@ -243,31 +244,60 @@ fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() 
     for _ in 0..3 {
         let started = Instant::now();
         let mut state = State::default();
-        let _effects = run(
-            &mut state,
-            Message::Started {
-                folders: vec![folder.clone()],
-            },
-        );
-        let first_page = started.elapsed();
-        while state.timeline.has_more {
+        let mut first_page = None;
+        let mut message = Some(Message::Started {
+            folders: vec![folder.clone()],
+        });
+        while let Some(next) = message.take() {
+            timed(&mut state, next, &mut || {
+                let _first = first_page.get_or_insert_with(|| started.elapsed());
+            });
             let loaded = state.timeline.loaded();
-            let _effects = run(
-                &mut state,
-                Message::Intent(Intent::Graph(GraphIntent::LoadMore { loaded })),
-            );
-            assert!(state.timeline.loaded() > loaded, "a page added no row");
+            if state.timeline.has_more {
+                message = Some(Message::Intent(Intent::Graph(GraphIntent::LoadMore { loaded })));
+            }
         }
         let last_row = started.elapsed();
         let layouts = layouts_page_after_page(&state);
-        rounds.push((first_page, last_row, layouts, state.timeline.loaded()));
+        rounds.push((
+            first_page.unwrap_or(last_row),
+            last_row,
+            layouts,
+            state.timeline.loaded(),
+        ));
     }
     rounds.sort_by_key(|(_, last_row, _, _)| *last_row);
-    let (first_page, last_row, layouts, rows) = rounds[rounds.len() / 2];
+    let (first_page, last_row, layouts, rows) = rounds.get(rounds.len() / 2).copied().unwrap();
     println!(
         "The window, the median of three: {rows} commits; the first page in {first_page:?}, the last row in \
-         {last_row:?}, of which the layouts of every page over every row before it {layouts:?}"
+         {last_row:?}; laying out every page over every row before it would take {layouts:?}"
     );
+}
+
+/// Reduces a message and runs every job it starts as a worker would, each message reduced as soon as the job sends
+/// it; `rows_shown` is told each time the timeline has rows.
+fn timed(state: &mut State, message: Message, rows_shown: &mut dyn FnMut()) {
+    let mut waiting = vec![message];
+    while let Some(message) = waiting.pop() {
+        let mut started = Vec::new();
+        for effect in app::store::reduce(state, message) {
+            if let Effect::Start(job) = effect {
+                started.push(job);
+            }
+        }
+        for job in started {
+            app::work::jobs::run(&job, &CancelToken::new(), &mut |message| {
+                for effect in app::store::reduce(state, message) {
+                    if let Effect::Start(job) = effect {
+                        waiting.extend(app::work::jobs::messages(&job, &CancelToken::new()));
+                    }
+                }
+                if !state.timeline.rows.is_empty() {
+                    rows_shown();
+                }
+            });
+        }
+    }
 }
 
 /// How long the timeline takes to be laid out again over every row read at each page, as `app` does when a page is

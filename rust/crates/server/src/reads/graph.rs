@@ -2,7 +2,7 @@
 //! over the timeline the client shows, turned into git's arguments by `engine::timeline` as the desktop's are.
 
 use engine::timeline::{TimelineRequest, commits_request};
-use git::read::graph::{CommitsRequest, PositionRequest, read_commits, read_position};
+use git::read::graph::{CommitsRequest, PositionRequest, read_commits_at_once, read_position};
 use git::read::repo::{TimelineParts, read_timeline_parts};
 use git::read::search::{MatchesRequest, read_matches};
 use model::filter::BranchesShown;
@@ -17,11 +17,15 @@ use crate::session::git_failure;
 
 /// The rows of the pages of the timeline asked for, after those the client has (`graph.read-commits`).
 pub fn commits(reading: &Reading<'_>, params: &CommitsParams) -> Result<Value, ResponseError> {
+    let pages = TimelineRequest::try_from(&params.timeline).map_err(invalid)?.pages;
     let request = CommitsRequest {
         skip: params.timeline.skip,
         ..commits_of(reading, &params.timeline)?
-    };
-    answered(read_commits(&reading.git, &request), |page| CommitPageJson::from(page))
+    }
+    .with_pages(pages);
+    answered(read_commits_at_once(&reading.git, &request), |page| {
+        CommitPageJson::from(page)
+    })
 }
 
 /// How many commits come before a commit in the timeline; none when it is not there (`graph.read-position`).

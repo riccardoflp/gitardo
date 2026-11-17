@@ -86,6 +86,7 @@ impl Answered {
             Message::RepositoryRead { job, .. }
             | Message::TimelineRead { job, .. }
             | Message::CommitsRead { job, .. }
+            | Message::PagesRead { job, .. }
             | Message::Searched { job, .. }
             | Message::DetailsRead { job, .. }
             | Message::CommitPageRead { job, .. }
@@ -115,6 +116,7 @@ impl Answered {
         match self {
             Answered::Job(job) => {
                 view.jobs.contains_key(job)
+                    || view.timeline.stream.as_ref().is_some_and(|stream| stream.job == *job)
                     || view.rail.stashes.jobs.contains_key(job)
                     || view.github.detecting == Some(*job)
                     || view.github.reading.as_ref().is_some_and(|(reading, _)| reading == job)

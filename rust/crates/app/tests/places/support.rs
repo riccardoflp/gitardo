@@ -4,7 +4,8 @@
 
 #![allow(dead_code, reason = "each test file uses its own part of the support")]
 
-use std::path::Path;
+use std::collections::VecDeque;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use app::store::{Effect, Message, State, ViewData, reduce};
@@ -244,12 +245,53 @@ pub fn run_asking(state: &mut State, message: Message) -> Vec<Effect> {
     while let Some(message) = waiting.pop() {
         for effect in reduce(state, message) {
             if let Effect::Start(job) = &effect {
-                waiting.push(jobs::run(job, &CancelToken::new()));
+                waiting.extend(jobs::messages(job, &CancelToken::new()).into_iter().rev());
             }
             all.push(effect);
         }
     }
     all
+}
+
+/// Reduces a message and runs at once every job it starts, as [`run_asking`] does, but holds the messages a job sends
+/// after its first: the pages after the first of a read of the timeline, still coming, to be given with [`give_held`].
+pub fn run_holding(state: &mut State, message: Message, held: &mut VecDeque<Message>) -> Vec<Effect> {
+    let mut all = Vec::new();
+    let mut waiting = vec![message];
+    while let Some(message) = waiting.pop() {
+        for effect in reduce(state, message) {
+            if let Effect::Start(job) = &effect {
+                let mut messages = jobs::messages(job, &CancelToken::new()).into_iter();
+                waiting.extend(messages.next());
+                held.extend(messages);
+            }
+            all.push(effect);
+        }
+    }
+    all
+}
+
+/// Gives the window every message held, in the order the jobs sent them, holding none.
+pub fn give_held(state: &mut State, held: &mut VecDeque<Message>) {
+    while let Some(message) = held.pop_front() {
+        let _effects = run_asking(state, message);
+    }
+}
+
+/// A window that opened a folder with some settings, whose read of the timeline gave its first page: the pages after it
+/// are held.
+pub fn showing_first_page(folder: PathBuf, settings: app::settings::Settings) -> (State, VecDeque<Message>) {
+    let mut state = State::new(
+        app::persisted::Persisted {
+            has_started: true,
+            ..app::persisted::Persisted::default()
+        },
+        settings,
+        None,
+    );
+    let mut held = VecDeque::new();
+    let _effects = run_holding(&mut state, Message::Started { folders: vec![folder] }, &mut held);
+    (state, held)
 }
 
 /// The thread of the operations of a window, run for a test: what the store asks of it is given to it, and what it

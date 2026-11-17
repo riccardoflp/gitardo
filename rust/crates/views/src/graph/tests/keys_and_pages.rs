@@ -123,26 +123,26 @@ fn standing(loaded: usize, last_drawn: usize) -> LoadMoreState {
 }
 
 #[test]
-fn graph_load_more__with_1000_commits_loaded_row_500_asks_for_the_next_page_and_row_499_not_yet() {
-    assert!(wants_more(&standing(1_000, 500)));
-    assert!(!wants_more(&standing(1_000, 499)));
+fn graph_load_more__with_100000_commits_loaded_and_more_row_99500_starts_the_next_read_and_row_99499_not_yet() {
+    assert!(wants_more(&standing(100_000, 99_500)));
+    assert!(!wants_more(&standing(100_000, 99_499)));
     let at_the_end = LoadMoreState {
         has_more: false,
-        ..standing(1_000, 999)
+        ..standing(100_000, 99_999)
     };
     assert!(!wants_more(&at_the_end));
 }
 
 #[test]
-fn graph_load_more__scrolling_on_while_the_page_is_read_does_not_ask_for_it_again() {
+fn graph_load_more__scrolling_on_while_the_read_runs_does_not_start_it_again() {
     let reading = LoadMoreState {
         is_reading: true,
-        ..standing(1_000, 700)
+        ..standing(100_000, 99_700)
     };
     assert!(!wants_more(&reading));
     let asked = LoadMoreState {
-        asked_at: Some(1_000),
-        ..standing(1_000, 800)
+        asked_at: Some(100_000),
+        ..standing(100_000, 99_800)
     };
     assert!(!wants_more(&asked));
 }

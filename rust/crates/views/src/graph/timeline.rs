@@ -99,7 +99,7 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
     let (history_intents, report, visible) = history(state, ui, (list_rect, &context), several.as_ref());
     intents.extend(history_intents);
     let rect = list_rect;
-    if state.reading != Reading::Nothing {
+    if matches!(state.reading, Reading::More | Reading::Again) {
         ui.running_bar(rect);
     }
     if state.reading == Reading::Again {

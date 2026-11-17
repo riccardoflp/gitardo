@@ -8,11 +8,11 @@ use git::read::graph::{CommitPage, CommitsRequest};
 use model::CommitId;
 use model::commit_page::PatchLines;
 use model::details::CommitDetail;
-use model::graph::Row;
 use model::repo::{Change, Repository};
 use model::state::RepositoryState;
 use views::Intent;
 
+pub use super::timeline_message::{Known, MorePages};
 use crate::persisted::Persisted;
 use crate::settings::{Settings, SettingsFiles};
 
@@ -38,7 +38,8 @@ pub enum Message {
         /// What it found.
         found: Found,
     },
-    /// A job that read a repository is done.
+    /// A job that read a repository has read its state and the first page of its commits; the next pages, when more
+    /// follow, come as [`Message::PagesRead`].
     RepositoryRead {
         /// The job.
         job: JobId,
@@ -49,19 +50,27 @@ pub enum Message {
         /// When it was read, in seconds since 1970: the lines between days and months are counted from it.
         read_at: i64,
     },
-    /// A job that read the first page of another history of the timeline is done (`filter.show-only`).
+    /// A job that read another history of the timeline has its first page (`filter.show-only`); the next pages, when
+    /// more follow, come as [`Message::PagesRead`].
     TimelineRead {
         /// The job.
         job: JobId,
         /// What was read, or what git said when the read failed.
         result: Result<CommitPage, String>,
     },
-    /// A job that read the next pages of the timeline is done (`graph.load-more`).
+    /// A job that read the next pages of the timeline has its first page (`graph.load-more`).
     CommitsRead {
         /// The job.
         job: JobId,
         /// What was read, or what git said when the read failed.
         result: Result<MorePages, String>,
+    },
+    /// A read of the timeline whose first page came has another, as git prints it (`graph.read-commits`).
+    PagesRead {
+        /// The job.
+        job: JobId,
+        /// The page, or what git said when the read failed.
+        result: Result<CommitPage, String>,
     },
     /// A read of the search is done.
     Searched {
@@ -249,32 +258,6 @@ pub enum Found {
     Failed(String),
 }
 
-/// The next pages of the timeline, as a worker sends them.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MorePages {
-    /// The commits known are read again as they were: only the rows after them are sent.
-    Appended {
-        /// The rows after those known.
-        rows: Vec<Row>,
-        /// Whether the history has more.
-        has_more: bool,
-    },
-    /// The history changed under the commits known: every row read.
-    Replaced(CommitPage),
-}
-
-/// The commits a window has of a timeline, as a worker checks them.
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct Known {
-    /// How many rows were read, the stashes among them.
-    pub count: usize,
-    /// How many of them are commits.
-    pub commits: usize,
-    /// The last commit read: the read of the next pages starts from it again, to tell whether the history is the
-    /// same above it.
-    pub last: Option<model::CommitId>,
-}
-
 /// How the timeline of a repository is read: the engine's, which turns it into git's arguments.
 pub use engine::timeline::TimelineRequest;
 
@@ -290,23 +273,23 @@ pub enum JobKind {
         /// The folders.
         folders: Vec<PathBuf>,
     },
-    /// Reads a repository: its state (`repo.read-state`), then the first page of its commits (`graph.read-commits`).
+    /// Reads a repository: its state (`repo.read-state`), then its commits, a page at a time (`graph.read-commits`).
     ReadRepository {
         /// The folder of the repository.
         folder: PathBuf,
         /// How the timeline is read.
         request: TimelineRequest,
     },
-    /// Reads the first page of the timeline for the branches shown, and nothing else of the repository: the timeline
-    /// narrowed, or shown whole again (`filter.show-only`, `filter.show-all`).
+    /// Reads the timeline for the branches shown, and nothing else of the repository: the timeline narrowed, or shown
+    /// whole again (`filter.show-only`, `filter.show-all`).
     ReadTimeline {
         /// The folder of the repository.
         folder: PathBuf,
         /// What is read.
         request: CommitsRequest,
     },
-    /// Reads the pages of the timeline from the first again, one more than are loaded, and sends only the rows after
-    /// those known when they are the same (`graph.load-more`).
+    /// Reads the next commits of the timeline from the last one known, past those one read lists, and sends only the
+    /// rows after it when the history is the same up to it; every row again otherwise (`graph.load-more`).
     ReadCommits {
         /// The folder of the repository.
         folder: PathBuf,

@@ -197,11 +197,14 @@ fn search_history__a_commit_made_meanwhile_is_counted_once_the_timeline_is_read_
 #[test]
 fn search_history__a_match_3000_commits_back_is_selected_after_the_history_is_loaded_up_to_it() {
     let repository = imported(&line(3_500));
-    let mut state = showing(repository.path().to_path_buf());
+    let (mut state, mut held) =
+        super::support::showing_first_page(repository.path().to_path_buf(), app::settings::Settings::default());
     assert_eq!(state.timeline.loaded(), 1_000);
     find_with(&mut state, BoxMode::Message, "Change 500");
     let wanted = commit_of(&repository, "main~3000");
     assert_eq!(state.search.found.commits(), std::slice::from_ref(&wanted));
+    assert_eq!(selected(&state), None, "the commit is in a page still to come");
+    super::support::give_held(&mut state, &mut held);
     assert_eq!(state.timeline.loaded(), 3_500);
     assert_eq!(selected(&state), Some(wanted.clone()));
     assert_eq!(subject(&state, &wanted), "Change 500");

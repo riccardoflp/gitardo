@@ -383,10 +383,11 @@ impl ViewData {
     /// The commits of the timeline and everything about them.
     fn history<'a>(&'a self, state: &'a State, has_no_commits: bool) -> HistoryState<'a> {
         let timeline = &state.timeline;
-        let reading = match (timeline.is_reading_again, timeline.more_job) {
-            (true, _) => Reading::Again,
-            (false, Some(_)) => Reading::More,
-            (false, None) => Reading::Nothing,
+        let reading = match (timeline.is_reading_again, timeline.more_job, &timeline.stream) {
+            (true, _, _) => Reading::Again,
+            (false, Some(_), _) => Reading::More,
+            (false, None, Some(_)) => Reading::Pages,
+            (false, None, None) => Reading::Nothing,
         };
         HistoryState {
             rows: &timeline.rows,

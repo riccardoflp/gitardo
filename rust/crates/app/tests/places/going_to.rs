@@ -76,15 +76,17 @@ fn three_commits_a_readme_and_a_stash() -> Repository {
 }
 
 #[test]
-fn graph_show_in_graph__show_in_the_timeline_on_a_tag_3500_commits_back_loads_four_pages_and_selects_its_commit() {
+fn graph_show_in_graph__show_in_the_timeline_on_a_tag_3500_commits_back_selects_its_commit_from_the_pages_read() {
     let repository = imported(&line(3_600));
     let _ = repository.git(&["tag", "v1.0", "main~3500"]);
     let mut state = showing(repository.path().to_path_buf());
     let tagged = commit_of(&repository, "v1.0");
-    assert_eq!(state.timeline.pages, 1);
-    assert!(!state.timeline.layout.shown_of.contains_key(&tagged), "not loaded yet");
+    assert_eq!(
+        state.timeline.loaded(),
+        3_600,
+        "the pages of the read came one after the other"
+    );
     ask(&mut state, Intent::Graph(GraphIntent::GoTo(tagged.clone())));
-    assert_eq!(state.timeline.pages, 4);
     assert_eq!(selected(&state), Some(tagged));
 }
 

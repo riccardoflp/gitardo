@@ -13,7 +13,7 @@ use super::super::commit_page;
 use super::super::message::{Effect, JobId};
 use super::super::pages;
 use super::super::state::State;
-use super::super::timeline::{load_up_to, reduce_graph, select_in_middle, show as show_branches};
+use super::super::timeline::{is_reading, load_up_to, reduce_graph, select_in_middle, show as show_branches};
 use super::{GoToCommit, cancel, jobs, list};
 
 /// A commit being gone to, and how far it is.
@@ -112,7 +112,8 @@ fn widen(state: &mut State, commit: CommitId) -> Vec<Effect> {
     effects
 }
 
-/// Where the commit being gone to is in the history: the pages up to it are loaded.
+/// Where the commit being gone to is in the history: it is waited for while the pages of a read come, and the commits
+/// after the last one read are read when it is further back than one read lists.
 pub fn position_read(state: &mut State, job: JobId, result: Result<Option<usize>, String>) -> Vec<Effect> {
     let Some(going) = state.search.going_to.take() else {
         return Vec::new();
@@ -123,9 +124,8 @@ pub fn position_read(state: &mut State, job: JobId, result: Result<Option<usize>
     }
     match result {
         Ok(Some(position)) => {
-            let pages = position / state.settings.page_size.get() + 1;
-            let effects = load_up_to(state, pages);
-            if !effects.is_empty() {
+            let effects = load_up_to(state, position);
+            if !effects.is_empty() || is_reading(state) {
                 state.search.going_to = Some(GoTo {
                     commit: going.commit,
                     stage: Stage::Pages,
@@ -141,7 +141,8 @@ pub fn position_read(state: &mut State, job: JobId, result: Result<Option<usize>
     }
 }
 
-/// The timeline was read: the commit being gone to is selected once it is loaded.
+/// The timeline was read: the commit being gone to is selected once it is loaded, as soon as the page that has it comes;
+/// one further back than one read lists is gone to again once the read ends.
 pub fn settle(state: &mut State) -> Vec<Effect> {
     let Some(going) = state.search.going_to.take() else {
         return Vec::new();
@@ -151,7 +152,19 @@ pub fn settle(state: &mut State) -> Vec<Effect> {
             state.search.going_to = Some(going);
             Vec::new()
         }
-        _ if state.timeline.is_reading_again || state.timeline.more_job.is_some() => {
+        Stage::Pages if state.timeline.narrow_job.is_none() && !state.timeline.is_reading_again => {
+            if let Some(effects) = show(state, &going.commit) {
+                effects
+            } else if is_reading(state) {
+                state.search.going_to = Some(going);
+                Vec::new()
+            } else if state.timeline.has_more {
+                go_to(state, going.commit)
+            } else {
+                Vec::new()
+            }
+        }
+        _ if is_reading(state) => {
             state.search.going_to = Some(going);
             Vec::new()
         }

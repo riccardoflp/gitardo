@@ -44,6 +44,7 @@ mod inspector_files;
 mod islands;
 mod jobs;
 mod large_diffs;
+mod load_more;
 mod log_secrets;
 mod merge;
 mod merge_actions;

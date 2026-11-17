@@ -150,17 +150,16 @@ pub fn repository_read(
         return Vec::new();
     };
     let generation = state.next_generation;
-    let Some(workspace) = state.workspace.as_mut() else {
-        return Vec::new();
-    };
-    let is_shown = match &workspace.shown {
+    let Some(workspace) = state.workspace.as_mut().filter(|workspace| match &workspace.shown {
         Shown::Read(read) => same_folder(&read.folder, folder),
         Shown::Reading { folder: reading } => same_folder(reading, folder),
         Shown::Looking | Shown::NoRepository => false,
+    }) else {
+        // Another repository was chosen meanwhile: the pages that follow are not read.
+        return result
+            .map(|read| super::timeline::cancel_unwanted(job, &read.1))
+            .unwrap_or_default();
     };
-    if !is_shown {
-        return Vec::new();
-    }
     match result {
         Ok(read) => {
             let (repository, commits) = *read;
@@ -171,11 +170,11 @@ pub fn repository_read(
                 state: Arc::clone(&repository),
                 generation,
             });
-            let page = (commits.has_more, request.pages, read_at);
             let shown = checked(request.shown.as_ref(), &References::of(&repository));
-            let is_changed = super::timeline::take_read(state, (folder, &repository), (commits.rows, shown), page);
+            let mut effects = super::timeline::stop_stream(state);
+            let is_changed = super::timeline::take_read(state, (folder, &repository), (commits, shown), (job, read_at));
             super::rail::arrange(state);
-            let mut effects = super::timeline::keep_shown(state, folder);
+            effects.extend(super::timeline::keep_shown(state, folder));
             effects.extend(super::pages::tick_timeline(state));
             effects.extend(super::search::settle(state));
             if is_changed {
@@ -304,16 +303,9 @@ fn find_repository<'a>(repositories: &'a [Repository], folder: &Path) -> Option<
         .find(|repository| same_folder(&repository.folder, folder))
 }
 
-/// Starts a read of a repository with the settings in force: as many pages as its timeline has loaded when it is the
-/// one shown, one otherwise.
+/// Starts a read of a repository with the settings in force.
 pub(super) fn start_read(state: &mut State, folder: PathBuf) -> Effect {
-    let is_shown = state
-        .timeline
-        .folder
-        .as_deref()
-        .is_some_and(|shown| same_folder(shown, &folder));
-    let pages = if is_shown { state.timeline.pages } else { 1 };
-    let mut request = super::timeline::read_request(state, pages);
+    let mut request = super::timeline::read_request(state);
     request.shown = super::timeline::kept_shown(state, &folder);
     let job = start_job(state, JobKind::ReadRepository { folder, request });
     super::reads::adopt(state, job.id, model::repo::ReadCause::RepositoryChosen);

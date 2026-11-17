@@ -217,8 +217,10 @@ impl DesktopWindow {
             | Message::DetailsRead { job, .. }
             | Message::CommitPageRead { job, .. } = &message
             {
-                self.workers.finished(*job);
                 waiting.extend(self.reads.finished(*job));
+            }
+            if let Some(job) = crate::store::job_done(&message) {
+                self.workers.finished(job);
             }
             if let Message::Task(crate::store::tasks::TaskMessage::Ended { batch, .. }) = &message {
                 self.tasks.finished(*batch);

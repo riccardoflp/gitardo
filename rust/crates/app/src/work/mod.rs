@@ -11,6 +11,7 @@ pub mod jobs;
 pub mod merge_view;
 pub mod new_worktrees;
 mod operations;
+pub mod pages;
 mod persist;
 mod repository_watch;
 pub mod review;
@@ -132,7 +133,8 @@ impl Drop for Workers {
     }
 }
 
-/// What a worker does until the pool closes: takes a job, runs it as an activity, delivers its result.
+/// What a worker does until the pool closes: takes a job, runs it as an activity, delivers its result, or each of its
+/// pages as it is read.
 fn work(receiver: &Mutex<Receiver<Task>>, activities: &Activities, deliver: &Deliver) {
     loop {
         // The lock is held only to take the next job; a worker that panicked left the receiver whole.
@@ -143,14 +145,14 @@ fn work(receiver: &Mutex<Receiver<Task>>, activities: &Activities, deliver: &Del
         if task.cancel.is_cancelled() {
             continue;
         }
-        let message = {
-            let (description, cause) = task.words.clone().unwrap_or_else(|| words(&task.job.kind));
-            let _activity = activities.track(description, cause, now());
-            jobs::run(&task.job, &task.cancel)
-        };
-        if !task.cancel.is_cancelled() {
-            deliver(message);
-        }
+        let (description, cause) = task.words.clone().unwrap_or_else(|| words(&task.job.kind));
+        let _activity = activities.track(description, cause, now());
+        jobs::run(&task.job, &task.cancel, &mut |message| {
+            // A job cancelled is no longer wanted: what it still says, such as the next page of a read, is dropped.
+            if !task.cancel.is_cancelled() {
+                deliver(message);
+            }
+        });
     }
 }
 

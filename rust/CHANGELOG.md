@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The timeline reads the history with one `git log`, as git prints it: the first 1,000 commits are shown as soon as
+  they are read, and the others are added under them a page at a time, without waiting for the list to be scrolled,
+  up to 100,000 commits; past those, the next commits are read as the list nears its end. The bar along the top runs
+  only until the first page is there; while the rest comes, the last row says **Loading more commits…**. The rows,
+  the selection and the scroll position stay as they are while pages are added, and a read that finds the same commits
+  changes none of them. Choosing another repository, other branches, a filter or a search stops the read running, and
+  **Show in the timeline** on a commit of a page still to come selects it as soon as that page is there.
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

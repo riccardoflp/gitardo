@@ -68,7 +68,7 @@ pub enum SearchResult {
 #[must_use]
 pub fn matches_request(state: &State, asked: &Asked) -> Option<SearchJob> {
     let read = state.shown_read()?;
-    let listed = commits_request(&read.state, &read_request(state, 1)).history;
+    let listed = commits_request(&read.state, &read_request(state)).history;
     Some(SearchJob::Matches {
         folder: read.state.folder.clone(),
         request: MatchesRequest {
@@ -95,7 +95,7 @@ pub fn revision_request(state: &State, revision: &str) -> Option<SearchJob> {
 #[must_use]
 pub fn position_request(state: &State, commit: &CommitId) -> Option<SearchJob> {
     let read = state.shown_read()?;
-    let request = read_request(state, 1);
+    let request = read_request(state);
     Some(SearchJob::Position {
         folder: read.state.folder.clone(),
         request: PositionRequest {

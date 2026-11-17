@@ -50,7 +50,7 @@ pub fn history_of(repository: &RepositoryState, shown: Option<&BranchesShown>, p
     }
 }
 
-/// What a read of the timeline asks of git, for a repository as read.
+/// What a read of the timeline asks of git, for a repository as read: the commits of the pages asked for.
 #[must_use]
 pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) -> CommitsRequest {
     let mut history = history_of(repository, request.shown.as_ref(), request.parents);
@@ -61,7 +61,7 @@ pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) 
     CommitsRequest {
         history,
         page_size: request.page_size,
-        pages: request.pages.max(1),
+        count: 0,
         skip: 0,
         stashes: if request.shows_stashes {
             repository.stashes.clone()
@@ -69,4 +69,5 @@ pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) 
             Vec::new()
         },
     }
+    .with_pages(request.pages)
 }

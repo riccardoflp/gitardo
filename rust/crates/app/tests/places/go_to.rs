@@ -2,6 +2,7 @@
 //! repositories made for each test: wherever the commit is, what narrows the timeline taken away, a commit on no branch
 //! or tag shown with its history alone.
 
+use app::settings::Settings;
 use app::store::search::SearchJob;
 use app::store::search::view::search_box;
 use app::store::{Effect, JobKind, Message, reduce};
@@ -14,7 +15,7 @@ use views::search::SearchIntent;
 use super::histories::{imported, line};
 use super::pointer::{apply, says};
 use super::search::{commit_of, search, selected};
-use super::support::{Window, find};
+use super::support::{Window, find, give_held, showing_first_page};
 use super::timeline::{pages_of_100, showing_with};
 use super::{repository_with_history, showing};
 
@@ -24,7 +25,7 @@ const WIDE: (u32, u32) = (1000, 520);
 #[test]
 fn search_go_to_hash__eight_characters_of_a_commit_4000_back_show_enter_and_enter_loads_up_to_it() {
     let repository = imported(&line(4_500));
-    let mut state = showing(repository.path().to_path_buf());
+    let (mut state, mut held) = showing_first_page(repository.path().to_path_buf(), Settings::default());
     let wanted = commit_of(&repository, "main~4000");
     search(&mut state, SearchIntent::Type(wanted.as_str()[..8].to_owned()));
     assert!(search_box(&state).is_hash_offered);
@@ -32,6 +33,7 @@ fn search_go_to_hash__eight_characters_of_a_commit_4000_back_show_enter_and_ente
     let (_, tree) = window.draw(&state, &[]);
     assert!(says(&tree, views::text::search::ENTER));
     search(&mut state, SearchIntent::Submit);
+    give_held(&mut state, &mut held);
     assert_eq!(selected(&state), Some(wanted));
     assert_eq!(state.timeline.loaded(), 4_500);
 }
@@ -94,7 +96,7 @@ fn search_go_to_hash__a_commit_the_branches_shown_leave_out_shows_all_branches_a
 #[test]
 fn search_go_to_hash__upper_case_is_looked_for_in_lower_case() {
     let repository = imported(&line(150));
-    let mut state = showing_with(repository.path().to_path_buf(), pages_of_100());
+    let (mut state, _held) = showing_first_page(repository.path().to_path_buf(), pages_of_100());
     let wanted = commit_of(&repository, "main~120");
     let typed = wanted.as_str()[..8].to_uppercase();
     search(&mut state, SearchIntent::Type(typed));
@@ -127,7 +129,7 @@ fn search_go_to_hash__three_characters_show_no_enter() {
 #[test]
 fn search_go_to_hash__a_prefix_shared_by_two_commits_is_refused() {
     let repository = imported(&line(1_000));
-    let mut state = showing_with(repository.path().to_path_buf(), pages_of_100());
+    let (mut state, _held) = showing_first_page(repository.path().to_path_buf(), pages_of_100());
     let unloaded = repository.git(&["rev-list", "--skip=100", "main"]);
     let mut prefixes: Vec<&str> = unloaded.lines().map(|hash| &hash[..4]).collect();
     prefixes.sort_unstable();

@@ -218,6 +218,7 @@ fn a_page_has_its_commits_and_stashes_in_the_order_read() {
             },
         ],
         has_more: true,
+        follows: false,
     };
     let written = serde_json::to_value(CommitPageJson::from(&page)).unwrap();
     assert_eq!(written["hasMore"], json!(true));

@@ -15,13 +15,11 @@ use model::{CommitId, Timestamp};
 use platform::accesskit::Role;
 use render::ThemeName;
 use views::graph::{
-    Folds, GraphIntent, GraphState, HistoryState, LayoutInput, Reading, Selected, Switches, TimelineLayout,
-    TimelineSwitch,
+    Folds, GraphIntent, GraphState, HistoryState, LayoutInput, Reading, Switches, TimelineLayout, TimelineSwitch,
 };
 use views::{FilterIntent, Intent};
 
-use super::histories::{imported, line};
-use super::pointer::{apply, bounds, rows_drawn, says, wheel};
+use super::pointer::{bounds, rows_drawn, says};
 use super::support::{Window, run};
 use super::{repository_with_history, showing};
 
@@ -247,44 +245,6 @@ fn graph_more_menu__unchecking_show_the_hash_takes_the_hashes_out_and_writes_aut
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let _ = window.draw(&state, &[]);
     assert_ne!(window.frame.to_rgba(), with_hashes, "the hashes are taken out");
-}
-
-#[test]
-fn graph_load_more__after_a_page_is_added_the_selected_commit_and_the_scroll_position_are_as_they_were() {
-    let repository = imported(&line(150));
-    let mut state = showing_with(repository.path().to_path_buf(), pages_of_100());
-    assert_eq!(state.timeline.loaded(), 100);
-    let chosen = state.timeline.rows[3].id().unwrap().clone();
-    apply(
-        &mut state,
-        vec![Intent::Graph(GraphIntent::Select(Selected::Commit(chosen.clone())))],
-    );
-    let reveal = state.timeline.reveal;
-    let first: Vec<Row> = state.timeline.rows.clone();
-    apply(&mut state, vec![Intent::Graph(GraphIntent::LoadMore { loaded: 100 })]);
-    assert_eq!(state.timeline.loaded(), 150);
-    assert_eq!(state.timeline.selected, Some(Selected::Commit(chosen)));
-    assert_eq!(state.timeline.reveal, reveal, "nothing scrolls the list");
-    assert_eq!(state.timeline.rows[..100], first[..]);
-}
-
-#[test]
-fn graph_load_more__the_last_row_says_loading_more_commits_while_there_are_more_and_is_gone_at_the_end() {
-    let repository = imported(&line(150));
-    let mut state = showing_with(repository.path().to_path_buf(), pages_of_100());
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let (_, tree) = window.draw(&state, &[]);
-    let list = bounds(&tree, Role::ListBox, "History");
-    let intents = wheel(&mut window, &state, super::pointer::middle(list), 10_000.0);
-    let (_, tree) = window.draw(&state, &[]);
-    assert!(says(&tree, "Loading more commits…"));
-    assert!(state.timeline.has_more);
-    apply(&mut state, intents);
-    let _ = wheel(&mut window, &state, super::pointer::middle(list), 10_000.0);
-    let (_, tree) = window.draw(&state, &[]);
-    assert_eq!(state.timeline.loaded(), 150);
-    assert!(!state.timeline.has_more);
-    assert!(!says(&tree, "Loading more commits…"));
 }
 
 #[test]

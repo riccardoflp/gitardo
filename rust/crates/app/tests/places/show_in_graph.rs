@@ -80,11 +80,13 @@ fn commit_page_show_in_graph__a_commit_further_back_than_the_history_loaded_is_l
     let repository = imported(&line(150));
     let mut state = super::window();
     state.settings.page_size = model::graph::PageSize::from_setting(Some(100.0));
-    let _ = support::run(
+    let mut held = std::collections::VecDeque::new();
+    let _ = support::run_holding(
         &mut state,
         Message::Started {
             folders: vec![repository.path().to_path_buf()],
         },
+        &mut held,
     );
     let first = repository.git(&["rev-list", "--max-parents=0", "HEAD"]);
     let commit = CommitId::parse(first.trim_end()).unwrap();
@@ -92,6 +94,7 @@ fn commit_page_show_in_graph__a_commit_further_back_than_the_history_loaded_is_l
     ask(&mut state, Intent::Details(DetailsIntent::OpenPage(commit.clone())));
     let id = shown_page(&state);
     ask_page(&mut state, id, CommitPageIntent::ShowInTimeline);
+    support::give_held(&mut state, &mut held);
     assert!(state.timeline.layout.shown_of.contains_key(&commit), "loaded");
     assert_eq!(state.timeline.selected, Some(Selected::Commit(commit)));
 }

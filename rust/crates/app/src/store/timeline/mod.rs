@@ -1,17 +1,19 @@
-//! The timeline of the repository shown, as the store keeps it: the rows read, the draft on top, the pages loaded and
-//! the one being read (`graph.load-more`), the selection, the folds, the label under the pointer and the history
+//! The timeline of the repository shown, as the store keeps it: the rows read, the draft on top, the pages still coming
+//! and the read past the last commit (`graph.load-more`), the selection, the folds, the label under the pointer and the history
 //! brought out, laid out again only when one of them changes.
 
 mod folds;
 mod narrow;
 mod paging;
 mod sizes;
+mod stream;
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+use git::read::graph::CommitPage;
 use model::CommitId;
 use model::filter::BranchesShown;
 use model::graph::{CellTrace, DateTime, Row, Trace};
@@ -27,9 +29,12 @@ use super::message::{Effect, JobId};
 use super::state::State;
 pub use engine::timeline::{commits_request, history_of};
 
-pub use narrow::{keep_shown, kept_shown, show, timeline_read};
-pub use paging::{cancel_more, commits_read, known, load_up_to, read_again, read_request};
+pub use narrow::{cancel_unwanted, keep_shown, kept_shown, show, timeline_read};
+pub use paging::{
+    cancel_more, commits_read, is_reading, known, load_up_to, pages_read, read_again, read_request, stop_stream,
+};
 pub use sizes::{apply_switch, workspace_panes};
+pub use stream::Stream;
 
 /// The timeline of the repository shown.
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -42,9 +47,9 @@ pub struct Timeline {
     pub draft: Option<DraftState>,
     /// Whether the history has more commits than those read.
     pub has_more: bool,
-    /// How many pages are loaded.
-    pub pages: usize,
-    /// The read of the next pages, while it runs.
+    /// The read whose first page came and whose next pages are coming, as git prints them.
+    pub stream: Option<Stream>,
+    /// The read of the commits after the last one read, past those one read lists, while its first page is read.
     pub more_job: Option<JobId>,
     /// The read of the first page of another history, the timeline narrowed or shown whole again, while it runs.
     pub narrow_job: Option<JobId>,
@@ -128,17 +133,16 @@ fn shows_checked_out(shown: Option<&BranchesShown>, repository: &RepositoryState
     }
 }
 
-/// Takes the rows of a read of the repository shown, of the history of the branches shown: a read that finds the
-/// same rows changes none of them; a new repository starts with nothing selected and the folds kept for it. A search
-/// shown as a list, the history of a commit alone, or of a file, some lines or a folder, has no draft. Says whether the
-/// rows changed.
+/// Takes the first page of a read of the repository shown, of the history of the branches shown: a read that finds
+/// the same rows changes none of them, and the rows listed under its first page stay until its next pages come; a new
+/// repository starts with nothing selected and the folds kept for it. A search shown as a list, the history of a commit
+/// alone, or of a file, some lines or a folder, has no draft. Says whether the rows changed.
 pub fn take_read(
     state: &mut State,
     (folder, repository): (&Path, &RepositoryState),
-    (rows, shown): (Vec<Row>, Option<BranchesShown>),
-    page: (bool, usize, i64),
+    (page, shown): (CommitPage, Option<BranchesShown>),
+    (job, read_at): (JobId, i64),
 ) -> bool {
-    let (has_more, pages, read_at) = page;
     if state.timeline.folder.as_deref() != Some(folder) {
         state.timeline = Timeline {
             folder: Some(folder.to_path_buf()),
@@ -146,33 +150,55 @@ pub fn take_read(
         };
         folds::restore(state, folder);
     }
-    let is_narrowed = super::search::is_narrowed(state);
-    let draft = draft_of(repository, &rows).filter(|_| !is_narrowed && shows_checked_out(shown.as_ref(), repository));
     state.timeline.shown = shown;
-    let mut all = Vec::with_capacity(rows.len() + 1);
-    if let Some(changes) = &draft {
-        all.push(Row::Uncommitted {
-            parent: repository.head.commit.clone(),
-            files: changes.files,
-        });
-    }
-    all.extend(rows);
-    let timeline = &mut state.timeline;
-    timeline.is_reading_again = false;
-    timeline.has_more = has_more;
-    timeline.pages = pages;
-    timeline.read_at = read_at;
-    timeline.draft = draft;
-    let is_changed = timeline.rows != all;
+    state.timeline.is_reading_again = false;
+    state.timeline.read_at = read_at;
+    let mut stream = Stream::from_top(job);
+    let is_changed = put_page(state, &mut stream, page, repository);
     if is_changed {
-        timeline.rows = all;
-        timeline.asked_at = None;
-    }
-    if timeline.selected == Some(Selected::Draft) && timeline.draft.is_none() {
-        timeline.selected = None;
+        state.timeline.asked_at = None;
     }
     folds::fold_new_merges(state);
     relayout(state);
+    is_changed
+}
+
+/// Puts a page of a read where it goes among the rows, the draft on top worked out again from them, and keeps the read
+/// while more pages follow. Says whether the rows changed.
+fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository: &RepositoryState) -> bool {
+    let is_narrowed = super::search::is_narrowed(state);
+    let shown = state.timeline.shown.clone();
+    let timeline = &mut state.timeline;
+    let draft_before = if timeline.draft.is_some() && !timeline.rows.is_empty() {
+        Some(timeline.rows.remove(0))
+    } else {
+        None
+    };
+    let CommitPage {
+        rows,
+        has_more,
+        follows,
+    } = page;
+    let mut is_changed = stream.take(&mut timeline.rows, rows);
+    if !follows {
+        is_changed |= stream.finish(&mut timeline.rows, has_more);
+    }
+    timeline.has_more = has_more;
+    timeline.stream = follows.then(|| stream.clone());
+    let draft =
+        draft_of(repository, &timeline.rows).filter(|_| !is_narrowed && shows_checked_out(shown.as_ref(), repository));
+    let draft_row = draft.as_ref().map(|changes| Row::Uncommitted {
+        parent: repository.head.commit.clone(),
+        files: changes.files,
+    });
+    is_changed |= draft_row != draft_before;
+    if let Some(row) = draft_row {
+        timeline.rows.insert(0, row);
+    }
+    timeline.draft = draft;
+    if timeline.selected == Some(Selected::Draft) && timeline.draft.is_none() {
+        timeline.selected = None;
+    }
     is_changed
 }
 

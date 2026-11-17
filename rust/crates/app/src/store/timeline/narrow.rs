@@ -1,6 +1,6 @@
 //! The branches the timeline shows (`filter.picker`, `filter.show-only`, `filter.show-all`, `filter.remember`):
 //! chosen, checked against the references the repository has, kept for it between runs, and read. Narrowing reads only
-//! the first page of the new history: the state of the repository, as last read, stays.
+//! the history again, a page at a time as git prints it: the state of the repository, as last read, stays.
 
 use std::path::{Path, PathBuf};
 
@@ -89,7 +89,7 @@ fn narrow(state: &mut State, folder: PathBuf) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return effects;
     };
-    let request = commits_request(&read.state, &paging::read_request(state, 1));
+    let request = commits_request(&read.state, &paging::read_request(state));
     let job = paging::start(state, JobKind::ReadTimeline { folder, request });
     state.timeline.narrow_job = Some(job.id);
     state.timeline.is_reading_again = true;
@@ -117,23 +117,29 @@ pub fn timeline_read(state: &mut State, job: JobId, result: Result<CommitPage, S
         }
     };
     let Some(read) = state.shown_read().cloned() else {
-        return Vec::new();
+        return cancel_unwanted(job, &page);
     };
+    let mut effects = paging::stop_stream(state);
     let shown = state.timeline.shown.clone();
     let read_at = state.timeline.read_at;
-    let is_changed = take_read(
-        state,
-        (&read.folder, &read.state),
-        (page.rows, shown),
-        (page.has_more, 1, read_at),
-    );
+    let is_changed = take_read(state, (&read.folder, &read.state), (page, shown), (job, read_at));
     if state.timeline.selected.is_some() {
         let serial = state.timeline.reveal.map_or(1, |(serial, _)| serial + 1);
         state.timeline.reveal = Some((serial, ui::RevealPlace::Center));
     }
-    let mut effects = search::settle(state);
+    effects.extend(search::settle(state));
     if is_changed {
         effects.extend(search::repository_read(state));
     }
     effects
+}
+
+/// Stops a read whose first page is not wanted, when more pages follow it.
+#[must_use]
+pub fn cancel_unwanted(job: JobId, page: &CommitPage) -> Vec<Effect> {
+    if page.follows {
+        vec![Effect::Cancel(job)]
+    } else {
+        Vec::new()
+    }
 }

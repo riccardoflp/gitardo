@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, ExitStatus, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError};
 use std::thread;
 use std::time::Duration;
 
@@ -52,6 +53,21 @@ impl Output {
         self.code == Some(0)
     }
 }
+
+/// What the reader of a read taken as git prints it wants after a part of the output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Taken {
+    /// The rest, as it comes.
+    More,
+    /// Nothing more: git is stopped.
+    Enough,
+}
+
+/// How much of its output a read taken as git prints it gives at a time, at most.
+const PART: usize = 64 * 1024;
+
+/// How often a read taken as git prints it looks whether it was cancelled while git prints nothing.
+const CANCEL_CHECK: Duration = Duration::from_millis(5);
 
 /// The git of the `PATH`, run in one folder.
 #[derive(Debug, Clone)]
@@ -122,6 +138,79 @@ impl Git {
             Ok(output.stdout)
         } else {
             Err(failure(arguments, &output))
+        }
+    }
+
+    /// Runs a read and gives what it prints to `take` as it comes, a part at a time, rather than all of it once git
+    /// ends; `take` says when it has enough, and git is then stopped. Cancelled, git is killed and nothing more is
+    /// given. It is a read like the others: no lock, no question, the C locale.
+    ///
+    /// # Errors
+    ///
+    /// When git cannot be started, fails, or is cancelled, or when `take` fails.
+    pub fn run_read_as_printed<Argument: AsRef<OsStr>>(
+        &self,
+        arguments: &[Argument],
+        take: &mut dyn FnMut(&[u8]) -> Result<Taken, GitError>,
+    ) -> Result<(), GitError> {
+        let line = command_line(arguments);
+        let mut child = self
+            .read_command(arguments)
+            .spawn()
+            .map_err(|source| match source.kind() {
+                std::io::ErrorKind::NotFound => GitError::NotFound { source },
+                _ => GitError::Process {
+                    command: line.clone(),
+                    source,
+                },
+            })?;
+        drop(child.stdin.take());
+        let stderr = drain(child.stderr.take());
+        let parts = parts(child.stdout.take());
+        let taken = self.take_parts(&parts, take, &line);
+        if !matches!(taken, Ok(Taken::More)) {
+            // Git is no longer wanted, whether it was cancelled, failed to be read, or printed enough.
+            let _ = child.kill();
+            let _ = child.wait();
+            return taken.map(|_| ());
+        }
+        let status = self.wait(&mut child, &line)?;
+        if status.success() {
+            return Ok(());
+        }
+        let stderr = stderr.join().unwrap_or_else(|_| Ok(Vec::new())).unwrap_or_default();
+        Err(failure(
+            arguments,
+            &Output {
+                code: status.code(),
+                stdout: Vec::new(),
+                stderr,
+            },
+        ))
+    }
+
+    /// Gives the parts of the output to `take` until git ends, `take` has enough, or the read is cancelled.
+    fn take_parts(
+        &self,
+        parts: &mpsc::Receiver<Vec<u8>>,
+        take: &mut dyn FnMut(&[u8]) -> Result<Taken, GitError>,
+        line: &str,
+    ) -> Result<Taken, GitError> {
+        loop {
+            if self.cancel.is_cancelled() {
+                return Err(GitError::Cancelled {
+                    command: line.to_owned(),
+                });
+            }
+            match parts.recv_timeout(CANCEL_CHECK) {
+                Ok(part) => {
+                    if take(&part)? == Taken::Enough {
+                        return Ok(Taken::Enough);
+                    }
+                }
+                Err(RecvTimeoutError::Timeout) => {}
+                Err(RecvTimeoutError::Disconnected) => return Ok(Taken::More),
+            }
         }
     }
 
@@ -264,6 +353,30 @@ fn drain(pipe: Option<impl Read + Send + 'static>) -> thread::JoinHandle<std::io
         }
         Ok(bytes)
     })
+}
+
+/// Reads what a pipe gives on a thread of its own, and sends it a part at a time as it comes; the channel closes at
+/// the end of the output.
+fn parts(pipe: Option<impl Read + Send + 'static>) -> mpsc::Receiver<Vec<u8>> {
+    let (sender, receiver) = mpsc::channel();
+    let _reader = thread::spawn(move || {
+        let Some(mut pipe) = pipe else {
+            return;
+        };
+        let mut buffer = vec![0; PART];
+        loop {
+            match pipe.read(&mut buffer) {
+                Ok(0) | Err(_) => return,
+                Ok(length) => {
+                    let part = buffer.get(..length).unwrap_or_default().to_vec();
+                    if sender.send(part).is_err() {
+                        return;
+                    }
+                }
+            }
+        }
+    });
+    receiver
 }
 
 /// Writes the input on a thread of its own, then closes the pipe so that git sees its end.

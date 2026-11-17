@@ -37,6 +37,7 @@ pub mod terminals;
 #[cfg(test)]
 mod tests;
 mod timeline;
+mod timeline_message;
 mod trust;
 mod view_parts;
 mod view_state;
@@ -63,6 +64,7 @@ pub use reads::Reads;
 pub use stashes::StashesList;
 pub use state::{Dialog, Opened, Opening, Pages, RepositoryRead, Shown, State, Workspace};
 pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
+pub use timeline_message::job_done;
 pub use view_state::ViewData;
 pub use workspace::OpenRequest;
 pub use worktrees::Worktrees;
@@ -135,6 +137,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::FeatureConfirms(plan) => feature::confirms(state, *plan),
         Message::FeatureEnded { ended, log } => feature_ended(state, ended, log),
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
+        Message::PagesRead { job, result } => timeline::pages_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::Searched { job, result } => search::searched(state, job, result),
         Message::DetailsRead { job, result } if stashes::is_files_read(state, job) => {

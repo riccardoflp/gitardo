@@ -2863,3 +2863,8 @@ reading given until the card says otherwise.
 - **Q438** — `graph.load-more`: the bar along the top of the list ran while a page was read. Recommended: it runs
   until the first page of a read is there; while the rest is read, the last row says **Loading more commits…**, as it
   does while there are more.
+- **Q440** — `graph.read-commits`: a stash whose date puts it among the commits of a page, made on a commit of a
+  later page, would be placed where all the commits read at once put it only once its commit is read. Built: the page
+  waits, and is given with the stash once its commit is read, or without it when the read ends without it (the stash
+  is made on a commit the history shown does not have). Pages stay of `graph.pageSize` commits otherwise; a page held
+  so is given with the next.

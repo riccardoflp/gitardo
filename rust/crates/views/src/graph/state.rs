@@ -109,6 +109,8 @@ pub enum Reading {
     Nothing,
     /// The next page: a bar runs along the top of the list.
     More,
+    /// The pages after the first of a read, as git prints them: no bar, the last row says more are loaded.
+    Pages,
     /// The commits from the first page, for another history: the bar runs, and the rows listed are dimmed.
     Again,
 }

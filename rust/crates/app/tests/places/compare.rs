@@ -231,7 +231,7 @@ fn compare_page__closing_the_page_while_it_is_compared_drops_the_answer_without_
         })
         .unwrap();
     let _closed = reduce(&mut state, Message::Intent(Intent::ClosePage));
-    let answer = jobs::run(&job, &CancelToken::new());
+    let answer = jobs::messages(&job, &CancelToken::new()).into_iter().next().unwrap();
     let _dropped = reduce(&mut state, answer);
     assert_eq!(state.compares.pages, []);
     assert_eq!(state.page_shown(), None);

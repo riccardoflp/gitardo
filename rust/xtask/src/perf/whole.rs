@@ -30,8 +30,7 @@ pub fn run(engine: &mut Engine, repository: &str, times: usize, out: &mut impl W
         let Some(whole) = read_whole(engine, repository)? else {
             writeln!(
                 out,
-                "
-The whole history could not be read: the engine answered with an error."
+                "\nThe whole history could not be read: the engine answered with an error."
             )?;
             return Ok(());
         };

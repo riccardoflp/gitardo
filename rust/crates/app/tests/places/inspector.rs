@@ -240,7 +240,10 @@ fn details_show__the_close_button_closes_the_inspector_and_a_read_that_comes_lat
     let job = job.clone();
     ask(&mut state, Intent::Details(DetailsIntent::Close));
     assert_eq!(state.timeline.selected, None);
-    let late = app::work::jobs::run(&job, &git::CancelToken::new());
+    let late = app::work::jobs::messages(&job, &git::CancelToken::new())
+        .into_iter()
+        .next()
+        .unwrap();
     let _ = app::store::reduce(&mut state, late);
     assert_eq!(
         state.inspector.read,

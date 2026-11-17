@@ -115,11 +115,7 @@ impl ReadClock {
         let JobKind::ReadRepository { folder, request } = &job.kind else {
             return None;
         };
-        let line = format!(
-            "read {}: the state and {} pages of commits",
-            slashes(folder),
-            request.pages
-        );
+        let line = format!("read {}: the state and the commits", slashes(folder));
         let _replaced = self.started.insert(job.id, (Instant::now(), now, line));
         let reason = state
             .reads

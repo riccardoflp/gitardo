@@ -1,15 +1,17 @@
-//! The commits the graph lists, a page at a time, and where a commit is in them.
+//! The commits the graph lists, a page at a time as git prints them, and where a commit is in them.
 //!
 //! Each read's arguments and parser are apart and public (rule R2.5), so that the golden tests record exactly what the
 //! read asks git and parse it without git.
 
 mod commits;
+mod pages;
 mod position;
 
 use std::ffi::OsString;
 
 pub use commits::{
-    CommitPage, CommitsRequest, commits_arguments, parse_stash_commits, read_commits, stashes_arguments,
+    CommitPage, CommitsRequest, READ_LIMIT, ReadEnd, commits_arguments, parse_stash_commits, read_commits,
+    read_commits_at_once, stashes_arguments,
 };
 pub use position::{PositionRequest, parse_position, position_arguments, read_position};
 

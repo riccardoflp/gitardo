@@ -6,6 +6,8 @@
 
 #[path = "graph_read/golden.rs"]
 mod golden;
+#[path = "graph_read/pages.rs"]
+mod pages;
 #[path = "graph_read/speed.rs"]
 mod speed;
 
@@ -15,7 +17,9 @@ use std::io::Write as _;
 use std::process::{Command, Stdio};
 
 use git::Git;
-use git::read::graph::{CommitPage, CommitsRequest, History, Parents, PositionRequest, read_commits, read_position};
+use git::read::graph::{
+    CommitPage, CommitsRequest, History, Parents, PositionRequest, read_commits_at_once, read_position,
+};
 use git::read::repo::{StateRequest, read_state};
 use model::CommitId;
 use model::graph::{GraphSettings, LabelKind, PageSize, Row, labels};
@@ -50,19 +54,20 @@ fn request(history: History, page_size: PageSize, pages: usize) -> CommitsReques
     CommitsRequest {
         history,
         page_size,
-        pages,
+        count: 0,
         skip: 0,
         stashes: Vec::new(),
     }
+    .with_pages(pages)
 }
 
 /// Reads the commits of a throwaway repository.
 fn read(repository: &Repository, request: &CommitsRequest) -> CommitPage {
-    read_commits(&Git::new(repository.path()), request).unwrap()
+    read_commits_at_once(&Git::new(repository.path()), request).unwrap()
 }
 
 /// The state of a throwaway repository.
-fn state(repository: &Repository) -> RepositoryState {
+pub(crate) fn state(repository: &Repository) -> RepositoryState {
     let request = StateRequest {
         folder: repository.path().to_path_buf(),
     };
@@ -70,7 +75,7 @@ fn state(repository: &Repository) -> RepositoryState {
 }
 
 /// The commits of the rows, without the stashes.
-fn commits(page: &CommitPage) -> Vec<&model::commit::Commit> {
+pub(crate) fn commits(page: &CommitPage) -> Vec<&model::commit::Commit> {
     page.rows
         .iter()
         .filter_map(|row| match row {
@@ -109,19 +114,6 @@ pub(crate) fn import_line(repository: &Repository, count: u64) {
     child.stdin.take().unwrap().write_all(stream.as_bytes()).unwrap();
     assert!(child.wait().unwrap().success(), "git fast-import failed");
     let _ = repository.git(&["reset", "--quiet", "--hard", "main"]);
-}
-
-#[test]
-fn graph_read_commits__one_page_of_2500_commits_reads_1000_and_three_read_them_all() {
-    let repository = Repository::new();
-    import_line(&repository, 2_500);
-    let one = read(&repository, &request(history(everything()), PageSize::DEFAULT, 1));
-    assert_eq!(one.rows.len(), 1_000);
-    assert!(one.has_more);
-    let three = read(&repository, &request(history(everything()), PageSize::DEFAULT, 3));
-    assert_eq!(three.rows.len(), 2_500);
-    assert!(!three.has_more);
-    assert_eq!(commits(&three)[0].subject, "Change 2500");
 }
 
 #[test]

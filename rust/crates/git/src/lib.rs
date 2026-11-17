@@ -10,4 +10,4 @@ mod exec;
 pub mod read;
 
 pub use error::GitError;
-pub use exec::{CancelToken, Git, Output, command_line};
+pub use exec::{CancelToken, Git, Output, Taken, command_line};

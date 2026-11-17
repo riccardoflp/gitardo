@@ -299,7 +299,8 @@ fn worktree_show_in_graph__a_worktree_on_a_commit_far_down_the_history_is_loaded
     let mut state = super::window();
     state.settings.page_size = model::graph::PageSize::from_setting(Some(100.0));
     let folders = vec![repository.path().to_path_buf()];
-    let _effects = run(&mut state, Message::Started { folders });
+    let mut held = std::collections::VecDeque::new();
+    let _effects = super::support::run_holding(&mut state, Message::Started { folders }, &mut held);
     assert!(!state.timeline.layout.shown_of.contains_key(&commit), "not loaded yet");
     let _driver = run_operation(
         &mut state,
@@ -307,6 +308,7 @@ fn worktree_show_in_graph__a_worktree_on_a_commit_far_down_the_history_is_loaded
         Target::Worktree(folder),
         Answers::new(),
     );
+    super::support::give_held(&mut state, &mut held);
     assert!(state.timeline.layout.shown_of.contains_key(&commit), "loaded");
     assert_eq!(state.timeline.selected, Some(views::graph::Selected::Commit(commit)));
 }

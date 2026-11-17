@@ -164,7 +164,7 @@ fn start(state: &mut State, started: StartedRead) -> Option<Effect> {
         stopped(state);
         return None;
     };
-    let request = super::timeline::read_request(state, state.timeline.pages);
+    let request = super::timeline::read_request(state);
     let id = JobId(state.next_job);
     state.next_job += 1;
     let kind = JobKind::ReadRepository { folder, request };
