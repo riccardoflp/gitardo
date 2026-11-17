@@ -76,8 +76,9 @@ history fills it, and everything else opens from it.
   what the timeline shows. The commits of what is checked out are the timeline narrowed to the branch checked out. The
   rail can be narrowed to icons or hidden.
 - **Timeline**: the commits with their lanes, two lines a row: its labels as pills, then the subject, then the author
-  and the date; the short hash on the right. The labels that do not fit are counted, and listed under the pointer. The
-  selected commit is shown in the inspector.
+  and the date; the short hash on the right. The labels that do not fit are counted, and listed under the pointer.
+  With **Compact rows** on, a row is one line: the labels, the subject, then the author, the date and the hash in
+  columns at the right end. The selected commit is shown in the inspector.
 - **Draft**: the first card of the timeline when there are uncommitted changes: the message of the next commit, how
   many files changed and how many are staged, **Review**, which opens the **Changes** page, and **Commit**, and nothing
   else: amending, the message drafted by the AI and the identity are on the Changes page. While the timeline is

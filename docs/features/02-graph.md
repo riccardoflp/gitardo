@@ -86,9 +86,10 @@ inspector of the selected commit: what the window shows while no page is open, a
 - **Entry points**: the window, while no page is open; **Timeline**, the first step of the trail of a page; **Open
   Timeline** in Quick search shows it.
 - **Uses**: `graph.toolbar`, `refs.tree`, `graph.lanes`, `graph.fit-width`, `graph.labels`, `graph.label-overflow`,
-  `graph.columns`, `graph.load-more`, `graph.uncommitted-row`, `graph.stashes`, `graph.hover-history`, `graph.trace-selected`,
-  `graph.fold-merge`, `graph.sticky-branch-names`, `graph.scroll-marks`, `graph.keyboard`, `graph.resize-panes`,
-  `filter.bar`, `details.show`, `selection.select`, `drag.drop`, `commit-page.open`, `branch.open`.
+  `graph.columns`, `graph.compact-rows`, `graph.load-more`, `graph.uncommitted-row`, `graph.stashes`,
+  `graph.hover-history`, `graph.trace-selected`, `graph.fold-merge`, `graph.sticky-branch-names`, `graph.scroll-marks`,
+  `graph.keyboard`, `graph.resize-panes`, `filter.bar`, `details.show`, `selection.select`, `drag.drop`,
+  `commit-page.open`, `branch.open`.
 
 - From left to right: the branch rail (`refs.tree`), the commits, the inspector of the selected commit (`details.show`).
   When the window is too narrow to have them side by side, the side column is put away, its button at the top of the
@@ -102,7 +103,8 @@ inspector of the selected commit: what the window shows while no page is open, a
   labels (`graph.labels`) first, right after the cell of the graph, then its message; under them the columns
   `graph.columns` asks for. The labels take at most the room the message leaves them, and those that do not fit are
   one label `+N`, whose list opens under the pointer (`graph.label-overflow`). The labels are outlined in the color of
-  the commit's line; the branch checked out is the one filled in.
+  the commit's line; the branch checked out is the one filled in. With **Compact rows** on, each row is one line, as
+  tall as a row of a list: the labels, the message, then the columns at the right end (`graph.compact-rows`).
 - A click selects a commit and shows it in the inspector; `Ctrl`+click (`Cmd` on macOS) and `Shift`+click select several
   (`selection.select`). A double click, or `Enter`, opens it as a page (`commit-page.open`). A double click on the
   label of a branch checks it out instead, or does what `branch.open` does for it, as in the branch rail. A
@@ -565,7 +567,8 @@ In this order, separated in groups:
    line** (`graph.one-lane`); **Bring out the history of the selected commit** (`graph.trace-selected`); **Fold all
    merges** and **Unfold all merges** (`graph.fold-all`), while the graph has its lines and is not on one line.
 3. **Show the author**, **Show the date**, **Show the hash** (`graph.columns`); **Separate the days, weeks and months**
-   (`graph.date-separators`); **Put a branch and its upstream on one label** (`graph.combine-upstream`).
+   (`graph.date-separators`); **Put a branch and its upstream on one label** (`graph.combine-upstream`); **Compact
+   rows** (`graph.compact-rows`).
 4. **Compare branches, tags or commits…** (`compare.choose`), **Go to commit…** (`search.go-to-commit`), **History of
    the active file** (`file-history.file`) of the File page in front, which says to open a file when none is,
    **Reflog** (`reflog.browse`), **Clean up branches…** (`branch.clean-up`), **Apply patch…** (`patch.apply`),
@@ -1199,12 +1202,65 @@ Who made each commit and when, on the line under its message, and its hash at th
 - What is left out gives its room to the messages.
 - In the narrow layout of the window, the hash is not shown.
 - The draft has none of them.
+- With **Compact rows** on, the three are columns at the right end of the one line of each row, after the message,
+  each as wide on every row (`graph.compact-rows`); the same switches choose them.
 
 Acceptance:
 
 - [ ] By default each row shows the author, the date and the short hash.
 - [ ] Unchecking **Show the date** removes the dates from the line under each message.
 - [ ] A commit made 90 minutes ago says `1h ago`, and its tooltip the full date.
+
+### `graph.compact-rows` — Each commit on one line
+
+The timeline as a table: each commit on one line, its labels, its message, then its author, its date and its hash in
+columns that line up, on rows half as tall, so that twice as many commits are seen at once
+([D65](../08-decisions.md#d65--compact-rows-each-commit-on-one-line)).
+
+- **Kind**: View
+- **Function**: `views::graph::compact_rows_view(state: &CompactRow, ui) -> Vec<Intent>`
+- **Entry points**: **Compact rows** in the **…** menu (`graph.more-menu`); **Compact rows** in the **Timeline**
+  section of the settings.
+- **Settings**: `graph.compactRows` (off by default), in the user's settings file.
+- **Uses**: `graph.columns`, `graph.labels`, `graph.label-overflow`, `graph.lanes`, `graph.date-separators`,
+  `graph.uncommitted-row`, `graph.stashes`.
+
+- On, each row of the timeline is as tall as a row of a list, half the two lines (Q648), and the cell of the graph is
+  as tall: the dots and the lines keep their sizes and their lanes, closer from row to row.
+- A commit is one line: its labels first, by the rules of `graph.label-overflow`, `+N` and its list included; its
+  message, shortened with an ellipsis; the arrow of the fold of a merge; then, at the right end, the author, the date
+  and the hash that `graph.columns` asks for, in this order, each from the start of its column. The columns are as wide
+  on every row (Q649): the author 120 pixels, a fifth of the line at most, a longer name shortened; the date as wide as
+  the longest date the timeline says; the hash seven characters. A column that is not shown gives its room to the
+  messages. The date keeps its tooltip, the full date.
+- Together the columns take half of the line at most: on a line too short for them the hash leaves first, then the
+  author, and the date stays (Q650). In the narrow layout of the window the hash is not shown, as on two lines.
+- The draft is one line too: its message, what it changes after it, **Review** and **Commit** as tall as the row lets
+  them (Q652). A stash and the row of a fold were one line already. The line of a day, a week or a month
+  (`graph.date-separators`) has its name where the messages end, before the columns, where neither the labels nor the
+  columns are under it (Q651).
+- Turning it on or off draws the rows again without reading them, and so does the setting changed in the file (Q654).
+  The row at the top of the list stays at the top, and the commit selected stays in sight when it was (Q653). The
+  selection, the search, the history brought out, the folds, the next commits loaded while scrolling and the marks
+  beside the scroll bar are as before.
+
+Acceptance:
+
+- [ ] Turning it on writes `"graph.compactRows": true` in the user's settings, and asks no read of the repository.
+- [ ] On, each commit is a row as tall as a row of a list; off, as tall as before.
+- [ ] On, in a window 1400 pixels wide, the author, the date and the hash of three commits by authors and of dates of
+      different lengths each start at the same place on every row, at the right end.
+- [ ] On, unchecking **Show the author**, **Show the date** or **Show the hash** takes its column out and leaves the
+      other two.
+- [ ] On, in a window 1000 pixels wide with the side column and the inspector open, the hash and the author leave and
+      the date stays.
+- [ ] On, a commit with six labels starts its row with those that fit and `+N`, and resting on `+N` opens their list
+      under it.
+- [ ] On, the draft and a stash are rows as tall as those of the commits, the draft with **Review** and **Commit** on
+      its line.
+- [ ] **Compact rows** is in the **…** menu, and choosing it turns it on, then off.
+- [ ] Turning it on or off keeps the row at the top of the list at the top, and a commit selected in sight stays in
+      sight.
 
 ### `graph.date-separators` — Lines between days, weeks and months
 

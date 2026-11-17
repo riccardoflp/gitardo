@@ -8,6 +8,7 @@ use ui::layout::{Align, Insets, inset, place};
 use ui::{AccessRole, Label, List, Rect, Reveal, Selection, SelectionMode, Steering, Tone, Ui};
 
 use super::commit_menu::{commit_menu, double_click_label, menu_key, open_row_menu};
+use super::compact::{CompactWidths, RowLines};
 use super::draft::{draft_entry_intent, draft_menu};
 use super::edge::{GraphEdgeState, resize_graph_view};
 use super::hover::{HoverState, hover_history_view};
@@ -89,11 +90,16 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
         wanted: state.graph_width,
     };
     let fit = edge.fit(rect.width);
+    let is_narrow = ui.window().width < INSPECTOR_OVER_BELOW;
     let context = RowContext {
         state,
         graph_width: fit.width,
         lane_width: fit.lane_width,
-        is_narrow: ui.window().width < INSPECTOR_OVER_BELOW,
+        is_narrow,
+        compact: (RowLines::of(state.switches) == RowLines::One).then(|| {
+            let line = (rect.width - fit.width - 2.0 * theme.sizes.spacing.large).max(0.0);
+            CompactWidths::of(ui, state.switches, is_narrow, line)
+        }),
     };
     let several = Several::of(state);
     let (mut intents, list_rect) = selection_bar(state, ui, rect, several.as_ref());
@@ -141,7 +147,7 @@ fn marks(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
             .map(|row| (row, state.layout.cells.get(row).map_or(0, |cell| cell.color))),
         selected: selected_row(state),
         found: state.found,
-        row_height: theme.sizes.timeline_row_height,
+        row_height: RowLines::of(state.switches).row_height(ui),
     };
     let strip = Rect::new(
         rect.right() - theme.sizes.scrollbar - MARKS_WIDTH,
@@ -216,7 +222,7 @@ fn history(
     let list = List {
         name: words::HISTORY,
         row_count: state.layout.len() + usize::from(state.has_more),
-        row_height: ui.theme().sizes.timeline_row_height,
+        row_height: RowLines::of(state.switches).row_height(ui),
         selection_mode: SelectionMode::Single,
         lead: context.graph_width,
     };

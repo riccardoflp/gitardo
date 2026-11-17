@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 459 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 460 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -18,7 +18,7 @@ earns it.
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 30 |
-| [02-graph.md](02-graph.md) | Graph | 56 |
+| [02-graph.md](02-graph.md) | Graph | 57 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 22 |
@@ -109,6 +109,7 @@ earns it.
 | [`graph.hover-history`](02-graph.md#graphhover-history--the-history-of-a-label-under-the-pointer) | The history of a label under the pointer | View | Built | Built |
 | [`graph.trace-selected`](02-graph.md#graphtrace-selected--the-history-of-the-selected-commit) | The history of the selected commit | View | Built | Built |
 | [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Built | Built |
+| [`graph.compact-rows`](02-graph.md#graphcompact-rows--each-commit-on-one-line) | Each commit on one line | View | Built | Planned |
 | [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Built | Built |
 | [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Built | Built |
 | [`graph.one-lane`](02-graph.md#graphone-lane--all-commits-on-one-line) | All commits on one line | Derivation | Built | Built |

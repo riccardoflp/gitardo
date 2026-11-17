@@ -139,11 +139,13 @@ pub enum TimelineSwitch {
     CombineUpstream,
     /// `graph.oneLane`.
     OneLane,
+    /// `graph.compactRows`.
+    CompactRows,
 }
 
 impl TimelineSwitch {
     /// Every switch, in the order of the menu.
-    pub const ALL: [TimelineSwitch; 9] = [
+    pub const ALL: [TimelineSwitch; 10] = [
         TimelineSwitch::ShowStashes,
         TimelineSwitch::FirstParent,
         TimelineSwitch::OneLane,
@@ -153,6 +155,7 @@ impl TimelineSwitch {
         TimelineSwitch::Hash,
         TimelineSwitch::DateSeparators,
         TimelineSwitch::CombineUpstream,
+        TimelineSwitch::CompactRows,
     ];
 }
 
@@ -161,7 +164,7 @@ impl TimelineSwitch {
 pub struct Switches(u16);
 
 impl Switches {
-    /// The switches on by default: all but `graph.firstParent` and `graph.oneLane`.
+    /// The switches on by default: all but `graph.firstParent`, `graph.oneLane` and `graph.compactRows`.
     pub const DEFAULT: Switches = Switches(0b1111_1101);
 
     /// Whether a switch is on.

@@ -18,6 +18,7 @@ mod changes_beside;
 mod changes_save;
 mod close_tabs;
 mod commit_page;
+mod compact_rows;
 mod compare;
 mod compare_actions;
 mod compare_chooser;

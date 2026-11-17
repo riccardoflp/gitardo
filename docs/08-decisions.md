@@ -3525,3 +3525,30 @@ otherwise.
 - **Q647** — `graph.label-overflow`: a click on a label of the list selects the commit and leaves the list open, as a
   click on the row does with the pointer still there; a double click and a right click close it, the menu opened by the
   right click staying open. Each label in the list has the badge of its pull request, which a click opens on GitHub.
+- **Q648** — `graph.compact-rows`: how tall a compact row is. Built: as tall as a row of a list of the theme, 26
+  pixels, half of the 52 of the two lines, so that the timeline and the lists beside it have the same rhythm. The dots
+  and the lines of the graph keep their sizes; the labels, as tall as before, leave four pixels over and under them.
+- **Q649** — `graph.compact-rows`: the widths of the columns. Built: the author 120 pixels, a fifth of the line at
+  most, a longer name shortened with an ellipsis; the date as wide as the longest date the timeline says, measured in
+  the font of the theme over the twelve months, so that `2d ago` and `Nov 20, 2024` start at the same place; the hash
+  seven characters of the font of code. They start from the left of their columns, 16 pixels apart, in the order
+  author, date, hash, and have no header and no handle to resize them. Are a header, or columns resized by dragging,
+  wanted?
+- **Q650** — `graph.compact-rows`: a line too short for the three columns, as with the side column and the inspector
+  open in a window 1000 pixels wide. Built: together the columns take half of the line at most; past it the hash
+  leaves, then the author, each as a whole so that those left still line up, and the date stays. The settings are not
+  changed: wider, the columns come back.
+- **Q651** — `graph.compact-rows`: the name of a line between days, weeks and months (`graph.date-separators`). On two
+  lines it is at the start of the line, over the gap between two rows; between compact rows the labels are under it
+  there, and the columns at the end. Built: the name ends where the messages end, before the first column, on a back
+  as tall as the gap between two lines of text, and the line runs the whole row as before. A long message ends close
+  under it.
+- **Q652** — `graph.compact-rows`: the draft. Built: one line in its dashed card, the message first, what it changes
+  after it on the same line, **Review** and **Commit** as tall as the row lets them, lower than the buttons of the two
+  lines.
+- **Q653** — `graph.compact-rows`: where the list is after the switch. Built: the row at the top stays at the top, and
+  the commit selected, when it was in sight, is scrolled the least to stay in sight; one that was out of sight is not
+  gone to. It is done by the list of the toolkit for any list whose rows change height from one frame to the next.
+- **Q654** — `graph.compact-rows`: the switch is the last entry of the group of the columns in the **…** menu, until
+  the menu of the view takes the switches (D66). `graph.compactRows` changed in the settings file asks no read of the
+  repository, as `graph.oneLane` (Q489): the rows are only drawn again.

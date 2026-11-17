@@ -10,6 +10,12 @@
   right click opens its menu, and resting on it brings out its history. The list closes when the pointer leaves it and
   the labels, on `Escape` or on a click elsewhere, and opens above its label near the foot of the window. The narrow
   window counts the labels by the same rule, and `+N` has no tooltip any more.
+- **Compact rows**, in the **…** menu and in the **Timeline** section of the settings, or `graph.compactRows`, off by
+  default, shows each commit of the timeline on one line, on rows half as tall: its labels, its message, then at the
+  right end its author, its date and its hash, those **Show the author**, **Show the date** and **Show the hash** ask
+  for, in columns that start at the same place on every row. On a line too short for them the hash leaves first, then
+  the author. The draft, the stashes and the lines between days, weeks and months are one line too, the graph follows
+  the lower rows, and the row at the top of the list stays there when the rows change.
 - The logo of Gitardo, the one of the extension, is at the top left of the window, in the accent of the theme, in a
   square above the bar of views, which starts under it; the header starts with the name **Gitardo**, before the
   repository, the worktree and the branch. In a narrow window the name goes and the logo stays. Neither does anything

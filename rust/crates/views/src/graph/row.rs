@@ -11,6 +11,7 @@ use ui::{Point, Rect, Sense, TextKind, TextRun, Ui};
 use super::cell::{CellPlace, Dot, draw_cell};
 use super::columns::{ColumnsState, columns_view, hash_room};
 use super::commit_menu::PointedLabel;
+use super::compact::{CompactRow, CompactWidths, RowLines, compact_rows_view};
 use super::draft::{UncommittedRow, uncommitted_row_view};
 use super::fold::{FoldsState, fold_merge_view};
 use super::intent::{GraphIntent, HoverTarget, Selected};
@@ -35,6 +36,9 @@ pub(crate) struct RowContext<'a> {
     pub lane_width: f32,
     /// Whether the window is narrow: the hash is not shown.
     pub is_narrow: bool,
+    /// The widths of the columns at the end of compact rows; none while each row has two lines
+    /// (`graph.compact-rows`).
+    pub compact: Option<CompactWidths>,
 }
 
 /// What the rows drawn in a frame report.
@@ -113,6 +117,7 @@ fn row_text(
                 draft: context.state.draft.unwrap_or_default(),
                 is_selected: row.is_selected,
                 commit: context.state.commit_box,
+                lines: RowLines::of(context.state.switches),
             };
             report
                 .intents
@@ -184,6 +189,10 @@ fn commit_row(
 ) {
     let theme = *ui.theme();
     let switches = context.state.switches;
+    if let Some(widths) = context.compact {
+        compact_row(ui, context, (row, rect, commit), widths, report);
+        return;
+    }
     let hash = hash_room(ui, switches, context.is_narrow);
     let mut area = Area::with_gap(rect, theme.sizes.spacing.large);
     let _hash = area.right(hash);
@@ -213,6 +222,39 @@ fn commit_row(
         top: top + first + gap,
     };
     report.intents.extend(ui.clip(rect, |ui| columns_view(&columns, ui)));
+}
+
+/// A commit on one line (`graph.compact-rows`): its labels and its message, then at the right end its author, its date
+/// and its hash, each in its column.
+fn compact_row(
+    ui: &mut Ui<'_>,
+    context: &RowContext<'_>,
+    (row, rect, commit): (&ui::Row, Rect, &Commit),
+    widths: CompactWidths,
+    report: &mut RowReport,
+) {
+    let room = widths.room(ui.theme().sizes.spacing.large);
+    let line = Rect::new(rect.x, rect.y, (rect.width - room).max(0.0), rect.height);
+    let style = ui.text_style(if row.is_selected {
+        TextKind::Strong
+    } else {
+        TextKind::Medium
+    });
+    let top = place(line, (line.width, ui.line_height(style)), (Align::Start, Align::Center)).y;
+    subject_line(ui, context, (row, line, top, commit), report);
+    let state = CompactRow {
+        columns: ColumnsState {
+            author: &commit.author_name,
+            date: commit.author_date.0,
+            hash: commit.id.short(),
+            switches: context.state.switches,
+            now: context.state.now,
+            is_narrow: context.is_narrow,
+            top,
+        },
+        widths,
+    };
+    report.intents.extend(ui.clip(rect, |ui| compact_rows_view(&state, ui)));
 }
 
 /// The first line of a commit, from the top of the lines: its labels from the start, then its message, then the fold
@@ -266,7 +308,9 @@ fn subject_line(
     }
 }
 
-/// The line before a row that starts a day, a week or a month further back, with its name (`graph.date-separators`).
+/// The line before a row that starts a day, a week or a month further back, with its name (`graph.date-separators`):
+/// at the start of the line, or between compact rows where the messages end, before the columns: their labels leave
+/// it no room at the start, and their columns none at the end.
 fn separator(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row) {
     let Some(name) = context.state.layout.separators.get(&row.index) else {
         return;
@@ -278,13 +322,21 @@ fn separator(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row) {
     let style = ui.text_style(TextKind::Small);
     let width = ui.measure(name, style) + 2.0 * theme.sizes.spacing.small;
     let height = ui.line_height(style);
-    let back = Rect::new(x, row.rect.y - height * 0.5, width, height);
+    let back = if let Some(widths) = context.compact {
+        let between = row.rect.height - ui.line_height(ui.text_style(TextKind::Detail));
+        let covered = height.min(between);
+        let end = row.rect.right() - theme.sizes.spacing.large - widths.room(theme.sizes.spacing.large);
+        let left = (end - width).max(x);
+        Rect::new(left, row.rect.y - covered * 0.5, width, covered)
+    } else {
+        Rect::new(x, row.rect.y - height * 0.5, width, height)
+    };
     ui.fill_rect(back, theme.colors.page_background);
     let run = TextRun {
         text: name,
         style,
         color: theme.colors.muted_foreground,
-        origin: Point::new(x + theme.sizes.spacing.small, back.y),
+        origin: Point::new(back.x + theme.sizes.spacing.small, row.rect.y - height * 0.5),
         max_width: None,
     };
     let _ = ui.text(&run);

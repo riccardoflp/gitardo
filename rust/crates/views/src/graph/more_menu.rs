@@ -122,6 +122,7 @@ fn switch_words(switch: TimelineSwitch) -> &'static str {
         TimelineSwitch::Hash => words::SHOW_HASH,
         TimelineSwitch::DateSeparators => words::DATE_SEPARATORS,
         TimelineSwitch::CombineUpstream => words::COMBINE_UPSTREAM,
+        TimelineSwitch::CompactRows => words::COMPACT_ROWS,
     }
 }
 
@@ -173,6 +174,7 @@ fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> 
         TimelineSwitch::Hash,
         TimelineSwitch::DateSeparators,
         TimelineSwitch::CombineUpstream,
+        TimelineSwitch::CompactRows,
     ] {
         entries.push(switch_item(menu.switches, switch));
     }
