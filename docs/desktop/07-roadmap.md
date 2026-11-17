@@ -295,6 +295,28 @@ inspector phase 10 changes.
     editor; `gitardo.graph.oneLane` and its switch in the Graph view. Cards: `settings.sections` and `graph.one-lane` in
     the extension.
 
+Phases 13 to 17 were asked by the maintainer after trying the window built by the first twelve
+([D57](../08-decisions.md#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)),
+desktop only:
+
+13. **Worktrees in the side column.** A repository of **Repositories** with worktrees or submodules folds out by a
+    chevron at its left, its worktrees and its submodules as rows under it, indented, each with the same branch, files
+    changed and `↓ ↑`, the one shown marked; a click on one shows it. The **▾** menu of a row goes. Cards:
+    `repo.tabs`, `repo.group-tabs`, `repo.worktree-summary`, `repo.side-column`.
+14. **A side column that takes less room.** The same things in less height and less width: a repository, a worktree
+    and a branch each on one line where they fit, smaller gaps between rows and sections, the heading of **Branches**
+    and its buttons on one line. Cards: `repo.side-column`, `repo.tabs` and the cards of the rail it changes.
+15. **The side column put away from every page.** The button that puts the side column away and brings it back is in
+    the title row of every page as it is in the top row of the timeline, at the same place, with the same key. Cards:
+    `repo.side-column`, `graph.toggle-references`.
+16. **The Changes page beside what it opens.** A file of the Changes page opens its Diff page or its File page on the
+    right of the list of changes, which stays as a column, the file shown marked, staging and discarding still done
+    from it; another file of the list opens in the same place. Cards: `changes.beside-file`, `changes.open`,
+    `changes.pane`.
+17. **The way back, in the title of a page.** The title row of a page says the way it was reached, one name for each
+    page it was opened from, each going back to that page as it was left; at most four names, those in between folded
+    into **…**, which lists them; `Alt+Left` goes back one. Cards: `ui.page-trail`.
+
 Exit: the **…** menu of a window 400 logical pixels high opens under its button and reaches its last entry; the settings
 page opens in the middle of a window 1,600 logical pixels wide with **General** marked, `blame` typed in its search
 leaves only **Files and blame** lit, and `graph.pageSize` set to 500 on it writes only that key, comments kept; with
@@ -305,7 +327,12 @@ its **▾** with its own; folding **Branches** gives its height to **Repositorie
 status bar, which is as high as before; a file of a commit opened from the inspector leaves no side column and the
 commit's files as a tree on the right; a file of a comparison opened from its page leaves the comparison on the right;
 `main` then `feature` chosen in the chooser opens `main ↔ feature`; every card of the phase passes its tests, and the
-snapshots of the window, the settings page and the chooser match, in each theme.
+snapshots of the window, the settings page and the chooser match, in each theme; the worktrees of a repository are rows under it
+in **Repositories**, shown by a click; the side column of a repository with three worktrees and two local branches is
+less high than before phase 14; the side column is put away and brought back from the settings page, the Changes page
+and a Diff page; a file of the Changes page opened in its Diff page leaves the list of changes on its left; a File page
+opened from the Diff page of a file of a commit says `Timeline › <commit> › <file>` and its commit goes back to the
+Diff page.
 
 ## Before a release
 

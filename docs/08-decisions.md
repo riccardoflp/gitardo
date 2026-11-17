@@ -978,6 +978,37 @@ always shown, so that the repository, the worktree and the branch are always see
 `compare.choose` kept with a better picker (the first side is not seen while the second is chosen,
 and changing one side asks both again).
 
+## D57 — Worktrees in the side column, pages that keep what opened them, the way back in the title
+
+*Asked by the maintainer for milestone M16 after trying the window its first twelve phases built; the details
+proposed by the agent, as the maintainer left them to it.*
+
+Five changes to the window of Gitardo Desktop
+([the roadmap](desktop/07-roadmap.md#m16--the-settings-in-sections-and-a-side-column)):
+
+- **Worktrees in the side column, not in a menu.** The worktrees and the submodules of a repository are rows under its
+  row in **Repositories**, folded out by a chevron at its left and indented, each with its branch, its files changed and
+  `↓ ↑`; the one shown is marked, and a click shows it. The **▾** menu of D56 goes, since one had to open it to see
+  what each worktree is on (`repo.group-tabs`, `repo.worktree-summary`).
+- **A side column that takes less room.** Its rows on one line where they fit, smaller gaps, the heading of
+  **Branches** and its buttons on one line, so that more repositories and branches are seen at once
+  (`repo.side-column`).
+- **The side column put away from every page.** The button that puts it away is in the title row of every page, at the
+  same place as in the top row of the timeline, since the pages need the room as much as the timeline
+  (`repo.side-column`).
+- **The Changes page beside what it opens.** A file of the Changes page opens its diff or the file on the right of the
+  list of changes, which stays as a column, as the Files page keeps its tree since M14, so that a review goes from file
+  to file without coming back to the list (`changes.beside-file`).
+- **The way back, in the title of a page.** The title row of a page names the pages it was reached through, each a way
+  back to that page as it was left, rather than always `Timeline › <page>`. Its limits: the way is the chain of pages
+  each opened from the one before; a page opened from the bar of views, Quick search, the side column or a key starts
+  the way again from the timeline; going back to a name drops what came after it; a page already on the way is gone
+  back to rather than added again, so the way has no loops; at most four names are shown, those in between folded into
+  **…**; `Alt+Left` goes back one (`ui.page-trail`).
+
+In the extension nothing changes: VS Code has its own Source Control repositories, its editors beside the Changes view
+and its own way back.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
