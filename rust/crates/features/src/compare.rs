@@ -35,6 +35,14 @@ pub const RECENT: AnswerKey = AnswerKey("recent");
 pub const FIRST: AnswerKey = AnswerKey("first");
 /// The key of the second side chosen.
 pub const SECOND: AnswerKey = AnswerKey("second");
+/// The key of the revision typed for the first side, which the comparison chooser gives with its commit.
+pub const FIRST_REVISION: AnswerKey = AnswerKey("first-revision");
+/// The key of the commit of the revision typed for the first side.
+pub const FIRST_COMMIT: AnswerKey = AnswerKey("first-commit");
+/// The key of the revision typed for the second side.
+pub const SECOND_REVISION: AnswerKey = AnswerKey("second-revision");
+/// The key of the commit of the revision typed for the second side.
+pub const SECOND_COMMIT: AnswerKey = AnswerKey("second-commit");
 
 /// The prompt of the box where a revision is typed.
 const REVISION_PROMPT: &str = "A commit hash, or anything else git understands: HEAD~3, v1.0^, main@{yesterday}";
@@ -55,14 +63,14 @@ impl SideKeys {
     /// The keys of the first side.
     pub(crate) const FIRST: SideKeys = SideKeys {
         picked: FIRST,
-        typed: AnswerKey("first-revision"),
-        commit: AnswerKey("first-commit"),
+        typed: FIRST_REVISION,
+        commit: FIRST_COMMIT,
     };
     /// The keys of the second side.
     pub(crate) const SECOND: SideKeys = SideKeys {
         picked: SECOND,
-        typed: AnswerKey("second-revision"),
-        commit: AnswerKey("second-commit"),
+        typed: SECOND_REVISION,
+        commit: SECOND_COMMIT,
     };
 }
 

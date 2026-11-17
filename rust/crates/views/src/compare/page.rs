@@ -117,6 +117,16 @@ fn sides(state: &CompareState<'_>, ui: &mut Ui<'_>, row: Rect, intents: &mut Vec
     side(state, (&state.target.second, false), ui, &mut parts, intents);
 }
 
+/// The icon of a side: the files for the working tree, a commit for a side given by its hash, a branch for one that
+/// follows its name.
+pub(super) fn side_icon(side: &CompareSide) -> ui::Icon {
+    match &side.side {
+        Side::WorkingTree => icons::EDITED,
+        Side::Commit(_) if !side.is_followed => icons::COMMIT,
+        Side::Commit(_) => icons::BRANCH,
+    }
+}
+
 /// A side: the button that chooses another in its place, its short hash and **gone**.
 fn side(
     state: &CompareState<'_>,
@@ -125,11 +135,7 @@ fn side(
     parts: &mut Area,
     intents: &mut Vec<Intent>,
 ) {
-    let icon = match &side.side {
-        Side::WorkingTree => icons::EDITED,
-        Side::Commit(_) if !side.is_followed => icons::COMMIT,
-        Side::Commit(_) => icons::BRANCH,
-    };
+    let icon = side_icon(side);
     let tooltip = side.tooltip();
     let button = Button::secondary(&side.name)
         .kind(ButtonKind::Outline)

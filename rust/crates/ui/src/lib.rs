@@ -84,7 +84,8 @@ pub use widget::code_editor::{
     CodeEditor, CodeEditorResponse, CodePlaces, CodeRows, CodeSpan, KeyCommands, LineWrap, code_columns, key_commands,
 };
 pub use widget::dialog::{
-    ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogBody, DialogButton, DialogResponse, DialogRole,
+    ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogBody, DialogButton, DialogPlace, DialogResponse,
+    DialogRole,
 };
 pub use widget::drag::{DragSourceResponse, DropTargetResponse};
 pub use widget::find::{FindResponse, ListSearch, MatchCase};

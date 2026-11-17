@@ -11,11 +11,15 @@ use crate::line::is_narrow;
 use crate::repo::{SideColumnState, side_column};
 
 /// Whether what is shown puts the side column away while it is: a Diff page beside the inspector
-/// (`diff.beside-inspector`).
+/// (`diff.beside-inspector`), or beside a comparison (`compare.beside-diff`).
 pub(super) fn puts_side_away(content: &Content<'_>) -> bool {
     matches!(
         content,
         Content::Timeline(TimelineState::Repository { beside: Some(_), .. })
+            | Content::Page(crate::page::PageHostState {
+                page: crate::page::PageState::CompareBeside(_),
+                ..
+            })
     )
 }
 

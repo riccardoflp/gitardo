@@ -82,6 +82,9 @@ pub enum PageState<'a> {
     Rebase(crate::rebase::TodoPageState<'a>),
     /// A comparison page.
     Compare(CompareState<'a>),
+    /// A comparison page with a file opened, its diff on the left and the comparison on the right
+    /// (`compare.beside-diff`).
+    CompareBeside(Box<crate::compare::BesideDiffState<'a>>),
     /// A Merge page, with its title.
     Merge(crate::merge_view::MergePageState<'a>, &'a str),
     /// The review of the resolutions of the conflicts.
@@ -108,6 +111,7 @@ impl PageState<'_> {
             PageState::Diff(diff) => Page::Diff(diff.id),
             PageState::Rebase(_) => Page::Rebase,
             PageState::Compare(compare) => Page::Compare(compare.id),
+            PageState::CompareBeside(beside) => Page::Compare(beside.compare.id),
             PageState::Merge(merge, _) => Page::Merge(merge.id),
             PageState::Review(_) => Page::Review,
             PageState::File(file) => Page::File(file.id),
@@ -128,6 +132,7 @@ impl PageState<'_> {
             | PageState::Files(_) => self.page().title(),
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
+            PageState::CompareBeside(beside) => beside.diff.title,
             PageState::Merge(_, title) | PageState::NewWorktrees(_, title) => title,
             PageState::Review(review) => review.title,
             PageState::File(file) => file.title,
@@ -136,10 +141,15 @@ impl PageState<'_> {
     }
 
     /// The step of the trail between **Timeline** and the name of the page, with what it asks: **Files**, which shows
-    /// the tree alone again, while a file is opened beside it.
+    /// the tree alone again, while a file is opened beside it; the comparison, which shows it whole again, while the
+    /// diff of one of its files is shown beside it.
     #[must_use]
-    pub fn step(&self) -> Option<(&'static str, Intent)> {
+    pub fn step(&self) -> Option<(&str, Intent)> {
         match self {
+            PageState::CompareBeside(beside) => Some((
+                beside.compare.title,
+                Intent::Compare(crate::compare::CompareIntent::ShowWhole(beside.compare.id)),
+            )),
             PageState::FilesBeside(_) => Some((
                 crate::text::files::PAGE,
                 Intent::Files(crate::files::FilesPageIntent::ShowTree),
@@ -156,6 +166,7 @@ impl PageState<'_> {
             PageState::File(file) => file.is_unsaved,
             PageState::Diff(diff) => diff.is_unsaved,
             PageState::FilesBeside(beside) => beside.file.is_unsaved,
+            PageState::CompareBeside(beside) => beside.diff.is_unsaved,
             _ => false,
         }
     }
@@ -193,6 +204,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Diff(diff) => diff_page_view(diff, ui),
         PageState::Rebase(rebase) => crate::rebase::todo_page_view(rebase, ui),
         PageState::Compare(compare) => compare_page_view(compare, ui),
+        PageState::CompareBeside(beside) => crate::compare::beside_diff_view(beside, ui),
         PageState::Merge(merge, _) => crate::merge_view::page_view(merge, ui),
         PageState::Review(review) => crate::review::page_view(review, ui),
         PageState::File(file) => file_page_view(file, ui),

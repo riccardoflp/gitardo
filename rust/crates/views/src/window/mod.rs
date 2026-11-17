@@ -75,6 +75,8 @@ pub struct WindowState<'a> {
     pub notice: Option<Notice>,
     /// **Go to commit**, while it is open (`search.go-to-commit`).
     pub go_to_commit: Option<GoToCommitDialog<'a>>,
+    /// The comparison chooser, while it is open (`compare.chooser`).
+    pub chooser: Option<crate::compare::ChooserState<'a>>,
     /// What the operation running asks, or the plan it is about to run (`preview.confirm`).
     pub feature: Option<FeatureDialog<'a>>,
     /// What was said once an operation ended, until it is put away.
@@ -288,6 +290,9 @@ fn dialogs(state: &WindowState<'_>, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) 
     }
     if let Some(dialog) = &state.go_to_commit {
         intents.extend(go_to_commit_dialog(dialog, ui));
+    }
+    if let Some(chooser) = &state.chooser {
+        intents.extend(crate::compare::chooser_view(chooser, ui));
     }
     if let Some(theme_picker) = &state.theme_picker {
         intents.extend(theme_picker_view(theme_picker, ui));

@@ -4,7 +4,7 @@
 use app::store::feature::Ended;
 use app::store::{Message, State};
 use model::CommitId;
-use model::contract::{Answer, Answers, FeatureId, FollowUp, Target};
+use model::contract::{Answers, FeatureId, FollowUp, Target};
 use model::state::ChangeKind;
 use platform::accesskit::{Role, TreeUpdate};
 use render::ThemeName;
@@ -107,13 +107,9 @@ fn compare_change_side__choosing_release_in_place_of_main_compares_it_with_featu
     let (mut state, driver) = compared(&repository, ("ref:main", "ref:feature"));
     let id = page_id(&state);
     click_in_page(&driver, &mut state, "main");
-    loop {
-        if let Message::FeatureAsks(_) = driver.next(&mut state) {
-            break;
-        }
-    }
-    let answer = Answer::Choice(String::from("ref:release"));
-    driver.intent(&mut state, Intent::Feature(FeatureIntent::Answer(Some(answer))));
+    assert!(state.compares.chooser.is_some(), "the chooser is open");
+    click_in_page(&driver, &mut state, "release");
+    click_in_page(&driver, &mut state, "Compare");
     until_ended(&driver, &mut state);
     assert_eq!(page_id(&state), id);
     assert_eq!(state.compares.pages.len(), 1);

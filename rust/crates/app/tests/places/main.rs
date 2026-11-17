@@ -18,6 +18,7 @@ mod close_tabs;
 mod commit_page;
 mod compare;
 mod compare_actions;
+mod compare_chooser;
 mod compare_file;
 mod conflicts;
 mod diff;

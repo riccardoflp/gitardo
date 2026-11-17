@@ -7,7 +7,7 @@ use app::store::{Effect, Message, State, reduce};
 use app::work::jobs;
 use git::CancelToken;
 use model::compare::CompareMode;
-use model::contract::{Answer, AnswerKey, Answers, FeatureId, QuestionKind, Target};
+use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use model::repo::Change;
 use platform::accesskit::{Role, TreeUpdate};
 use render::ThemeName;
@@ -170,13 +170,14 @@ fn compare_page__editing_a_file_of_the_working_tree_updates_a_comparison_with_it
 fn compare_page__open_in_the_diff_page_opens_all_the_files_listed_in_one_diff_page() {
     let repository = repository();
     let (mut state, driver) = compared(&repository, ("ref:main", "ref:feature"));
+    let id = page_id(&state);
     let mut window = Window::new(ThemeName::Dark, (1200, 900));
     let intents = window.click(&state, Role::Button, "Open in the Diff page");
     apply(&driver, &mut state, intents);
-    assert!(
-        matches!(state.page_shown(), Some(Page::Diff(_))),
-        "{:?}",
-        state.page_shown()
+    assert_eq!(
+        state.page_shown(),
+        Some(Page::Compare(id)),
+        "the diff is shown beside the comparison"
     );
     let page = state.diff_pages.pages.last().unwrap();
     let opened: Vec<&str> = page.target.files.iter().map(|file| file.right.as_str()).collect();
@@ -196,13 +197,14 @@ fn compare_page__open_on_github_is_not_there_for_a_repository_not_on_github_nor_
 fn compare_page__a_click_on_a_file_opens_its_diff_page_between_the_two_sides_as_the_mode_says() {
     let repository = repository();
     let (mut state, driver) = compared(&repository, ("ref:main", "ref:feature"));
+    let id = page_id(&state);
     let mut window = Window::new(ThemeName::Dark, (1200, 900));
     let intents = window.click(&state, Role::Button, "src/b.txt");
     apply(&driver, &mut state, intents);
-    assert!(
-        matches!(state.page_shown(), Some(Page::Diff(_))),
-        "{:?}",
-        state.page_shown()
+    assert_eq!(
+        state.page_shown(),
+        Some(Page::Compare(id)),
+        "the diff is shown beside the comparison"
     );
     let page = state.diff_pages.pages.last().unwrap();
     let base = model::CommitId::parse(repository.git(&["merge-base", "main", "feature"]).trim()).unwrap();
@@ -279,17 +281,21 @@ fn compare_swap__the_swapped_comparison_is_the_latest_opened_before_in_place_of_
     driver.intent(&mut state, Intent::Compare(CompareIntent::Swap(id)));
     let choose = FeatureIntent::Run(FeatureId("compare.choose"), Target::Head);
     driver.intent(&mut state, Intent::Feature(choose));
-    let asked = loop {
-        if let Message::FeatureAsks(question) = driver.next(&mut state) {
-            break question;
-        }
-    };
-    let QuestionKind::Pick { choices } = &asked.kind else {
-        panic!("{asked:?}");
-    };
-    let labels: Vec<&str> = choices.iter().map(|choice| choice.label.as_str()).collect();
-    assert_eq!(labels.first(), Some(&"feature \u{2194} main"), "{labels:?}");
-    assert!(!labels.contains(&"main \u{2194} feature"), "{labels:?}");
+    let chooser = state.compares.chooser.as_ref().expect("the chooser is open");
+    let labels: Vec<String> = chooser
+        .recent
+        .iter()
+        .map(|recent| views::text::compare::opened_before(&recent.first.name, &recent.second.name, None))
+        .collect();
+    assert_eq!(
+        labels.first().map(String::as_str),
+        Some("feature \u{2194} main"),
+        "{labels:?}"
+    );
+    assert!(
+        !labels.iter().any(|label| label == "main \u{2194} feature"),
+        "{labels:?}"
+    );
 }
 
 #[test]

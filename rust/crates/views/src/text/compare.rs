@@ -75,6 +75,63 @@ pub const LOADING: &str = "Loading\u{2026}";
 /// The button that opens all the files of the comparison in the inspector in one Diff page.
 pub const OPEN_ALL: &str = "Open all changes in one Diff page";
 
+/// The title of the comparison chooser opened to start a comparison (`compare.chooser`).
+pub const CHOOSER_TITLE: &str = "Compare branches, tags or commits";
+/// Its title when it chooses another side of a comparison page (`compare.change-side`).
+pub const CHANGE_SIDE_TITLE: &str = "Choose another side";
+/// The placeholder of **From** while it is empty.
+pub const CHOOSE_FIRST: &str = "Choose the first side";
+/// The placeholder of **To** while it is empty.
+pub const CHOOSE_SECOND: &str = "Choose the side to compare it with";
+/// The placeholder of the field that filters the list of the chooser.
+pub const FIND_SIDE: &str = "Find a branch, a tag or a commit, or type a revision";
+/// The list of the chooser, for the screen reader.
+pub const SIDES: &str = "What the side can be";
+/// The heading of what is checked out, and of the working tree.
+pub const CHECKED_OUT: &str = "Checked out";
+/// The heading of the local branches.
+pub const BRANCHES: &str = "Branches";
+/// The heading of the remote branches.
+pub const REMOTE_BRANCHES: &str = "Remote branches";
+/// The heading of the tags.
+pub const TAGS: &str = "Tags";
+/// The heading of the last commits of the branch checked out.
+pub const RECENT_COMMITS: &str = "Recent commits";
+/// What the chooser says under its field when git knows no commit by the name typed.
+pub const UNKNOWN_REVISION: &str = "Git does not know a commit by this name.";
+/// The heading of the comparisons opened before, at the foot of the chooser.
+pub const OPENED_BEFORE: &str = "Opened before";
+/// The button that lists the comparisons opened before that do not fit on the line.
+pub const MORE: &str = "More\u{2026}";
+/// **Compare**, the main button of the chooser.
+pub const COMPARE: &str = "Compare";
+/// **Cancel**.
+pub const CANCEL: &str = "Cancel";
+/// The column of the comparison beside its diffs, for the screen reader (`compare.beside-diff`).
+pub const COLUMN: &str = "Comparison beside the diff";
+
+/// The row of a revision typed that git knows: **Use `HEAD~3`**.
+#[must_use]
+pub fn use_revision(typed: &str) -> String {
+    format!("Use {typed}")
+}
+
+/// A comparison opened before, at the foot of the chooser: `<first> ↔ <second>`, with its path when it was narrowed.
+#[must_use]
+pub fn opened_before(first: &str, second: &str, path: Option<&str>) -> String {
+    let mut said = format!("{first} \u{2194} {second}");
+    if let Some(path) = path {
+        let _ = write!(said, " \u{b7} {path}");
+    }
+    said
+}
+
+/// The fold of the commits in the column beside a diff: **Commits · 2 in feature, 1 in main**.
+#[must_use]
+pub fn column_commits((first, only_in_first): (&str, usize), (second, only_in_second): (&str, usize)) -> String {
+    format!("{COMMITS} \u{b7} {only_in_second} in {second}, {only_in_first} in {first}")
+}
+
 /// The title of a comparison page: `<first> ↔ <second>`, with ` · <last part of the path>` when narrowed.
 #[must_use]
 pub fn title(first: &str, second: &str, path: Option<&str>) -> String {

@@ -31,12 +31,19 @@ pub fn open(state: &mut State, target: DiffTarget) -> Vec<Effect> {
         .find(|page| page.beside.is_some() && same_folder(&page.folder, &folder))
         .map(|page| (page.id, page.target == target));
     match found {
-        None => super::open_page(state, target, Some(serial)),
+        None => super::open_page(state, target, super::Owner::Inspector(serial)),
         Some((id, true)) => {
             show(state, id);
             Vec::new()
         }
-        Some((id, false)) => replace(state, id, (target, serial)),
+        Some((id, false)) => {
+            let effects = retarget(state, id, target);
+            if let Some(page) = page_mut(state, id) {
+                page.beside = Some(serial);
+            }
+            show(state, id);
+            effects
+        }
     }
 }
 
@@ -47,9 +54,9 @@ fn show(state: &mut State, id: DiffPageId) {
     }
 }
 
-/// Shows another target in the page beside the inspector, which keeps its number, its place among the pages and the
+/// Shows another target in a page beside what opened it, which keeps its number, its place among the pages and the
 /// width of its sides: the reads of what it showed are cancelled and those of the new files start.
-fn replace(state: &mut State, id: DiffPageId, (target, serial): (DiffTarget, u64)) -> Vec<Effect> {
+pub fn retarget(state: &mut State, id: DiffPageId, target: DiffTarget) -> Vec<Effect> {
     let Some(page) = page_mut(state, id) else {
         return Vec::new();
     };
@@ -61,7 +68,6 @@ fn replace(state: &mut State, id: DiffPageId, (target, serial): (DiffTarget, u64
     page.jobs = vec![None; count];
     page.unfolded = vec![BTreeSet::new(); count];
     clear_place(page);
-    page.beside = Some(serial);
     lines::rebuild(page);
     let mut effects: Vec<Effect> = cancelled
         .into_iter()
@@ -71,7 +77,6 @@ fn replace(state: &mut State, id: DiffPageId, (target, serial): (DiffTarget, u64
         })
         .collect();
     effects.extend((0..count).filter_map(|file| read_file(state, id, file, count != 1)));
-    show(state, id);
     effects
 }
 
@@ -153,7 +158,7 @@ fn inspector_targets(state: &State) -> Vec<DiffTarget> {
 
 /// The files of a tree, by their places in the list it was made from, in the order the tree shows them, those of
 /// folded directories too.
-fn tree_files(nodes: &[TreeNode], indices: &mut Vec<usize>) {
+pub(crate) fn tree_files(nodes: &[TreeNode], indices: &mut Vec<usize>) {
     for node in nodes {
         match node {
             TreeNode::Directory { children, .. } => tree_files(children, indices),

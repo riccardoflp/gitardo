@@ -4,27 +4,16 @@ use std::sync::Arc;
 
 use model::compare::{CompareMode, ComparisonPart};
 use model::contract::{Answers, FeatureId, Target};
-use views::compare::{CompareIntent, ComparePageId, diff_target, narrowed_path};
+use views::compare::{CompareIntent, ComparePageId, narrowed_path};
 
-use super::{PageRead, read_again, remember, title_of};
+use super::{PageRead, page_mut, read_again, remember, title_of};
 use crate::store::message::Effect;
 use crate::store::state::State;
 
 /// Something asked of a comparison page or of the comparison in the inspector.
 pub fn reduce(state: &mut State, intent: CompareIntent) -> Vec<Effect> {
     match intent {
-        CompareIntent::ChangeSide(id, is_first) => {
-            let part = if is_first {
-                ComparisonPart::FirstSide
-            } else {
-                ComparisonPart::SecondSide
-            };
-            let effects = run(state, id, "compare.change-side", part);
-            if !effects.is_empty() {
-                state.compares.changing = Some(id);
-            }
-            effects
-        }
+        CompareIntent::ChangeSide(id, is_first) => super::chooser::open_for_page(state, id, is_first),
         CompareIntent::Swap(id) => swap(state, id),
         CompareIntent::SetMode(id, mode) => set_mode(state, id, mode),
         CompareIntent::TypePath(id, text) => {
@@ -57,8 +46,17 @@ pub fn reduce(state: &mut State, intent: CompareIntent) -> Vec<Effect> {
             }
             Vec::new()
         }
-        CompareIntent::OpenFile(id, index) => open_files(state, id, Some(index)),
-        CompareIntent::OpenAll(id) => open_files(state, id, None),
+        CompareIntent::OpenFile(id, index) => super::beside::open(state, id, Some(index)),
+        CompareIntent::OpenAll(id) => super::beside::open(state, id, None),
+        CompareIntent::StepFile(id, step) => super::beside::step(state, id, step),
+        CompareIntent::ShowWhole(id) => super::beside::show_whole(state, id),
+        CompareIntent::FoldCommits(id) => super::beside::fold_commits(state, id),
+        CompareIntent::Files(id, views::details::FilesIntent::Fold(path)) => super::beside::fold(state, id, path),
+        // The column lists every file as a tree: it has no layout to choose and no files left out.
+        CompareIntent::Files(_, views::details::FilesIntent::ShowAll | views::details::FilesIntent::Layout(_)) => {
+            Vec::new()
+        }
+        CompareIntent::Chooser(intent) => super::chooser::reduce(state, intent),
         CompareIntent::TakeFile(id, index) => take_file(state, id, index),
         CompareIntent::CopyPatch(id) => run(state, id, "compare.copy-patch", ComparisonPart::Whole),
         CompareIntent::OpenOnGitHub(id) => run(state, id, "compare.open-on-github", ComparisonPart::Whole),
@@ -86,11 +84,6 @@ fn take_file(state: &mut State, id: ComparePageId, index: usize) -> Vec<Effect> 
         Some(file) => run(state, id, "compare.take-file", ComparisonPart::File(file)),
         None => Vec::new(),
     }
-}
-
-/// A page, to change.
-fn page_mut(state: &mut State, id: ComparePageId) -> Option<&mut super::ComparePage> {
-    state.compares.pages.iter_mut().find(|page| page.id == id)
 }
 
 /// Runs an operation of the catalog on a part of a page, in the repository of the page as last read.
@@ -140,23 +133,4 @@ fn narrow(state: &mut State, id: ComparePageId, path: Option<String>) -> Vec<Eff
     let (folder, target) = (page.folder.clone(), page.target.clone());
     remember(state, &folder, &target);
     read_again(state, id)
-}
-
-/// A file of a page, or every file listed, in one Diff page between the two sides as the mode says.
-fn open_files(state: &mut State, id: ComparePageId, index: Option<usize>) -> Vec<Effect> {
-    let Some(page) = state.compares.pages.iter().find(|page| page.id == id) else {
-        return Vec::new();
-    };
-    let PageRead::Read(view) = &page.read else {
-        return Vec::new();
-    };
-    let files = match index {
-        Some(index) => view.files.get(index..=index).unwrap_or_default(),
-        None => &view.files,
-    };
-    if files.is_empty() {
-        return Vec::new();
-    }
-    let target = diff_target(&page.target, view.merge_base.as_ref(), files);
-    crate::store::diff_page::open(state, target)
 }

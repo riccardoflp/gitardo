@@ -32,6 +32,21 @@ pub enum DialogRole {
     Secondary,
     /// The button that closes the dialog doing nothing, like Escape.
     Cancel,
+    /// The main button while what it does cannot be done yet, such as **Compare** before both sides are chosen: drawn
+    /// disabled, and Enter does not press it.
+    Unavailable,
+}
+
+/// Where a dialog opens.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum DialogPlace {
+    /// In the middle of the window, as wide as a sentence or two.
+    Middle,
+    /// At the top of the window, as wide as given or the window less its margins, as a picker opens.
+    Top {
+        /// Its width, in logical pixels.
+        width: f32,
+    },
 }
 
 /// A button of a dialog.
@@ -105,6 +120,16 @@ impl Ui<'_> {
         dialog: &Dialog<'_>,
         body: impl FnOnce(&mut Ui<'_>, DialogBody),
     ) -> DialogResponse {
+        self.dialog_at(key, (dialog, DialogPlace::Middle), body)
+    }
+
+    /// Declares a dialog as [`Ui::dialog`] does, in a place of the window.
+    pub fn dialog_at(
+        &mut self,
+        key: impl Hash,
+        (dialog, place_of): (&Dialog<'_>, DialogPlace),
+        body: impl FnOnce(&mut Ui<'_>, DialogBody),
+    ) -> DialogResponse {
         let id = self.id(key);
         let is_opening = self.declare_overlay(id, &[]);
         if is_opening {
@@ -117,8 +142,23 @@ impl Ui<'_> {
         let title_style = self.text_style(TextKind::Heading);
         let title_height = self.line_height(title_style);
         let height = 2.0 * spacing.huge + title_height + spacing.large + dialog.body_height + spacing.huge + control;
-        let size = (dialog_width(&theme, window), height.min(window.height));
-        let rect = place(window, size, (Align::Center, Align::Center));
+        let rect = match place_of {
+            DialogPlace::Middle => place(
+                window,
+                (dialog_width(&theme, window), height.min(window.height)),
+                (Align::Center, Align::Center),
+            ),
+            DialogPlace::Top { width } => {
+                let width = width.min(window.width - 2.0 * spacing.huge).max(0.0);
+                let height = height.min(window.height - 2.0 * spacing.huge).max(0.0);
+                Rect::new(
+                    window.x + (window.width - width) * 0.5,
+                    window.y + spacing.huge,
+                    width,
+                    height,
+                )
+            }
+        };
         let mut response = DialogResponse::default();
         self.layer(Layer::Modal, |ui| {
             ui.fill_rect(window, backdrop(&theme));
@@ -156,6 +196,7 @@ impl Ui<'_> {
                 DialogRole::Primary => Button::primary(dialog_button.label),
                 DialogRole::Danger => Button::danger(dialog_button.label),
                 DialogRole::Secondary | DialogRole::Cancel => Button::secondary(dialog_button.label),
+                DialogRole::Unavailable => Button::primary(dialog_button.label).disabled(),
             };
             let (width, _) = self.button_size(&button);
             if self.button(("button", index), area.right(width), &button).clicked {

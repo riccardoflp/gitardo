@@ -48,7 +48,8 @@ pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
 pub(crate) use more_menu::kind_entries;
 pub use more_menu::{GraphDrawn, MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, more_menu_view};
 pub use panes::{
-    PaneLayout, PaneRects, PaneSizes, RAIL_LEAST, RAIL_MOST, RAIL_START, STEP, pane_rects, resize_panes_view,
+    INSPECTOR_LEAST, INSPECTOR_MOST, INSPECTOR_START, PaneLayout, PaneRects, PaneSizes, RAIL_LEAST, RAIL_MOST,
+    RAIL_START, STEP, pane_rects, resize_panes_view,
 };
 pub use pull_request_badge::{
     PullRequestBadge, draw_pull_request_badge, pull_request_badge_tone, pull_request_badge_view,

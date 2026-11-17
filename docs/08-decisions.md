@@ -2900,3 +2900,23 @@ each built with the reading given until the card says otherwise.
   whole card", which the inspector beside a Diff page cannot show without leaving the page. Built: the click brings
   the timeline back, as **Timeline** in the trail does, where the inspector is the whole card of the same commit.
   `Up` and `Down` in the tree are not built: `Alt+Down` and `Alt+Up` in the Diff page go from file to file.
+- **Q508** — `compare.beside-diff`: each file of the column is to have "its lines gained and lost", which
+  `compare.read-sides` does not read (it gives the status of each file, not its counts). Built: the column shows the
+  letter of the status of each file, as the comparison page does; counts would need `git diff --numstat` in that read.
+- **Q509** — `compare.beside-diff`: **Commits** in the column could hold thousands of commits. Built: unfolded, it lists
+  the first 100 of the comparison, as rows that open the commit page; the comparison page keeps the whole list.
+- **Q510** — `compare.beside-diff`: whether **Open in the Diff page** of the comparison page also opens beside it.
+  Built: yes, every file in one diff on the left with no file marked in the column; `Alt+Down` then shows the first.
+- **Q511** — `compare.beside-diff`: whether the trail's step of the comparison, or `Escape`, closes the Diff page.
+  Built: it is kept, hidden, and shows the next file clicked; it is closed with the comparison page.
+- **Q512** — `compare.chooser`: **Recent commits** are "the 20 last of the branch checked out". Built: the 20 first
+  rows of the first parent of `HEAD` among the commits the timeline has read, with their dates; none when the timeline
+  shows another repository than the chooser. A branch, a tag or a remote branch has a date only when the timeline has
+  read its commit.
+- **Q513** — `compare.chooser`: what `Home` and `End` do while text is typed. Built: they move in the field, as in every
+  field; with nothing typed they light the first and the last row of the list.
+- **Q514** — `compare.chooser` and `compare.change-side`: **Compare** after both sides of a page were changed. Built: it
+  runs `compare.choose` with both sides into the same page, which keeps the path it was narrowed to; one side changed
+  runs `compare.change-side` as before, and neither changed closes the dialog with nothing run.
+- **Q515** — `compare.chooser`: `Enter` with a row lit and both boxes held. Built: with nothing typed it opens the
+  comparison; with text typed it chooses the row lit, so that a typed name is chosen before it is compared.

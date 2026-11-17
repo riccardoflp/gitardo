@@ -104,7 +104,7 @@ impl ViewData {
             tabs: super::tabs::TabsData::new(state, &repositories),
             repositories,
             name,
-            folder: shown.map_or_default(|folder| display(folder)),
+            folder: shown.map_or_default(|folder| folder.display().to_string()),
             question_folder,
             running,
             finished: Vec::new(),
@@ -176,6 +176,7 @@ impl ViewData {
             }),
             notice: state.notice,
             go_to_commit: search_view::go_to_commit(state),
+            chooser: super::compare::chooser::chooser_state(state),
             feature: super::feature::question_state(state)
                 .map(views::FeatureDialog::Question)
                 .or_else(|| {
@@ -452,7 +453,7 @@ fn opened_page(state: &State, page: Page) -> Option<PageState<'_>> {
         Page::Commit(id) => super::commit_page::page_state(state, id).map(PageState::Commit),
         Page::Diff(id) => super::diff_page::page_state(state, id).map(PageState::Diff),
         Page::Merge(id) => super::merge_page::page_state(state, id).map(|(page, title)| PageState::Merge(page, title)),
-        Page::Compare(id) => super::compare::page_state(state, id).map(PageState::Compare),
+        Page::Compare(id) => super::compare::beside::page_state(state, id, workspace_panes(state).sizes.inspector),
         _ => None,
     }
 }
@@ -492,9 +493,4 @@ fn head_name(repository: &RepositoryState) -> HeadName<'_> {
         (None, Some(commit)) => HeadName::Detached(commit.short()),
         (None, None) => HeadName::NoCommits,
     }
-}
-
-/// A folder as the window writes it.
-fn display(folder: &std::path::Path) -> String {
-    folder.display().to_string()
 }

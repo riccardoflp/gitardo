@@ -37,6 +37,8 @@ pub enum FilesOwner {
     Page(CommitPageId),
     /// The Changes page (`changes.pane`).
     Changes,
+    /// The column of a comparison beside its diffs (`compare.beside-diff`).
+    Comparison(crate::compare::ComparePageId),
 }
 
 impl FilesOwner {
@@ -47,6 +49,7 @@ impl FilesOwner {
             FilesOwner::Inspector => Intent::Details(DetailsIntent::Files(files)),
             FilesOwner::Page(page) => Intent::CommitPage(page, CommitPageIntent::Files(files)),
             FilesOwner::Changes => Intent::Changes(crate::changes::ChangesIntent::Files(files)),
+            FilesOwner::Comparison(page) => Intent::Compare(crate::compare::CompareIntent::Files(page, files)),
         }
     }
 }
@@ -128,12 +131,15 @@ pub(crate) enum FileRow<'a> {
 pub(crate) fn file_rows<'a>(state: &FilesState<'a>) -> Vec<FileRow<'a>> {
     match state.layout {
         FileLayout::List => (0..state.capped.shown()).map(|index| FileRow::File(index, 0)).collect(),
-        FileLayout::Tree => {
-            let mut rows = Vec::new();
-            tree_rows(state.tree, (state.folded, 0), &mut rows);
-            rows
-        }
+        FileLayout::Tree => tree_file_rows(state.tree, state.folded),
     }
+}
+
+/// The rows of a tree of files, without what the folded directories hold.
+pub(crate) fn tree_file_rows<'a>(tree: &'a [TreeNode], folded: &BTreeSet<String>) -> Vec<FileRow<'a>> {
+    let mut rows = Vec::new();
+    tree_rows(tree, (folded, 0), &mut rows);
+    rows
 }
 
 /// The rows of some nodes of the tree, at a depth.

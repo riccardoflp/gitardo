@@ -349,13 +349,13 @@ earns it.
 | [`compare.side-choices`](10-compare.md#compareside-choices--what-a-side-can-be-chosen-from) | What a side can be chosen from | Derivation | Built | Built |
 | [`compare.recent`](10-compare.md#comparerecent--the-comparisons-opened-before) | The comparisons opened before | Derivation | Built | Built |
 | [`compare.choose`](10-compare.md#comparechoose--compare-branches-tags-or-commits) | Compare branches, tags or commits | Operation | Built | Built |
-| [`compare.chooser`](10-compare.md#comparechooser--the-comparison-chooser) | The comparison chooser | View | Specified | Host only |
+| [`compare.chooser`](10-compare.md#comparechooser--the-comparison-chooser) | The comparison chooser | View | Built | Host only |
 | [`compare.follow-sides`](10-compare.md#comparefollow-sides--followed-sides-and-fixed-ones) | Followed sides and fixed ones | Derivation | Built | Built |
 | [`compare.initial-mode`](10-compare.md#compareinitial-mode--how-two-sides-are-compared-at-first) | How two sides are compared at first | Derivation | Built | Built |
 | [`compare.read-sides`](10-compare.md#compareread-sides--read-a-comparison) | Read a comparison | Read | Built | Built |
 | [`compare.read-patch`](10-compare.md#compareread-patch--read-the-lines-of-a-comparison) | Read the lines of a comparison | Read | Built | Built |
 | [`compare.page`](10-compare.md#comparepage--the-comparison-page) | The comparison page | View | Built | Built |
-| [`compare.beside-diff`](10-compare.md#comparebeside-diff--a-comparison-beside-its-diffs) | A comparison beside its diffs | View | Specified | Host only |
+| [`compare.beside-diff`](10-compare.md#comparebeside-diff--a-comparison-beside-its-diffs) | A comparison beside its diffs | View | Built | Host only |
 | [`compare.summary`](10-compare.md#comparesummary--how-far-apart-and-what-merging-would-do) | How far apart, and what merging would do | Derivation | Built | Built |
 | [`compare.change-side`](10-compare.md#comparechange-side--choose-another-side) | Choose another side | Operation | Built | Built |
 | [`compare.swap`](10-compare.md#compareswap--swap-the-two-sides) | Swap the two sides | View | Built | Built |

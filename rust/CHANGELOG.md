@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Compare branches, tags or commits…** opens one dialog at the top of the window in place of two questions: **From**,
+  holding what is checked out, and **To**, side by side with the arrows that swap them; under them a field that filters
+  the list of what the box being chosen can be, under **Checked out**, **Branches**, **Remote branches**, **Tags** and
+  **Recent commits**, each with its short hash and its date. A revision git knows, as `HEAD~3`, is offered as **Use
+  `HEAD~3`**; a text it does not know offers nothing and says so. **Opened before** at its foot opens a comparison as it
+  was; once both sides are chosen the dialog says how far apart they are, and **Compare** or `Enter` opens them. A
+  click on a side of a comparison page opens the same dialog holding both sides, with the side clicked being chosen.
+- A file of a comparison page opens its diff on the left of the page, and the comparison stays on the right as a
+  column: its two sides with the arrows that swap them, how far apart they are, **Commits** folded, and the files as a
+  tree with the file shown marked. A click on another file shows it in the same place, `Alt+Down` and `Alt+Up` go to the
+  next and the previous file, and swapping shows the same file the other way. `Escape` or the comparison in the trail
+  gives back the whole page, scrolled where it was; the side column is put away while the diff is shown.
 - Beside a Diff page opened from the inspector, the inspector is the column of the commit's files: at its top the
   commit in one line, its short hash and its subject, with its author and its date in its tooltip, which a click
   takes back to the timeline; under it the files of the commit as a tree, the folders as they were left. The side
