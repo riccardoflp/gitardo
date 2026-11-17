@@ -24,7 +24,8 @@ pub fn reduce(state: &mut State, intent: SearchIntent) -> Vec<Effect> {
         }
         SearchIntent::ChooseQuick(choice) => {
             close(state);
-            choose(state, choice)
+            // What Quick search opens starts the way to a page again from the timeline (`ui.page-trail`).
+            pages::starting_again(state, |state| choose(state, choice))
         }
         _ => {
             close(state);

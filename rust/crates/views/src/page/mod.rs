@@ -1,19 +1,22 @@
 //! The pages, opened in place of the timeline and the inspector with a trail above them, `Timeline › Welcome`, whose
 //! first step comes back to the timeline.
 
-use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Axis, Button, ButtonKind, Label, Rect, TextKind, Tone, Ui};
+use ui::Ui;
+use ui::layout::Area;
 
 use crate::commit_page::{CommitPageId, CommitPageState, view as commit_page_view};
 use crate::compare::{ComparePageId, CompareState, page as compare_page_view};
 use crate::diff::{DiffPageId, DiffPageState, page_view as diff_page_view};
 use crate::file_view::{FilePageId, FilePageState, page_view as file_page_view};
-use crate::icons;
+use crate::graph::ReferencesShown;
 use crate::intent::Intent;
+use crate::line::is_narrow;
 use crate::settings::{SettingsPageState, settings_view};
 use crate::text::pages as words;
 use crate::text::settings as settings_words;
 use crate::welcome::{WelcomeState, page_view};
+
+mod trail;
 
 /// A page of the window. Each is open once: asking for it again shows the one there is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -99,7 +102,7 @@ pub enum PageState<'a> {
     NewWorktrees(crate::worktree_setup::SetupPageState<'a>, &'a str),
 }
 
-impl PageState<'_> {
+impl<'a> PageState<'a> {
     /// Which page it is.
     #[must_use]
     pub fn page(&self) -> Page {
@@ -122,7 +125,7 @@ impl PageState<'_> {
 
     /// Its name in the trail: the name of the page, or the short hash and the subject of a commit.
     #[must_use]
-    pub fn title(&self) -> &str {
+    pub fn title(&self) -> &'a str {
         match self {
             PageState::Commit(commit) => commit.title,
             PageState::Welcome(_)
@@ -140,11 +143,11 @@ impl PageState<'_> {
         }
     }
 
-    /// The step of the trail between **Timeline** and the name of the page, with what it asks: **Files**, which shows
-    /// the tree alone again, while a file is opened beside it; the comparison, which shows it whole again, while the
-    /// diff of one of its files is shown beside it.
+    /// The step of the trail between the pages it was reached through and the name of the page, with what it asks:
+    /// **Files**, which shows the tree alone again, while a file is opened beside it; the comparison, which shows it
+    /// whole again, while the diff of one of its files is shown beside it.
     #[must_use]
-    pub fn step(&self) -> Option<(&str, Intent)> {
+    pub fn step(&self) -> Option<(&'a str, Intent)> {
         match self {
             PageState::CompareBeside(beside) => Some((
                 beside.compare.title,
@@ -154,9 +157,16 @@ impl PageState<'_> {
                 crate::text::files::PAGE,
                 Intent::Files(crate::files::FilesPageIntent::ShowTree),
             )),
-            // No other page is opened from another.
+            // No other page shows another inside it.
             _ => None,
         }
+    }
+
+    /// Whether it puts the side column away while it is shown, and so has no button for it in its trail: a comparison
+    /// with the diff of one of its files beside it (`compare.beside-diff`).
+    #[must_use]
+    pub fn puts_side_away(&self) -> bool {
+        matches!(self, PageState::CompareBeside(_))
     }
 
     /// Whether it shows a file with edits not saved, which puts a dot after its name in the trail (`file-view.edit`).
@@ -173,16 +183,24 @@ impl PageState<'_> {
 }
 
 /// The page shown, with its trail.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PageHostState<'a> {
     /// Whether the trail is shown: not while the window shows no workspace, when there is no timeline to come back to.
     pub has_trail: bool,
+    /// Where the side column is, for the button at the start of the trail that puts it away and brings it back
+    /// (`repo.side-column`); none without a workspace, and on a page that puts the side column away itself.
+    pub side: Option<crate::SidePlace>,
+    /// The pages the page was reached through, after the timeline and before it, each with its name, the first
+    /// opened first (`ui.page-trail`).
+    pub way: Vec<(Page, &'a str)>,
     /// The page.
     pub page: PageState<'a>,
 }
 
-/// The page shown, over the rectangle its caller clipped it to, under its trail: **Timeline**, which comes back to the
-/// timeline, then the name of the page, and a button that closes it.
+/// The page shown, over the rectangle its caller clipped it to, under its title row: the button that puts the side
+/// column away and brings it back, at the same place as in the top row of the timeline, then the trail: **Timeline**,
+/// which comes back to the timeline, the pages the page was reached through, each going back to it, and the name of
+/// the page; and a button that closes it. `Alt+Left` goes back one name (`ui.page-trail`).
 ///
 /// Feature cards that fill it: every page of the catalog opens here (`commit-page.view`, `compare.page`, the Diff,
 /// Merge, Conflicts, File, Files, Changes, Settings and Worktree setup pages), each adding its own steps to the trail
@@ -192,8 +210,12 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let mut area = Area::new(rect);
     if state.has_trail {
-        let bar = area.top(ui.theme().sizes.header_height * 0.75);
-        trail(&state.page, ui, bar, &mut intents);
+        let bar = area.top(crate::graph::top_row_height(ui));
+        let side = state
+            .side
+            .filter(|_| !state.page.puts_side_away())
+            .map(|place| ReferencesShown::of(place, is_narrow(ui)));
+        intents.extend(trail::trail_view(state, side, ui, bar));
     }
     let body = area.rest();
     intents.extend(ui.clip(body, |ui| match &state.page {
@@ -212,61 +234,9 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::FilesBeside(beside) => crate::file_view::beside_files_view(beside, ui),
         PageState::NewWorktrees(setup, _) => crate::worktree_setup::page(setup, ui),
     }));
+    // `Alt+Left` is read after the page, which may use it in a field.
+    if state.has_trail && trail::is_back_pressed(ui) {
+        intents.push(trail::back_one(state));
+    }
     intents
-}
-
-/// The trail above a page, with the step of the page it was opened from, a dot after the name of a file with edits not
-/// saved, and the button that closes it.
-fn trail(page: &PageState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
-    let (title, is_unsaved) = (page.title(), page.is_unsaved());
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    let line = Rect::new(
-        rect.x,
-        rect.bottom() - theme.sizes.border,
-        rect.width,
-        theme.sizes.border,
-    );
-    ui.separator(line, Axis::Horizontal);
-    ui.region("trail", (rect, AccessRole::Navigation, words::TRAIL), |ui| {
-        let inner = inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0));
-        let mut parts = Area::with_gap(inner, spacing.medium);
-        let timeline = Button::secondary(words::TIMELINE).kind(ButtonKind::Icon);
-        let (width, height) = ui.button_size(&timeline);
-        let cell = place(parts.left(width), (width, height), (Align::Start, Align::Center));
-        if ui.button("trail timeline", cell, &timeline).clicked {
-            intents.push(Intent::ShowTimeline);
-        }
-        separator(ui, &mut parts);
-        if let Some((name, intent)) = page.step() {
-            let step = Button::secondary(name).kind(ButtonKind::Icon);
-            let (width, height) = ui.button_size(&step);
-            let cell = place(parts.left(width), (width, height), (Align::Start, Align::Center));
-            if ui.button("trail step", cell, &step).clicked {
-                intents.push(intent);
-            }
-            separator(ui, &mut parts);
-        }
-        let side = theme.sizes.control_height;
-        let close_cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
-        let close = Button::icon(icons::CLOSE, words::CLOSE_PAGE).kind(ButtonKind::Icon);
-        if ui.button("close page", close_cell, &close).clicked {
-            intents.push(Intent::ClosePage);
-        }
-        if is_unsaved {
-            let dot = crate::text::file_view::UNSAVED_DOT;
-            let title_width = ui.measure(title, ui.text_style(TextKind::Strong));
-            let _ = ui.label(parts.left(title_width), &Label::new(title).kind(TextKind::Strong));
-            let dot_width = ui.measure(dot, ui.text_style(TextKind::Body));
-            let _ = ui.label(parts.left(dot_width), &Label::new(dot));
-        } else {
-            let _ = ui.label(parts.rest(), &Label::new(title).kind(TextKind::Strong));
-        }
-    });
-}
-
-/// The `›` between two steps of the trail.
-fn separator(ui: &mut Ui<'_>, parts: &mut Area) {
-    let width = ui.measure(words::TRAIL_SEPARATOR, ui.text_style(TextKind::Body));
-    let _ = ui.label(parts.left(width), &Label::new(words::TRAIL_SEPARATOR).tone(Tone::Muted));
 }

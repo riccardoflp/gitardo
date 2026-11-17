@@ -6,7 +6,7 @@ use ui::{Rect, Ui};
 
 use crate::bisect::banner_view;
 use crate::filter::{BranchPicker, bar_height, bar_view, picker_button_width, picker_view};
-use crate::graph::{GraphState, HoverTarget, ReferencesShown, toggle_references_view, view as graph_view};
+use crate::graph::{GraphState, HoverTarget, ReferencesShown, side_button, top_row_height, view as graph_view};
 use crate::intent::Intent;
 use crate::line::control_in;
 use crate::search::{SearchBox, list_mode_view};
@@ -105,13 +105,11 @@ pub(super) fn search_row(
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let mut area = Area::new(main);
-    let top = area.top(theme.sizes.control_height + 2.0 * spacing.medium);
+    let top = area.top(top_row_height(ui));
     let row = inset(top, Insets::symmetric(spacing.medium, spacing.medium));
     let mut parts = Area::with_gap(row, spacing.medium);
     if let Some(side) = side {
-        let button_width = theme.sizes.control_height;
-        let cell = control_in(ui, parts.left(button_width), button_width);
-        intents.extend(ui.clip(cell, |ui| toggle_references_view(&side, ui)));
+        intents.extend(side_button(side, &mut parts, ui));
     }
     let row = parts.rest();
     // The filter gives up its words where the search box would have less than its room beside them.

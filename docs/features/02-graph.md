@@ -528,6 +528,51 @@ Acceptance:
 - [ ] `Down` on the last row shown scrolls the list by one row.
 - [ ] The arrows never light a heading.
 
+### `ui.page-trail` — The way back, in the title of a page
+
+The title row of a page names the pages it was reached through, each a way back to that page as it was left, rather
+than always `Timeline › <page>`
+([D57](../08-decisions.md#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)).
+
+- **Kind**: Derivation
+- **Function**: `model::trail::page_trail(way: &[P], change: WayChange<P>) -> Vec<P>`, which gives the way after the
+  page shown changed; `model::trail::folded(count)` gives the names folded into **…**.
+- **Entry points**: the title row of every page, after the button of the side column (`repo.side-column`); `Alt+Left`.
+- **Uses**: `repo.side-column`, `diff.beside-inspector`, `compare.beside-diff`, `file-view.beside-files`.
+- **Extension**: VS Code has its own way back between its editors: nothing to build.
+
+- The way is the chain of pages each opened from the one before, the timeline first: a page opened from the page
+  shown, by one of its links, buttons, menus or keys (`F4` of a Diff page), is added after it.
+- A page opened from the bar of views, Quick search, the **…** menu of the header, the side column, or a key of the
+  window (`Ctrl+,`, `Ctrl+Tab`) starts the way again from the timeline, with that page alone; so does a page opened
+  from the timeline. The timeline shown ends the way. A page that opens once a read ends goes on from the page shown
+  then (Q543).
+- A page already on the way is gone back to rather than added again, so that the way has no loops.
+- The title row says **Timeline**, then the name of each page of the way, each as its own title row names it, then the
+  step of the page inside it when it has one (**Files**, the comparison), then the name of the page shown. A click on a
+  name shows its page as it was left and drops what came after it from the way: each page keeps what it showed while
+  it is open, its scroll, its selection and the file shown beside it, so the way keeps the pages and not a copy of
+  them (Q542). **Timeline** shows the timeline.
+- At most four names are shown, **Timeline** and the page's own among them; those in between are folded into **…**,
+  whose menu lists them, the first opened first. A name before the page's own wider than 200 logical pixels is cut at
+  its end with `…`.
+- A page closed since is left out of the way; a way that does not end at the page shown is that page alone.
+- `Alt+Left`, unless a field of the page uses it, goes back one name: the name before the page's own.
+
+Acceptance:
+
+- [ ] A File page opened by `F4` from the Diff page of a file of a commit, beside the inspector, says
+      `Timeline › <the Diff page's name> › <file>`, and that name shows the Diff page beside the inspector again, with
+      the same file, and drops the File page from the way.
+- [ ] A page opened from the page shown is added after it.
+- [ ] A page already on the way is gone back to rather than added again.
+- [ ] A page opened from the bar of views, Quick search, the side column or a key starts the way again from the
+      timeline.
+- [ ] Going back to a name drops what came after it.
+- [ ] A page closed is left out of the way, and a way that does not end at the page shown is that page alone.
+- [ ] With five names, the second is folded into **…**, whose menu lists it and goes back to its page.
+- [ ] `Alt+Left` on the File page shows the Diff page it was opened from, and on that page the timeline.
+
 ### `graph.load-more` — Load the next commits while scrolling
 
 The commits come a page at a time as they are read, without waiting for the list to be scrolled, so that scrolling does
@@ -709,21 +754,26 @@ Acceptance:
 ### `graph.toggle-references` — Put the branch rail away
 
 The first button of the top row of the timeline puts the side column away, its repositories and its branches, to
-leave its room to the commits, and brings it back.
+leave its room to the commits, and brings it back; the first button of the title row of every page does the same,
+from the same place (`repo.side-column`).
 
 - **Kind**: View
 - **Function**: `views::graph::toggle_references_view(state: &ReferencesShown, ui) -> Vec<Intent>`
 - **Entry points**: the first button of the top row of the timeline, before the branch filter (`filter.picker`),
-  pressed while the side column is shown; **Toggle the Side Column** in Quick search, from any page.
+  pressed while the side column is shown; the first button of the title row of every page, at the same place
+  (`repo.side-column`); **Toggle the Side Column** in Quick search, from any page.
 
-Its tooltip says **Hide the repositories and the branches beside the commits**, or **Show the repositories and the
-branches beside the commits**. Whether they are put away is remembered for the workspace. In the narrow layout, where
+Its tooltip says **Hide the repositories and the branches**, or **Show the repositories and the branches**, on the
+timeline and on every page (Q541). Whether they are put away is remembered for the workspace. In the narrow layout, where
 the side column is put away, the button opens it over the timeline, and a click outside it or `Escape` closes it.
 
 Acceptance:
 
 - [ ] A click hides the side column and the commits take its room; another brings it back at the width it had.
 - [ ] A hidden branch rail stays hidden after the window is opened again.
+- [ ] The first button of the title row of the settings page, of the Changes page and of a Diff page is where the
+      first button of the top row of the timeline is, with the same tooltip, whether the side column is shown or put
+      away.
 
 ### `graph.labels` — The labels of each commit
 

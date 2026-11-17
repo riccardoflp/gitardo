@@ -29,7 +29,7 @@ const WIDE: (u32, u32) = (1200, 700);
 const NARROW: (u32, u32) = (680, 700);
 
 /// A repository whose last commit changes `src/a.rs`, `src/b.rs` and `src/c.rs`.
-fn three_files() -> Repository {
+pub(super) fn three_files() -> Repository {
     let mut repository = Repository::new();
     let _ = repository.commit(
         "Start",
@@ -47,7 +47,7 @@ fn three_files() -> Repository {
 }
 
 /// Clicks the words of a window drawn from the store, and hands what the click asks to the store.
-fn click_words(window: &mut Window, state: &mut State, words: &str) {
+pub(super) fn click_words(window: &mut Window, state: &mut State, words: &str) {
     let (_, tree) = window.draw(state, &[]);
     let intents = click_at(window, state, words_at(&tree, words), 1);
     for intent in intents {

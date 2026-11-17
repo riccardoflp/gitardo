@@ -3088,3 +3088,30 @@ with the reading given until the card says otherwise.
   wants for a repository with three worktrees and two local branches, **Repositories** to the foot of its last row
   and **Branches** to the foot of the last title of **Kept aside**, both unfolded: 572 logical pixels before
   phase 14, 382 after.
+
+### Of the title row of the pages, from Q540
+
+Questions of phases 15 and 17 of milestone M16
+([D57](#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)), each built with
+the reading given until the card says otherwise.
+
+- **Q540** — `repo.side-column`: whether the Diff page beside the inspector and a comparison beside its diff, which put
+  the side column away while they are shown (D56), have the button of the side column in their title row. Built: no;
+  the column of the commit's files or of the comparison takes its place there, and a button that put away nothing
+  would do nothing seen. Every other page has it.
+- **Q541** — `graph.toggle-references`: its tooltip said **… beside the commits**, which the button of a page is not;
+  and "the same key" of phase 15, where the button of the timeline has no key of its own. Built: the tooltip is
+  **Hide the repositories and the branches** and **Show the repositories and the branches** on the timeline and on
+  every page; the button is reached with `Tab` like every button, and has no key of its own on either.
+- **Q542** — `ui.page-trail`: whether each step of the way keeps a copy of how its page was left (its selection, its
+  scroll, the file shown), and what the exit's `Timeline › <commit> › <file>` names the Diff page of a file of a commit.
+  Built: the way keeps the pages alone; each page keeps what it showed while it is open, and nothing else changes it
+  while another page is shown, so going back shows it as it was left. Each page is named as its own title row names
+  it: the Diff page of `a.rs` of a commit is `a.rs (f947b97 ↔ eab0959)`, which names the commit, and the File page
+  opened from it by `F4` is `a.rs (eab0959)`.
+- **Q543** — `ui.page-trail`: which pages start the way again. Built: a page shown while an intent of the bar of views,
+  of the **…** menu, of `Ctrl+,` or `Ctrl+Tab`, of Quick search, of the branch rail or of the repositories of the side
+  column is reduced; any other page shown while a page is shown goes on from it. A page that opens only once a read
+  ends, such as a comparison asked from the menu of a branch of the side column, goes on from the page shown when it
+  opens, since the store no longer knows what asked for it; the menus of the side column ask what the same menus of
+  the timeline ask.

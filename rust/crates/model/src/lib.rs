@@ -38,6 +38,7 @@ pub mod state;
 pub mod submodule;
 pub mod tasks;
 pub mod terminal;
+pub mod trail;
 pub mod trust;
 pub mod worktree;
 pub mod worktree_setup;
