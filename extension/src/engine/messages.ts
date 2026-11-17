@@ -11,9 +11,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
 
 /**
  * The version of the protocol the extension speaks: 1.8 has the pages of the commits sent as they are read, `refresh` in
- * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15).
+ * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15); 1.9 has `read/file-view.mermaid`, a diagram of
+ * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17).
  */
-export const PROTOCOL = '1.8';
+export const PROTOCOL = '1.9';
 
 /** The names of the methods. */
 export const Method = {
@@ -653,3 +654,10 @@ export interface WriteSettingFollowUp {
   key: string;
   value: unknown;
 }
+
+// Milestone M17, from 1.9 (`rust/crates/protocol/src/mermaid.rs`): a diagram of Mermaid as an SVG, with no repository.
+
+/** The name of the read of the diagrams of Mermaid. */
+export const MermaidMethod = {
+  draw: 'read/file-view.mermaid',
+} as const;

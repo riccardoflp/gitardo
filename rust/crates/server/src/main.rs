@@ -14,6 +14,7 @@ mod feature;
 mod framing;
 mod host;
 mod journal;
+mod mermaid;
 mod outgoing;
 mod reads;
 mod repository;

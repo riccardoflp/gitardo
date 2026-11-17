@@ -38,6 +38,7 @@ import {
   type RepoParts,
   type WorkingTree,
 } from '../shared/protocol';
+import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
 import { uncommittedDetail } from '../shared/state';
 import type { CommandProposal, IgnoredEntry, SetupPatterns, SetupPreview } from '../shared/worktreeSetup';
 
@@ -116,6 +117,11 @@ export class Reads {
   /** Whether there is an engine to ask. */
   get available(): boolean {
     return this.engine() !== undefined;
+  }
+
+  /** A diagram of Mermaid drawn by the engine for a kind of VS Code's theme, or why it is not (`file-view.mermaid`). */
+  mermaid(source: string, theme: MermaidTheme): Promise<MermaidAnswer> {
+    return this.client().drawMermaid(source, theme);
   }
 
   /**

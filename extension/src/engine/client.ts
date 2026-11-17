@@ -7,6 +7,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import type { JournalEntry } from './journal';
+import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
 import type { FileChange, RepositoryState } from '../shared/state';
 import {
   AiMethod,
@@ -46,6 +47,7 @@ import {
   type LogLineParams,
   type Matches,
   type MergeSides,
+  MermaidMethod,
   Method,
   PROTOCOL,
   type Patch,
@@ -483,6 +485,15 @@ export class EngineClient {
   /** The commits of the history of the timeline that a search finds, newest first (`search.read-matches`). */
   searchMatches(repository: string, text: string, mode: SearchMode, timeline: Timeline, signal?: AbortSignal): Promise<Matches> {
     return this.read(ReadMethod.searchMatches, repository, { text, mode, timeline }, signal);
+  }
+
+  /**
+   * A diagram of Mermaid as an SVG in the colors of a kind of VS Code's theme, or why it is not drawn
+   * (`file-view.mermaid`, 1.9). It reads no repository, so none is opened for it.
+   */
+  async drawMermaid(source: string, theme: MermaidTheme, signal?: AbortSignal): Promise<MermaidAnswer> {
+    const connection = await this.ready();
+    return connection.request<MermaidAnswer>(MermaidMethod.draw, { source, theme }, signal);
   }
 
   // Area 6 of stage 4: the reads that ask a language model of VS Code.

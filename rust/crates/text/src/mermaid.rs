@@ -111,7 +111,7 @@ pub struct Look {
 }
 
 /// A diagram drawn: its SVG, and what the screen reader says of it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Diagram {
     /// The SVG, as text.
     pub svg: String,
@@ -119,6 +119,10 @@ pub struct Diagram {
     pub title: Option<String>,
     /// Its description, from `accDescr`.
     pub description: Option<String>,
+    /// Its width, in pixels, from its `viewBox`; 0 when it has none.
+    pub width: f64,
+    /// Its height, in pixels, from its `viewBox`.
+    pub height: f64,
 }
 
 /// Why a block of Mermaid is not drawn, which the preview says under its code.
@@ -155,7 +159,10 @@ pub fn diagram(source: &str, look: &Look) -> Result<Diagram, NotDrawn> {
     match Renderer::new().render(request) {
         Ok(RenderOutput::Svg(Some(output))) => {
             let svg = output.svg().to_owned();
+            let (width, height) = size_of(&svg);
             Ok(Diagram {
+                width,
+                height,
                 title: accessible::text_of(&svg, "title"),
                 description: accessible::text_of(&svg, "desc"),
                 svg,
@@ -163,6 +170,26 @@ pub fn diagram(source: &str, look: &Look) -> Result<Diagram, NotDrawn> {
         }
         Ok(_) => Err(NotDrawn::Unsupported),
         Err(error) => Err(not_drawn(&error)),
+    }
+}
+
+/// The width and the height of the `viewBox` of the root of an SVG, which the library writes as wide as its page
+/// (`width="100%"`) and as large as the diagram; nothing when the root has none.
+fn size_of(svg: &str) -> (f64, f64) {
+    let root = svg.split_once('>').map_or(svg, |(root, _)| root);
+    let Some((_, after)) = root.split_once(" viewBox=\"") else {
+        return (0.0, 0.0);
+    };
+    let numbers: Vec<f64> = after
+        .split('"')
+        .next()
+        .unwrap_or_default()
+        .split([' ', ','])
+        .filter_map(|number| number.parse().ok())
+        .collect();
+    match numbers.as_slice() {
+        [_, _, width, height] if *width > 0.0 && *height > 0.0 => (*width, *height),
+        _ => (0.0, 0.0),
     }
 }
 

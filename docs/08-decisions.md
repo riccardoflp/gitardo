@@ -3294,5 +3294,6 @@ the reading given until the card says otherwise.
 - **Q591** — `file-view.mermaid`: what **Find** in the preview finds in a diagram. Built: nothing, a diagram being a
   picture; its text is found in **Source**.
 - **Q592** — `file-view.mermaid`, the extension: which previews draw the diagrams. A plugin of VS Code's Markdown
-  serves every preview of Markdown, not only those Gitardo opens. Proposed: every preview, while the engine runs; a
-  block another extension of Mermaid has already turned into something else than a block of code is left to it.
+  serves every preview of Markdown, not only those Gitardo opens. Built: every preview, while the engine runs; when
+  another extension that draws Mermaid in the preview is installed (one whose id names Mermaid and that contributes a
+  plugin of VS Code's Markdown), its blocks are left to it and the log says so.

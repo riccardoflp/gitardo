@@ -11,6 +11,7 @@ import { GitContentProvider, SCHEME } from './content';
 import { Controller } from './controller';
 import { FileBlame } from './fileBlame';
 import { githubToken } from './github';
+import { mermaidPreview } from './mermaid';
 import { SourceControlSelection } from './sourceControlSelection';
 import { showSetupInMenus } from './worktreeSettings';
 
@@ -27,6 +28,8 @@ export interface GitardoApi {
   log: vscode.LogOutputChannel;
   fileBlame: FileBlame;
   flowDiff: FlowDiff;
+  /** The plugin VS Code's Markdown asks for, which draws the blocks of Mermaid of its preview (`file-view.mermaid`). */
+  extendMarkdownIt: ReturnType<typeof mermaidPreview>;
 }
 
 export function activate(context: vscode.ExtensionContext): GitardoApi {
@@ -277,7 +280,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ...syncActions.map((action) => command(`gitardo.${action}`, () => (action === 'pull' ? controller.pull() : controller.sync(action)))),
     command('gitardo.pullPlain', () => controller.sync('pull')),
   );
-  return { controller, log, fileBlame, flowDiff };
+  return { controller, log, fileBlame, flowDiff, extendMarkdownIt: mermaidPreview(context, log) };
 }
 
 export function deactivate(): void {}

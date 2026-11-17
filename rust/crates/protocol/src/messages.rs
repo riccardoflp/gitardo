@@ -60,8 +60,10 @@ pub mod methods {
 /// `repository/discover` with the common git folder of each repository, a change of a diff and a file of a comparison
 /// as targets, and `journal/record` gone, which no client sends any more; 1.8 what milestone M15 needs: the pages of
 /// `read/graph.read-commits` sent as they are read (`stream`, `read/graph.rows`), `refresh` in
-/// `read/repo.read-state`, and `read/repo.watch-changes`, which says which files of a burst ask for a read.
-pub const VERSION: &str = "1.8";
+/// `read/repo.read-state`, and `read/repo.watch-changes`, which says which files of a burst ask for a read; 1.9 what
+/// milestone M17 needs: `read/file-view.mermaid`, a diagram of Mermaid as an SVG for VS Code's preview of Markdown
+/// ([`crate::mermaid`]).
+pub const VERSION: &str = "1.9";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

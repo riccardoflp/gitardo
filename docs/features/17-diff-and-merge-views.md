@@ -1035,8 +1035,9 @@ Rules:
 - **Source** shows the text of the file, the block as it is written. **Find** in the preview finds no text in a
   diagram, which is a picture ([Q591](../08-decisions.md#open-questions)).
 - Extension: VS Code's preview of Markdown, which does not draw Mermaid, draws a block fenced as `mermaid` as the
-  diagram the engine drew for the kind of VS Code's theme (dark, light, high contrast dark or light), shown as an image
-  so that nothing in it runs ([Q592](../08-decisions.md#open-questions)). Until the engine answers, and without the
+  diagram the engine drew for the kind of VS Code's theme (dark, light, high contrast dark or light), in the colors of
+  VS Code's default theme of that kind, shown as an image so that nothing in it runs
+  ([Q592](../08-decisions.md#open-questions)). A switch of theme draws it again. Until the engine answers, and without the
   engine, the block shows its code; a diagram with an error shows its code and the line saying why.
 
 Acceptance:
@@ -1054,7 +1055,7 @@ Acceptance:
 - [x] A diagram with `accTitle: How a commit is made` is read by the screen reader as that title; one without as
       *Mermaid diagram*.
 - [x] **Source** shows the block of the diagram as its text.
-- [ ] Extension: with a `mermaid` block, VS Code's preview of Markdown shows the diagram the engine drew for the theme
+- [x] Extension: with a `mermaid` block, VS Code's preview of Markdown shows the diagram the engine drew for the theme
       of VS Code; without the engine it shows the code.
 
 ### `file-view.read-revision` — A file at a revision

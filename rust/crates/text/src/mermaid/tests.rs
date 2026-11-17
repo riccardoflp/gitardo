@@ -148,3 +148,28 @@ fn a_diagram_that_asks_for_the_elk_layout_is_drawn_with_the_default_one() {
         "{drawn:?}"
     );
 }
+
+#[test]
+fn the_size_of_a_diagram_is_that_of_its_view_box() {
+    let drawn = diagram(
+        "flowchart LR
+  A[Edit files] --> B[Commit]
+",
+        &look(),
+    )
+    .unwrap();
+    assert!(
+        drawn.width > drawn.height && drawn.height > 0.0,
+        "{} {}",
+        drawn.width,
+        drawn.height
+    );
+    assert_eq!(
+        size_of("<svg width=\"100%\" viewBox=\"0 0 370 61\"><g/></svg>"),
+        (370.0, 61.0)
+    );
+    assert_eq!(
+        size_of("<svg width=\"100%\"><g viewBox=\"0 0 1 1\"/></svg>"),
+        (0.0, 0.0)
+    );
+}

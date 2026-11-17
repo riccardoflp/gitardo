@@ -536,6 +536,10 @@ Another way to look at the diff of a file, beside the diff editor of VS Code. Th
 - The file can be edited where it is shown: what is typed goes into the file, unsaved until `Ctrl`+`S`. `F4` opens the file at the line of the cursor.
 - The title has **Open File**, the previous and next change, and **Stage File**, **Unstage File** and **Discard Changes** where they apply.
 
+### Mermaid diagrams in the preview of Markdown
+
+VS Code's preview of Markdown draws a block of code fenced as `mermaid` as its diagram: flowcharts, sequence, class, state and entity relationship diagrams, Gantt charts, pies, Git graphs, mind maps and the other kinds Mermaid draws. Gitardo's engine lays it out and draws it in the colors of VS Code's default theme of the kind of yours, dark, light or high contrast, again when the theme changes. It is shown as an image, so nothing in it runs, is followed or is fetched; the screen reader reads its `accTitle`, or *Mermaid diagram*. Until it is drawn, and without the engine, the block shows its code; a diagram with an error, or of a kind not drawn, shows its code with a line saying why. When another extension that draws Mermaid in the preview is installed, its blocks are left to it.
+
 ### Flow Merge
 
 The same way to look at a file in conflict, in three columns: what the current side has, the result, and what the incoming side has. The **Open in Flow Merge** button (⇄) in the title of the merge editor opens the file in its place, and the same button in the Flow Merge goes back to the merge editor. **Gitardo: Open in Flow Merge** opens the file of the editor in front. Nothing opens in it unless you ask: a click on a file in conflict still opens the merge editor.

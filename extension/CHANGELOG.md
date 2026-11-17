@@ -10,6 +10,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - The settings of Gitardo are in sections in the Settings editor, with the names and the order of the sections of Gitardo Desktop's settings page: **General**, **Timeline**, **Branches**, **Pull and commits**, **Worktrees**, **Files and blame** and **AI and conflicts**.
 - `gitardo.graph.islands`, off by default: the references, the commits and the details of the Graph view are each a rounded island on a darker ground, with the toolbar above them, and the gap between two islands is the line dragged to resize them.
 - `gitardo.markdown.openAsPreview`, off by default: a Markdown file opened from the Gitardo Changes view, with **Open File** or a click, opens in VS Code's preview of Markdown rather than in its editor.
+- VS Code's preview of Markdown draws a block fenced as `mermaid` as its diagram, laid out and drawn by Gitardo's engine in the colors of VS Code's default theme of the kind of yours, as an image in which nothing runs or is fetched. Until it is drawn, and without the engine, the block shows its code; a diagram with an error, or of a kind not drawn, shows its code with a line saying why. Another extension that draws Mermaid in the preview, when installed, is left its blocks.
 
 ### Changed
 

@@ -197,6 +197,7 @@ impl Session {
             methods::JOURNAL_LAST => crate::journal::last(self, &parameters(params)?),
             methods::DISCOVER => crate::discover::discover(&parameters(params)?, cancel),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
+            protocol::mermaid::methods::FILE_VIEW_MERMAID => crate::mermaid::draw(&parameters(params)?),
             read if crate::reads::is_read(read) => crate::reads::answer(self, id, read, params, cancel),
             // Area 6 of stage 4: the reads that ask a language model of VS Code.
             read if crate::ai::is_ai_read(read) => crate::ai::answer(self, id, read, params, cancel),

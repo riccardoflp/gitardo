@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.8** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.9** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -68,6 +68,11 @@ again, while any other read keeps the count of a worktree whose own git folder d
 nested in the repository, a `.gitignore` always, and of the others those `git check-ignore` does not ignore (Q460).
 Each field added is left out by an older extension, which gets what it got before.
 
+Version 1.9 adds what milestone M17 needed
+([D60](../08-decisions.md#d60--mermaid-diagrams-drawn-in-the-preview-of-markdown)): `read/file-view.mermaid`, a diagram
+of Mermaid written as an SVG for VS Code's preview of Markdown, the only read that takes no repository
+([Diagrams of Mermaid](#diagrams-of-mermaid)).
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -126,7 +131,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.8",
+  protocol: "1.9",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -368,6 +373,27 @@ list, such as a search of a pattern git refuses, is the error `gitFailed`; a rea
 git and answers `cancelled`. A page of the repository of 56,000 commits was to answer in less than 300 ms
 ([06-roadmap.md](06-roadmap.md#stage-7--the-graph-reads)); what `cargo xtask perf` measured is in
 [the desktop's testing](../desktop/06-testing.md).
+
+### Diagrams of Mermaid
+
+`read/file-view.mermaid` (1.9, `file-view.mermaid`) takes no `repository`, reads nothing and runs no git: it lays out a
+block fenced as `mermaid` with `text::mermaid::diagram`, as the desktop does, and writes its SVG, with no
+`foreignObject`, script or image.
+
+```ts
+params: { source: string, theme: "dark" | "light" | "highContrastDark" | "highContrastLight" }
+result:
+  | { kind: "drawn", svg: string, width: number, height: number, title: string | null, description: string | null }
+  | { kind: "invalid", reason: string }    // what the library says of the error, on one line
+  | { kind: "unsupported" }                // a text of no kind of diagram
+  | { kind: "tooLarge" }
+```
+
+`source` is the text of the block without its fence; `theme` is the kind of VS Code's theme, whose colors the extension
+does not know: each kind is drawn in those of VS Code's default theme of that kind, its labels in Mermaid's own typeface
+measured as a browser measures it, since the preview draws the SVG as an image with the fonts of the system. `width`
+and `height` are those of its `viewBox`, in pixels; `title` and `description` its `accTitle` and `accDescr`. It is not
+logged, having no repository to log it in.
 
 ## Features
 

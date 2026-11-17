@@ -8,6 +8,7 @@ mod ai;
 mod feature;
 mod harness;
 mod journal;
+mod mermaid;
 mod reads;
 mod reads_graph;
 mod reads_repository;

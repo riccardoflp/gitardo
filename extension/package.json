@@ -35,6 +35,7 @@
     "onStartupFinished"
   ],
   "contributes": {
+    "markdown.markdownItPlugins": true,
     "viewsContainers": {
       "panel": [
         {
