@@ -232,7 +232,7 @@ fn kept(ui: &mut Ui<'_>, (area, index): (&mut Area, usize), is_unfolded: bool, i
     let rect = area.top(QUIET_ROW);
     let id = ui.id(("kept", index));
     let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     if response.shows_focus {

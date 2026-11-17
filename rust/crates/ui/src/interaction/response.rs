@@ -19,8 +19,15 @@ pub struct Response {
     pub id: WidgetId,
     /// Where it is.
     pub rect: Rect,
-    /// Whether the pointer is over it, and over nothing above it.
+    /// Whether the pointer is over it, and over nothing above it: it is the topmost widget under the pointer. What is
+    /// about that one widget asks this: its own lit state when nothing is drawn inside it, the shape of the pointer,
+    /// the rest of the pointer before a tooltip.
     pub hovered: bool,
+    /// Whether the pointer is over it or over a widget drawn inside it, such as a button of a row, with nothing of
+    /// another layer over it. The background of a row under the pointer and whatever a row shows only under the
+    /// pointer ask this, so that they stay while the pointer is on what the row shows. Like `hovered`, it is said from
+    /// where the last frame drew the widgets.
+    pub contains_pointer: bool,
     /// Whether the main button pressed on it is still held.
     pub pressed: bool,
     /// Whether it was clicked: pressed and released with the pointer over it, or Enter or Space pressed while it has
@@ -49,6 +56,7 @@ impl Response {
             id,
             rect,
             hovered: state.hovered == Some(id),
+            contains_pointer: state.within.contains(&id),
             pressed: state.active.is_some_and(|active| active.id == id),
             clicked: false,
             double_clicked: false,

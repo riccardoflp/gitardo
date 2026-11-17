@@ -42,15 +42,11 @@ pub(super) fn entry_row(
     if marks.is_selected && !context.is_icons {
         ui.fill_rounded_rect(rect, radius, theme.colors.list_inactive_selection);
     }
-    if response.hovered && !context.is_icons {
+    if response.contains_pointer && !context.is_icons {
         ui.fill_rounded_rect(rect, radius, theme.colors.list_hover);
     }
-    // The eye takes the pointer from the row under it, so the row counts as pointed at while the pointer is anywhere
-    // on it, the eye included.
-    let is_pointed = response.hovered
-        || ui
-            .pointer()
-            .is_some_and(|point| rect.contains(point) && ui.current_clip().contains(point));
+    // The row is pointed at while the pointer is anywhere on it, on the eye and on the buttons of a stash too.
+    let is_pointed = response.contains_pointer;
     let eye = (marks.is_dimmed && is_pointed).then(|| {
         let side = rect.height;
         Rect::new(rect.right() - side, rect.y, side, rect.height)

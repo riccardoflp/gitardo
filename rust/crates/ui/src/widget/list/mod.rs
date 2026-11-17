@@ -4,6 +4,7 @@
 
 mod drag;
 mod keys;
+mod pointer;
 mod read;
 mod selection;
 mod steer;
@@ -55,7 +56,7 @@ pub struct Row {
     pub rect: Rect,
     /// Whether it is selected.
     pub is_selected: bool,
-    /// Whether the pointer is over it.
+    /// Whether the pointer is over it, or over something drawn inside it, such as a button it shows under the pointer.
     pub is_hovered: bool,
     /// The color of its text: that of the selection when it is selected in a list with the focus.
     pub foreground: Color,
@@ -191,6 +192,7 @@ impl Ui<'_> {
     ) -> ListResponse {
         let (response, events) = self.interact_with_events(id, rect, Sense::CLICK | Sense::FOCUS | Sense::SCROLL);
         let mut state = self.memory().lists.remove(&id).unwrap_or_default();
+        let drawn_offset = state.scroll.offset();
         state.follow_row_height(list.row_height, f64::from(rect.height));
         if let Some(steering) = steering {
             steering.apply(&mut state, (f64::from(list.row_height), f64::from(rect.height)));
@@ -209,10 +211,8 @@ impl Ui<'_> {
         }
         let content = self.glide_list(rect, list, &mut state);
         let window = visible_rows(list, state.scroll.offset(), rect.height);
-        let hovered_row = self
-            .pointer()
-            .filter(|_| outcome.response.hovered)
-            .and_then(|point| row_at(list, state.scroll.offset(), point.y - rect.y));
+        let offsets = (drawn_offset, state.scroll.offset());
+        let hovered_row = self.row_under_pointer((rect, list), &outcome.response, offsets);
         let is_searched = search.is_some_and(|search| self.search_rows(id, (rect, list), search));
         self.access_node(id, rect, &Description::new(AccessRole::List, list.name));
         self.access_enter(id);

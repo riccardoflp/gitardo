@@ -674,8 +674,9 @@ the repository shown, and of its worktree or submodule shown, is in the color of
 row shows it (`repo.switch-tab`); unfolded, the row of a repository stands for its own folder, and a click on it shows
 that folder. Each row and each chevron takes the keyboard with `Tab`, `Enter` or `Space` acting as a click, and tells
 the screen reader its name and whether it is the one shown, or whether its rows are unfolded. The **×** of a row is on
-the row under the pointer and the row shown; a middle click closes it; its context menu has **Close tab** and **Close
-other tabs** (`repo.close-tab`), **Reveal in the file manager** and **Copy path**. Its tooltip is the folder of what it
+the row under the pointer and the row shown, and stays while the pointer is on it, the row still lit as a row under
+the pointer; a middle click closes it; its context menu has **Close tab** and **Close other tabs**
+(`repo.close-tab`), **Reveal in the file manager** and **Copy path**. Its tooltip is the folder of what it
 shows. A name too long for the row is cut at its start with `…`, so that the name of the repository's own folder
 stays. When the rows do not fit the height of the section, it scrolls.
 
@@ -694,6 +695,8 @@ Acceptance:
       logical pixels wide, a long name and a long branch are both cut with `…`, the name keeping half the row.
 - [ ] The snapshots of the section, with one repository, with several and with the rows of a worktree, in every
       theme, at 100 % and 200 %, match.
+- [ ] With the pointer moved from a row not shown onto its **×** and resting there ten frames, each frame draws the
+      **×** and the row with the background of a row under the pointer, and no frame differs from the one before.
 
 ### `repo.side-column` — The side column of repositories and branches
 
@@ -929,6 +932,8 @@ Acceptance:
 - [ ] A tab closed is not there once the window is closed and opened again.
 - [ ] **Close other tabs** on `web` leaves `web` alone.
 - [ ] Closing a tab with a page whose edits are not saved asks what closing that page asks.
+- [ ] A press and a release on the **×** of a row not shown, after the pointer rested on it ten frames, close that
+      tab.
 
 ### `repo.switch-tab` — Show another tab
 

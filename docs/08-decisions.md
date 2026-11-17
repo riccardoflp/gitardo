@@ -3848,3 +3848,37 @@ is built as it says until the maintainer answers otherwise.
   Should it list only those VS Code's Source Control lists?
 - **Q723** — `repo.select`: the picker of the repository in the toolbar of the graph stays beside the view. Should it
   go once the view is there, or stay only where the view is hidden?
+
+### Of what shows under the pointer, from Q730
+
+Questions asked while building milestone M23, which keeps what a row shows under the pointer there while the pointer
+is on it; each is built as it says until the maintainer answers otherwise.
+
+- **Q730** — rule R10.6: `cargo xtask check` refuses a widget declared in the statement that reads `hovered`, the form
+  the **×** of **Repositories**, the **…** of the titles of the branch rail and the history button of a file had. It
+  reads the text of a statement, not the types, so it does not follow the answer once it is kept in a variable or
+  handed to a function, nor a widget declared by a function of the views rather than by the toolkit: two of the places
+  of M23 had those forms and it would not have refused them. The test that rests the pointer on every sixteenth pixel
+  of the window and compares two frames in a row finds them where it looks. Should the check go further, as by
+  refusing every read of `hovered` in the views that a comment does not explain?
+- **Q731** — `ui`: a widget is drawn inside another when its rectangle is within the other's, on the same layer, with
+  a pixel of slack; the toolkit does not record which widget declared which. A button that sticks further out of its
+  row would take the pointer from the row again, and a widget that lies wholly within a row without being of it would
+  keep the row lit. No place of the window has either today. Should the toolkit record what is declared inside what
+  instead, as a list does for its rows?
+- **Q732** — the rows of the timeline, of the files of a commit, of a comparison and of the branch rail, and the
+  headings of the side column, are now lit as the row under the pointer while the pointer is on a label, a button or
+  a chevron they hold; before, the row went dark there, the label or the button being the topmost widget. The rows of
+  the list of all the labels of a commit are lit under the pointer for the same reason, which they never were. Is
+  that the look wanted everywhere, or should some of them stay as they were?
+- **Q733** — `stash.pane`: the title of the Stashes list is lit whole under the pointer, **Stash all changes…**
+  included, as the titles with **…** are; before, the room of the button stayed dark. Is that right?
+- **Q734** — `activity.what-is-running`, `activity.said`: the rows of the tasks (`views/src/activity/tasks.rs`) and
+  what was said in the status bar (`views/src/activity/said.rs`) were being changed by milestone M18 while M23 was
+  built, and moved to `contains_pointer` and `Ui::is_pointer_within` when the two were merged. Neither shows a control
+  only under the pointer, so they have no test of the window of their own beyond the one that rests the pointer all
+  over it.
+- **Q735** — while the main button is held on a widget and the pointer leaves it, nothing it passes over is lit and
+  nothing shows its buttons, as nothing is `hovered` then; a button pressed whose row the pointer leaves is drawn no
+  more until the release. A browser keeps the row of the press lit. Should a row keep what it showed while a press
+  that started on one of its buttons is held?

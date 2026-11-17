@@ -7,6 +7,7 @@ mod finish;
 mod keys;
 mod overlay;
 mod paint;
+mod pointer;
 mod raised;
 
 pub use file_icon::FileIconStyle;

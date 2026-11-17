@@ -336,7 +336,7 @@ fn file_row(
     let response = ui.interact(ui.id(("column file", index)), row.rect, Sense::CLICK | Sense::HOVER);
     if is_marked {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_selection);
-    } else if response.hovered {
+    } else if response.contains_pointer {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let rest = file_start(ui, row.rect, (file, depth));

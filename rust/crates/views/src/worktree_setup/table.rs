@@ -152,7 +152,7 @@ pub(super) fn section_row(drawn: &Drawn<'_, '_>, section: Section, ui: &mut Ui<'
     });
     let is_open = super::lines::is_open(section, state.toggled, has_something);
     let response = ui.interact(ui.id(("section", section)), rect, Sense::CLICK | Sense::HOVER);
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let mut parts = Area::with_gap(rect, theme.sizes.spacing.large);

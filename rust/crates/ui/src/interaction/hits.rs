@@ -75,6 +75,29 @@ pub(crate) struct Hit {
     pub(crate) is_raised: bool,
 }
 
+impl Hit {
+    /// Whether the widget is drawn inside a rectangle of a layer: on that layer, with no part of it outside the
+    /// rectangle but for the pixel a rounding moves an edge by. A button of a row is inside its row; the grip of a
+    /// splitter and a scroll bar, which cross many rows, are inside none of them.
+    pub(crate) fn is_inside(&self, layer: Layer, rect: Rect) -> bool {
+        self.layer == layer && holds(rect, self.rect)
+    }
+
+    /// Whether a rectangle of a layer is drawn inside the widget, as a row is inside the scroll area of its list.
+    pub(crate) fn holds(&self, layer: Layer, rect: Rect) -> bool {
+        self.layer == layer && holds(self.rect, rect)
+    }
+}
+
+/// Whether a rectangle holds all of another, but for the pixel a rounding moves an edge by.
+fn holds(outer: Rect, inner: Rect) -> bool {
+    let room = outer.inset(-INSIDE_SLACK);
+    inner.x >= room.x && inner.y >= room.y && inner.right() <= room.right() && inner.bottom() <= room.bottom()
+}
+
+/// How far, in logical pixels, something may stick out of what it is drawn inside and still count as inside it.
+const INSIDE_SLACK: f32 = 1.0;
+
 /// The widgets of a frame that take input, in the order they are stacked: the lowest layer first, and in each layer
 /// the order they were declared in.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -125,6 +148,16 @@ impl Hits {
         )
     }
 
+    /// The widgets the pointer is within when `top` is the topmost one under it: `top`, and the widgets of its layer
+    /// it is drawn inside, such as the row a button is on and the list of that row.
+    pub(crate) fn around(&self, top: &Hit, point: Point) -> Vec<WidgetId> {
+        self.entries
+            .iter()
+            .filter(|hit| hit.id == top.id || (hit.rect.contains(point) && top.is_inside(hit.layer, hit.rect)))
+            .map(|hit| hit.id)
+            .collect()
+    }
+
     /// Where the widgets that take a click, a drag or the focus cross a rectangle, in the layers that take input now.
     pub(crate) fn pointer_targets(&self, within: Rect) -> Vec<Rect> {
         let lowest = self.lowest_layer();
@@ -170,6 +203,8 @@ impl Hits {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, reason = "a test that cannot go on fails")]
+
     use super::*;
 
     fn hit(key: &str, rect: Rect, layer: Layer, sense: Sense) -> Hit {
@@ -208,5 +243,60 @@ mod tests {
         hits.stack();
         assert_eq!(at(&hits, 60.0, 60.0), None);
         assert_eq!(hits.focus_order(), vec![WidgetId::ROOT.with("dialog")]);
+    }
+
+    #[test]
+    fn the_pointer_is_within_the_widgets_of_its_layer_the_topmost_one_is_drawn_inside() {
+        let mut hits = Hits::default();
+        let row = Rect::new(0.0, 20.0, 100.0, 20.0);
+        hits.push(hit(
+            "list",
+            Rect::new(0.0, 0.0, 100.0, 100.0),
+            Layer::Base,
+            Sense::SCROLL,
+        ));
+        hits.push(hit("row", row, Layer::Base, Sense::CLICK));
+        hits.push(hit(
+            "other row",
+            Rect::new(0.0, 40.0, 100.0, 20.0),
+            Layer::Base,
+            Sense::CLICK,
+        ));
+        hits.push(hit(
+            "button",
+            Rect::new(80.0, 20.5, 19.0, 20.0),
+            Layer::Base,
+            Sense::CLICK,
+        ));
+        hits.push(hit("bar", Rect::new(96.0, 0.0, 4.0, 100.0), Layer::Base, Sense::DRAG));
+        hits.push(hit(
+            "menu",
+            Rect::new(10.0, 22.0, 30.0, 10.0),
+            Layer::Popup,
+            Sense::CLICK,
+        ));
+        hits.stack();
+        let around = |x: f32, y: f32| {
+            let point = Point::new(x, y);
+            let top = *hits.covering(point).unwrap();
+            hits.around(&top, point)
+        };
+        let ids = |keys: &[&str]| keys.iter().map(|key| WidgetId::ROOT.with(*key)).collect::<Vec<_>>();
+        assert_eq!(around(50.0, 30.0), ids(&["list", "row"]));
+        assert_eq!(
+            around(85.0, 30.0),
+            ids(&["list", "row", "button"]),
+            "half a pixel out is inside"
+        );
+        assert_eq!(
+            around(98.0, 30.0),
+            ids(&["list", "bar"]),
+            "a bar across the rows is in none"
+        );
+        assert_eq!(
+            around(20.0, 25.0),
+            ids(&["menu"]),
+            "a menu over the row is of another layer"
+        );
     }
 }

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
+  **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
+  timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release
+  seldom met the same button. A row is still lit as the row under the pointer while the pointer is on one of its
+  buttons or its labels, in the timeline, the branch rail, the files of a commit and of a comparison and the headings
+  of the side column, and the title of the Stashes list is lit whole, **Stash all changes…** too.
 - The list of the **Activity** tab holds still while it is read. Each thing is timed from when the engine started it,
   and is listed once it has run half a second, in the tab as in the activity indicator and its tooltip; a row stays
   where it is while it runs, as high whether it has a detail or not. Reads of the same repository one after the other

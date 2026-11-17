@@ -83,7 +83,7 @@ fn draw_row(ui: &mut Ui<'_>, cell: Rect, look: &RowLook<'_>) -> (Response, Rect)
         ui.fill_rect(cell, theme.colors.list_inactive_selection);
         let bar = Rect::new(cell.x, cell.y, 2.0 * theme.sizes.border, cell.height);
         ui.fill_rect(bar, theme.colors.accent);
-    } else if response.hovered {
+    } else if response.contains_pointer {
         ui.fill_rect(cell, theme.colors.list_hover);
     }
     if response.shows_focus {
@@ -178,8 +178,9 @@ pub(super) fn repository_row(
     }
     let close_rect = place(close_cell, (side, side), (Align::End, Align::Center));
     let close_button = Button::icon(icons::CLOSE, words::CLOSE_TAB).kind(ButtonKind::Icon);
-    // The room of the **×** is kept on every row, so that the name does not move under the pointer.
-    let is_closed = (tab.is_shown || response.hovered)
+    // The room of the **×** is kept on every row, so that the name does not move under the pointer; and the **×** stays
+    // while the pointer is on it, which is on the row still.
+    let is_closed = (tab.is_shown || response.contains_pointer)
         && ui
             .scope(("tab close", index), |ui| ui.button("close", close_rect, &close_button))
             .clicked;

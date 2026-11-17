@@ -237,7 +237,7 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     let operations = list_operations(context.state, &head.list);
     let entries = list_menu(&head.list, context.state.sort, &operations);
     let is_menu_open = ui.is_menu_open(menu_key);
-    if response.hovered || is_menu_open {
+    if response.contains_pointer || is_menu_open {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     if response.shows_focus {
@@ -245,7 +245,7 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     }
     let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing.medium, 0.0)), spacing.small);
     title_icons(ui, &mut parts, head);
-    if !entries.is_empty() && (response.hovered || is_menu_open) {
+    if !entries.is_empty() && (response.contains_pointer || is_menu_open) {
         let button = Button::icon(icons::MORE, words::LIST_MENU).kind(ButtonKind::Icon);
         let side = rect.height;
         if ui

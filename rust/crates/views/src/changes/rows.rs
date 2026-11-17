@@ -284,7 +284,7 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
     }
     let named = parts.rest();
     let response = ui.interact(ui.id(("file name", path)), named, Sense::CLICK | Sense::HOVER);
-    if response.hovered {
+    if response.contains_pointer {
         let theme = *ui.theme();
         ui.fill_rounded_rect(named, theme.sizes.radius.medium, theme.colors.list_hover);
     }

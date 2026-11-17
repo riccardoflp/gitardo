@@ -90,7 +90,7 @@ fn untracked_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index): (&ui::Row, usiz
         row.rect,
         Sense::CLICK | Sense::HOVER,
     );
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let rest = file_start(ui, row.rect, (file, 0));
@@ -110,7 +110,7 @@ fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, us
     };
     let theme = *ui.theme();
     let response = ui.interact(ui.id(("page file", index)), row.rect, Sense::CLICK | Sense::HOVER);
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let mut intents = Vec::new();

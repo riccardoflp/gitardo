@@ -234,7 +234,7 @@ fn side_row(
     let response = ui.interact(id, row.rect, Sense::CLICK | Sense::HOVER);
     if is_lit {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_selection);
-    } else if response.hovered {
+    } else if response.contains_pointer {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let mut parts = Area::with_gap(inset(row.rect, Insets::symmetric(spacing.medium, 0.0)), spacing.medium);

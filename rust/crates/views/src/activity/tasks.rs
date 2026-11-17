@@ -141,7 +141,7 @@ fn task_row(ui: &mut Ui<'_>, rect: Rect, (row, is_shown): (&TaskRow, bool), inte
     let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
     if is_shown {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_inactive_selection);
-    } else if response.hovered {
+    } else if response.contains_pointer {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let mut line = Area::with_gap(inset(rect, Insets::symmetric(spacing.small, 0.0)), spacing.medium);
