@@ -3115,3 +3115,22 @@ the reading given until the card says otherwise.
   ends, such as a comparison asked from the menu of a branch of the side column, goes on from the page shown when it
   opens, since the store no longer knows what asked for it; the menus of the side column ask what the same menus of
   the timeline ask.
+
+### Of the Changes page beside what it opens, from Q550
+
+- **Q550** — `changes.beside-file`: what the place does when the diff of its file changes or disappears, as when the
+  file is staged wholly while the index against the file on disk is shown, or discarded. Built: once the repository is
+  read again, a diff of one file shows what **Open changes** gives that file now (the last commit against the index
+  once it is all staged, the index against the file on disk once some of it is unstaged); a file no longer in the list
+  leaves the place, and the whole page is shown, rather than the next file, which would show a diff the user did not
+  ask for; a File page follows the same rule, since the place shows a file of the list.
+- **Q551** — `changes.beside-file`: which ways to the Changes page keep the file beside it. Built: **Changes** in the
+  trail, the Changes view of the bar of views, **Show changes** in Quick search and **Review** in the draft show the
+  whole page, as D57 says of a page opened from the bar of views or Quick search; `Ctrl+Tab` comes back to the page
+  with the file beside it, as it was left.
+- **Q552** — `changes.beside-file`: what the column holds, and whether the side column stays. Built: the column is the
+  whole page, its commit box and its identity included, with narrower margins, so that one commits without leaving the
+  review; 360 logical pixels wide where it starts, since its rows keep their buttons, and remembered for the workspace
+  as `changesColumn`. The side column stays, as beside the Files page; phase 15 puts it away from the title row.
+- **Q553** — `changes.beside-file`: whether `Escape` brings the whole page back, as it does beside a comparison.
+  Built: no, since `Escape` closes the box that finds in the File page shown there; **Changes** in the trail does it.

@@ -8,6 +8,7 @@ mod edit;
 mod follow;
 mod lines;
 mod navigate;
+mod owner;
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -25,6 +26,8 @@ use crate::work::diff::{DiffJob, DiffRead};
 
 pub use edit::{PageCaret, follow_document, reduce_edit};
 pub use navigate::reduce_page;
+pub use owner::Owner;
+use owner::show_opened;
 
 /// Something asked of the Diff pages.
 pub fn reduce(state: &mut State, intent: views::diff::DiffIntent) -> Vec<Effect> {
@@ -55,6 +58,10 @@ pub struct DiffPages {
 
 /// A Diff page.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each says something of its own: whether it is open, folded, stale, and shown in the Changes page"
+)]
 pub struct DiffPage {
     /// Its number.
     pub id: DiffPageId,
@@ -106,17 +113,9 @@ pub struct DiffPage {
     pub beside: Option<u64>,
     /// The comparison page it is shown beside, in place of being a page of its own (`compare.beside-diff`).
     pub comparison: Option<views::compare::ComparePageId>,
-}
-
-/// Where a Diff page is shown.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Owner {
-    /// As a page of its own.
-    Alone,
-    /// Beside the inspector, with the number of the time it was given a file to show (`diff.beside-inspector`).
-    Inspector(u64),
-    /// Beside a comparison page, which it is shown in (`compare.beside-diff`).
-    Comparison(views::compare::ComparePageId),
+    /// Whether it is shown beside the list of the Changes page, in place of being a page of its own
+    /// (`changes.beside-file`).
+    pub is_in_changes: bool,
 }
 
 /// Opens the Diff page of a target in the repository shown, or shows the one it has: there is never a second page for
@@ -145,6 +144,7 @@ pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Eff
         return Vec::new();
     }
     let (beside, comparison) = owner.fields();
+    let is_in_changes = owner == Owner::Changes;
     let id = DiffPageId(state.diff_pages.next);
     state.diff_pages.next += 1;
     let count = target.files.len();
@@ -173,6 +173,7 @@ pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Eff
         is_stale: false,
         beside,
         comparison,
+        is_in_changes,
     };
     state.diff_pages.pages.push(page);
     let is_open = count != 1;
@@ -186,43 +187,6 @@ pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Eff
         show_opened(state, id);
     }
     effects
-}
-
-impl Owner {
-    /// The fields of a page that say where it is shown: beside the inspector, and beside a comparison.
-    fn fields(self) -> (Option<u64>, Option<views::compare::ComparePageId>) {
-        match self {
-            Owner::Alone => (None, None),
-            Owner::Inspector(serial) => (Some(serial), None),
-            Owner::Comparison(page) => (None, Some(page)),
-        }
-    }
-}
-
-impl DiffPage {
-    /// Where it is shown.
-    #[must_use]
-    pub fn owner(&self) -> Owner {
-        match (self.beside, self.comparison) {
-            (_, Some(page)) => Owner::Comparison(page),
-            (Some(serial), None) => Owner::Inspector(serial),
-            (None, None) => Owner::Alone,
-        }
-    }
-}
-
-/// Shows a page once it can be: in the comparison page it is beside, or as a page.
-pub(super) fn show_opened(state: &mut State, id: DiffPageId) {
-    let comparison = state
-        .diff_pages
-        .pages
-        .iter()
-        .find(|page| page.id == id)
-        .and_then(|page| page.comparison);
-    match comparison {
-        Some(page) => super::pages::show_page(state, Page::Compare(page)),
-        None => super::pages::show_page(state, Page::Diff(id)),
-    }
 }
 
 /// Starts the read of a file of a page, the very large file asked about already when `is_confirmed`.
@@ -403,7 +367,10 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
                         .iter()
                         .any(|compared| compared.beside.as_ref().is_some_and(|beside| beside.diff == page.id))
             });
-            !page.is_open || open.contains(&Page::Diff(page.id)) || is_beside_comparison
+            let is_beside_changes = page.is_in_changes
+                && open.contains(&Page::Changes)
+                && super::changes_beside::shows_diff(state, page.id);
+            !page.is_open || open.contains(&Page::Diff(page.id)) || is_beside_comparison || is_beside_changes
         });
     state.diff_pages.pages = kept;
     closed

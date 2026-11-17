@@ -100,6 +100,8 @@ pub enum Pane {
     InspectorOver,
     /// The width of the tree of the Files page beside a file opened from it (`file-view.beside-files`).
     FilesTree,
+    /// The width of the column of the Changes page beside a file opened from it (`changes.beside-file`).
+    ChangesColumn,
 }
 
 /// A section of the side column (`repo.side-column`).

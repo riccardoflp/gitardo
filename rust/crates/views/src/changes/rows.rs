@@ -2,19 +2,20 @@
 //! with the box on its header, the buttons that act on every file, and each file with its box and its buttons; **No
 //! changes** when both are empty.
 
-use model::changes::{ChangeRow, FileStatus, OpenAction, OpenInput, OpenOnClick, OpenTarget, StagedBox};
+use model::changes::{ChangeRow, FileStatus, OpenAction, OpenOnClick, StagedBox};
 use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
-    Button, ButtonKind, Choice, Icon, Label, List, Point, Rect, SelectionMode, Sense, TextKind, TextRun, Tone, Ui,
+    Button, ButtonKind, Choice, Icon, Label, List, Point, Rect, Reveal, RevealPlace, SelectionMode, Sense, Steering,
+    TextKind, TextRun, Tone, Ui,
 };
 
 use super::{ChangesIntent, ChangesRepository};
 use crate::conflicts::{OpenFileState, open_file_view};
 use crate::details::{CappedList, FileLayout, FileRow, FilesIntent, FilesOwner, FilesState, directory_row, file_rows};
 use crate::feature::FeatureIntent;
-use crate::file_view::{FileTarget, FileViewIntent};
+use crate::file_view::FileViewIntent;
 use crate::icons;
 use crate::intent::Intent;
 use crate::text::changes as words;
@@ -55,14 +56,38 @@ pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
         selection_mode: SelectionMode::Read,
         lead: 0.0,
     };
+    let reveal = state
+        .marked
+        .and_then(|path| rows.iter().position(|row| row_path(state, row) == Some(path)))
+        .map(|row| Reveal {
+            serial: state.serial,
+            row,
+            place: RevealPlace::Nearest,
+        });
+    let steering = Steering {
+        reveal,
+        ..Steering::default()
+    };
     let mut intents = Vec::new();
-    let _ = ui.list("changes rows", rect, &list, |ui, row| {
+    let _ = ui.steered_list("changes rows", (rect, &list), &steering, |ui, row| {
         let Some(shown) = rows.get(row.index) else {
             return;
         };
         intents.extend(draw_row(state, ui, (row.rect, *shown)));
     });
     intents
+}
+
+/// The path of the file of a row of **Changes**; none for the other rows.
+fn row_path<'a>(state: &ChangesRepository<'a>, row: &ChangesRow<'_>) -> Option<&'a str> {
+    match row {
+        ChangesRow::File(FileRow::File(index, _)) => state.list.rows.get(*index).map(|row| row.path.as_str()),
+        ChangesRow::ConflictsHeading
+        | ChangesRow::Conflict(_)
+        | ChangesRow::ChangesHeading
+        | ChangesRow::File(FileRow::Directory { .. })
+        | ChangesRow::NoChanges => None,
+    }
 }
 
 /// The rows of the lists, from the rows of the files laid out.
@@ -224,6 +249,10 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
     let mut intents = Vec::new();
     let can_change = !state.is_running;
     let path = row.path.as_str();
+    if state.marked == Some(path) {
+        let theme = *ui.theme();
+        ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_selection);
+    }
     let mut area = Area::with_gap(rect, ui.theme().sizes.spacing.small);
     for (said, icon, intent) in file_buttons(row) {
         let is_enabled = can_change && intent.is_some();
@@ -264,22 +293,14 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
     intents
 }
 
-/// What opens the page `changes.open` decides on, when it is the Diff page or the File page: the Merge page comes
-/// later.
+/// What opens, beside the list, the page `changes.open` decides on, when it is the Diff page or the File page
+/// (`changes.beside-file`): a file in conflict is not in this list.
 fn open_page(row: &ChangeRow, action: OpenAction, on_click: OpenOnClick) -> Option<Intent> {
-    let request = model::changes::open(&OpenInput {
-        file: OpenTarget::Changed(row),
-        action,
-        on_click,
-    });
-    if let model::changes::PageRequest::File(path) = &request {
-        return Some(open_file(path));
-    }
-    let target = crate::diff::changes_file(&request)?;
-    Some(Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target))))
+    let file = super::beside_request(row, action, on_click)?;
+    Some(Intent::Changes(ChangesIntent::OpenBeside(file)))
 }
 
-/// **Open all changes in one Diff page**: one Diff page of every changed file (`changes.open`).
+/// **Open all changes in one Diff page**: one Diff page of every changed file, beside the list (`changes.open`).
 fn open_all(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, area: &mut Area) -> Option<Intent> {
     let all = crate::diff::changes_files(&state.list.rows);
     let clicked = icon_button(
@@ -289,12 +310,14 @@ fn open_all(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, area: &mut Area) -> 
         all.is_some(),
     );
     let target = all.filter(|_| clicked)?;
-    Some(Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target))))
+    Some(Intent::Changes(ChangesIntent::OpenBeside(super::BesideFile::Diff(
+        Box::new(target),
+    ))))
 }
 
-/// What opens the File page of a file of the working tree (`file-view.page`).
+/// What opens the File page of a file of the working tree beside the list (`file-view.page`).
 fn open_file(path: &str) -> Intent {
-    Intent::FileView(FileViewIntent::Open(FileTarget::working_tree(path)))
+    Intent::Changes(ChangesIntent::OpenBeside(super::BesideFile::File(path.to_owned())))
 }
 
 /// What saves a file with edits not saved in its File page (`file-view.save`).

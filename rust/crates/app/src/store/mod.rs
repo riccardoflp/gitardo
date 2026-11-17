@@ -7,6 +7,7 @@
 pub mod blame;
 mod changed_files;
 mod changes;
+mod changes_beside;
 mod code_workspace;
 mod commit_page;
 pub mod compare;
@@ -89,6 +90,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(inspector::follow(state));
     effects.extend(commit_page::prune(state));
     effects.extend(commit_page::follow(state));
+    effects.extend(changes_beside::follow(state));
     effects.extend(diff_page::prune(state));
     effects.extend(diff_page::follow(state));
     effects.extend(merge_page::prune(state));

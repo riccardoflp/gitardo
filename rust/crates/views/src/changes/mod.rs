@@ -1,7 +1,8 @@
 //! The Changes page (`changes.pane`): the commit box at the top, with its message, **Commit** or **Amend**, **Amend last
 //! commit** and the identity under it; then the files in conflict apart, and the one list of the changed files, each
-//! with its box.
+//! with its box; a file opened from it shows on the right of the list, which stays as a column (`changes.beside-file`).
 
+mod beside;
 mod commit_box;
 mod rows;
 
@@ -18,6 +19,7 @@ use crate::intent::Intent;
 use crate::repo::{NoRepositoryState, no_repository_view};
 use crate::text::changes as words;
 
+pub use beside::{BesideFile, BesideFileState, BesideShown, beside_file_view, beside_request};
 pub use commit_box::{CommitBox, CommitKind, Draft};
 #[cfg(test)]
 pub(crate) use rows::file_buttons;
@@ -58,6 +60,11 @@ pub struct ChangesRepository<'a> {
     pub banner: Option<crate::conflicts::BannerState<'a>>,
     /// The banner of another worktree shown in this window, at the top (`worktree.banner`).
     pub worktree: Option<Box<crate::worktree::BannerState<'a>>>,
+    /// The file shown beside the list, which its row marks; none while nothing is shown beside it, or every file
+    /// (`changes.beside-file`).
+    pub marked: Option<&'a str>,
+    /// A number that changes each time another file is shown beside the list, which brings its row into sight once.
+    pub serial: u64,
 }
 
 /// Something asked of the Changes page, or of the draft of the timeline, which shows its message and **Commit**.
@@ -80,6 +87,12 @@ pub enum ChangesIntent {
     DraftMessage,
     /// Stop drafting the message: the box is left as it was.
     StopDraft,
+    /// A file of the list, or every file, opened on the right of the list (`changes.beside-file`).
+    OpenBeside(BesideFile),
+    /// `Alt+Down` or `Alt+Up` beside the list: the next or the previous file of the list, in the same place.
+    StepFile(crate::diff::FileStep),
+    /// **Changes** in the trail, or the Changes view of the bar of views: the whole page again, nothing beside it.
+    ShowWhole,
 }
 
 /// The Changes page, over the rectangle its caller clipped it to: with no repository, what the timeline says in its
@@ -92,9 +105,16 @@ pub fn pane(state: &ChangesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         ChangesState::NoRepository(state) => return no_repository_view(state, ui),
         ChangesState::Repository(repository) => repository,
     };
+    let spacing = ui.theme().sizes.spacing;
+    page_body(repository, ui, Insets::symmetric(spacing.huge, spacing.large))
+}
+
+/// The page over the rectangle its caller clipped it to, within insets: wide on the page alone, narrow in the column
+/// beside a file (`changes.beside-file`).
+fn page_body(repository: &ChangesRepository<'_>, ui: &mut Ui<'_>, insets: Insets) -> Vec<Intent> {
     let rect = ui.current_clip();
     let spacing = ui.theme().sizes.spacing;
-    let inner = inset(rect, Insets::symmetric(spacing.huge, spacing.large));
+    let inner = inset(rect, insets);
     let mut intents = Vec::new();
     ui.region("changes page", (rect, AccessRole::Main, words::PAGE), |ui| {
         let mut area = Area::with_gap(inner, spacing.large);

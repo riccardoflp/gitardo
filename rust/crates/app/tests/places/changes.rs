@@ -262,6 +262,8 @@ fn changes_pane__the_identity_line_reads_name_and_email_or_no_identity_configure
         on_click: model::changes::OpenOnClick::File,
         banner: None,
         worktree: None,
+        marked: None,
+        serial: 0,
     });
     let (_, tree) = window.frame(&[], |ui| views::changes::pane(&page, ui));
     assert!(has(&tree, Role::Button, "No identity configured"));
@@ -437,12 +439,19 @@ fn a_file_partly_staged_opens_the_index_against_the_file_on_disk_from_open_chang
     )]
     let on_name = render::Point::new(name.x0 as f32 + 4.0, f64::midpoint(name.y0, name.y1) as f32);
     let from_click = super::pointer::click_at(&mut window, &state, on_name, 1);
-    assert_eq!(sides(&from_click), [], "a click opens the File page, which comes later");
+    assert_eq!(sides(&from_click), [], "a click opens the File page");
     state.settings.open_on_click = model::changes::OpenOnClick::Diff;
     let from_click = super::pointer::click_at(&mut window, &state, on_name, 1);
     assert_eq!(sides(&from_click), sides(&from_button));
     apply(&driver, &mut state, from_click);
-    assert!(matches!(state.page_shown(), Some(Page::Diff(_))));
+    assert_eq!(state.page_shown(), Some(Page::Changes), "the diff is beside the list");
+    assert!(
+        state
+            .diff_pages
+            .pages
+            .iter()
+            .any(|page| page.is_in_changes && page.is_open)
+    );
 }
 
 #[test]
@@ -469,29 +478,4 @@ fn the_stash_buttons_of_the_changes_page_run_the_stash_of_a_file_of_all_changes_
         let intents = window.click(&state, Role::Button, button);
         assert!(intents.contains(&asked), "{button}: {intents:?}");
     }
-}
-
-#[test]
-fn changes_open__open_all_changes_in_one_diff_page_with_three_changed_files_opens_one_diff_page_with_three_files() {
-    let repository = committed();
-    write(&repository, "a.txt", "a, staged\n");
-    let _ = repository.git(&["add", "a.txt"]);
-    write(&repository, "b.txt", "b, changed\n");
-    write(&repository, "c.txt", "new\n");
-    let (mut state, driver) = changes_page(&repository);
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    click(
-        &driver,
-        &mut state,
-        &mut window,
-        (Role::Button, "Open all changes in one Diff page"),
-    );
-    let Some(Page::Diff(id)) = state.page_shown() else {
-        panic!("a Diff page is shown, not {:?}", state.page_shown());
-    };
-    assert_eq!(state.diff_pages.pages.len(), 1);
-    let page = state.diff_pages.pages.iter().find(|page| page.id == id).unwrap();
-    let files: Vec<&str> = page.target.files.iter().map(|file| file.right.as_str()).collect();
-    assert_eq!(files, ["a.txt", "b.txt", "c.txt"]);
-    assert_eq!(page.title, "Changes");
 }

@@ -79,6 +79,9 @@ pub enum PageState<'a> {
     Settings(SettingsPageState<'a>),
     /// The Changes page.
     Changes(crate::changes::ChangesState<'a>),
+    /// The Changes page with a file opened beside its list, the page as a column on the left
+    /// (`changes.beside-file`).
+    ChangesBeside(Box<crate::changes::BesideFileState<'a>>),
     /// A Diff page.
     Diff(DiffPageState<'a>),
     /// The interactive rebase page.
@@ -110,7 +113,7 @@ impl<'a> PageState<'a> {
             PageState::Welcome(_) => Page::Welcome,
             PageState::Commit(commit) => Page::Commit(commit.id),
             PageState::Settings(_) => Page::Settings,
-            PageState::Changes(_) => Page::Changes,
+            PageState::Changes(_) | PageState::ChangesBeside(_) => Page::Changes,
             PageState::Diff(diff) => Page::Diff(diff.id),
             PageState::Rebase(_) => Page::Rebase,
             PageState::Compare(compare) => Page::Compare(compare.id),
@@ -140,12 +143,14 @@ impl<'a> PageState<'a> {
             PageState::Review(review) => review.title,
             PageState::File(file) => file.title,
             PageState::FilesBeside(beside) => beside.file.title,
+            PageState::ChangesBeside(beside) => beside.title(),
         }
     }
 
     /// The step of the trail between the pages it was reached through and the name of the page, with what it asks:
-    /// **Files**, which shows the tree alone again, while a file is opened beside it; the comparison, which shows it
-    /// whole again, while the diff of one of its files is shown beside it.
+    /// **Files**, which shows the tree alone again, while a file is opened beside it; **Changes**, which shows the
+    /// whole page again, while a file is opened beside its list; the comparison, which shows it whole again, while the
+    /// diff of one of its files is shown beside it.
     #[must_use]
     pub fn step(&self) -> Option<(&'a str, Intent)> {
         match self {
@@ -156,6 +161,10 @@ impl<'a> PageState<'a> {
             PageState::FilesBeside(_) => Some((
                 crate::text::files::PAGE,
                 Intent::Files(crate::files::FilesPageIntent::ShowTree),
+            )),
+            PageState::ChangesBeside(_) => Some((
+                crate::text::changes::PAGE,
+                Intent::Changes(crate::changes::ChangesIntent::ShowWhole),
             )),
             // No other page shows another inside it.
             _ => None,
@@ -176,6 +185,7 @@ impl<'a> PageState<'a> {
             PageState::File(file) => file.is_unsaved,
             PageState::Diff(diff) => diff.is_unsaved,
             PageState::FilesBeside(beside) => beside.file.is_unsaved,
+            PageState::ChangesBeside(beside) => beside.is_unsaved(),
             PageState::CompareBeside(beside) => beside.diff.is_unsaved,
             _ => false,
         }
@@ -223,6 +233,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Commit(commit) => commit_page_view(commit, ui),
         PageState::Settings(settings) => settings_view(settings, ui),
         PageState::Changes(changes) => crate::changes::pane(changes, ui),
+        PageState::ChangesBeside(beside) => crate::changes::beside_file_view(beside, ui),
         PageState::Diff(diff) => diff_page_view(diff, ui),
         PageState::Rebase(rebase) => crate::rebase::todo_page_view(rebase, ui),
         PageState::Compare(compare) => compare_page_view(compare, ui),

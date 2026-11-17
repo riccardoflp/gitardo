@@ -41,7 +41,10 @@ pub fn opened(intents: &[Intent]) -> Vec<DiffTarget> {
     intents
         .iter()
         .filter_map(|intent| match intent {
-            Intent::Diff(DiffIntent::Open(target) | DiffIntent::OpenBeside(target)) => Some((**target).clone()),
+            Intent::Diff(DiffIntent::Open(target) | DiffIntent::OpenBeside(target))
+            | Intent::Changes(views::changes::ChangesIntent::OpenBeside(views::changes::BesideFile::Diff(target))) => {
+                Some((**target).clone())
+            }
             _ => None,
         })
         .collect()

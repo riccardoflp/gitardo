@@ -41,12 +41,7 @@ impl ViewData {
             })),
             Page::Commit(_) | Page::Diff(_) | Page::Merge(_) | Page::Compare(_) => opened_page(state, page),
             Page::Review => crate::store::review::page_state(state).map(PageState::Review),
-            Page::File(id) => crate::store::file_page::page_state(state, id).map(|page| {
-                PageState::File(FilePageState {
-                    blame: self.blame.page_blame(state, id),
-                    ..page
-                })
-            }),
+            Page::File(id) => self.file_page(state, id).map(PageState::File),
             Page::Settings => Some(PageState::Settings(SettingsPageState {
                 rows: &self.setting_rows,
                 target: crate::store::settings_page::shown_target(state),
@@ -54,7 +49,11 @@ impl ViewData {
                 page: &state.settings_page,
             })),
             Page::Rebase => crate::store::rebase::page_state(state).map(PageState::Rebase),
-            Page::Changes => Some(PageState::Changes(self.changes.page_state(state))),
+            Page::Changes => Some(crate::store::changes_beside::page_state(
+                state,
+                &self.changes,
+                (&self.blame, self.panes.sizes.changes_column),
+            )),
             Page::Files => Some(self.files_page(state)),
             Page::NewWorktrees => Some(PageState::NewWorktrees(
                 crate::store::new_worktrees::page_state(state),
@@ -87,13 +86,16 @@ impl ViewData {
 
     /// The Files page, with the file opened beside its tree when there is one (`file-view.beside-files`).
     fn files_page<'a>(&'a self, state: &'a State) -> PageState<'a> {
-        let file = state.files_page.shown_file.and_then(|id| {
-            crate::store::file_page::page_state(state, id).map(|page| FilePageState {
-                blame: self.blame.page_blame(state, id),
-                ..page
-            })
-        });
+        let file = state.files_page.shown_file.and_then(|id| self.file_page(state, id));
         crate::store::files_page::beside_state(state, file, self.panes.sizes.files_tree)
+    }
+
+    /// A File page with the blame of its lines, when it is still kept.
+    fn file_page<'a>(&'a self, state: &'a State, id: views::file_view::FilePageId) -> Option<FilePageState<'a>> {
+        crate::store::file_page::page_state(state, id).map(|page| FilePageState {
+            blame: self.blame.page_blame(state, id),
+            ..page
+        })
     }
 
     /// The Diff page beside the inspector, in place of the commits; in place of everything when no repository is read.
