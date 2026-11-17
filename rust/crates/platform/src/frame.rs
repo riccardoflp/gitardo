@@ -108,6 +108,10 @@ impl DrawnFrame {
     ///
     /// None on this system.
     #[cfg(not(windows))]
+    #[allow(
+        clippy::unnecessary_wraps,
+        reason = "the same call as on Windows, where installing the frame can fail"
+    )]
     pub(crate) fn new(
         _window: &winit::window::Window,
         _decorations: Decorations,
