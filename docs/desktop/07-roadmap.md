@@ -440,6 +440,43 @@ menu of a branch the bin beside **Delete**; every card of the phase passes its t
 of the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the
 Files page with its marks and with the icons of its files, and those of the menus of a commit and of a file, in each theme.
 
+## M23 — What shows under the pointer stays under it
+
+A fix, asked by the maintainer as urgent and built before the milestones that are not built yet, whatever its number:
+the **×** of a row of **Repositories** flickers while the pointer is on it and cannot be clicked, and so does every
+control the window shows only on the row under the pointer. In Gitardo Desktop alone: the webviews of the extension
+ask the browser, which answers right.
+
+The cause, read in the code: a widget is `hovered` only while it is the topmost one under the pointer
+(`ui::Response::hovered`), and a row draws its **×** only while the row is hovered (`views::repo::rows`). With the
+pointer on the **×**, the **×** is the topmost: the row is no longer hovered and does not draw it; in the next frame
+nothing is over the row, which is hovered again and draws it; and so on, a frame with and a frame without, so that a
+press and its release seldom meet the same button. The row shown always draws its **×**, which is why that one works.
+The rows of the files of a commit already work around it by asking where the pointer is (`views::details::rows`); the
+others do not.
+
+Built in two phases, each one commit or more, each ending with its tests passing.
+
+1. **The toolkit says whether the pointer is within a widget.** Beside `hovered`, what a widget is told says whether
+   the pointer is over it or over something drawn inside it, with nothing of another layer covering it; the
+   background of a row under the pointer and whatever a row shows only under the pointer ask that. A test of `ui`
+   holds, with a row and a button it shows under the pointer, that with the pointer resting on the button for ten
+   frames the button is drawn in each, the row keeps its background, and a click presses the button and not the row.
+   A rule of the code says which of the two a view asks, and the check of the rules refuses a control drawn only
+   while `hovered`. Cards: `repo.tabs`, `repo.close-tab`.
+2. **Every place that shows something under the pointer.** Each of the some forty places of `views` that read
+   `hovered` is looked at and asks the right one: the **×** of the rows of **Repositories**, the buttons on the titles
+   of the lists of the branch rail and of its filters, the rows of branches, stashes, worktrees and submodules, the
+   buttons of the rows of the Changes page, of the files of a commit (its workaround replaced) and of a comparison,
+   the rows of the tasks of Activity, of the settings and of what new worktrees get, the labels of the timeline and
+   their list. For each control shown only under the pointer, a test of the window moves the pointer from the row
+   onto the control, rests there ten frames and clicks: every frame draws the same, and the click does what the
+   control says. Cards: `repo.tabs`, `repo.close-tab`, `refs.tree`, and those of each place changed.
+
+Exit: with three repositories open, the pointer moved onto the **×** of one not shown finds it still, lit as a button
+under the pointer, and a click closes that tab; the same holds for each control of phase 2; while the pointer rests
+anywhere in the window, two frames in a row are the same; the check of the rules passes.
+
 ## M18 — Activity in the bottom panel, and a list that holds still
 
 What Gitardo is doing is a tab of the bottom panel, beside the terminals and the Command log, rather than a card over the
