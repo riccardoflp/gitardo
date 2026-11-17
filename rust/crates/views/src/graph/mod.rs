@@ -63,4 +63,5 @@ pub use switches::{FirstParentState, SelectedTrace, first_parent_view, trace_sel
 pub use sync_menu::{PULL_WAYS, SYNC_FEATURES};
 pub use timeline::view;
 pub use toggle::{ReferencesShown, toggle_references_view};
+pub(crate) use toggle::{side_button, top_row_height};
 pub use toolbar::{HeadName, RepositoryEntry, SyncCounts, SyncMenu, ToolbarState, toolbar_view};

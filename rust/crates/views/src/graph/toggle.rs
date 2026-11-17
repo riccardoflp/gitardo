@@ -1,6 +1,8 @@
-//! The first button of the top row of the timeline, which puts the side column away and brings it back, and in the
-//! narrow layout opens it over the timeline (`graph.toggle-references`).
+//! The first button of the top row of the timeline and of the title row of every page, which puts the side column away
+//! and brings it back, and in the narrow layout opens it over the timeline or the page (`graph.toggle-references`,
+//! `repo.side-column`).
 
+use ui::layout::Area;
 use ui::{Button, ButtonKind, Ui};
 
 use super::intent::GraphIntent;
@@ -15,6 +17,33 @@ pub struct ReferencesShown {
     pub is_shown: bool,
     /// Whether the window is narrow, where the side column opens over the timeline rather than beside it.
     pub is_narrow: bool,
+}
+
+impl ReferencesShown {
+    /// Whether the side column is shown where it is: beside what is shown while the window is wide and it is not put
+    /// away, over the timeline or the page while the window is narrow and it was opened over it.
+    #[must_use]
+    pub fn of(place: crate::SidePlace, is_narrow: bool) -> ReferencesShown {
+        ReferencesShown {
+            is_shown: place.is_shown(is_narrow),
+            is_narrow,
+        }
+    }
+}
+
+/// The height of the top row of the timeline and of the title row of a page: a control and its margins, so that the
+/// button of the side column is at the same place in both.
+pub(crate) fn top_row_height(ui: &Ui<'_>) -> f32 {
+    let sizes = ui.theme().sizes;
+    sizes.control_height + 2.0 * sizes.spacing.medium
+}
+
+/// The button of the side column, at the start of a row of the height of [`top_row_height`] whose parts start at its
+/// left margin: the same in the top row of the timeline and in the title row of every page.
+pub(crate) fn side_button(side: ReferencesShown, parts: &mut Area, ui: &mut Ui<'_>) -> Vec<Intent> {
+    let width = ui.theme().sizes.control_height;
+    let cell = crate::line::control_in(ui, parts.left(width), width);
+    ui.clip(cell, |ui| toggle_references_view(&side, ui))
 }
 
 /// The button over the rectangle its caller clipped it to, pressed while the side column is shown: a click puts it

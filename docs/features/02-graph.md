@@ -709,21 +709,26 @@ Acceptance:
 ### `graph.toggle-references` — Put the branch rail away
 
 The first button of the top row of the timeline puts the side column away, its repositories and its branches, to
-leave its room to the commits, and brings it back.
+leave its room to the commits, and brings it back; the first button of the title row of every page does the same,
+from the same place (`repo.side-column`).
 
 - **Kind**: View
 - **Function**: `views::graph::toggle_references_view(state: &ReferencesShown, ui) -> Vec<Intent>`
 - **Entry points**: the first button of the top row of the timeline, before the branch filter (`filter.picker`),
-  pressed while the side column is shown; **Toggle the Side Column** in Quick search, from any page.
+  pressed while the side column is shown; the first button of the title row of every page, at the same place
+  (`repo.side-column`); **Toggle the Side Column** in Quick search, from any page.
 
-Its tooltip says **Hide the repositories and the branches beside the commits**, or **Show the repositories and the
-branches beside the commits**. Whether they are put away is remembered for the workspace. In the narrow layout, where
+Its tooltip says **Hide the repositories and the branches**, or **Show the repositories and the branches**, on the
+timeline and on every page (Q541). Whether they are put away is remembered for the workspace. In the narrow layout, where
 the side column is put away, the button opens it over the timeline, and a click outside it or `Escape` closes it.
 
 Acceptance:
 
 - [ ] A click hides the side column and the commits take its room; another brings it back at the width it had.
 - [ ] A hidden branch rail stays hidden after the window is opened again.
+- [ ] The first button of the title row of the settings page, of the Changes page and of a Diff page is where the
+      first button of the top row of the timeline is, with the same tooltip, whether the side column is shown or put
+      away.
 
 ### `graph.labels` — The labels of each commit
 

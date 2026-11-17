@@ -9,25 +9,25 @@ use model::repo::name_repositories;
 use model::state::RepositoryState;
 use views::activity::{ActivityState, RunningTask, StatusBarState};
 use views::branch::ReferenceMenus;
-use views::file_view::FilePageState;
 use views::filter::NarrowedBar;
 use views::graph::{
     Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, RepositoryEntry, SyncCounts, TimelineMenu,
     ToolbarState, TraceShown, WhereState,
 };
 use views::log::{LogLine, LogState};
-use views::page::{Page, PageHostState, PageState};
+use views::page::Page;
 use views::panel::BottomPanelState;
 use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, SideColumnState, SideSections};
-use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
-use views::welcome::WelcomeState;
-use views::{Content, SidePlace, TimelineState, WindowState};
+use views::settings::{SettingRow, ThemePickerState};
+use views::{SidePlace, TimelineState, WindowState};
 
 use super::search::{self, view as search_view};
 use super::state::{Dialog, Shown, State};
 use super::timeline::workspace_panes;
 use super::view_parts::{branch_picker, pull_way, rail, selected_details, view_bar};
 use crate::persisted::{WorkspacePanes, same_folder};
+
+mod content;
 
 /// The words the views need that the store does not keep.
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -145,11 +145,7 @@ impl ViewData {
         WindowState {
             view_bar: view_bar(state),
             side: self.side_column(state),
-            side_place: SidePlace {
-                width: self.panes.sizes.rail,
-                is_hidden: self.panes.is_rail_hidden,
-                is_open_over: state.is_side_column_over,
-            },
+            side_place: self.side_place(state),
             tabs_picker: self.tabs.picker(state),
             header: self.header(state),
             status: StatusBarState {
@@ -187,6 +183,15 @@ impl ViewData {
             large_diff: super::diff_page::large_question(state),
             large_merge: super::merge_page::large_question(state),
             close_file: super::file_page::close_question(state),
+        }
+    }
+
+    /// Where the side column is, as the user left it, for the window and for the button of the title row of a page.
+    fn side_place(&self, state: &State) -> SidePlace {
+        SidePlace {
+            width: self.panes.sizes.rail,
+            is_hidden: self.panes.is_rail_hidden,
+            is_open_over: state.is_side_column_over,
         }
     }
 
@@ -261,105 +266,6 @@ impl ViewData {
             },
             quick: self.search.quick(state),
         }
-    }
-
-    /// A page with its trail when it has something to show, else the timeline.
-    fn page_or_timeline<'a>(&'a self, state: &'a State, page: Option<PageState<'a>>) -> Content<'a> {
-        match page {
-            Some(page) => Content::Page(PageHostState { has_trail: true, page }),
-            None => Content::Timeline(self.timeline(state)),
-        }
-    }
-
-    /// What is under the header: the Welcome page while there is no workspace, the page shown, or the timeline.
-    fn content<'a>(&'a self, state: &'a State) -> Content<'a> {
-        let page = if state.workspace.is_none() {
-            Some(Page::Welcome)
-        } else {
-            state.page_shown()
-        };
-        match page {
-            Some(Page::Welcome) => Content::Page(PageHostState {
-                has_trail: state.workspace.is_some(),
-                page: PageState::Welcome(WelcomeState {
-                    recent: &self.recent,
-                    done: state.persisted.welcome_steps,
-                    has_timeline: state.workspace.is_some(),
-                }),
-            }),
-            Some(Page::Diff(id)) if super::diff_page::beside::is_beside(state, id) => self.beside_inspector(state, id),
-            Some(page @ (Page::Commit(_) | Page::Diff(_) | Page::Merge(_) | Page::Compare(_))) => {
-                match opened_page(state, page) {
-                    Some(page) => Content::Page(PageHostState { has_trail: true, page }),
-                    None => Content::Timeline(self.timeline(state)),
-                }
-            }
-            Some(Page::Review) => self.page_or_timeline(state, super::review::page_state(state).map(PageState::Review)),
-            Some(Page::File(id)) => {
-                let page = super::file_page::page_state(state, id).map(|page| FilePageState {
-                    blame: self.blame.page_blame(state, id),
-                    ..page
-                });
-                self.page_or_timeline(state, page.map(PageState::File))
-            }
-            Some(Page::Settings) => Content::Page(PageHostState {
-                has_trail: state.workspace.is_some(),
-                page: PageState::Settings(SettingsPageState {
-                    rows: &self.setting_rows,
-                    target: super::settings_page::shown_target(state),
-                    has_repository: state.shown_folder().is_some(),
-                    page: &state.settings_page,
-                }),
-            }),
-            Some(Page::Rebase) => match super::rebase::page_state(state) {
-                Some(page) => Content::Page(PageHostState {
-                    has_trail: true,
-                    page: PageState::Rebase(page),
-                }),
-                None => Content::Timeline(self.timeline(state)),
-            },
-            Some(Page::Changes) => Content::Page(PageHostState {
-                has_trail: true,
-                page: PageState::Changes(self.changes.page_state(state)),
-            }),
-            Some(Page::Files) => Content::Page(PageHostState {
-                has_trail: true,
-                page: self.files_page(state),
-            }),
-            Some(Page::NewWorktrees) => Content::Page(PageHostState {
-                has_trail: true,
-                page: PageState::NewWorktrees(super::new_worktrees::page_state(state), &state.new_worktrees.title),
-            }),
-            None => Content::Timeline(self.timeline(state)),
-        }
-    }
-
-    /// The Files page, with the file opened beside its tree when there is one (`file-view.beside-files`).
-    fn files_page<'a>(&'a self, state: &'a State) -> PageState<'a> {
-        let file = state.files_page.shown_file.and_then(|id| {
-            super::file_page::page_state(state, id).map(|page| FilePageState {
-                blame: self.blame.page_blame(state, id),
-                ..page
-            })
-        });
-        super::files_page::beside_state(state, file, self.panes.sizes.files_tree)
-    }
-
-    /// The Diff page beside the inspector, in place of the commits; in place of everything when no repository is read.
-    fn beside_inspector<'a>(&'a self, state: &'a State, id: views::diff::DiffPageId) -> Content<'a> {
-        let Some(page) = super::diff_page::page_state(state, id) else {
-            return Content::Timeline(self.timeline(state));
-        };
-        let host = PageHostState {
-            has_trail: true,
-            page: PageState::Diff(page),
-        };
-        let mut timeline = self.timeline(state);
-        if let TimelineState::Repository { beside, .. } = &mut timeline {
-            *beside = Some(Box::new(views::diff::BesideInspectorState { host }));
-            return Content::Timeline(timeline);
-        }
-        Content::Page(host)
     }
 
     /// The timeline, the branch rail and the inspector of the repository shown.
@@ -447,17 +353,6 @@ impl ViewData {
             commit_box: super::changes::commit_box(state),
             dropped: timeline.dropped.as_ref(),
         }
-    }
-}
-
-/// A page of a commit, a diff, a file in conflict or a comparison, when it is still kept.
-fn opened_page(state: &State, page: Page) -> Option<PageState<'_>> {
-    match page {
-        Page::Commit(id) => super::commit_page::page_state(state, id).map(PageState::Commit),
-        Page::Diff(id) => super::diff_page::page_state(state, id).map(PageState::Diff),
-        Page::Merge(id) => super::merge_page::page_state(state, id).map(|(page, title)| PageState::Merge(page, title)),
-        Page::Compare(id) => super::compare::beside::page_state(state, id, workspace_panes(state).sizes.inspector),
-        _ => None,
     }
 }
 

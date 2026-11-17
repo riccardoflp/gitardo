@@ -635,7 +635,8 @@ each folding by its heading, the line between them dragged
 - **Kind**: View
 - **Function**: `views::repo::side_column_view(state: &SideColumnState, ui: &mut Ui) -> Vec<Intent>`
 - **Entry points**: the left of the window, beside the bar of views, under the header; it is put away and brought
-  back by the first button of the top row of the timeline (`graph.toggle-references`).
+  back by the first button of the top row of the timeline and of the title row of every page
+  (`graph.toggle-references`).
 - **Uses**: `repo.tabs`, `refs.tree`, `graph.resize-panes`, `graph.toggle-references`.
 - **Extension**: VS Code's Source Control side bar has the repositories, and the Branches view the branches: nothing to
   build.
@@ -654,6 +655,12 @@ each folding by its heading, the line between them dragged
   give it back as it was.
 - In the narrow layout, below 900 logical pixels, it is put away, and the first button of the top row of the
   timeline opens it over the timeline, as wide as it was, until a click outside it or `Escape`.
+- The title row of every page starts with the same button, at the same place as in the top row of the timeline, with
+  the same icon and tooltip, pressed while the side column is shown
+  ([D57](../08-decisions.md#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)):
+  it puts the side column away from beside the page and brings it back, and in the narrow layout opens it over the
+  page. The title row is as high as the top row of the timeline. A page that puts the side column away itself, the
+  Diff page beside the inspector or a comparison beside its diff, has no such button (Q540).
 
 Acceptance:
 
@@ -666,6 +673,11 @@ Acceptance:
 - [ ] The side column stays beside the Changes page and the settings page.
 - [ ] In a window 800 logical pixels wide, the side column is not shown, and the first button of the top row of the
       timeline opens it over the timeline.
+- [ ] The first button of the title row of the settings page, of the Changes page and of a Diff page puts the side
+      column away, the page staying, and another click brings it back as it was.
+- [ ] In a window 800 logical pixels wide, the first button of the title row of the settings page opens the side
+      column over the page.
+- [ ] The Diff page beside the inspector, which puts the side column away, has no button for it.
 
 ### `repo.worktree-summary` — What a repository or a worktree is on
 

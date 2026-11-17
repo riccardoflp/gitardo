@@ -13,14 +13,10 @@ use crate::repo::{SideColumnState, side_column};
 /// Whether what is shown puts the side column away while it is: a Diff page beside the inspector
 /// (`diff.beside-inspector`), or beside a comparison (`compare.beside-diff`).
 pub(super) fn puts_side_away(content: &Content<'_>) -> bool {
-    matches!(
-        content,
-        Content::Timeline(TimelineState::Repository { beside: Some(_), .. })
-            | Content::Page(crate::page::PageHostState {
-                page: crate::page::PageState::CompareBeside(_),
-                ..
-            })
-    )
+    match content {
+        Content::Timeline(timeline) => matches!(timeline, TimelineState::Repository { beside: Some(_), .. }),
+        Content::Page(host) => host.page.puts_side_away(),
+    }
 }
 
 /// The side column on the left of what is under the header, at its width, with the gap after it that is dragged to
@@ -83,8 +79,8 @@ pub(super) fn side_over(
 /// timeline, or over it in the narrow layout; none without a workspace.
 pub(super) fn side_toggle(window: &WindowState<'_>, ui: &Ui<'_>) -> Option<ReferencesShown> {
     let is_narrow = is_narrow(ui);
-    window.side.as_ref().map(|_| ReferencesShown {
-        is_shown: window.side_place.is_shown(is_narrow),
-        is_narrow,
-    })
+    window
+        .side
+        .as_ref()
+        .map(|_| ReferencesShown::of(window.side_place, is_narrow))
 }

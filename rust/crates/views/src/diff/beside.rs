@@ -9,7 +9,7 @@ use crate::intent::Intent;
 use crate::page::{PageHostState, host_view};
 
 /// The Diff page shown beside the inspector, with its trail.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BesideInspectorState<'a> {
     /// The page, with its trail.
     pub host: PageHostState<'a>,

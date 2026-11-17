@@ -3056,3 +3056,18 @@ each built with the reading given until the card says otherwise.
   runs `compare.change-side` as before, and neither changed closes the dialog with nothing run.
 - **Q515** — `compare.chooser`: `Enter` with a row lit and both boxes held. Built: with nothing typed it opens the
   comparison; with text typed it chooses the row lit, so that a typed name is chosen before it is compared.
+
+### Of the title row of the pages, from Q540
+
+Questions of phases 15 and 17 of milestone M16
+([D57](#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)), each built with
+the reading given until the card says otherwise.
+
+- **Q540** — `repo.side-column`: whether the Diff page beside the inspector and a comparison beside its diff, which put
+  the side column away while they are shown (D56), have the button of the side column in their title row. Built: no;
+  the column of the commit's files or of the comparison takes its place there, and a button that put away nothing
+  would do nothing seen. Every other page has it.
+- **Q541** — `graph.toggle-references`: its tooltip said **… beside the commits**, which the button of a page is not;
+  and "the same key" of phase 15, where the button of the timeline has no key of its own. Built: the tooltip is
+  **Hide the repositories and the branches** and **Show the repositories and the branches** on the timeline and on
+  every page; the button is reached with `Tab` like every button, and has no key of its own on either.
