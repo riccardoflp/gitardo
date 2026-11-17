@@ -284,6 +284,8 @@ fn the_comparison_chooser_is_drawn_in_each_theme() {
     for (theme, name) in [
         (ThemeName::Dark, "compare-chooser-dark"),
         (ThemeName::Light, "compare-chooser-light"),
+        (ThemeName::HighContrastDark, "compare-chooser-high-contrast-dark"),
+        (ThemeName::HighContrastLight, "compare-chooser-high-contrast-light"),
     ] {
         let mut state = showing(repository.path().to_path_buf());
         let driver = OperationsDriver::new();
@@ -424,6 +426,8 @@ fn the_comparison_beside_its_diff_is_drawn_in_each_theme() {
     for (theme, name) in [
         (ThemeName::Dark, "compare-beside-diff-dark"),
         (ThemeName::Light, "compare-beside-diff-light"),
+        (ThemeName::HighContrastDark, "compare-beside-diff-high-contrast-dark"),
+        (ThemeName::HighContrastLight, "compare-beside-diff-high-contrast-light"),
     ] {
         let (_repository, state, _driver, _window) = beside(SIZE);
         let mut window = Window::new(theme, SIZE);

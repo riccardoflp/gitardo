@@ -344,7 +344,12 @@ fn settings_edit__a_setting_marked_experimental_says_so_and_the_page_is_drawn_in
     let (repository, _remote) = repository_with_history();
     let mut state: State = showing(repository.path().to_path_buf());
     let _effects = run(&mut state, Message::Intent(Intent::ShowPage(Page::Settings)));
-    for (theme, name) in [(ThemeName::Dark, "settings-dark"), (ThemeName::Light, "settings-light")] {
+    for (theme, name) in [
+        (ThemeName::Dark, "settings-dark"),
+        (ThemeName::Light, "settings-light"),
+        (ThemeName::HighContrastDark, "settings-high-contrast-dark"),
+        (ThemeName::HighContrastLight, "settings-high-contrast-light"),
+    ] {
         let mut window = Window::new(theme, WIDE);
         let (_, tree) = window.draw(&state, &[]);
         assert!(says(&tree, "commandPreview"), "{}", "commandPreview");
