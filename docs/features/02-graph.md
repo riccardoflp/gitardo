@@ -557,8 +557,8 @@ Acceptance:
 
 - [ ] No icon of the window is drawn for two meanings of the table: a test goes through every `Icon` the views use and
       the meaning each is given.
-- [ ] **Discard changes** on a file of the Changes page and **Revert this change** in a Diff page draw the same icon,
-      and **Drop** on a stash another one.
+- [ ] **Discard changes** in the menu of a file of the Changes page and **Revert this change** in a Diff page draw
+      the same icon, and **Drop** on a stash another one.
 - [ ] Each icon drawn at 16 px and at 32 px matches its snapshot, in the dark and the light theme.
 - [ ] The licence of Lucide is in the repository beside its outlines.
 
@@ -700,8 +700,8 @@ the same action draws, so that the eye finds an action in a long menu and one me
   worktree, a stash and a submodule in the side column, and of their lists; the menu of the view, the **…** and the
   **Sync** menus of the header, the repository and the worktree of the header, the menu of a repository tab and the
   **+** of **Repositories**; the menus of a file in the Files page, the inspector, the Commit page and the comparison;
-  the menus of the editors of the File, Diff and Merge pages; the chooser of the comparison, the sections of the
-  settings.
+  the menu of a file of the changes and the **…** of their heading (`changes.row-menu`); the menus of the editors of
+  the File, Diff and Merge pages; the chooser of the comparison, the sections of the settings.
 - **Uses**: `graph.icons`.
 - **Extension**: the extension draws its own menus in its webviews, with no icons yet (Q619); VS Code's own menus show
   none.

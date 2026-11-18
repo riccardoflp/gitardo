@@ -1,22 +1,20 @@
-//! The lists of the Changes page: **Conflicts**, each file with no box and the buttons that resolve it; then **Changes**,
-//! with the box on its header, the buttons that act on every file, and each file with its box and its buttons; **No
-//! changes** when both are empty.
+//! The lists of the Changes page: **Conflicts**, each file with no box; then **Changes**, with the box on its header and
+//! the buttons that act on every file, those the width does not hold in **…**, and each file with its box; **No
+//! changes** when both are empty. A row has no button: what is done to its file is in its menu (`changes.row-menu`).
 
-use model::changes::{ChangeRow, FileStatus, OpenAction, OpenOnClick, StagedBox};
-use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
-use model::state::ChangeKind;
+use model::changes::{FileStatus, OpenAction, StagedBox};
+use model::contract::Target;
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
-    Button, ButtonKind, Choice, Icon, Label, List, Point, Rect, Reveal, RevealPlace, SelectionMode, Sense, Steering,
-    TextKind, TextRun, Tone, Ui,
+    AccessRole, Button, ButtonKind, Choice, Description, Icon, Label, List, Point, Rect, Reveal, RevealPlace,
+    SelectionMode, Sense, Steering, TextKind, TextRun, Tone, Ui,
 };
 
-use super::{ChangesIntent, ChangesRepository};
-use crate::conflicts::{OpenFileState, open_file_view};
-use crate::details::{CappedList, FileLayout, FileRow, FilesIntent, FilesOwner, FilesState, directory_row, file_rows};
-use crate::feature::FeatureIntent;
-use crate::file_view::FileViewIntent;
-use crate::icons;
+use super::ChangesRepository;
+use super::actions::{buttons_kept, conflict_actions, file_actions, heading_actions, open_page, run, staying};
+use super::menu::{RowMenuState, more_menu, row_menu};
+use crate::conflicts::{OpenFileState, open_file_row};
+use crate::details::{CappedList, FileRow, FilesOwner, FilesState, directory_row, file_rows};
 use crate::intent::Intent;
 use crate::text::changes as words;
 
@@ -127,105 +125,49 @@ fn draw_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, row): (Rect, 
     }
 }
 
-/// A file in conflict: its name, with no box, which opens it where it can be resolved (`conflicts.open-file`), and the
-/// buttons that resolve it: the sparkle, with `conflicts.ai` on, which opens the review of its conflicts and asks the AI
-/// about them (`ai.resolve-conflicts`), the wand, with `conflicts.autoResolve` on, which opens the review of its
-/// conflicts (`review.page`), **Mark as resolved** (`conflicts.mark-resolved`) and the two sides (`conflicts.take-side`).
+/// A file in conflict: its letter, its icon and its name, with no box and no button; a click on it opens it where it
+/// can be resolved (`conflicts.open-file`), and its menu has what resolves it (`changes.row-menu`).
 fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (Rect, usize)) -> Vec<Intent> {
     let Some(file) = state.list.conflicts.get(index) else {
         return Vec::new();
     };
-    let mut intents = Vec::new();
-    let path = file.path.as_str();
-    let mut area = Area::with_gap(rect, ui.theme().sizes.spacing.small);
-    let take = |side: &str| {
-        let mut answers = Answers::new();
-        answers.insert(AnswerKey("side"), Answer::Choice(side.to_owned()));
-        let feature = FeatureId("conflicts.take-side");
-        Intent::Feature(FeatureIntent::RunWith(
-            feature,
-            Target::File(file.path.clone()),
-            answers,
-        ))
-    };
-    if state.banner.is_some_and(|banner| banner.ai) {
-        let only = Some(vec![file.path.clone()]);
-        let said = words::RESOLVE_WITH_AI;
-        if icon_button(ui, &mut area, ((said, path), icons::DRAFTED, said), !state.is_running) {
-            intents.push(Intent::Review(crate::review::ReviewIntent::ResolveWithAi(only)));
-        }
-    }
-    let auto_resolve = state.banner.is_some_and(|banner| banner.auto_resolve);
-    if auto_resolve {
-        let only = Some(vec![file.path.clone()]);
-        let said = words::RESOLVE_AUTOMATICALLY;
-        if icon_button(ui, &mut area, ((said, path), icons::BY_THE_RULES, said), true) {
-            intents.push(Intent::Review(crate::review::ReviewIntent::Open(only)));
-        }
-    }
-    for (icon, said, intent) in [
-        (
-            icons::ADD,
-            words::MARK_AS_RESOLVED,
-            run("conflicts.mark-resolved", Target::File(file.path.clone())),
-        ),
-        (icons::TAKE_INCOMING, words::TAKE_INCOMING, take("incoming")),
-        (icons::TAKE_CURRENT, words::TAKE_CURRENT, take("current")),
-    ] {
-        if icon_button(ui, &mut area, ((said, path), icon, said), !state.is_running) {
-            intents.push(intent);
-        }
-    }
-    let start = status_start(
-        ui,
-        area.rest(),
-        (words::CONFLICTED, ui.theme().colors.removed, &file.path),
-    );
+    let start = status_start(ui, rect, (words::CONFLICTED, ui.theme().colors.removed, &file.path));
     let opened = OpenFileState { file };
-    intents.extend(ui.clip(start, |ui| open_file_view(&opened, ui)));
+    let (mut intents, row) = ui.clip(start, |ui| open_file_row(opened, ui));
+    let menu = RowMenuState {
+        path: &file.path,
+        actions: &conflict_actions(state, file),
+        is_running: state.is_running,
+        row,
+    };
+    intents.extend(row_menu(&menu, ui));
     intents
 }
 
-/// The heading of the changed files: the box that stages or unstages every one, **Changes** and its count, and the
-/// buttons for every file.
+/// The heading of the changed files: the box that stages or unstages every one, **Changes** and its count, and at its
+/// right the buttons for every file; when the width does not hold them all, those that leave last stay and **…** has
+/// the others (Q762).
 fn changes_heading(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
     let mut intents = Vec::new();
-    let mut area = Area::with_gap(rect, ui.theme().sizes.spacing.small);
+    let spacing = ui.theme().sizes.spacing;
+    let mut area = Area::with_gap(rect, spacing.small);
     let can_change = !state.is_running;
-    if icon_button(
-        ui,
-        &mut area,
-        ("discard all", icons::UNDO, words::DISCARD_ALL),
-        can_change,
-    ) {
-        intents.push(run("changes.discard-all", Target::Changes));
-    }
-    if state.list.has_unsaved() && icon_button(ui, &mut area, ("save all", icons::SAVE, words::SAVE_ALL), can_change) {
-        intents.push(Intent::FileView(FileViewIntent::SaveAll));
-    }
-    if icon_button(ui, &mut area, ("stash all", icons::STASH, words::STASH_ALL), can_change) {
-        intents.push(run("stash.push", Target::Head));
-    }
-    if state.list.has_staged()
-        && icon_button(
-            ui,
-            &mut area,
-            ("stash staged", icons::STASH, words::STASH_STAGED),
-            can_change,
-        )
-    {
-        intents.push(run("stash.push-staged", Target::Head));
-    }
-    intents.extend(open_all(state, ui, &mut area));
-    let (layout, icon, said) = match state.layout {
-        FileLayout::List => (FileLayout::Tree, icons::TREE, words::VIEW_AS_TREE),
-        FileLayout::Tree => (FileLayout::List, icons::LIST, words::VIEW_AS_LIST),
-    };
-    if icon_button(ui, &mut area, ("layout", icon, said), true) {
-        intents.push(Intent::Changes(ChangesIntent::Files(FilesIntent::Layout(layout))));
-    }
-    let header_cell = inset(area.rest(), Insets::symmetric(ui.theme().sizes.spacing.medium, 0.0));
     let said = words::with_count(words::CHANGES, state.list.rows.len());
+    let actions = heading_actions(state);
+    let kept = buttons_kept(actions.len(), button_places(ui, rect.width, &said));
+    let on_heading = staying(&actions, kept);
+    if on_heading.len() < actions.len() {
+        let cell = icon_cell(ui, &mut area);
+        let more = (actions.as_slice(), on_heading.as_slice(), state.is_running);
+        intents.extend(more_menu(ui, cell, more));
+    }
+    for action in on_heading.iter().filter_map(|index| actions.get(*index)) {
+        let is_enabled = action.is_offered(state.is_running);
+        if icon_button(ui, &mut area, (action.words, action.icon, action.words), is_enabled) {
+            intents.extend(action.intent.clone());
+        }
+    }
+    let header_cell = inset(area.rest(), Insets::symmetric(spacing.medium, 0.0));
     let header = match state.list.header {
         StagedBox::Ticked => Choice::check_box(&said, true),
         StagedBox::HalfTicked => Choice::half_ticked(&said),
@@ -244,37 +186,50 @@ fn changes_heading(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     intents
 }
 
-/// A changed file: its box, its letter, its name with its old name and a dot when it has edits not saved, and its
-/// buttons.
+/// How many buttons a heading of a width has places for, beside its box, its name and its count.
+fn button_places(ui: &Ui<'_>, width: f32, said: &str) -> usize {
+    let sizes = ui.theme().sizes;
+    let named = sizes.control_height + sizes.spacing.medium * 3.0 + ui.measure(said, ui.text_style(TextKind::Body));
+    let place = sizes.control_height + sizes.spacing.small;
+    crate::number::count_of_float(((width - named + sizes.spacing.small) / place).floor())
+}
+
+/// A changed file: its box, its letter, its icon and its name with its old name and a dot when it has edits not
+/// saved, and no button. A click on the row opens what `changes.openOnClick` says, the row takes the keyboard, and its
+/// menu has what is done to the file (`changes.row-menu`).
 fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth): (Rect, usize, usize)) -> Vec<Intent> {
     let Some(row) = state.list.rows.get(index) else {
         return Vec::new();
     };
     let mut intents = Vec::new();
+    let theme = *ui.theme();
     let can_change = !state.is_running;
     let path = row.path.as_str();
-    if state.marked == Some(path) {
-        let theme = *ui.theme();
+    let is_marked = state.marked == Some(path);
+    let id = ui.id(("file name", path));
+    let response = ui.interact(id, rect, Sense::CLICK | Sense::HOVER | Sense::FOCUS);
+    if is_marked {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_selection);
+    } else if response.contains_pointer {
+        ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
-    let mut area = Area::with_gap(rect, ui.theme().sizes.spacing.small);
-    for (said, icon, intent) in file_buttons(row) {
-        let is_enabled = can_change && intent.is_some();
-        if icon_button(ui, &mut area, ((said, path), icon, said), is_enabled) {
-            intents.extend(intent);
-        }
+    if response.shows_focus {
+        ui.focus_ring(rect, theme.sizes.radius.medium);
     }
+    ui.describe(
+        id,
+        rect,
+        &Description::new(AccessRole::Button, path).selected(is_marked),
+    );
     let indent = crate::details::indent_of(ui, depth);
-    let left = area.rest();
-    let indented = Rect::new(left.x + indent, left.y, (left.width - indent).max(0.0), left.height);
-    let side = ui.theme().sizes.control_height;
-    let mut parts = Area::with_gap(indented, ui.theme().sizes.spacing.medium);
-    let check = parts.left(side);
-    let response = ui.choice(("file box", path), check, &file_box(row.staged, path, can_change));
+    let indented = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
+    let mut parts = Area::with_gap(indented, theme.sizes.spacing.medium);
+    let check = parts.left(theme.sizes.control_height);
+    let ticked = ui.choice(("file box", path), check, &file_box(row.staged, path, can_change));
     if row.staged == StagedBox::Disabled {
-        ui.tooltip(&response, words::NOT_SAVED);
+        ui.tooltip(&ticked, words::NOT_SAVED);
     }
-    if response.clicked {
+    if ticked.clicked {
         let feature = if row.staged == StagedBox::Ticked {
             "changes.unstage"
         } else {
@@ -282,82 +237,24 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
         };
         intents.push(run(feature, Target::File(row.path.clone())));
     }
-    let named = parts.rest();
-    let response = ui.interact(ui.id(("file name", path)), named, Sense::CLICK | Sense::HOVER);
-    if response.contains_pointer {
-        let theme = *ui.theme();
-        ui.fill_rounded_rect(named, theme.sizes.radius.medium, theme.colors.list_hover);
-    }
     let (letter, color) = letter_of(row.status, ui);
-    let name = status_start(ui, named, (letter, color, &row.path));
+    let name = status_start(ui, parts.rest(), (letter, color, &row.path));
     file_name(state, ui, (name, index));
     if response.clicked {
         intents.extend(open_page(row, OpenAction::Click, state.on_click));
     }
+    // The right button on the box opens the menu of the row too.
+    let menu = RowMenuState {
+        path,
+        actions: &file_actions(row),
+        is_running: state.is_running,
+        row: ui::Response {
+            secondary_clicked: response.secondary_clicked || ticked.secondary_clicked,
+            ..response
+        },
+    };
+    intents.extend(row_menu(&menu, ui));
     intents
-}
-
-/// What opens, beside the list, the page `changes.open` decides on, when it is the Diff page or the File page
-/// (`changes.beside-file`): a file in conflict is not in this list.
-fn open_page(row: &ChangeRow, action: OpenAction, on_click: OpenOnClick) -> Option<Intent> {
-    let file = super::beside_request(row, action, on_click)?;
-    Some(Intent::Changes(ChangesIntent::OpenBeside(file)))
-}
-
-/// **Open all changes in one Diff page**: one Diff page of every changed file, beside the list (`changes.open`).
-fn open_all(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, area: &mut Area) -> Option<Intent> {
-    let all = crate::diff::changes_files(&state.list.rows);
-    let clicked = icon_button(
-        ui,
-        area,
-        ("open all", icons::OPEN_ALL_CHANGES, words::OPEN_ALL_CHANGES),
-        all.is_some(),
-    );
-    let target = all.filter(|_| clicked)?;
-    Some(Intent::Changes(ChangesIntent::OpenBeside(super::BesideFile::Diff(
-        Box::new(target),
-    ))))
-}
-
-/// What opens the File page of a file of the working tree beside the list (`file-view.page`).
-fn open_file(path: &str) -> Intent {
-    Intent::Changes(ChangesIntent::OpenBeside(super::BesideFile::File(path.to_owned())))
-}
-
-/// What saves a file with edits not saved in its File page (`file-view.save`).
-fn save_file(path: &str) -> Intent {
-    Intent::FileView(FileViewIntent::Save(path.to_owned()))
-}
-
-/// The buttons of a file, from the right, each with what it asks; those whose operations come later ask nothing and
-/// are disabled. A file only an editor has changed has **Save** and **Compare with the saved file**; the others
-/// **Discard changes**, **Stash this file…**, **Save** when not saved, **Open changes**, and **Open file** when the
-/// file is still on disk.
-pub(crate) fn file_buttons(row: &ChangeRow) -> Vec<(&'static str, Icon, Option<Intent>)> {
-    if row.status == FileStatus::Unsaved {
-        return vec![
-            (words::SAVE, icons::SAVE, Some(save_file(&row.path))),
-            (words::COMPARE_WITH_SAVED, icons::CHANGES, None),
-        ];
-    }
-    let discard = run("changes.discard", Target::File(row.path.clone()));
-    let mut buttons = vec![
-        (words::DISCARD, icons::UNDO, Some(discard)),
-        (
-            words::STASH_FILE,
-            icons::STASH,
-            Some(run("stash.push-file", Target::Files(vec![row.path.clone()]))),
-        ),
-    ];
-    if row.is_unsaved {
-        buttons.push((words::SAVE, icons::SAVE, Some(save_file(&row.path))));
-    }
-    let open_changes = open_page(row, OpenAction::OpenChanges, OpenOnClick::File);
-    buttons.push((words::OPEN_CHANGES, icons::CHANGES, open_changes));
-    if row.status != FileStatus::Changed(ChangeKind::Deleted) {
-        buttons.push((words::OPEN_FILE, icons::OPEN_FILE, Some(open_file(&row.path))));
-    }
-    buttons
 }
 
 /// The box of a file: ticked, half ticked or empty as much of it is staged; greyed out for a file only an editor has
@@ -425,6 +322,12 @@ fn status_start(ui: &mut Ui<'_>, rect: Rect, (letter, color, path): (&str, ui::C
     parts.rest()
 }
 
+/// The place of a button that is only an icon, cut from the right of an area.
+fn icon_cell(ui: &Ui<'_>, area: &mut Area) -> Rect {
+    let side = ui.theme().sizes.control_height;
+    place(area.right(side), (side, side), (Align::Start, Align::Center))
+}
+
 /// A button that is only an icon, at the right of an area, which says its name in its tooltip; says whether it was
 /// clicked. One that cannot be used is drawn disabled.
 fn icon_button(
@@ -433,16 +336,10 @@ fn icon_button(
     (key, icon, said): (impl std::hash::Hash, Icon, &str),
     is_enabled: bool,
 ) -> bool {
-    let side = ui.theme().sizes.control_height;
     let mut button = Button::icon(icon, said).kind(ButtonKind::Icon);
     if !is_enabled {
         button = button.disabled();
     }
-    let cell = place(area.right(side), (side, side), (Align::Start, Align::Center));
+    let cell = icon_cell(ui, area);
     ui.button(key, cell, &button).clicked
-}
-
-/// The intent that runs an operation of the catalog on what it is invoked on.
-fn run(feature: &'static str, target: Target) -> Intent {
-    Intent::Feature(FeatureIntent::Run(FeatureId(feature), target))
 }

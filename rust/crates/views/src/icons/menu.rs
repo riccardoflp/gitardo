@@ -35,7 +35,7 @@ fn history_icon(feature: &str) -> Option<Icon> {
         "sync.push" | "sync.push-force-with-lease" | "sync.push-force" | "tag.push" => super::PUSH,
         "merge.into-current" | "merge.choose-way" => super::MERGE,
         "cherry-pick.commit" | "selection.cherry-pick" => super::CHERRY_PICK,
-        "revert.commit" | "undo.last" | "changes.discard-all" | "settings.reset" => super::UNDO,
+        "revert.commit" | "undo.last" | "changes.discard" | "changes.discard-all" | "settings.reset" => super::UNDO,
         "commits.copy-hash" | "commits.copy-message" | "patch.copy" => super::COPY,
         "patch.save" => super::SAVE,
         "compare.with"
@@ -45,9 +45,9 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "compare.path-with"
         | "details.compare-file-with" => super::COMPARE,
         "bisect.start" | "bisect.mark" => super::BISECT,
-        "changes.stage-all" => super::ADD,
-        "changes.unstage-all" => super::UNSTAGE,
-        "stash.push" | "stash.push-staged" => super::STASH,
+        "changes.stage" | "changes.stage-all" | "conflicts.mark-resolved" => super::ADD,
+        "changes.unstage" | "changes.unstage-all" => super::UNSTAGE,
+        "stash.push" | "stash.push-staged" | "stash.push-file" => super::STASH,
         "stash.apply" => super::APPLY,
         "stash.pop" => super::POP,
         "github.open-pull-request" | "github.load-pull-requests" => super::PULL_REQUEST,

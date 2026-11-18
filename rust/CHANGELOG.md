@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The rows of the files of the Changes page have no buttons: the name of a file has the width of its row, in a narrow
+  column too. What the buttons did is in the context menu of the row, by the right button, or by the menu key on a
+  row that has the keyboard, which `Tab` gives it: **Open changes**, **Open file**, **Stage** or **Unstage**,
+  **Discard changes**, **Stash this file…** and **Save** on a changed file; **Resolve with AI**, **Resolve its
+  conflicts automatically**, **Mark as resolved** and the two sides on a file in conflict, each with the icon its
+  button drew. The box of a file stays on its row. When the heading of **Changes** is too narrow for its buttons,
+  those that do not fit are in **…** at its right, and **Open all changes in one Diff page** is the last to go.
 - The sections of the side column keep the line above their headings when they are folded: the line above
   **Branches** was drawn only while **Repositories** and **Branches** were both open, so that two folded sections, or
   a folded one under an open one, ran into each other. The line is dragged, as before, only while both are open.

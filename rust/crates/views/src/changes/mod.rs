@@ -2,8 +2,12 @@
 //! commit** and the identity under it; then the files in conflict apart, and the one list of the changed files, each
 //! with its box; a file opened from it shows on the right of the list, which stays as a column (`changes.beside-file`).
 
+mod actions;
+#[cfg(test)]
+mod actions_tests;
 mod beside;
 mod commit_box;
+mod menu;
 mod rows;
 
 use std::collections::BTreeSet;
@@ -19,10 +23,10 @@ use crate::intent::Intent;
 use crate::repo::{NoRepositoryState, no_repository_view};
 use crate::text::changes as words;
 
+pub use actions::{RowAction, buttons_kept, conflict_actions, file_actions, heading_actions, staying};
 pub use beside::{BesideFile, BesideFileState, BesideShown, beside_file_view, beside_request};
 pub use commit_box::{CommitBox, CommitKind, Draft};
-#[cfg(test)]
-pub(crate) use rows::file_buttons;
+pub use menu::{RowMenuState, row_menu};
 
 /// What the Changes page shows.
 #[derive(Clone, Debug, PartialEq, Eq)]

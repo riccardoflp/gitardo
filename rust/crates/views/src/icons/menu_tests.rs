@@ -235,20 +235,23 @@ fn ui_menu_icons__an_action_draws_in_a_menu_the_icon_its_button_draws() {
         staged: StagedBox::Empty,
         is_unsaved: false,
     };
-    let button_of = |said: &str| {
-        crate::changes::file_buttons(&row)
+    let item_of = |said: &str| {
+        crate::changes::file_actions(&row)
             .into_iter()
-            .find(|(words, _, _)| *words == said)
-            .map(|(_, icon, _)| icon)
+            .find(|action| action.words == said)
+            .map(|action| action.icon)
     };
+    let changes = crate::text::changes::DISCARD;
+    assert_eq!(operation_icon("changes.discard-all"), item_of(changes));
+    assert_eq!(operation_icon("changes.discard"), item_of(changes));
+    assert_eq!(operation_icon("stash.push"), item_of(crate::text::changes::STASH_FILE));
     assert_eq!(
-        operation_icon("changes.discard-all"),
-        button_of(crate::text::changes::DISCARD)
+        operation_icon("stash.push-file"),
+        item_of(crate::text::changes::STASH_FILE)
     );
-    assert_eq!(
-        operation_icon("stash.push"),
-        button_of(crate::text::changes::STASH_FILE)
-    );
+    assert_eq!(operation_icon("changes.stage"), item_of(crate::text::changes::STAGE));
+    assert_eq!(operation_icon("changes.unstage"), Some(UNSTAGE));
+    assert_eq!(operation_icon("conflicts.mark-resolved"), Some(ADD));
     let stash = icons_of(&crate::graph::stash_menu());
     assert_eq!(stash, [Some(APPLY), Some(POP), Some(CREATE_BRANCH), Some(DELETE)]);
     assert_eq!(stash.last().copied().flatten(), Some(crate::refs::drop_stash_icon()));

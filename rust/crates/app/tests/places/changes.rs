@@ -209,14 +209,14 @@ fn changes_pane__view_as_tree_is_kept_when_the_page_is_opened_again_and_after_th
 }
 
 #[test]
-fn changes_pane__a_deleted_file_has_no_open_file_button() {
+fn changes_pane__a_deleted_file_has_no_open_file_in_its_menu() {
     let repository = committed();
     std::fs::remove_file(repository.path().join("gone.txt")).unwrap();
     let (state, _driver) = changes_page(&repository);
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let (_, tree) = window.draw(&state, &[]);
-    assert!(has(&tree, Role::Button, "Open changes"));
-    assert!(!has(&tree, Role::Button, "Open file"));
+    let items = super::changes_menu::menu_of(&mut window, &state, "gone.txt");
+    assert!(items.iter().any(|item| item == "Open changes"), "{items:?}");
+    assert!(!items.iter().any(|item| item == "Open file"), "{items:?}");
 }
 
 #[test]
@@ -422,27 +422,17 @@ fn a_file_partly_staged_opens_the_index_against_the_file_on_disk_from_open_chang
             .map(|target| (target.left, target.right, target.files[0].right.clone()))
             .collect()
     };
-    let from_button = window.click(&state, Role::Button, "Open changes");
-    assert_eq!(sides(&from_button), [(Index, WorkingTree, String::from("a.txt"))]);
+    let _ = super::changes_menu::menu_of(&mut window, &state, "a.txt");
+    let from_menu = window.click(&state, Role::MenuItem, "Open changes");
+    assert_eq!(sides(&from_menu), [(Index, WorkingTree, String::from("a.txt"))]);
     let (_, tree) = window.draw(&state, &[]);
-    // The box of the file is also named by its path: the name is the last node that says it, right of the box.
-    let name = tree
-        .nodes
-        .iter()
-        .filter(|(_, node)| node.label() == Some("a.txt") || node.value() == Some("a.txt"))
-        .filter_map(|(_, node)| node.bounds())
-        .max_by(|one, other| one.x0.total_cmp(&other.x0))
-        .expect("the name of the file");
-    #[allow(
-        clippy::cast_possible_truncation,
-        reason = "a window is far smaller than an f32 counts"
-    )]
-    let on_name = render::Point::new(name.x0 as f32 + 4.0, f64::midpoint(name.y0, name.y1) as f32);
+    let on_name = super::changes_menu::name_of(&tree, "a.txt");
+    state.settings.open_on_click = model::changes::OpenOnClick::File;
     let from_click = super::pointer::click_at(&mut window, &state, on_name, 1);
-    assert_eq!(sides(&from_click), [], "a click opens the File page");
+    assert_eq!(sides(&from_click), [], "a click set to file opens the File page");
     state.settings.open_on_click = model::changes::OpenOnClick::Diff;
     let from_click = super::pointer::click_at(&mut window, &state, on_name, 1);
-    assert_eq!(sides(&from_click), sides(&from_button));
+    assert_eq!(sides(&from_click), sides(&from_menu));
     apply(&driver, &mut state, from_click);
     assert_eq!(state.page_shown(), Some(Page::Changes), "the diff is beside the list");
     assert!(
@@ -455,7 +445,7 @@ fn a_file_partly_staged_opens_the_index_against_the_file_on_disk_from_open_chang
 }
 
 #[test]
-fn the_stash_buttons_of_the_changes_page_run_the_stash_of_a_file_of_all_changes_and_of_the_staged_ones() {
+fn the_menu_of_a_file_and_the_buttons_of_the_heading_run_the_stash_of_a_file_of_all_changes_and_of_the_staged_ones() {
     use model::contract::{FeatureId, Target};
     let repository = committed();
     write(&repository, "a.txt", "a, staged\n");
@@ -463,11 +453,11 @@ fn the_stash_buttons_of_the_changes_page_run_the_stash_of_a_file_of_all_changes_
     let (state, _driver) = changes_page(&repository);
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let run = |feature: &'static str, target: Target| Intent::Feature(FeatureIntent::Run(FeatureId(feature), target));
+    let _ = super::changes_menu::menu_of(&mut window, &state, "a.txt");
+    let of_the_file = window.click(&state, Role::MenuItem, "Stash this file\u{2026}");
+    let asked = run("stash.push-file", Target::Files(vec![String::from("a.txt")]));
+    assert!(of_the_file.contains(&asked), "{of_the_file:?}");
     let cases = [
-        (
-            "Stash this file\u{2026}",
-            run("stash.push-file", Target::Files(vec![String::from("a.txt")])),
-        ),
         ("Stash all changes\u{2026}", run("stash.push", Target::Head)),
         (
             "Stash only the staged changes\u{2026}",

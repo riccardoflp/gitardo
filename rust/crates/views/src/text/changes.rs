@@ -46,6 +46,12 @@ pub const STASH_ALL: &str = "Stash all changes\u{2026}";
 pub const SAVE_ALL: &str = "Save all";
 /// **Discard all changes**.
 pub const DISCARD_ALL: &str = "Discard all changes";
+/// **…** at the right of the heading of the list, which has the buttons the heading has no room for.
+pub const MORE_FOR_ALL: &str = "More for all changes";
+/// **Stage**, in the menu of a file.
+pub const STAGE: &str = "Stage";
+/// **Unstage**, in the menu of a file wholly staged.
+pub const UNSTAGE: &str = "Unstage";
 /// **Open file**.
 pub const OPEN_FILE: &str = "Open file";
 /// **Open changes**.

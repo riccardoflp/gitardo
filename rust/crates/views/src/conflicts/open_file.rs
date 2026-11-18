@@ -3,7 +3,7 @@
 
 use model::conflicts::{SideNamesInput, side_names};
 use model::state::{ConflictKind, ConflictedFile, Operation};
-use ui::{Label, Sense, Ui};
+use ui::{AccessRole, Description, Label, Response, Sense, Ui};
 
 use crate::diff::{DiffFile, DiffTarget, DiffVersion};
 use crate::file_view::FileTarget;
@@ -43,19 +43,31 @@ pub struct OpenFileState<'a> {
 ///
 /// Feature: conflicts.open-file
 pub fn open_file_view(state: &OpenFileState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
+    open_file_row(*state, ui).0
+}
+
+/// The name of a file in conflict, which takes the keyboard, with what happened to it in this frame, for the menu of
+/// its row in the changes (`changes.row-menu`).
+pub(crate) fn open_file_row(state: OpenFileState<'_>, ui: &mut Ui<'_>) -> (Vec<Intent>, Response) {
     let rect = ui.current_clip();
+    let theme = *ui.theme();
     let path = state.file.path.as_str();
-    let response = ui.interact(ui.id(("conflict name", path)), rect, Sense::CLICK | Sense::HOVER);
+    let id = ui.id(("conflict name", path));
+    let response = ui.interact(id, rect, Sense::CLICK | Sense::HOVER | Sense::FOCUS);
     if response.contains_pointer {
-        let theme = *ui.theme();
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
+    if response.shows_focus {
+        ui.focus_ring(rect, theme.sizes.radius.medium);
+    }
+    ui.describe(id, rect, &Description::new(AccessRole::Button, path));
     let _ = ui.label(rect, &Label::new(path));
-    if response.clicked {
+    let intents = if response.clicked {
         vec![Intent::Conflicts(ConflictsIntent::Open(path.to_owned()))]
     } else {
         Vec::new()
-    }
+    };
+    (intents, response)
 }
 
 /// Where a file in conflict opens: a file both sides changed in the Merge page; a file one side deleted in a Diff page

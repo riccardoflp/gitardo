@@ -11,6 +11,7 @@ use views::diff::{DiffVersion, FileStep};
 use views::page::{Page, PageState};
 use views::{Content, Intent};
 
+use super::changes_menu::name_of;
 use super::pointer::{bounds, drag, middle, rect};
 use super::showing;
 use super::support::{self, OperationsDriver, Window, find, has};
@@ -103,6 +104,15 @@ pub(super) fn diff_of(path: &str) -> Beside {
     }
 }
 
+/// What a file shown in its File page beside the list looks like.
+pub(super) fn file_of(path: &str) -> Beside {
+    Beside {
+        shown: path.to_owned(),
+        is_diff: false,
+        marked: Some(path.to_owned()),
+    }
+}
+
 /// The two versions the Diff page beside the list compares.
 fn versions(state: &State) -> (DiffVersion, DiffVersion) {
     let page = state
@@ -114,29 +124,14 @@ fn versions(state: &State) -> (DiffVersion, DiffVersion) {
     (page.target.left.clone(), page.target.right.clone())
 }
 
-/// The button of a role and a name in the row of a file of the list, found by the path the row's box is named.
-fn in_row(tree: &TreeUpdate, (role, name): (Role, &str), path: &str) -> Point {
-    let row = rect(find(tree, Role::CheckBox, path).bounds().unwrap());
-    let found = tree
-        .nodes
-        .iter()
-        .filter(|(_, node)| node.role() == role && node.label() == Some(name))
-        .filter_map(|(_, node)| node.bounds().map(rect))
-        .find(|button| (button.y - row.y).abs() < row.height)
-        .unwrap_or_else(|| panic!("the button in the row"));
-    middle(found)
-}
-
-/// Clicks a button of the row of a file, and reduces what it asks.
+/// Chooses an item of the menu of the row of a file, and reduces what it asks.
 pub(super) fn click_in_row(
     driver: &OperationsDriver,
     state: &mut State,
     window: &mut Window,
     (name, path): (&str, &str),
 ) {
-    let (_, tree) = window.draw(state, &[]);
-    let intents = window.click_at(state, in_row(&tree, (Role::Button, name), path), 1);
-    apply(driver, state, intents);
+    let _ = super::changes_menu::choose(driver, state, window, (name, path));
 }
 
 /// Presses a key with `Alt` and reduces what it asks; gives what it asked.
@@ -148,7 +143,7 @@ fn alt(driver: &OperationsDriver, state: &mut State, window: &mut Window, key: N
 }
 
 /// Waits for the operation running to end.
-fn until_ended(driver: &OperationsDriver, state: &mut State) {
+pub(super) fn until_ended(driver: &OperationsDriver, state: &mut State) {
     for _ in 0..8 {
         if matches!(driver.next(state), Message::FeatureEnded { .. }) {
             return;
@@ -398,18 +393,6 @@ fn the_changes_page_beside_a_diff_is_drawn_in_each_theme() {
         let _ = window.draw(&state, &[]);
         window.assert_snapshot(name);
     }
-}
-
-/// The middle of the name of a file of the list: its box is named by its path too, and the name is right of it.
-fn name_of(tree: &TreeUpdate, path: &str) -> Point {
-    let name = tree
-        .nodes
-        .iter()
-        .filter(|(_, node)| node.role() != Role::CheckBox && (node.label() == Some(path) || node.value() == Some(path)))
-        .filter_map(|(_, node)| node.bounds().map(rect))
-        .max_by(|one, other| one.x.total_cmp(&other.x))
-        .unwrap_or_else(|| panic!("the name of the file"));
-    Point::new(name.x + 4.0, name.y + name.height * 0.5)
 }
 
 #[test]
