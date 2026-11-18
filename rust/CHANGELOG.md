@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of
   `.vscode/tasks.json` of the worktree shown under **Workspace**, and the scripts of each `package.json` under **npm**,
