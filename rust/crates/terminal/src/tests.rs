@@ -163,7 +163,9 @@ fn a_new_size_is_told_to_the_shell() {
     let ask = if cfg!(windows) {
         "'cols=' + [Console]::WindowWidth"
     } else {
-        "echo cols=$(tput cols 2>/dev/null || stty size | cut -d' ' -f2)"
+        // `stty` reads the size of its input, which is still the terminal inside `$(…)`; the `tput` of macOS reads that
+        // of its output, there a pipe, and says 80.
+        "echo cols=$(stty size | cut -d' ' -f2)"
     };
     running.type_line(ask);
     let _wide = running.wait_for("100 columns", |screen| screen.text().contains("cols=100"));
