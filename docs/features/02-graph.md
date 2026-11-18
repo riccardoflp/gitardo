@@ -975,7 +975,8 @@ widths.
 | Line | Starts at | Least | Most | Double click |
 | --- | --- | --- | --- | --- |
 | Side column and commits | 210 px | 120 px | 35% of the window | back to 210 px |
-| **Repositories** and **Branches**, in the side column | 160 px for **Repositories** | 64 px for either | the column less 64 px | back to 160 px |
+| Under **Repositories**, in the side column | 160 px for **Repositories**, or as tall as its rows | 64 px for each section open | the column less 64 px for each open section under it | back to where it starts |
+| Under **Changes**, in the side column | 280 px for **Changes**, or as tall as what it shows | 64 px for each section open | the column less 64 px for **Branches** | back to where it starts |
 | Commits and inspector, side by side | 320 px for the inspector | 200 px | 55% of the window | back to 320 px |
 | Inspector over the commits, in the narrow layout | half the height for the inspector | 80 px | 80% of the height | back to half |
 
@@ -987,6 +988,8 @@ Acceptance:
 
 - [ ] The side column cannot be dragged narrower than 120 px nor wider than 35% of the window.
 - [ ] Dragging the line under **Repositories** down gives it the height **Branches** loses.
+- [ ] Dragging the line under **Changes** down gives it the height **Branches** loses, and it is as high after the
+      window opens again.
 - [ ] A double click on the line before the inspector gives it 320 px again.
 - [ ] The sizes are there after the window is closed and opened again on the same workspace.
 

@@ -366,9 +366,13 @@ fn changes_pane__a_file_in_conflict_is_under_conflicts_only_with_no_box_and_a_cl
         .nodes
         .iter()
         .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(CONFLICT_FILE))
-        .filter_map(|(_, node)| node.bounds().map(|bounds| bounds.y0))
+        .filter_map(|(_, node)| node.bounds())
+        // The **Changes** section of the side column lists it too.
+        .filter(|bounds| !super::pointer::is_in_changes_section(&tree, super::pointer::rect(*bounds)))
+        .map(|bounds| bounds.y0)
         .collect();
-    let changes = find(&tree, Role::CheckBox, "Changes 1").bounds().unwrap().y0;
+    let page = super::pointer::bounds(&tree, Role::Main, views::text::changes::PAGE);
+    let changes = f64::from(super::pointer::bounds_in(&tree, (Role::CheckBox, "Changes 1"), page).y);
     assert_eq!(named.len(), 1, "it is listed once, under Conflicts: {named:?}");
     assert!(named[0] < changes, "above the changes");
     let whole = render::Rect::new(0.0, 0.0, 1200.0, 560.0);

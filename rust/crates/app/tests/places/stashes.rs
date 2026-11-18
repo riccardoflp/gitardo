@@ -247,6 +247,7 @@ fn stash_autostash_left__a_pull_that_leaves_its_autostash_warns_in_the_window_wi
 fn stash_autostash_left__show_stashes_shows_the_stashes_list_with_that_stash_first() {
     let (repository, _remote) = autostash_conflict();
     let mut state = showing(repository.path().to_path_buf());
+    super::fold_changes(&mut state);
     pull(&mut state);
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let clicked = window.click(&state, Role::Button, words::SHOW_STASHES);

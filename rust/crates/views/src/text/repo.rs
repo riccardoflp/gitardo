@@ -32,10 +32,12 @@ pub const NO_REPOSITORY_TO_SELECT: &str = "Gitardo: no Git repository in this wo
 pub const TABS: &str = "Repositories open";
 /// The heading of the first section of the side column (`repo.side-column`).
 pub const REPOSITORIES: &str = "REPOSITORIES";
-/// The heading of the second section of the side column: the branch rail.
+/// The heading of the second section of the side column: the changes of the repository shown (`changes.section`).
+pub const CHANGES: &str = "CHANGES";
+/// The heading of the third section of the side column: the branch rail.
 pub const BRANCHES: &str = "BRANCHES";
 /// The side column, as the screen reader names it.
-pub const SIDE_COLUMN: &str = "Repositories and branches";
+pub const SIDE_COLUMN: &str = "Repositories, changes and branches";
 /// A worktree whose folder is gone (`repo.worktree-summary`).
 pub const MISSING: &str = "missing";
 /// The tooltip of **+** in the heading of **Repositories**.

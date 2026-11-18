@@ -78,7 +78,10 @@ height of **Repositories** dragged, its heading included, in logical pixels, lef
 and `repositoriesFolded` and `branchesFolded` (`true` while that section is folded, left out otherwise). `rail` and
 `railHidden` keep their names and now say the width of the side column and whether it is put away. Since phase 13 it
 also keeps `foldedTabs`, the folders of the repositories open whose worktrees and submodules are folded under their
-rows (`repo.group-tabs`), left out when none is. The extension has nothing of the kind: its repositories and its
+rows (`repo.group-tabs`), left out when none is. Since milestone M24 it keeps the **Changes** section between them
+(`changes.section`): `changesSection` (its height dragged, its heading included, in logical pixels, left out while it
+is where it starts) and `changesFolded` (`true` while it is folded, left out otherwise); no key before them changed
+its name or its meaning. The extension has nothing of the kind: its repositories and its
 branches are VS Code's side bar.
 
 ## Files in `.git` and in the temporary folder

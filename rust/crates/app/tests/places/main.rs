@@ -21,6 +21,7 @@ mod changes;
 mod changes_beside;
 mod changes_menu;
 mod changes_save;
+mod changes_section;
 mod close_tabs;
 mod commit_page;
 mod compact_rows;
@@ -162,6 +163,13 @@ fn repository_with_history() -> (Repository, Remote) {
     std::fs::write(repository.path().join("rail.txt"), "branches and tags\n").unwrap();
     let _ = repository.git(&["stash", "push", "--quiet", "--message", "half the tags"]);
     (repository, remote)
+}
+
+/// Folds the **Changes** section of the side column, for a test of the branch rail under it in a low window, or of
+/// the Changes page, which then lists the files alone.
+fn fold_changes(state: &mut State) {
+    let fold = views::graph::GraphIntent::FoldSection(views::graph::SideSection::Changes);
+    let _effects = support::run(state, Message::Intent(views::Intent::Graph(fold)));
 }
 
 /// A window showing a workspace of one folder, its jobs run.

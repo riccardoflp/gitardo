@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Changes** is a section of the side column, between **Repositories** and **Branches**: its heading counts the
+  changed files, `CHANGES 3`, and under it are the commit box, **Conflicts** and the list of the changed files with
+  their boxes, as the Changes page has them, beside the timeline and beside every page. A click on a file shows its
+  diff in the middle of the window, the side column staying and the row of the file marked, and `Alt+Down` and
+  `Alt+Up` go to the next and the previous file; the Changes page with a file beside it draws the file alone while the
+  section is open. The section folds as the others, the lines above and under it are dragged, and both are remembered
+  for the workspace. With no repository shown it is its heading alone.
 - A click on a file of the changes shows its diff, where it opened the file: `changes.openOnClick` is `diff` unless a
   settings file says `file`, which brings the File page back. **Open file** of the menu of the row opens the file
   either way.

@@ -28,6 +28,8 @@ pub const NO_IDENTITY: &str = "No identity configured";
 pub const CONFLICTS: &str = "Conflicts";
 /// The Changes page as a column beside the file it opened, for the screen reader (`changes.beside-file`).
 pub const COLUMN: &str = "List of changes";
+/// What the **Changes** section of the side column shows, for the screen reader (`changes.section`).
+pub const SECTION: &str = "Changes of the repository shown";
 /// The heading of the files changed.
 pub const CHANGES: &str = "Changes";
 /// The box on the header of the list, for the screen reader.

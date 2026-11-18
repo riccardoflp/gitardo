@@ -260,7 +260,8 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
 }
 
 /// The Changes page as it is drawn: with the page of its file beside the list while one is shown and open, the column
-/// as wide as it was dragged; the File page with the blame of its lines.
+/// as wide as it was dragged, or the file alone while the side column shows the list in its **Changes** section
+/// (`changes.section`); the File page with the blame of its lines.
 #[must_use]
 pub fn page_state<'a>(
     state: &'a State,
@@ -290,7 +291,15 @@ pub fn page_state<'a>(
             changes,
             shown,
             column_width: column_width.map(super::files_page::whole_pixels),
+            is_listed_aside: is_listed_aside(state),
         })),
         None => PageState::Changes(changes),
     }
+}
+
+/// Whether the side column shows **Changes** open, so that the list of the files is there: it is not put away, or it
+/// is open over the page in the narrow layout, and the section is not folded.
+fn is_listed_aside(state: &State) -> bool {
+    let panes = super::timeline::workspace_panes(state);
+    (!panes.is_rail_hidden || state.is_side_column_over) && !panes.folds.is_changes_folded
 }

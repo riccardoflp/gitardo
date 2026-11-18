@@ -9,6 +9,7 @@ mod beside;
 mod commit_box;
 mod menu;
 mod rows;
+mod section;
 
 use std::collections::BTreeSet;
 
@@ -17,6 +18,8 @@ use model::details::TreeNode;
 use model::state::{FileChange, Identity};
 use ui::layout::{Area, Insets, inset};
 use ui::{AccessRole, Ui};
+
+pub use section::{section_count, section_height, section_view};
 
 use crate::details::{FileLayout, FilesIntent};
 use crate::intent::Intent;
@@ -110,17 +113,32 @@ pub fn pane(state: &ChangesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         ChangesState::Repository(repository) => repository,
     };
     let spacing = ui.theme().sizes.spacing;
-    page_body(repository, ui, Insets::symmetric(spacing.huge, spacing.large))
+    let insets = Insets::symmetric(spacing.huge, spacing.large);
+    page_body(repository, ui, (insets, Part::Page))
 }
 
-/// The page over the rectangle its caller clipped it to, within insets: wide on the page alone, narrow in the column
-/// beside a file (`changes.beside-file`).
-fn page_body(repository: &ChangesRepository<'_>, ui: &mut Ui<'_>, insets: Insets) -> Vec<Intent> {
+/// Where the parts of the Changes page are drawn: in the page, whole or as its column beside a file, or in the
+/// **Changes** section of the side column (`changes.section`), which the screen reader names apart.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Part {
+    /// The Changes page.
+    Page,
+    /// The **Changes** section of the side column.
+    Section,
+}
+
+/// The parts of the page over the rectangle its caller clipped it to, within insets: wide on the page alone, narrow in
+/// the column beside a file (`changes.beside-file`) and in the section of the side column.
+fn page_body(repository: &ChangesRepository<'_>, ui: &mut Ui<'_>, (insets, part): (Insets, Part)) -> Vec<Intent> {
     let rect = ui.current_clip();
     let spacing = ui.theme().sizes.spacing;
     let inner = inset(rect, insets);
     let mut intents = Vec::new();
-    ui.region("changes page", (rect, AccessRole::Main, words::PAGE), |ui| {
+    let named = match part {
+        Part::Page => (rect, AccessRole::Main, words::PAGE),
+        Part::Section => (rect, AccessRole::Region, words::SECTION),
+    };
+    ui.region("changes page", named, |ui| {
         let mut area = Area::with_gap(inner, spacing.large);
         if let Some(banner) = &repository.worktree {
             let top = area.top(crate::filter::bar_height(ui));
@@ -135,4 +153,15 @@ fn page_body(repository: &ChangesRepository<'_>, ui: &mut Ui<'_>, insets: Insets
         intents.extend(rows::view(repository, ui, area.rest()));
     });
     intents
+}
+
+/// The height the parts of the page take within insets, with every row of its lists in sight: what `page_body` lays
+/// out, for the section of the side column, which is no taller than what it shows where it starts.
+fn body_height(repository: &ChangesRepository<'_>, ui: &Ui<'_>, insets: Insets) -> f32 {
+    let sizes = ui.theme().sizes;
+    let banner = crate::filter::bar_height(ui) + sizes.spacing.large;
+    let banners = [repository.worktree.is_some(), repository.banner.is_some()];
+    let above: f32 = banners.into_iter().filter(|is_shown| *is_shown).map(|_| banner).sum();
+    let rows = crate::number::float_of_count(rows::row_count(repository)) * sizes.row_height;
+    insets.top + above + commit_box::height(ui) + sizes.spacing.large + rows + insets.bottom
 }

@@ -275,10 +275,11 @@ as the Files page keeps its tree (`file-view.beside-files`).
 
 - **Kind**: View
 - **Function**: `views::changes::beside_file_view(state: &BesideFileState, ui) -> Vec<Intent>`
-- **Entry points**: a click on a file of the Changes page, **Open changes** and **Open file** of its menu
-  (`changes.row-menu`), and **Open all changes in one Diff page**, as `changes.open` decides; `Alt+Down` and `Alt+Up`
-  in the page opened so, for the next and the previous file of the list.
-- **Uses**: `changes.pane`, `changes.open`, `diff.page`, `file-view.page`, `graph.resize-panes`.
+- **Entry points**: a click on a file of the Changes page or of the **Changes** section of the side column
+  (`changes.section`), **Open changes** and **Open file** of its menu (`changes.row-menu`), and **Open all changes in
+  one Diff page**, as `changes.open` decides; `Alt+Down` and `Alt+Up` in the page opened so, for the next and the
+  previous file of the list.
+- **Uses**: `changes.pane`, `changes.section`, `changes.open`, `diff.page`, `file-view.page`, `graph.resize-panes`.
 - **Extension**: VS Code keeps its Source Control view beside its editors: nothing to build.
 
 - The Changes page is split in two: the page itself on the left as a column, its commit box, its identity and its
@@ -305,6 +306,10 @@ as the Files page keeps its tree (`file-view.beside-files`).
   draft do (Q551). The File page or the Diff page beside the list is forgotten then, unless it has edits not saved. A
   page opened from the page beside the list names the Changes page by the name of that page, and that name goes back
   to the Changes page as it was left, with the same file beside its list.
+- While the side column shows **Changes** open, the list is there, with the row of the file shown marked, and the
+  page draws the file alone, in the middle of the window
+  ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)); with the side
+  column put away, or the section folded, it draws its own column of the list as above.
 - In the narrow layout the page of the file takes the whole page, and **Changes** in the trail comes back to the list.
 - A file in conflict still opens its Merge page in place of the Changes page.
 
@@ -326,6 +331,8 @@ Acceptance:
 - [x] In a window narrower than the narrow layout, the diff is shown alone, with no column.
 - [x] **Open all changes in one Diff page** shows every file beside the list with no row marked; `Alt+Down` then shows
       the first.
+- [x] While the side column shows **Changes** open, a file opened from the page is drawn alone where the page was; with
+      the section folded, beside the column of the page.
 
 ### `changes.section` — Changes, a section of the side column
 
@@ -344,14 +351,16 @@ window ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose
   (`changes.pane`): nothing to build.
 
 - Its heading reads `CHANGES` and how many files are changed, those in conflict counted with them, `CHANGES 3`;
-  `CHANGES` alone when there are none (Q769). It has the chevron of the other headings, and a line above it whatever
-  is folded.
+  `CHANGES` alone when there are none and while no repository is shown (Q769). It has the chevron of the other
+  headings, and a line above it whatever is folded; the screen reader hears the count as the value of the heading.
 - Under the heading the section shows what the Changes page shows, with the margins of a column: the banner of
   another worktree and of an operation that stopped, the commit box with its message, the sparkle, **Commit** or
   **Amend**, **Amend last commit** and the identity (Q761), **Conflicts**, and **Changes** with the box on its
   heading and the files, each with its box and no button (`changes.row-menu`). The buttons of the heading of the
   list that the width of the column does not hold are in **…** at its right (`changes.pane`). What is typed, ticked
-  and folded there is what the page has: they are one commit box and one list, shown in two places.
+  and folded there is what the page has: they are one commit box and one list, shown in two places, both drawn while
+  the Changes page is shown with the section open (Q774). The keyboard that **Show changes** in Quick search puts in
+  the message box goes to the page, not to the section.
 - While no repository is shown, none in the workspace or the one shown being read, the section is its heading over
   an empty room.
 - A click on a file shows its diff in the middle of the window, where the timeline or the page was, the side column
@@ -364,16 +373,20 @@ window ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose
 
 Acceptance:
 
-- [ ] With `a.txt` changed, the side column has **Changes** between **Repositories** and **Branches**, its heading
+- [x] With `a.txt` changed, the side column has **Changes** between **Repositories** and **Branches**, its heading
       reads `CHANGES 1`, and `a.txt` is listed under it with its box.
-- [ ] With no repository in the workspace, the section is its heading alone, with nothing under it.
-- [ ] Ticking the box of `a.txt` in the section stages it, and a message typed there with **Commit** makes the
+- [x] With no repository in the workspace, the section is its heading alone, with nothing under it.
+- [x] Ticking the box of `a.txt` in the section stages it, and a message typed there with **Commit** makes the
       commit.
-- [ ] A click on `a.txt` in the section, the timeline shown, shows its diff where the timeline was, with the side
+- [x] A click on `a.txt` in the section, the timeline shown, shows its diff where the timeline was, with the side
       column beside it and the row of `a.txt` marked.
-- [ ] Folding **Changes** leaves its heading alone, and it is folded after the window opens again.
-- [ ] In a window 800 logical pixels wide the section is in the side column opened over the timeline.
-- [ ] The side column with its three sections matches its snapshots in each theme.
+- [x] Folding **Changes** leaves its heading alone, and it is folded after the window opens again.
+- [x] In a window 800 logical pixels wide the section is in the side column opened over the timeline.
+- [x] The side column with its three sections matches its snapshots in each theme.
+- [x] `Alt+Down` and `Alt+Up` after a click in the section show the next and the previous file, and **Open file** of
+      the menu of a row of the section shows the file.
+- [x] With the Changes page shown too, both list the files, and a box ticked in either stages its file and shows
+      ticked in both.
 
 ### `changes.row-menu` — The menu of a file of the changes
 
@@ -406,14 +419,14 @@ read whole in a narrow column, and keep their box
 
 Acceptance:
 
-- [ ] The row of a changed file has its box and no button.
-- [ ] The menu of a changed file has **Open changes**, **Open file**, **Stage**, **Discard changes** and **Stash
+- [x] The row of a changed file has its box and no button.
+- [x] The menu of a changed file has **Open changes**, **Open file**, **Stage**, **Discard changes** and **Stash
       this file…**, each with an icon, and **Unstage** in place of **Stage** on a file wholly staged.
-- [ ] **Stage** stages the file, **Discard changes** asks and discards it, **Stash this file…** stashes it, **Open
+- [x] **Stage** stages the file, **Discard changes** asks and discards it, **Stash this file…** stashes it, **Open
       file** shows the file and **Open changes** its diff.
-- [ ] The menu of a deleted file has no **Open file**; the menu of a file with edits not saved has **Save**.
-- [ ] The menu of a file in conflict has **Mark as resolved** and the two sides, and **Mark as resolved** stages it.
-- [ ] With the keyboard on the row of a file, the menu key opens its menu, and `Enter` on **Stage** stages the file.
+- [x] The menu of a deleted file has no **Open file**; the menu of a file with edits not saved has **Save**.
+- [x] The menu of a file in conflict has **Mark as resolved** and the two sides, and **Mark as resolved** stages it.
+- [x] With the keyboard on the row of a file, the menu key opens its menu, and `Enter` on **Stage** stages the file.
 
 ### `changes.stage` — Stage a file
 

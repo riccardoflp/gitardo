@@ -697,6 +697,8 @@ show the side column, are recorded again once, when the section is as it stays.
    are recorded again and looked at. Cards: `changes.section`, `repo.side-column`, `changes.beside-file`,
    `graph.resize-panes`.
 
+Built: the four phases, in Gitardo Desktop; questions Q760 to Q776 are open, and the extension is unchanged.
+
 Exit: with `a.txt` changed and the timeline shown, the side column lists **Repositories**, **Changes 1** and
 **Branches**, each heading but the first under a line whatever is folded; a click on `a.txt` shows its diff where
 the timeline was, the side column staying and the row marked; the row has its box and no button, and its menu, by

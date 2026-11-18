@@ -13,7 +13,8 @@ mod tabs;
 
 pub(crate) use side_column::side_column;
 pub use side_column::{
-    REPOSITORIES_START, SectionRects, SideColumnState, SideSections, section_rects, side_column_view,
+    CHANGES_START, REPOSITORIES_START, SectionHeights, SectionRects, SideColumnState, SideSections, section_rects,
+    side_column_view,
 };
 pub use side_sections::{DraggedLine, SECTION_LEAST, SectionAsk, SectionPlace, section_places};
 pub use summary::{TabSummary, counts_words, head_words};

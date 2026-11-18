@@ -4,6 +4,7 @@
 
 use ui::Rect;
 
+use super::side_column::{CHANGES_START, SectionHeights, SectionRects, SideSections, section_rects};
 use super::side_sections::{SECTION_LEAST, SectionAsk, SectionPlace, section_places};
 
 /// The height of a heading in the tests.
@@ -168,4 +169,80 @@ fn repo_side_column__a_section_is_never_shorter_than_its_least_while_there_is_ro
         .dragged
         .unwrap_or_else(|| panic!("the line under the first is dragged"));
     assert!((dragged.room - room).abs() < 0.01 && (dragged.least_after - 2.0 * SECTION_LEAST).abs() < 0.01);
+}
+
+/// The three sections of the side column as it lays them out, with rows of **Repositories** 26 high and what
+/// **Changes** shows as high as given.
+fn rects(sections: SideSections, changes: Option<f32>) -> SectionRects {
+    let heights = SectionHeights {
+        heading: HEADING,
+        line: LINE,
+        repositories: 26.0,
+        changes,
+    };
+    section_rects(COLUMN, sections, &heights)
+}
+
+/// The height of a section, its heading included.
+fn height_of(place: &SectionPlace) -> f32 {
+    place.heading.height + place.body.map_or(0.0, |body| body.height)
+}
+
+#[test]
+fn repo_side_column__repositories_and_changes_start_as_tall_as_what_they_show_or_at_160_and_280_and_branches_has_the_rest()
+ {
+    let short = rects(SideSections::default(), Some(100.0));
+    assert!(
+        (height_of(&short.repositories) - SECTION_LEAST).abs() < 0.01,
+        "{short:?}"
+    );
+    assert!(
+        (height_of(&short.changes) - (HEADING + 100.0)).abs() < 0.01,
+        "{short:?}"
+    );
+    let rest = COLUMN.height - 2.0 * LINE - SECTION_LEAST - HEADING - 100.0;
+    assert!((height_of(&short.branches) - rest).abs() < 0.01, "{short:?}");
+    let tall = rects(SideSections::default(), Some(2_000.0));
+    assert!((height_of(&tall.changes) - CHANGES_START).abs() < 0.01, "{tall:?}");
+    let dragged = SideSections {
+        repositories_height: Some(120.0),
+        changes_height: Some(200.0),
+        ..SideSections::default()
+    };
+    let places = rects(dragged, Some(2_000.0));
+    assert!((height_of(&places.repositories) - 120.0).abs() < 0.01, "{places:?}");
+    assert!((height_of(&places.changes) - 200.0).abs() < 0.01, "{places:?}");
+    assert!(places.repositories.dragged.is_some() && places.changes.dragged.is_some());
+    assert!(places.branches.dragged.is_none());
+}
+
+#[test]
+fn repo_side_column__changes_is_its_heading_alone_while_no_repository_is_shown_and_its_line_is_not_dragged() {
+    let places = rects(SideSections::default(), None);
+    assert_eq!(places.changes.body, None);
+    assert_eq!(places.changes.dragged, None);
+    assert!(places.changes.line.is_some() && places.branches.line.is_some());
+    assert!(
+        (places.branches.heading.y - places.changes.heading.bottom() - LINE).abs() < 0.01,
+        "{places:?}"
+    );
+    // The line under **Repositories** is still dragged, against **Branches**.
+    assert!(places.repositories.dragged.is_some());
+}
+
+#[test]
+fn repo_side_column__with_the_last_section_folded_the_one_above_it_takes_the_rest_whatever_it_was_dragged_to() {
+    let folded = SideSections {
+        changes_height: Some(90.0),
+        is_branches_folded: true,
+        ..SideSections::default()
+    };
+    let places = rects(folded, Some(2_000.0));
+    let rest = COLUMN.height - 2.0 * LINE - HEADING - height_of(&places.repositories);
+    assert!((height_of(&places.changes) - rest).abs() < 0.01, "{places:?}");
+    assert_eq!(places.changes.dragged, None);
+    assert!(
+        (places.branches.heading.bottom() - COLUMN.bottom()).abs() < 0.01,
+        "{places:?}"
+    );
 }

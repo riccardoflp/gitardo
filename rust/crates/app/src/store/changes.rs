@@ -181,7 +181,8 @@ pub fn commit_box(state: &State) -> CommitBox<'_> {
     }
 }
 
-/// What the Changes page is drawn from, made for each frame while it is open.
+/// What the Changes page and the **Changes** section of the side column are drawn from, made for each frame while
+/// either is there.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct ChangesData {
     /// The one list of the changed files.
@@ -193,10 +194,12 @@ pub struct ChangesData {
 }
 
 impl ChangesData {
-    /// The list of the repository shown, while the Changes page is open.
+    /// The list of the repository shown, while the Changes page is open or the side column, whose **Changes** section
+    /// lists it and counts it in its heading (`changes.section`), is not put away.
     #[must_use]
     pub fn new(state: &State) -> ChangesData {
-        if !state.pages.open.contains(&Page::Changes) {
+        let is_in_side = !super::timeline::workspace_panes(state).is_rail_hidden || state.is_side_column_over;
+        if !is_in_side && !state.pages.open.contains(&Page::Changes) {
             return ChangesData::default();
         }
         let Some(list) = listed(state) else {

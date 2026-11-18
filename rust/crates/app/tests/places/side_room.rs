@@ -75,13 +75,14 @@ fn drawn(state: &State, sections: SideSections) -> TreeUpdate {
     window.frame(&[], |ui| side_column_view(&column, ui)).1
 }
 
-/// How high the side column of a state wants to be: **Repositories** with **Branches** folded, to the foot of its last
-/// row, and **Branches** with **Repositories** folded, from under the heading of **Repositories** to the foot of the
-/// last row of the rail.
+/// How high the side column of a state wants to be with **Changes** folded: **Repositories** with **Branches** folded,
+/// to the foot of its last row, and **Branches** with **Repositories** folded, from under the heading of
+/// **Repositories**, the heading of **Changes** counted, to the foot of the last row of the rail.
 fn wanted_height(state: &State) -> f32 {
     let unfolded = drawn(
         state,
         SideSections {
+            is_changes_folded: true,
             is_branches_folded: true,
             ..SideSections::default()
         },
@@ -92,6 +93,7 @@ fn wanted_height(state: &State) -> f32 {
         state,
         SideSections {
             is_repositories_folded: true,
+            is_changes_folded: true,
             ..SideSections::default()
         },
     );

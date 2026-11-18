@@ -6,7 +6,7 @@ use model::changes::{ChangeRow, OpenAction, OpenInput, OpenOnClick, OpenTarget, 
 use ui::layout::Insets;
 use ui::{AccessRole, Axis, Key, Modifiers, NamedKey, Rect, Split, Splitter, Ui};
 
-use super::{ChangesIntent, ChangesState, page_body};
+use super::{ChangesIntent, ChangesState, Part, page_body};
 use crate::diff::{DiffPageState, DiffTarget, FileStep};
 use crate::file_view::FilePageState;
 use crate::graph::{GraphIntent, INSPECTOR_MOST, Pane, STEP};
@@ -49,6 +49,9 @@ pub struct BesideFileState<'a> {
     pub shown: BesideShown<'a>,
     /// The width of the column as dragged, in whole logical pixels; none where it starts.
     pub column_width: Option<u16>,
+    /// Whether the side column shows **Changes** open (`changes.section`): the list is there, with the file shown
+    /// marked, and the page draws the file alone, in the middle of the window.
+    pub is_listed_aside: bool,
 }
 
 impl<'a> BesideFileState<'a> {
@@ -90,13 +93,14 @@ pub fn beside_request(row: &ChangeRow, action: OpenAction, on_click: OpenOnClick
 }
 
 /// The Changes page with a file opened, over the rectangle its caller clipped it to: the column of the page on the
-/// left, the line between that resizes it, and the Diff page or the File page on the right; in the narrow layout the
-/// page of the file alone. `Alt+Down` and `Alt+Up` show the next and the previous file of the list.
+/// left, the line between that resizes it, and the Diff page or the File page on the right; the page of the file
+/// alone in the narrow layout, and while the side column shows the list in its **Changes** section
+/// (`changes.section`). `Alt+Down` and `Alt+Up` show the next and the previous file of the list.
 ///
 /// Feature: changes.beside-file
 pub fn beside_file_view(state: &BesideFileState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
-    let mut intents = if ui.window().width < INSPECTOR_OVER_BELOW {
+    let mut intents = if state.is_listed_aside || ui.window().width < INSPECTOR_OVER_BELOW {
         shown_view(&state.shown, ui)
     } else {
         split(state, ui, rect)
@@ -160,7 +164,8 @@ fn column_view(state: &ChangesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         ChangesState::NoRepository(state) => no_repository_view(state, ui),
         ChangesState::Repository(repository) => {
             let spacing = ui.theme().sizes.spacing;
-            page_body(repository, ui, Insets::symmetric(spacing.medium, spacing.medium))
+            let insets = Insets::symmetric(spacing.medium, spacing.medium);
+            page_body(repository, ui, (insets, Part::Page))
         }
     }
 }

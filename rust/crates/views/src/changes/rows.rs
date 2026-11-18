@@ -33,9 +33,9 @@ enum ChangesRow<'a> {
     NoChanges,
 }
 
-/// The lists over a rectangle, as rows that scroll.
-pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
-    let files = FilesState {
+/// The files of the list as the lists of files of the window lay them out, every one shown.
+fn files_state<'a>(state: &ChangesRepository<'a>) -> FilesState<'a> {
+    FilesState {
         files: state.files,
         tree: state.tree,
         layout: state.layout,
@@ -45,7 +45,17 @@ pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
             count: state.files.len(),
             is_all_shown: true,
         },
-    };
+    }
+}
+
+/// How many rows the lists have, their headings included.
+pub(super) fn row_count(state: &ChangesRepository<'_>) -> usize {
+    changes_rows(state, &file_rows(&files_state(state))).len()
+}
+
+/// The lists over a rectangle, as rows that scroll.
+pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
+    let files = files_state(state);
     let rows = changes_rows(state, &file_rows(&files));
     let list = List {
         name: words::PAGE,

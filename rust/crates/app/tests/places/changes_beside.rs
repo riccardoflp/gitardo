@@ -52,9 +52,12 @@ pub(super) fn three_changed() -> Repository {
     repository
 }
 
-/// A window showing a repository with its Changes page open.
+/// A window showing a repository with its Changes page open, and the **Changes** section of the side column folded,
+/// so that the page lists the files alone, in its column once a file is beside it (`changes.section` has its own
+/// tests, with the section open).
 pub(super) fn changes_page(repository: &Repository) -> (State, OperationsDriver) {
     let mut state = showing(repository.path().to_path_buf());
+    super::fold_changes(&mut state);
     let driver = OperationsDriver::new();
     driver.intent(&mut state, Intent::Changes(ChangesIntent::Open));
     (state, driver)
@@ -343,9 +346,10 @@ fn changes_beside_file__its_title_row_starts_with_the_button_of_the_side_column_
     );
     let changes = trail_changes(&tree);
     let diff = bounds(&tree, Role::Main, views::text::diff::PAGE);
+    // The side column lists the changes in its section, so the diff has the page to itself, under the title row.
     assert!(
-        changes.x < diff.x,
-        "Changes is in the title row, before the diff's name"
+        changes.y < diff.y && changes.x > diff.x,
+        "Changes is in the title row, above the diff: {changes:?} {diff:?}"
     );
     let alt_left = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::ArrowLeft), Modifiers::ALT));
     let (intents, _) = window.draw(&state, &[alt_left]);

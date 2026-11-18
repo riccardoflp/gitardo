@@ -4026,3 +4026,16 @@ building milestone M24; each is built as it says until the maintainer answers ot
 - **Q772** — `changes.row-menu`: each row of a file takes the keyboard by `Tab`, so that `Enter` opens it and the
   menu key opens its menu; a list of two hundred files is two hundred stops of `Tab`. Should the list have a cursor
   moved by the arrows, as the timeline has, and be one stop?
+- **Q773** — `changes.section`: the list of the changes, with its tree, is now worked out at every frame while the
+  side column is shown, where before it was only while the Changes page was open. It is a pass over the files of the
+  working tree, quick for a few hundred files; with tens of thousands changed, should it be kept between frames until
+  the repository is read again?
+- **Q774** — `changes.section`: with the Changes page shown and the section open, the commit box and the list are
+  drawn twice, in the section and in the page, which share what is typed and ticked. Should showing the whole page
+  fold the section while it is shown, or should the page, with the section open, show something else?
+- **Q775** — `changes.beside-file`: a file opened from the section shows the Changes page with the file alone, and
+  its trail reads `Timeline › Changes › a.txt`; **Changes** there shows the whole page, with the list in the section
+  too. Should that step of the trail go while the section is open, so that `Alt+Left` comes back to the timeline?
+- **Q776** — `changes.section`: tests of the Changes page, of the branch rail and of the stashes in a window 520
+  logical pixels high fold the **Changes** section first, since a third open section leaves the rail too little height
+  for what they look at. Is 520 still the height the window tests should assume, or should they use a taller window?

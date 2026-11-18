@@ -195,7 +195,7 @@ earns it.
 | [`changes.unsaved`](05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved) | Files with edits not saved | Derivation | Built | Built |
 | [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-page-opens) | What a file of the Changes page opens | Derivation | Built | Built |
 | [`changes.beside-file`](05-changes-and-commit.md#changesbeside-file--the-changes-page-beside-what-it-opens) | The Changes page beside what it opens | View | Built | Host only |
-| [`changes.section`](05-changes-and-commit.md#changessection--changes-a-section-of-the-side-column) | Changes, a section of the side column | View | Specified | Host only |
+| [`changes.section`](05-changes-and-commit.md#changessection--changes-a-section-of-the-side-column) | Changes, a section of the side column | View | Built | Host only |
 | [`changes.row-menu`](05-changes-and-commit.md#changesrow-menu--the-menu-of-a-file-of-the-changes) | The menu of a file of the changes | View | Built | Planned |
 | [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Built | Built |
 | [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Built | Built |

@@ -700,39 +700,45 @@ Acceptance:
 
 ### `repo.side-column` — The side column of repositories and branches
 
-One island on the left of the window, the whole height of it, with **Repositories** above and **Branches** under it,
-each folding by its heading, the line between them dragged
-([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+One island on the left of the window, the whole height of it, with **Repositories** above, **Changes** under it and
+**Branches** last, each folding by its heading, the lines between them dragged
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them),
+[D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)).
 
 - **Kind**: View
 - **Function**: `views::repo::side_column_view(state: &SideColumnState, ui: &mut Ui) -> Vec<Intent>`
 - **Entry points**: the left of the window, beside the bar of views, under the header; it is put away and brought
   back by the first button of the top row of the timeline and of the title row of every page
   (`graph.toggle-references`).
-- **Uses**: `repo.tabs`, `refs.tree`, `graph.resize-panes`, `graph.toggle-references`.
+- **Uses**: `repo.tabs`, `changes.section`, `refs.tree`, `graph.resize-panes`, `graph.toggle-references`.
 - **Extension**: VS Code's Source Control side bar is the column, and Gitardo's views its sections: the Branches view
-  the branches, and the Repositories view of milestone M22 the repositories (`repo.tabs`); nothing else to build.
+  the branches, the Repositories view of milestone M22 the repositories (`repo.tabs`), and **Gitardo Changes** the
+  changes (`changes.pane`); nothing else to build.
 
 - The island goes from under the header to the status bar; the timeline, the inspector, the pages and the bottom
   panel are on its right, and the header above them all (`graph.toolbar`).
 - **Repositories** (`repo.tabs`), with the rows of the worktrees and the submodules of each repository under it
-  (`repo.group-tabs`), is above, **Branches** (`refs.tree`, the branch rail, with its filter box and its scope line) is
-  under it. Each has a heading in capitals of the size of the headings of the rail, 28 logical pixels high, with a
-  chevron that folds and unfolds the section on its left and its buttons on its right, on the same line: **+** for
-  **Repositories** (`repo.open-tab`); **Create branch**, **Compare** and the button of the rail's own filter for
-  **Branches** (`branch.pane`), each an icon with its name in its tooltip. A folded section is its heading alone, and
-  the other takes the height.
-- The heading of **Branches** has a line above it, whether the sections are open or folded
+  (`repo.group-tabs`), is above; **Changes** (`changes.section`), the changes of the repository shown, under it;
+  **Branches** (`refs.tree`, the branch rail, with its filter box and its scope line) last. Each has a heading in
+  capitals of the size of the headings of the rail, 28 logical pixels high, with a chevron that folds and unfolds the
+  section on its left and its buttons on its right, on the same line: **+** for **Repositories** (`repo.open-tab`);
+  the count of the changed files for **Changes**; **Create branch**, **Compare** and the button of the rail's own
+  filter for **Branches** (`branch.pane`), each an icon with its name in its tooltip. A folded section is its heading
+  alone, and the open ones take the height; with all three folded the headings are at the top and the rest of the
+  island is empty.
+- The headings of **Changes** and of **Branches** have a line above them, whether the sections are open or folded
   ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)): two folded
   sections, or a folded one under an open one, are still told apart.
 - The side column is dense, as a list one reads at a glance: rows one line high, the gaps between them and between the
   sections those of a list (4 logical pixels above the filter box and between it and the lists, 8 between two lists of
   the rail), and no button less than 24 logical pixels high.
-- While both are open, the line between them is dragged to share the height (`graph.resize-panes`), the arrows
-  moving it with the keyboard; while one is folded the line is drawn and takes neither the pointer nor the keyboard.
-  **Repositories** starts at 160 logical pixels, or as tall as its rows when they need less; neither is shorter than 64
-  logical pixels while both are open.
-- Which sections are folded and the height of **Repositories** are remembered for the workspace.
+- The line under an open section that has an open section under it, folded ones between them or not, is dragged to
+  share the height (`graph.resize-panes`), the arrows moving it with the keyboard; the other lines are drawn and take
+  neither the pointer nor the keyboard. **Repositories** starts at 160 logical pixels, or as tall as its rows when they
+  need less; **Changes** at 280, or as tall as what it shows when that is less; the last open section takes the rest,
+  and none is shorter than 64 logical pixels while another is open. **Changes** is its heading alone while no
+  repository is shown.
+- Which sections are folded and the heights of **Repositories** and **Changes** are remembered for the workspace.
 - The side column stays beside the timeline and beside every page, except a Diff page beside the inspector
   (`diff.beside-inspector`) or beside a comparison (`compare.beside-diff`), which put it away while they are shown and
   give it back as it was.
@@ -749,10 +755,11 @@ Acceptance:
 
 - [ ] The side column's top is under the header, level with the timeline's top, and its foot touches the status
       bar's gap.
-- [ ] Folding **Branches** gives **Repositories** the whole height but the heading of **Branches**.
-- [ ] Folding both leaves two headings at the top, a line between them, and the rest of the island empty.
-- [ ] The line above the heading of **Branches** is drawn with both sections open, with either folded and with both
-      folded.
+- [ ] Folding **Changes** and **Branches** gives **Repositories** the whole height but their headings.
+- [ ] Folding all three leaves three headings at the top, a line between each two, and the rest of the island empty.
+- [ ] The lines above the headings of **Changes** and of **Branches** are drawn whatever is folded.
+- [ ] **Repositories** and **Changes** start as tall as what they show, or at 160 and 280 logical pixels, and
+      **Branches** has the rest; **Changes** is its heading alone while no repository is shown.
 - [ ] Every heading but the first has its line above it and the parts follow one another without overlapping,
       whatever is folded; only the line under an open section with an open one under it is dragged.
 - [ ] Dragging the line between the sections changes their heights, and they are the same after the window opens
