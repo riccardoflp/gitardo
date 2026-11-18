@@ -1337,6 +1337,10 @@ its end, so that you see how far back you are as you scroll.
 - **Function**: `model::graph::date_separators(dates: &[Option<i64>], now: DateTime) -> BTreeMap<usize, String>`
 - **Entry points**: **Separate the days, weeks and months** in the menu of the view.
 - **Settings**: `graph.dateSeparators` (on by default).
+- **Extension**: `datePeriods` of `src/webview/util.ts`, over every row each time the rows listed change: how far back
+  a commit is, is worked out without its name, which is written for the rows that start a time alone; writing the name
+  of the month of each commit took 2.2 s for 56,000 commits, at each page of a read (milestone M25). Tested by
+  `test/datePeriods.test.ts`, "writes the name of a month once for each month, not for each commit of a long history".
 
 Each commit's date, in local time, falls in a period, from the nearest: **Today**, **Yesterday**, **This week** (from
 Monday, before yesterday), **Last week** (the seven days before this week), then each month by its name and year,

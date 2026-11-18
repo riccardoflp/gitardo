@@ -15,19 +15,28 @@ export function relativeTime(seconds: number, now = Date.now()): string {
 
 export const fullDate = (seconds: number) => new Date(seconds * 1000).toLocaleString();
 
-/** How far back a time is, as the separators of the graph name it: 0 is today, and each further back is more. */
-function period(seconds: number, now: Date): { rank: number; name: string } {
+/**
+ * How far back a time is, as the separators of the graph name it: 0 is today, and each further back is more. Its name
+ * is asked apart, of the few rows that start a time: writing the name of a month for each commit of a long history
+ * took seconds.
+ */
+function period(seconds: number, now: Date): number {
   const day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const at = new Date(seconds * 1000);
   const days = Math.round((day.getTime() - new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime()) / 86400000);
   // The weeks start on Monday.
   const week = (now.getDay() + 6) % 7;
-  if (days <= 0) return { rank: 0, name: 'Today' };
-  if (days === 1) return { rank: 1, name: 'Yesterday' };
-  if (days <= week) return { rank: 2, name: 'This week' };
-  if (days <= week + 7) return { rank: 3, name: 'Last week' };
-  const months = (now.getFullYear() - at.getFullYear()) * 12 + now.getMonth() - at.getMonth();
-  return { rank: 4 + months, name: at.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) };
+  if (days <= 0) return 0;
+  if (days === 1) return 1;
+  if (days <= week) return 2;
+  if (days <= week + 7) return 3;
+  return 4 + (now.getFullYear() - at.getFullYear()) * 12 + now.getMonth() - at.getMonth();
+}
+
+/** What a time that far back is called: the days and the weeks by what they are from today, then each month by its name. */
+function periodName(rank: number, seconds: number): string {
+  const names = ['Today', 'Yesterday', 'This week', 'Last week'];
+  return names[rank] ?? new Date(seconds * 1000).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 }
 
 /**
@@ -42,9 +51,9 @@ export function datePeriods(rows: { date: number }[], now = Date.now()): Map<num
   let reached = -1;
   rows.forEach((row, index) => {
     if (!row.date) return;
-    const { rank, name } = period(row.date, today);
+    const rank = period(row.date, today);
     if (rank <= reached) return;
-    if (reached >= 0) starts.set(index, name);
+    if (reached >= 0) starts.set(index, periodName(rank, row.date));
     reached = rank;
   });
   return starts;

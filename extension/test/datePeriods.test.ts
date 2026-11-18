@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { datePeriods } from '../src/webview/util';
 
 // Thursday 22 October 2026, at noon.
@@ -21,5 +21,18 @@ describe('the separators between the commits of the graph', () => {
   it('starts nothing for a commit newer than one above it, nor for the uncommitted changes', () => {
     const starts = datePeriods([{ date: 0 }, at(10, 21), at(10, 22), at(10, 21), at(10, 20)], now);
     expect([...starts.entries()]).toEqual([[4, 'This week']]);
+  });
+
+  it('writes the name of a month once for each month, not for each commit of a long history', () => {
+    // 50,000 commits, one every 42 minutes back from now: four years of them.
+    const rows = Array.from({ length: 50_000 }, (_, index) => ({ date: now / 1000 - index * 2520 }));
+    const named = vi.spyOn(Date.prototype, 'toLocaleDateString');
+    const starts = datePeriods(rows, now);
+    const names = named.mock.calls.length;
+    named.mockRestore();
+    // Yesterday, this week and last week have their names already; the months before are written, each once.
+    expect(starts.size).toBeGreaterThan(45);
+    expect(names).toBeLessThanOrEqual(starts.size);
+    expect(new Set(starts.values()).size).toBe(starts.size);
   });
 });

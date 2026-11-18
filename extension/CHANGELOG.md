@@ -21,6 +21,10 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - What is not committed in another worktree is counted again only when something changed in its own git folder, on **Refresh**, or when the repository is chosen: a read after a change to a file counts the worktree shown only, however many worktrees the repository has.
 - VS Code getting the focus reads the repository only when its last read ended more than a minute before, or something changed while no view of Gitardo was open; switching to another program and back no longer reads it each time.
 
+### Fixed
+
+- The graph no longer stops for seconds while the commits of a long history come. The lines between days, weeks and months wrote the name of the month of every commit listed each time more commits came, two seconds for 56,000 commits: a **Refresh** of such a history took 4 to 10 seconds, in blocks, with the view not drawing in between. The name is now written once for each month, and the same **Refresh** has its last commit drawn in about a second.
+
 ## 1.0.0 - 2026-11-17
 
 ### Added
