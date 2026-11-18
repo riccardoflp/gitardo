@@ -16,6 +16,12 @@
   some run asks first. The menu of a task has **Open in tasks.json** and **Copy command**, the title of the list
   **Open tasks.json**, **Collapse all** and **Expand all**. Nothing runs in a folder that is not trusted: the tab says
   so, with **Trust this folder**.
+- A task of the Tasks tab runs after the tasks of its `dependsOn`: one after the other with `dependsOrder` `sequence`,
+  all at once otherwise, each waiting for those it depends on to end with exit code 0. A background task counts as
+  ready once it prints its `endsPattern`, or, without one, once it has printed nothing for two seconds, and goes on
+  running while the tasks that waited for it start; its row says **ready**. A task whose dependency failed does not
+  run, and says **It did not run: `<task>` ended with exit code `<n>`.**; a row that waits says **waits**. Tasks that
+  depend on each other in a loop, or on a task the worktree does not have, run nothing, and Gitardo says which.
 - What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
   **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
   timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release

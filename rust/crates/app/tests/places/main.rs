@@ -106,6 +106,7 @@ mod sync_stash;
 mod tab_operations;
 mod tabs;
 mod tasks;
+mod tasks_depend;
 mod tasks_run;
 mod tasks_stop;
 mod tasks_tab;
