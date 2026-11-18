@@ -58,12 +58,22 @@ fn moved(position: Point) -> InputEvent {
     })
 }
 
+/// The key that shows and hides the panel, as its card says: `` Ctrl+` ``, and `` Cmd+` `` on macOS.
+fn the_panel_key() -> InputEvent {
+    let with = if cfg!(target_os = "macos") {
+        Modifiers::META
+    } else {
+        Modifiers::CONTROL
+    };
+    shortcut('`', with)
+}
+
 #[test]
 fn panel_bottom__ctrl_backtick_shows_the_panel_at_the_terminal_with_the_focus_and_hides_it_pressed_again_there() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let (intents, tree) = window.draw(&state, &[shortcut('`', Modifiers::CONTROL)]);
+    let (intents, tree) = window.draw(&state, &[the_panel_key()]);
     assert!(!has(&tree, Role::Region, "Bottom panel"));
     assert_eq!(without_sizes(&intents), [Intent::Panel(PanelIntent::Open)]);
     reduce_all(&mut state, intents);
@@ -71,7 +81,7 @@ fn panel_bottom__ctrl_backtick_shows_the_panel_at_the_terminal_with_the_focus_an
     assert!(look.is_shown && look.tab == PanelTab::Terminal, "{look:?}");
     let (_, tree) = window.draw(&state, &[]);
     let rect = panel_rect(&tree);
-    let (intents, _) = window.draw(&state, &[shortcut('`', Modifiers::CONTROL)]);
+    let (intents, _) = window.draw(&state, &[the_panel_key()]);
     assert_eq!(
         without_sizes(&intents),
         [Intent::Panel(PanelIntent::Hide)],
