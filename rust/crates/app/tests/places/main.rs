@@ -88,6 +88,7 @@ mod review_wiring;
 mod said;
 mod same_history;
 mod search;
+mod selection;
 mod series_continued;
 mod settings_file;
 mod settings_page;

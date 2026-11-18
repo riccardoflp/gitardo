@@ -50,6 +50,12 @@
   system's own, which on Windows is PowerShell where it was `cmd`. The column **Tasks** at the right of the
   **Activity** tab is gone, and a command of a new worktree is no longer listed among what is running: the count
   beside **Tasks** says that it runs.
+- What is selected is tinted with the accent of the theme in the dark and in the light theme: a selected commit, a
+  selected file, the selected rows of any list that has the focus stand on the amber of the buttons and of the ring of
+  the focus mixed into the ground, a warm brown in the dark theme and a sand in the light one, where they stood on a
+  teal that nothing else of the window wore. Selected text, in an editor, an input box, a diff, the Merge page and the
+  terminal, has a wash of grey, told apart from a match of a search, which keeps the amber. The selection of a list
+  without the focus, the row under the pointer and the two high contrast themes are as before.
 - What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
   **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
   timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release

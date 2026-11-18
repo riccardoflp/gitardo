@@ -137,3 +137,6 @@ fn the_256_colors_of_a_terminal_are_the_16_of_the_theme_then_the_cube_and_the_gr
     assert_eq!(theme.terminal_color(232), Color::rgb(8, 8, 8));
     assert_eq!(theme.terminal_color(255), Color::rgb(238, 238, 238));
 }
+
+mod look;
+mod selection;

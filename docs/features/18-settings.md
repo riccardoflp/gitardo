@@ -259,3 +259,20 @@ Acceptance:
 - [ ] With `system`, the window follows the system when it switches between dark and light, without restarting.
 - [ ] Every place of the window and every page is drawn with the tokens of the theme chosen, and the snapshots of each
       theme are those of the reference.
+- [ ] In the dark and in the light theme the selected rows of a list that has the focus are tinted with the accent of
+      the theme: their ground is the accent mixed into the ground of the page, about one part in six (D69).
+- [ ] In every theme the ground of the selected rows of a list, with the focus and without, of the row under the
+      pointer, of the row lit in a menu and of selected text has the hue of the accent or none.
+- [ ] In every theme the text of a selected row, and muted text on it, are read: 4.5 to 1, 7 to 1 in the high contrast
+      themes.
+- [ ] In every theme a selected row is told apart from the ground of a page, from that of a card, from the row under
+      the pointer and from the selection of a list without the focus.
+- [ ] In every theme selected text is told apart from a match of a search and from its ground, on a page, on a card
+      and in an input box, and its text is read.
+- [ ] A commit selected in the timeline, on its tall rows and on its compact rows, stands on the selection of the
+      theme while its list has the focus, and on the selection of a list without the focus once the window loses it;
+      the snapshots of each theme are those of the reference.
+- [ ] In the dark and in the light theme every color of the interface is a step of the ground, has the hue of the
+      accent, or is the color of a state: an error, a warning, information, success, a conflict, the red behind
+      **Close**. A file added, removed or changed wears the color of success, of an error or of a warning, and the
+      main button, the ring of the focus, a match of a search and the first lane wear the accent.

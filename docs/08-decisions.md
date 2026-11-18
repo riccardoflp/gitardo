@@ -3792,6 +3792,42 @@ each is built as it says until the maintainer answers otherwise.
 - **Q672** — `settings.theme`: the two high contrast themes keep their blue selection, their accent being blue, and
   teal stays the color of information, of the incoming side of a merge and of the labels of a stash. Should any of
   these change too?
+- **Q673** — `settings.theme`: the wash of selected text is the color of muted text at 80 of 255 in the dark and in
+  the light theme, where the light one had its teal at 60: at 60 the grey stood 0.04 from a match of a search, in
+  Oklab, and at 80 it stands 0.05, the text on it at 9.7 to 1. The line of the cursor of the Merge page
+  (`merge-view.open-at-line`) and the line of the caret of a diff are drawn with the same `text_selection`, the diff
+  with an alpha of its own in every theme, so they are grey now too. Is the wash as strong as wanted, and should the
+  line of the cursor have a color of the theme of its own?
+- **Q674** — `settings.theme`: in the light theme the colored text of a selected row reads less than 4.5 to 1 on the
+  sand: the accent 3.5 (the label of a branch, the letter of a file renamed), information 3.7, a conflict 3.8, success
+  3.9, a warning 4.1. None is new: they were 3.6 to 4.3 on the teal, and the accent is 4.3 on the page itself; the
+  text of the row and its muted text keep 13.7 and 4.7, which the test asks. On the row of a setting marked for a
+  second, the border of **Add** and of an input box is as faint on the sand and on the brown as it was on the teal.
+  Should the selection of the light theme be paler, or those colors darker on a selected row?
+- **Q675** — `settings.theme`: in the dark theme the row under the pointer (`list_hover`, `#1E2025`) has the color of
+  a card, of a menu and of a dialog, so that on them it shows nothing: the chooser of a comparison lights the row
+  under the pointer in the light theme and not in the dark one. Milestone M21 leaves the neutral steps as they are.
+  Should the dark theme have a step of its own for the row under the pointer?
+- **Q676** — `settings.theme`: nothing says information in `info`. The teal is worn by the incoming side of a merge
+  and by the second lane; a message of information under an input box is drawn in the accent, and what was said in
+  the status bar that is neither an error nor a warning has the information icon in the color of success
+  (`activity.said`). Should the toolkit have a tone of information in teal for those two, or does teal stay off them?
+- **Q677** — `settings.theme`: colors worn for something other than their name, found in phase 3 and left as they
+  are: the current side of a merge is the green of success (`added` on the Merge page, `success` on the cards and the
+  columns of a review), beside the teal of the incoming side; a line neither side has is the violet of the third
+  lane (`review.card`); the letter of a file renamed or copied, and the lines of both sides in the bar of a card, are
+  the accent; the star of a favorite branch (`refs.favorite`) and the checks of a pull request still running are the
+  color of a warning. Which of these should change, and to which color?
+- **Q678** — `settings.theme`: the color of a warning, which a changed file wears too (`#F0C35A` dark, `#8A6100`
+  light), is 7 and 11 degrees of hue from the accent (`#F0A43A`, `#B35C00`) and 0.07 from it in Oklab: the **M** of a
+  changed file reads as the amber of the branch beside it. Should the warning move toward yellow, away from the
+  accent?
+- **Q679** — `settings.theme`: only a list that has the focus is amber, as D69 says. A commit selected in the
+  timeline turns to the neutral selection as soon as the focus goes elsewhere, to the inspector or to a box, while
+  the file shown of a commit, of a comparison, of the Changes page and of the Files page is amber whether its list
+  has the focus or not; the row lit in a picker and in Quick search, the branches of the selected commit and the
+  repository shown in the side column are always neutral. Should the selected commit stay amber without the focus,
+  and the others follow one rule?
 
 ### Of the tab of Activity, from Q680
 
