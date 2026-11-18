@@ -197,6 +197,11 @@ impl Repository {
         done
     }
 
+    /// Whether work runs with its engine: a feature, from its first question to its last step.
+    pub fn is_running(&self) -> bool {
+        self.is_running.load(Ordering::SeqCst)
+    }
+
     /// Marks it closed: a burst waiting for it is not read.
     pub fn close(&self) {
         self.is_closed.store(true, Ordering::SeqCst);
@@ -243,7 +248,7 @@ impl Repository {
 
 /// What a path of the extension's watchers is: in the git folder when it starts with `.git/`, in the working tree
 /// otherwise.
-fn change_of(path: &str) -> Change {
+pub fn change_of(path: &str) -> Change {
     match path.strip_prefix(".git/") {
         Some(inside) => Change::GitFolder(PathBuf::from(inside)),
         None => Change::WorkingTree(PathBuf::from(path)),

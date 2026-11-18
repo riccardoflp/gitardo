@@ -148,6 +148,23 @@ impl Engine {
         }
     }
 
+    /// The first notification of the engine of a method, waited for; the messages read before it kept.
+    pub fn notification_of(&mut self, method: &str) -> Value {
+        let deadline = Instant::now() + PATIENCE;
+        loop {
+            if let Some(place) = self
+                .kept
+                .iter()
+                .position(|message| message["method"] == json!(method) && message.get("id").is_none())
+            {
+                return self.kept.remove(place);
+            }
+            let left = deadline.saturating_duration_since(Instant::now());
+            let message = self.messages.recv_timeout(left).expect("the engine says it");
+            self.kept.push(message);
+        }
+    }
+
     /// Sends a request and gives its answer.
     pub fn ask(&mut self, method: &str, params: &Value) -> Value {
         let id = self.send(method, params);

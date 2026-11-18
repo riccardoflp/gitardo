@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.9** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.10** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -70,8 +70,15 @@ Each field added is left out by an older extension, which gets what it got befor
 
 Version 1.9 adds what milestone M17 needed
 ([D60](../08-decisions.md#d60--mermaid-diagrams-drawn-in-the-preview-of-markdown)): `read/file-view.mermaid`, a diagram
-of Mermaid written as an SVG for VS Code's preview of Markdown, the only read that takes no repository
+of Mermaid written as an SVG for VS Code's preview of Markdown, a read that takes no repository
 ([Diagrams of Mermaid](#diagrams-of-mermaid)).
+
+Version 1.10 adds what milestone M22 needed
+([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)): `read/repo.worktree-summary`, which
+names the repositories of the workspace and answers what each of them and each of their worktrees is on, for the rows
+of the extension's Repositories view; `repository/folderChanged`, the extension saying what its watchers saw change in
+one of them; and `repository/summaries`, the engine saying what it read again
+([What the repositories are on](#what-the-repositories-are-on)).
 
 ## Transport
 
@@ -131,7 +138,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.9",
+  protocol: "1.10",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -203,6 +210,59 @@ what git's `fsmonitor` writes, reads again once per burst, and sends `repository
 
 Notification from the engine: `{ repository, state: RepositoryState, reason: "changed" | "ran" | "opened" }`. Sent
 after a read again, and after every plan that ran.
+
+### What the repositories are on
+
+`repo.worktree-summary` for the rows of the extension's Repositories view (1.10, milestone M22): the branch checked
+out in each repository of the workspace, in each of its worktrees and in each of its submodules, the files changed
+there and the commits to pull and to push, read as the window of Gitardo Desktop reads them for its own rows. The three
+messages take no `repository`, and open none.
+
+```ts
+// read/repo.worktree-summary
+params: { folders: string[] }                 // the repositories of the workspace, submodules among them
+result: { summaries: FolderSummary[] }        // every folder followed
+
+// repository/folderChanged, a notification from the extension
+params: { folder: string, paths: string[] }   // as in repository/changed; no path reads it whatever changed
+
+// repository/summaries, a notification from the engine
+params: { summaries: FolderSummary[] }        // the folders read again that say something new
+
+FolderSummary: {
+  folder: string,
+  summary: WorktreeSummary | null,            // null until its first read answered
+  isStale: boolean,                           // its last read failed: summary is the one before
+  worktrees: Worktree[] | null,               // of a folder asked: what git lists for its repository
+}
+WorktreeSummary: {
+  head: { kind: "branch", name: string }      // the short name
+      | { kind: "detached", commit: string }  // the short hash
+      | { kind: "noCommits" }
+      | { kind: "missing" },                  // the folder is gone
+  changed: number,                            // files changed and not committed, untracked ones included
+  ahead: number | null,                       // to push; null without an upstream
+  behind: number | null,                      // to pull
+}
+```
+
+`read/repo.worktree-summary` follows `folders` in place of the folders it followed before: one followed already keeps
+what it said, a new one is read, and one no longer asked is dropped. Each folder asked lists the worktrees of its
+repository with `git worktree list` alone (`worktrees`, each a `Worktree` of [Types](#types) with `uncommitted` null),
+and each worktree listed whose folder is there is followed too, with `worktrees` null. The answer comes once every
+folder followed was read once, so asking again with the same folders answers at once and runs nothing.
+
+From then on a folder is read again only when `repository/folderChanged` names it. A path of its working tree reads it
+whatever its git folder says; a path of its git folder reads it only when its `HEAD`, its index or its references
+changed since its last read, and lists the worktrees again when the path is in `.git/worktrees/`; the paths that never
+ask for a read (`repo.watch-changes`: git's locks, its objects, what `fsmonitor` writes) are left out, and a
+notification of those alone does nothing. An empty `paths` reads the folder whatever changed. The reads run one at a
+time on one thread, no folder more than once in two seconds, and wait while an operation runs or the state of a
+repository opened is read. A read that found what the folder said before says nothing, and so does the first read of a
+folder while an answer of `read/repo.worktree-summary` that will hold it is under way; any other is said in
+`repository/summaries`, one folder in each notification. A read that fails keeps the summary before and sets
+`isStale`. Each read that ran git is logged in `log/line`, `Read what <folder> is on`, with how long it took. After a
+restart of the engine the extension asks the read again with the folders it followed.
 
 ## Settings
 

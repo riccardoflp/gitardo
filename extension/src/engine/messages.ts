@@ -5,6 +5,7 @@
  * which the views take as they are (stage 6).
  */
 
+import type { FolderSummary } from '../shared/summaries';
 import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shared/state';
 
 export type { CommitDetail, Signature, Submodule } from '../shared/state';
@@ -12,9 +13,11 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
 /**
  * The version of the protocol the extension speaks: 1.8 has the pages of the commits sent as they are read, `refresh` in
  * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15); 1.9 has `read/file-view.mermaid`, a diagram of
- * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17).
+ * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17); 1.10 has `read/repo.worktree-summary`, what the
+ * folders of the rows of the Repositories view are on, with `repository/summaries` and `repository/folderChanged`
+ * (milestone M22).
  */
-export const PROTOCOL = '1.9';
+export const PROTOCOL = '1.10';
 
 /** The names of the methods. */
 export const Method = {
@@ -661,3 +664,21 @@ export interface WriteSettingFollowUp {
 export const MermaidMethod = {
   draw: 'read/file-view.mermaid',
 } as const;
+
+// Milestone M22, from 1.10 (`rust/crates/protocol/src/summaries.rs`): what the folders of the rows of the Repositories
+// view are on (`repo.worktree-summary`). The read is of many folders, so it names no repository and opens none.
+
+/** The names of the messages of the summaries. */
+export const SummariesMethod = {
+  /** The folders to follow, in place of those before, answered with what each is on once each was read. */
+  follow: 'read/repo.worktree-summary',
+  /** The engine's notification: what some of the folders followed are on, read again. */
+  summaries: 'repository/summaries',
+  /** The extension's notification: its watchers saw files change in a folder followed. */
+  folderChanged: 'repository/folderChanged',
+} as const;
+
+/** The answer of `read/repo.worktree-summary`, and the parameters of `repository/summaries`. */
+export interface SummariesResult {
+  summaries: FolderSummary[];
+}

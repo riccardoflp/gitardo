@@ -774,8 +774,14 @@ pull and to push, for the rows of **Repositories** and the rows of the worktrees
   commit from its `# branch.head` and `# branch.oid` lines, the commits ahead and behind from `# branch.ab`, the files
   changed from the count of its other lines.
 - **Uses**: `repo.common-folder`, `repo.watch-changes`; by `repo.tabs` and `repo.group-tabs`.
-- **Extension**: planned for milestone M22: the engine gives it the same summaries, for the rows of its Repositories
-  view ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)).
+- **Extension**: the engine reads the same summaries for the rows of its Repositories view
+  ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)), with
+  `read/repo.worktree-summary`, `repository/folderChanged` and `repository/summaries` of
+  [the protocol](../transition/02-protocol.md#what-the-repositories-are-on): `EngineClient.summaries`,
+  `folderChanged` and `onSummaries` in `src/engine/client.ts`, the words of a summary in
+  `src/shared/summaries.ts`. The extension says which paths changed in a folder; the engine decides whether that
+  asks for a read, and never reads a folder more than once in two seconds, nor while an operation runs. Tested by
+  `rust/crates/server/tests/stdio/summaries.rs`, `test/engineSummaries.test.ts` and `test/summaries.test.ts`.
 
 - The repository shown takes its summary from its own read (`repo.read-state`), and runs no other.
 - Every other repository open and every worktree of each is read once when the window opens, then again only when its
@@ -1103,7 +1109,9 @@ How the repositories of the tabs not shown follow their changes without reading 
   nothing to read there. Their watchers stay, and a change marks them out of date (`Controller.changedIn`). Tested by
   `test/e2e/suite.ts`, steps "with keeping repositories open on, a commit made in a terminal in a repository not shown
   reads nothing, and showing it reads it once" and "with keeping repositories open on, shows a repository chosen again
-  at once as it was left, and reads nothing for it when nothing changed".
+  at once as it was left, and reads nothing for it when nothing changed". What the rows of its Repositories view say of
+  the repositories not shown is not their state: it is read by the engine in the background, as
+  `repo.worktree-summary` says, whatever the setting, and never while an operation runs or a state is read.
 
 The rules:
 

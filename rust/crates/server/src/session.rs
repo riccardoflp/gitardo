@@ -32,6 +32,8 @@ use serde_json::{Map, Value};
 use crate::outgoing::Outgoing;
 use crate::repository::{Next, Repository};
 
+mod summaries;
+
 /// The engine speaking to one extension.
 #[derive(Debug)]
 pub struct Session {
@@ -56,6 +58,8 @@ pub struct Session {
     runs_tasks: AtomicBool,
     /// The host questions the extension said at `initialize` that it answers.
     host: Mutex<HostAbilities>,
+    /// What the folders the extension's Repositories view lists are on (`repo.worktree-summary`).
+    summaries: summaries::Summaries,
 }
 
 /// Why the state of a repository is read, and whether every other worktree is counted again (**Refresh**).
@@ -93,6 +97,7 @@ impl Session {
             settings: Mutex::new(Map::new()),
             runs_tasks: AtomicBool::new(false),
             host: Mutex::new(HostAbilities::default()),
+            summaries: summaries::Summaries::default(),
         }
     }
 
@@ -179,7 +184,7 @@ impl Session {
                     *locked(&self.settings) = settings;
                 }
             }
-            _ => {}
+            other => summaries::notification(self, other, params),
         }
     }
 
@@ -198,6 +203,7 @@ impl Session {
             methods::DISCOVER => crate::discover::discover(&parameters(params)?, cancel),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
             protocol::mermaid::methods::FILE_VIEW_MERMAID => crate::mermaid::draw(&parameters(params)?),
+            protocol::summaries::methods::WORKTREE_SUMMARY => summaries::follow(self, &parameters(params)?, cancel),
             read if crate::reads::is_read(read) => crate::reads::answer(self, id, read, params, cancel),
             // Area 6 of stage 4: the reads that ask a language model of VS Code.
             read if crate::ai::is_ai_read(read) => crate::ai::answer(self, id, read, params, cancel),

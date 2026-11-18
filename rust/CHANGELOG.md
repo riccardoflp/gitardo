@@ -110,6 +110,12 @@
   The title row starts with the button of the side column and says `Timeline › Changes › a.txt`, `Alt+Left` showing
   the whole page; a page opened from the diff or the file beside the list names it, and goes back to the Changes page
   with the same file beside its list.
+- Version 1.10 of the protocol of `gitardo-engine --stdio`, for the extension: `read/repo.worktree-summary` follows the
+  repositories of a workspace and answers what each of them, each of its worktrees and each of its submodules is on,
+  the branch checked out or the commit `HEAD` is detached at, the files changed and the commits to pull and to push,
+  as the rows of **Repositories** say them here; `repository/folderChanged` has one read again when the extension's
+  watchers saw it change, no more than once in two seconds and never while an operation runs; and
+  `repository/summaries` says what such a read found, when it is not what was said before.
 - Version 1.9 of the protocol of `gitardo-engine --stdio`, for the extension: `read/file-view.mermaid` writes a block of
   Mermaid as the SVG of its diagram in the colors of VS Code's default theme of a kind, or says why it is not drawn,
   with no repository.
