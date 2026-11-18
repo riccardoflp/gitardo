@@ -1,6 +1,7 @@
 //! The pages of a read of the timeline as they come (`graph.load-more`, D54): each one is put under the pages before
 //! it, and while they are the rows listed already, the rows are left as they are, so that a read that finds the same
-//! commits changes none of them.
+//! commits changes none of them. A read of the same history that finds others keeps the rows listed before aside, to
+//! be drawn under its own until it reaches them (D72).
 
 use model::graph::Row;
 
@@ -15,16 +16,20 @@ pub struct Stream {
     pub at: usize,
     /// Whether the pages so far are the rows listed already.
     pub is_same: bool,
+    /// Whether the rows listed are of the same history, kept aside where the read finds others (D72).
+    pub is_held: bool,
 }
 
 impl Stream {
-    /// A read that starts at the top of the history, whose pages are compared with the rows listed.
+    /// A read that starts at the top of the history, whose pages are compared with the rows listed: of the same
+    /// history when they are `is_held`.
     #[must_use]
-    pub fn from_top(job: JobId) -> Stream {
+    pub fn from_top(job: JobId, is_held: bool) -> Stream {
         Stream {
             job,
             at: 0,
             is_same: true,
+            is_held,
         }
     }
 
@@ -35,7 +40,20 @@ impl Stream {
             job,
             at: rows,
             is_same: false,
+            is_held: false,
         }
+    }
+
+    /// Whether a page takes out rows of the same history listed under where the read stands: the read found other
+    /// commits there, or none, and the rows listed are kept aside while it goes on (D72).
+    #[must_use]
+    pub fn cuts_held(&self, rows: &[Row], page: &[Row]) -> bool {
+        self.is_held
+            && self.is_same
+            && rows.len() > self.at
+            && rows
+                .get(self.at..self.at + page.len())
+                .is_none_or(|listed| listed != page)
     }
 
     /// Puts a page where the read stands among the rows read from git: rows listed already, when they are the same
@@ -100,7 +118,8 @@ mod tests {
     fn the_same_rows_in_pages_change_nothing_and_a_shorter_history_drops_the_rest() {
         let listed = line(10, "Commit");
         let mut rows = listed.clone();
-        let mut stream = Stream::from_top(JobId(1));
+        let mut stream = Stream::from_top(JobId(1), true);
+        assert!(!stream.cuts_held(&rows, listed.get(..4).unwrap()));
         assert!(!stream.take(&mut rows, listed.get(..4).unwrap().to_vec()));
         assert!(!stream.take(&mut rows, listed.get(4..8).unwrap().to_vec()));
         assert_eq!(rows, listed);
@@ -117,9 +136,25 @@ mod tests {
         let listed = line(10, "Commit");
         let other = line(12, "Other");
         let mut rows = listed.clone();
-        let mut stream = Stream::from_top(JobId(1));
+        let mut stream = Stream::from_top(JobId(1), false);
+        assert!(
+            !stream.cuts_held(&rows, other.get(..5).unwrap()),
+            "another history is not held"
+        );
         assert!(stream.take(&mut rows, other.get(..5).unwrap().to_vec()));
         assert!(stream.take(&mut rows, other.get(5..).unwrap().to_vec()));
         assert_eq!(rows, other);
+    }
+
+    #[test]
+    fn a_page_of_the_same_history_that_differs_cuts_the_rows_held() {
+        let listed = line(10, "Commit");
+        let other = line(12, "Other");
+        let stream = Stream::from_top(JobId(1), true);
+        assert!(stream.cuts_held(&listed, other.get(..5).unwrap()));
+        assert!(stream.cuts_held(&listed, listed.get(1..5).unwrap()));
+        assert!(!stream.cuts_held(&listed, listed.get(..10).unwrap()));
+        let under = Stream::under(JobId(2), 10);
+        assert!(!under.cuts_held(&listed, other.get(..5).unwrap()));
     }
 }

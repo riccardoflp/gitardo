@@ -22,6 +22,14 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - What is not committed in another worktree is counted again only when something changed in its own git folder, on **Refresh**, or when the repository is chosen: a read after a change to a file counts the worktree shown only, however many worktrees the repository has.
 - VS Code getting the focus reads the repository only when its last read ended more than a minute before, or something changed while no view of Gitardo was open; switching to another program and back no longer reads it each time.
 
+### Fixed
+
+- The graph no longer stops for seconds while the commits of a long history come. The lines between days, weeks and months wrote the name of the month of every commit listed each time more commits came, two seconds for 56,000 commits: a **Refresh** of such a history took 4 to 10 seconds, in blocks, with the view not drawing in between. The name is now written once for each month, and the same **Refresh** has its last commit drawn in about a second.
+- In a repository of a little more than a page of commits, 1,000 unless `gitardo.graph.pageSize` says otherwise, the graph could stop at its first page, its last row saying **Loading more commits…** for good, until the list was scrolled to its end: the read of the other commits had ended before the view was given the first, and nothing told it after. The commits read meanwhile now come with the first.
+- While the commits of a long history came, each page of them was sent with the whole state of the repository to every view of Gitardo, the Changes, Branches and Stashes views too, which drew themselves again for nothing, and a search of the whole history was asked of git again at each page. The pages now go to the Graph views alone, and the search is asked again only when the commits listed are others.
+- The graph stays where it is scrolled to when its commits are read again, after a commit, a fetch or **Refresh**. The read starts from its first page, and the list was cut to it: scrolled to row 28,000 of 56,000, it was thrown to row 992 and left there, and the graph got narrower and wider again. The list now keeps its length and the graph its width until the commits are back, with the rows it had before dimmed under those read so far.
+- **Refresh**, a branch or a tag made, a fetch that brings nothing new and a change of the settings sent every commit of the graph to the view again, 56,000 on a large repository, as if they were others. The commits are still read again, and those that are the same stay as they are: the view is sent only what changed.
+
 ## 1.0.0 - 2026-11-17
 
 ### Added

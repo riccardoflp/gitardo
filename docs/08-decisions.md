@@ -1361,6 +1361,38 @@ rather than a webview (a row could not put the counts at its right in their colo
 putting the list inside the Branches view (two lists with two scrolls in one view, which VS Code already splits
 better).
 
+## D72 — The list of commits keeps its length while its commits are read again (proposed)
+
+*Proposed by the agent for milestone M25, after the maintainer reported that the graph of the extension loads badly, or
+in blocks; the maintainer has not answered it yet.*
+
+Since [D54](#d54--the-timeline-is-read-by-one-git-log-as-it-prints) a read of another history starts again from its
+first page, and the pages after it follow as git prints them. When the history is the one listed with something moved
+in it (a commit made, a fetch, **Refresh** in the extension), the list is cut to that first page for the second or two
+the others take: a list scrolled to row 28,000 of 56,000 is left at row 992, the end of the first page, and stays
+there once every commit is back (measured in the extension on 2026-11-18, read in the code of the desktop,
+[Q780](#of-how-the-graph-of-the-extension-loads-from-q780)).
+
+So, while the commits of the same history are read again (the same repository, branches shown, filter, search and
+parents followed), the list keeps the length it had until the read reaches it or ends: where it is scrolled to does not
+move, and under the last commit read the rows the list had before stay where they were, dimmed, without their labels
+and taking no click, until the read reaches them; where the list had no row, the row that says **Loading more
+commits…** is drawn where the list is scrolled to. The graph keeps the width it had, rather than getting narrower with
+the first page and wider again. A read that ends with fewer commits leaves the list as long as they are; another
+history (another filter, other branches, another repository) starts from its top as before.
+
+**In the extension first**, against [D39](#d39--desktop-first-and-a-status-for-each-app): until version 1.8 of the
+protocol the extension read again as many commits as it listed, at once, so that its list kept its length; it lost
+that with the pages of D54, and it is in the extension that it was reported. The desktop got it right after, in phase
+7 of [milestone M25](desktop/07-roadmap.md#m25--the-graph-of-the-extension-loads-without-stopping): its timeline keeps
+the rows listed before aside, with their layout, and draws them under the rows read until the read reaches them.
+
+Rejected: reading again as many commits as are listed before showing any (the first page would wait for the last, which
+D54 undid); leaving the rows not read yet empty (a list scrolled far down would show nothing but the row that says
+more are loading for the second or two the read takes, and its commits again after: one more thing that moves; asked
+in Q782); keeping the commit at the top of what is in sight rather than the row (the list would move by itself while
+it is being scrolled; asked in Q783).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -4087,3 +4119,58 @@ is on it; each is built as it says until the maintainer answers otherwise.
   nothing shows its buttons, as nothing is `hovered` then; a button pressed whose row the pointer leaves is drawn no
   more until the release. A browser keeps the row of the press lit. Should a row keep what it showed while a press
   that started on one of its buttons is held?
+
+### Of how the graph of the extension loads, from Q780
+
+Questions of milestone M25 and of [D72](#d72--the-list-of-commits-keeps-its-length-while-its-commits-are-read-again-proposed),
+asked after the graph of the extension was watched loading on a clean build on 2026-11-18; each is built as it says
+until the maintainer answers otherwise.
+
+- **Q780** — `graph.load-more` in Gitardo Desktop: a page of a read that is not the rows listed cuts the rows there
+  (`Stream::take` of `app/src/store/timeline/stream.rs`), and the list brings where it is scrolled to back within its
+  rows at each frame (`ui/src/widget/list/mod.rs`). So after a commit or a fetch the timeline of the desktop, scrolled
+  far down, would be left at the end of its first page as the extension's was. Read in the code, not seen in the
+  window. Should the desktop keep the length of its list as D72 says? Built so, phase 7 of M25: a window test scrolls
+  the timeline to the end of 3,000 commits, makes a commit, and finds it there at each page, where before the fix the
+  row **Loading more commits…** under the first page came into sight.
+- **Q781** — `graph.read-commits` in the extension: **Refresh**, a repository chosen again and a change of the settings
+  read every commit again and send every row to the views again, where the desktop leaves the rows alone while the
+  pages of the new read are the rows listed (D54: a read that finds the same commits changes none of the rows). So do
+  a branch or a tag made, and a fetch that brings nothing the graph lists: the references moved, the read is another,
+  and its 56,000 rows are the same. Built, phase 6 of M25: `EngineGraph` compares the pages of a read that starts
+  again with the commits of the read before, and keeps them, with their layout, while they are the same; from the
+  first that is not, the rows are cut there and laid out again. Should **Refresh** keep asking git for every commit,
+  or only for those of the first page when they are the same?
+- **Q782** — D72: under the last commit read, the list that keeps its length shows the rows it had before, dimmed
+  after 150 ms as the whole list is until the first page of another history, without their labels and taking no click,
+  for the second or two the pages take on 56,000 commits. They are the commits of before the read: after a commit made,
+  each is one row further down once it is read again. Built so. Should those rows be empty instead, or keep their
+  labels?
+- **Q783** — D72: the list keeps the row it is scrolled to, not the commit: after one commit made, what is in sight is
+  one row further down, and after a fetch of thirty, thirty. Should the list go to the commit that was at the top of
+  what was in sight once it is read, when it was not scrolled meanwhile?
+- **Q784** — `graph.fit-width` in the extension: on the first read of a repository the graph gets wider as pages with
+  more lanes come (48 px after the first page of the large repository, 62 px after the fifteenth), and the messages
+  move to the right with it. Built: nothing for the first read; while the same history is read again the graph keeps
+  the width it had (D72). Should the first read keep the graph at the width of its first page until it ends, or the
+  width the repository had the last time it was shown?
+- **Q785** — Q521: the pages that come within 150 ms go to the views together, and on the large repository they are
+  two or three messages of 12,000 to 29,000 rows, each of which the view takes some 100 ms to draw. Should a message
+  hold no more than a few thousand rows, so that the list grows evenly? Recommended: no, as long as no frame takes
+  longer than 200 ms.
+- **Q786** — `graph.load-more` in the extension: a message with the rows of a page carries the whole state of the
+  repository, its 2,375 references and its 2,000 changed files on the large repository, which did not change. Built:
+  it goes only to the views that list commits. Should the pages have a message of their own, with the rows and
+  whether there are more?
+- **Q787** — `search.history` in the extension: what a search of the whole history found was asked of git again at
+  each message with more commits, while the pages of a read came, since the commits listed changed. Built: it is asked
+  again when the commits listed are others, not when more of them come under the same ones.
+- **Q788** — `extension/test/perf/vscode.mjs` gave the throwaway VS Code no `gitardo.engine.path`, so that since stage
+  10 of the transition it found no engine in a checkout and waited for commits that never came; and it waited for a
+  next page of commits after scrolling to the end, which since D54 comes without being asked for, or not at all. Built:
+  it takes the engine as the end-to-end suite does (`engineSetting`), and waits for a next page only while the last
+  row says more are loading. Its scenarios QA1 to QA4 of [the quality page](extension/12-quality.md) were measured
+  before D54: should QA3, the next page in about 300 ms, become the time to the last commit of the large repository?
+- **Q789** — `extension/test/perf/graph-load.mjs` prints what it measured and fails nothing. Should it fail when a
+  frame of the view takes longer than some time, or when the list is not where it was scrolled to after **Refresh**,
+  and run in the pipeline with the window tests?

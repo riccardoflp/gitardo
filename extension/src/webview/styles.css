@@ -1098,6 +1098,18 @@ input:focus-visible,
   transition: opacity 0.2s 0.15s;
 }
 
+/* The commits the list had before its history is read again, under those read so far: they dim once the wait is long enough to see. */
+.row.awaited {
+  pointer-events: none;
+  animation: awaited 0.2s 0.15s both;
+}
+
+@keyframes awaited {
+  to {
+    opacity: 0.5;
+  }
+}
+
 /* The bar of VS Code's own views while they load. */
 .progress {
   height: 2px;

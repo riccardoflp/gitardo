@@ -62,7 +62,7 @@ pub use pull_request_badge::{
     pull_request_badge_width,
 };
 pub use stashes::{StashEntry, StashRow, stash_intent, stash_menu, stashes_view};
-pub use state::{DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};
+pub use state::{Awaited, DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};
 pub use sticky::{StickyName, StickyNames, sticky_branch_names_view, sticky_names};
 pub use switches::{FirstParentState, SelectedTrace, first_parent_view, trace_selected_view};
 pub use sync_menu::{PULL_WAYS, SYNC_FEATURES};

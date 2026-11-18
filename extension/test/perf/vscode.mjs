@@ -5,7 +5,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { sleep, until } from '../e2e/cdp.mjs';
-import { remove, source } from '../e2e/fixture.mjs';
+import { engineSetting, remove, source } from '../e2e/fixture.mjs';
 import { startWindow } from '../e2e/window.mjs';
 
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
@@ -16,7 +16,10 @@ if (!repository) {
 }
 const out = path.resolve(options.find((option) => option.startsWith('--out='))?.slice(6) ?? path.join(source, 'dist', 'perf'));
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-perf-'));
-const window = await startWindow({ workspace: path.resolve(repository), temp, out, codePath });
+// The engine the end-to-end suite uses: without the setting, a checkout has none packed to find.
+const engine = engineSetting(temp, options);
+console.log(`Measuring ${engine.said}`);
+const window = await startWindow({ workspace: path.resolve(repository), temp, out, codePath, settings: engine.settings });
 const { shot, command, webview, problems } = window;
 const timer = setTimeout(() => finish(new Error('Timed out.')), 240_000);
 const probe = path.join(path.resolve(repository), 'gitardo-perf.txt');
@@ -76,7 +79,13 @@ try {
   await until('the view to notice the new file', async () => (await subject()) !== before, 30_000);
   report(`for a new file to show: "${await subject()}"`, `${Date.now() - changed} ms`);
 
+  // The commits come a page after the other without being asked for (D54): there is a next page to wait for only while
+  // the last row says more are loading, during a read or past the 100,000 commits of one.
   for (let page = 0; page < 4; page++) {
+    if (!(await graph.evaluate(`!!document.querySelector('.commits .row.more')`))) {
+      report('commits loaded, every one of the history', (await graph.evaluate(`Math.round(document.querySelector('.commits .spacer').offsetHeight / 24)`)));
+      break;
+    }
     const timing = await graph.evaluate(`(${TIMED})(() => { const list = document.querySelector('.commits'); list.scrollTop = list.scrollHeight; })`);
     report(`next page of commits, ${timing.sent} loaded`, describe(timing));
   }

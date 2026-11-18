@@ -86,7 +86,7 @@ fn say(ui: &mut Ui<'_>, rect: Rect, words: &str) {
 fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
     let theme = *ui.theme();
     let edge = GraphEdgeState {
-        lanes: state.layout.lane_count,
+        lanes: state.lane_count(),
         wanted: state.graph_width,
     };
     let fit = edge.fit(rect.width);
@@ -140,7 +140,7 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
 fn marks(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
     let theme = *ui.theme();
     let marks = ScrollMarks {
-        total: state.layout.len() + usize::from(state.has_more),
+        total: state.row_count(),
         checked_out: state
             .layout
             .checked_out
@@ -221,7 +221,7 @@ fn history(
 ) -> (Vec<Intent>, RowReport, std::ops::Range<usize>) {
     let list = List {
         name: words::HISTORY,
-        row_count: state.layout.len() + usize::from(state.has_more),
+        row_count: state.row_count(),
         row_height: RowLines::of(state.switches).row_height(ui),
         selection_mode: SelectionMode::Single,
         lead: context.graph_width,

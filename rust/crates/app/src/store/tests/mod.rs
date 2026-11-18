@@ -6,6 +6,7 @@
 mod changed_files;
 mod code_workspace;
 mod github;
+mod held;
 mod hidden;
 mod open_folder;
 mod open_recent;

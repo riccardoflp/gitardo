@@ -50,6 +50,10 @@
   system's own, which on Windows is PowerShell where it was `cmd`. The column **Tasks** at the right of the
   **Activity** tab is gone, and a command of a new worktree is no longer listed among what is running: the count
   beside **Tasks** says that it runs.
+- The timeline stays where it is scrolled to when its commits are read again, after a commit, a fetch or **Refresh**.
+  The read starts from its first page, and the timeline was cut to it: scrolled far down, it was thrown to the end of
+  that page, under a row that said more commits were loading, and left there. It now keeps its length and the graph
+  its width until the commits are back, with the rows it had before dimmed under those read so far.
 - What is selected is tinted with the accent of the theme in the dark and in the light theme: a selected commit, a
   selected file, the selected rows of any list that has the focus stand on the amber of the buttons and of the ring of
   the focus mixed into the ground, a warm brown in the dark theme and a sand in the light one, where they stood on a

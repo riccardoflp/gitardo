@@ -129,6 +129,10 @@ tag, or what a filter leaves of them.
 - **Entry points**: `Enter` in the search box with **Message**, **Author**, **Changes** or **Changes (regex)** chosen.
 - **Reads**: `search.read-matches`.
 - **Uses**: `search.step`, `graph.show-in-graph`, `activity.describe-task`.
+- **Extension**: the view asks the search again when the commits it lists are others, a history read again from its
+  first page or sent anew, not when the pages of a read add commits under the same ones (`addedUnder` of
+  `src/webview/pages.ts`): git was asked of the whole history, and was asked again at each page (milestone M25, Q787).
+  Tested by `test/pages.test.ts`.
 
 - `Enter` with text asks git; `Enter` again on the same search, once it has found, steps to the next match
   (`search.step`), and while git still looks does nothing more.

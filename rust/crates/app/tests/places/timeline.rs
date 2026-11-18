@@ -162,6 +162,7 @@ fn graph_view__scrolling_a_list_of_50000_commits_draws_only_the_rows_in_sight() 
         label_list_closed_at: None,
         rail_hover: None,
         dropped: None,
+        awaited: None,
         switches: Switches::DEFAULT,
         graph_width: None,
         now: 1_735_689_600,

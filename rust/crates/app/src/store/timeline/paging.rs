@@ -107,6 +107,7 @@ pub fn commits_read(state: &mut State, job: JobId, result: Result<MorePages, Str
                 .collect();
             state.timeline.rows = draft.into_iter().chain(page.rows).collect();
             state.timeline.has_more = page.has_more;
+            state.timeline.awaited = None;
             (page.follows, Change::Other)
         }
         Err(error) => {
@@ -197,6 +198,7 @@ pub fn read_again(state: &mut State) -> Vec<Effect> {
 /// Cancels the read of the next pages, the pages still coming and the read of another history, when they run.
 pub fn cancel_more(state: &mut State) -> Vec<Effect> {
     let mut effects = stop_stream(state);
+    state.timeline.awaited = None;
     if let Some(job) = state.timeline.narrow_job.take() {
         let _cancelled = state.jobs.remove(&job);
         state.timeline.is_reading_again = false;

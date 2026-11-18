@@ -216,7 +216,7 @@ export async function startWindow({ workspace, temp, out, codePath, settings: ex
             const { x, y } = await locate(selector, text);
             await mouse(x, y, button);
           };
-          return { frame, evaluate, locate, click };
+          return { frame, evaluate, locate, click, session };
         }
       }
       return null;

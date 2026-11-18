@@ -78,6 +78,38 @@ pub struct HistoryState<'a> {
     pub commit_box: crate::changes::CommitBox<'a>,
     /// What was dropped last on a row, for the menu of the drop while it is open (`drag.drop`).
     pub dropped: Option<&'a crate::drag::Dropped>,
+    /// The rows listed before the same history was read again, drawn dimmed under those read until the read reaches
+    /// them (D72).
+    pub awaited: Option<Awaited<'a>>,
+}
+
+/// The rows a timeline listed before the commits of the same history were read again, after a commit, a fetch or
+/// **Refresh**: the list keeps their length and the graph their width, and those under the rows read are drawn where
+/// they were, dimmed, without labels, taking no click (D72).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Awaited<'a> {
+    /// The rows, the draft first when there was one.
+    pub rows: &'a [Row],
+    /// Their layout, without the labels.
+    pub layout: &'a TimelineLayout,
+}
+
+impl HistoryState<'_> {
+    /// How many rows the list has: those shown, the last that says more are loading, and as many as the rows listed
+    /// before while the same history is read again.
+    #[must_use]
+    pub fn row_count(&self) -> usize {
+        let shown = self.layout.len() + usize::from(self.has_more);
+        self.awaited.map_or(shown, |awaited| shown.max(awaited.layout.len()))
+    }
+
+    /// The most lanes a row has, or had before the same history was read again.
+    #[must_use]
+    pub fn lane_count(&self) -> usize {
+        let lanes = self.layout.lane_count;
+        self.awaited
+            .map_or(lanes, |awaited| lanes.max(awaited.layout.lane_count))
+    }
 }
 
 /// What the draft of the uncommitted changes shows and offers.

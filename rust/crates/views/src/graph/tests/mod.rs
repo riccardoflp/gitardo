@@ -135,6 +135,7 @@ impl Fixture {
             label_list_closed_at: None,
             rail_hover: None,
             dropped: None,
+            awaited: None,
             switches: Switches::DEFAULT,
             graph_width: None,
             now: 0,

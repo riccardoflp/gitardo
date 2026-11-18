@@ -74,7 +74,7 @@ import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Targe
 import { type HostHooks, VscodeAsker, type WindowEngine, sayEngineMissing } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
 import { type Repository, reads, repositoryName } from '../engine/reads';
-import { type CommitsReader, EngineGraph, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
+import { type CommitsReader, EngineGraph, completed, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
 import type { EngineClient } from '../engine/client';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
 import { extensionKey } from '../engine/settings';
@@ -393,8 +393,8 @@ export class Controller implements vscode.Disposable {
       vscode.workspace.onDidChangeConfiguration((event) => {
         const sections = ['gitardo.conflicts', 'gitardo.pull', 'gitardo.worktrees', 'gitardo.branches', 'gitardo.graph', 'git.branchSortOrder'];
         if (sections.some((section) => event.affectsConfiguration(section))) {
-          // They can change what is listed: the commits are read again (Q442).
-          this.engineGraph.forget();
+          // They can change what is listed: the commits are read again (Q442), and those that are the same stay (Q781).
+          this.engineGraph.readAgain();
           this.scheduleRefresh('the settings changed');
           // The repositories kept were read with the settings before: each is read again once it is shown.
           this.kept.changedAll('the settings changed');
@@ -522,21 +522,20 @@ export class Controller implements vscode.Disposable {
         // Unless another was chosen while this one was read.
         if (scope === this.scope) this.settleScope(state.root, state.scope);
         const sort = branchSort();
-        // The pages of the read that came while the rest was read are laid out under its rows.
-        const laid = laidOutOf(state.rows);
-        if (laid) state = { ...state, rows: laid.catchUp(), hasMore: laid.source.hasMore };
-        this.setState({
-          ...sortRefs(state, sort),
-          favorites: this.favorites(state),
+        const read = state;
+        // The pages of the read that come while the rest is read are laid out under its rows once it is: a read that
+        // ended meanwhile would not be told to the views after.
+        const shown = await completed(sortRefs(read, sort), async () => ({
+          favorites: this.favorites(read),
           defaultPull: this.defaultPull(),
           repos: this.repos,
           github: this.github,
           pulls: this.pulls,
           agentsWindow: await (this.agentsWindow ??= hasCommand(AGENTS_WINDOW)),
-          undo: await this.newestInJournal(state.root),
-          worktreesRoot: worktreesFolder(state),
-          openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? 'worktree' : 'checkout',
-          listed: this.listedIn(state),
+          undo: await this.newestInJournal(read.root),
+          worktreesRoot: worktreesFolder(read),
+          openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? ('worktree' as const) : ('checkout' as const),
+          listed: this.listedIn(read),
           sortOrder: sort,
           traceSelected: vscode.workspace.getConfiguration('gitardo').get('graph.traceSelected') !== false,
           oneLane: vscode.workspace.getConfiguration('gitardo').get('graph.oneLane') === true,
@@ -545,9 +544,10 @@ export class Controller implements vscode.Disposable {
           combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
           islands: vscode.workspace.getConfiguration('gitardo').get('graph.islands') === true,
           resolveWithAI: this.resolveWithAI(),
-          home: this.homeOf(state.root),
+          home: this.homeOf(read.root),
           keepOpen: keepOpen(),
-        });
+        }));
+        this.setState(shown);
         for (const resolve of waiting.splice(0)) resolve();
       }
     } catch (error) {
@@ -678,8 +678,9 @@ export class Controller implements vscode.Disposable {
     const client = reads.client();
     const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
     const firstParent = this.firstParent();
-    // **Refresh** reads every commit again; the other reads keep them while the history is the same (Q442).
-    if (everything) this.engineGraph.forget(repo.root);
+    // **Refresh** reads every commit again; the other reads keep them while the history is the same (Q442). The rows of
+    // the commits it finds the same stay as they are, and the views are sent none of them (Q781).
+    if (everything) this.engineGraph.readAgain(repo.root);
     // What the views show but the commits, and then the commits of the graph from what it says (stage 7).
     const parts = await reads.parts(repo, this.autoResolve(), everything);
     const reader = this.graphReader(client, repo);
@@ -762,7 +763,8 @@ export class Controller implements vscode.Disposable {
     const hasMore = laid.source.hasMore;
     if (rows === state.rows && hasMore === state.hasMore) return;
     this.state = { ...state, rows, hasMore };
-    this.post({ type: 'state', state: this.state });
+    // The rows of a page change nothing of what the other views show: only those that list commits are sent them.
+    for (const [view, kind] of this.views) if (showsGraph(kind)) this.post({ type: 'state', state: this.state }, view);
   }
 
   /** How many commits come before one in the history listed with a filter and a scope, or -1 when it is not there. */
@@ -2740,8 +2742,9 @@ export class Controller implements vscode.Disposable {
       case 'refresh':
         return this.refreshAll();
       case 'loadMore': {
-        // While a read adds its pages, the next ones come without asking (`graph.load-more`).
-        if (!this.repo || this.engineGraph.isReading(this.repo.root)) return;
+        // While a read adds its pages, the next ones come without asking (`graph.load-more`); and a list that asked while
+        // the last page came has nothing left to ask for once the read ended at the end of the history.
+        if (!this.repo || this.engineGraph.isReading(this.repo.root) || this.state?.hasMore === false) return;
         this.cancelGraphRead();
         const listed = this.state?.rows.filter((row) => row.hash !== WORKTREE && row.stash === undefined).length ?? 0;
         this.limit = Math.max(this.limit, listed) + pageSize();
