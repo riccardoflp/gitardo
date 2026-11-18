@@ -5,6 +5,7 @@
  */
 
 import { samePath } from './paths';
+import type { RepoState } from './protocol';
 import type { Grouped } from './repositoryGroups';
 import { type RepositoryState, type Worktree, worktreeBranch } from './state';
 import { type FolderSummary, type WorktreeSummary, summaryOfState } from './summaries';
@@ -36,6 +37,12 @@ export interface RepositoryRow {
   /** An operation runs in it. */
   isRunning: boolean;
 }
+
+/**
+ * What the view is sent of the repository Gitardo shows, for the menus of its rows: its worktrees and its submodules as
+ * the Branches view has them, and what their menus ask of the window.
+ */
+export type ShownParts = Pick<RepoState, 'root' | 'home' | 'agentsWindow' | 'worktrees' | 'submodules'>;
 
 /** A repository of the workspace as the rows take it: what `repository/discover` found, and its name in the lists. */
 export interface ListedRepository {

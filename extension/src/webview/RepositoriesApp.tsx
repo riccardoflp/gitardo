@@ -1,8 +1,10 @@
 import { type KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import { samePath } from '../shared/paths';
-import { type DrawnRow, type RepositoryRow, drawnRows } from '../shared/repositories';
+import { type DrawnRow, type RepositoryRow, type ShownParts, drawnRows } from '../shared/repositories';
 import { summarySpoken, summaryWords } from '../shared/summaries';
+import { useMenu } from './ContextMenu';
 import { Icon } from './Icon';
+import { repositoryRowMenu } from './menus';
 import { type Loaded, Placeholder } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
@@ -35,10 +37,12 @@ function spoken(row: DrawnRow): string {
 /**
  * The Repositories view (`repo.tabs`): a row for each repository of the workspace, the rows of its worktrees and its
  * submodules under it, folded and unfolded by the chevron at its left (`repo.group-tabs`), what each is on at its right
- * (`repo.worktree-summary`), and the one Gitardo shows marked. A click on a row shows it in every view (`repo.select`).
+ * (`repo.worktree-summary`), and the one Gitardo shows marked. A click on a row shows it in every view (`repo.select`),
+ * and a right click opens its menu.
  */
 export function RepositoriesApp() {
   const [rows, setRows] = useState<RepositoryRow[] | null>(null);
+  const [shown, setShown] = useState<ShownParts | null>(null);
   const [loaded, setLoaded] = useState<Loaded>(false);
   const [folded, setFolded] = useState(() => loadUiState({ foldedRepositories: [] as string[] }).foldedRepositories);
 
@@ -46,12 +50,14 @@ export function RepositoriesApp() {
     const stop = onMessage((message) => {
       if (message.type !== 'repositories') return;
       setRows(message.rows);
+      setShown(message.shown ?? null);
       setLoaded(message.engineMissing ? 'noEngine' : true);
     });
     post({ type: 'ready' });
     return stop;
   }, []);
 
+  const openMenu = useMenu();
   const drawn = useMemo(() => drawnRows(rows ?? [], folded), [rows, folded]);
   if (!rows?.length) return <Placeholder loaded={loaded} />;
 
@@ -99,6 +105,7 @@ export function RepositoriesApp() {
           title={row.folder}
           style={{ paddingLeft: 8 + (row.depth > 0 ? (row.depth + 1) * INDENT : 0) }}
           onClick={() => show(row)}
+          onContextMenu={(event) => openMenu(event, repositoryRowMenu(row, shown))}
           onKeyDown={(event) => onKey(event, row)}
         >
           {hasChevrons &&

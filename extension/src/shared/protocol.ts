@@ -1,6 +1,6 @@
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
-import type { RepositoryRow } from './repositories';
+import type { RepositoryRow, ShownParts } from './repositories';
 import type { Choice, ConflictRef, ConflictReview } from './resolution';
 import type { CommitDetail, FileChange, RepositoryState } from './state';
 import type { SetupPatterns, SetupPreview, SetupTarget, WorktreeSetupInfo } from './worktreeSetup';
@@ -566,10 +566,10 @@ export type HostMessage =
   | { type: 'review'; review: ConflictReview | null; error?: string }
   /**
    * The rows of the Repositories view (`repo.tabs`), sent to it alone, once the repositories of the workspace were
-   * looked for and whenever a row says something else. Null, with `engineMissing`, when there is no engine to read
-   * them with (D49).
+   * looked for and whenever a row says something else, with what the menus of the rows need of the repository shown.
+   * Null, with `engineMissing`, when there is no engine to read them with (D49).
    */
-  | { type: 'repositories'; rows: RepositoryRow[] | null; engineMissing?: boolean };
+  | { type: 'repositories'; rows: RepositoryRow[] | null; shown?: ShownParts | null; engineMissing?: boolean };
 
 /** Things the UI can ask for that need the extension to prompt, pick or open something. */
 export type UiCommand =

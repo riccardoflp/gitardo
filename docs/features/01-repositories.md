@@ -658,9 +658,17 @@ and its submodules under it, the one shown marked, what each is on, and **+** to
   at its end, the counts kept whole. `Tab` moves to the rows, the arrows from one to the next and fold or unfold,
   `Enter` or `Space` is a click; the rows are a tree for the screen reader, each said with what it is on, the one
   shown as selected. The folders are followed by the engine only once the view is opened, and are told of changes
-  only while it is in sight: what changed while it was folded is said when it is seen again (Q725). `RepositoriesApp`
-  in `src/webview/RepositoriesApp.tsx`, `RepositoriesView` in `src/extension/repositoriesView.ts`, the rows in
-  `src/shared/repositories.ts`; tested by `test/repositories.test.ts`.
+  only while it is in sight: what changed while it was folded is said when it is seen again (Q725). The context menu
+  of a row has **Open in terminal**, **Reveal in File Explorer** as the system calls it, **Show in Gitardo** when it
+  is not the one shown, and **Copy path**; the row of a worktree of the repository Gitardo shows has the menu that
+  worktree has in the Branches view, and the row of a submodule of it the menu of that submodule, both made of the
+  state of the repository shown, which is why the rows of the other repositories have the four alone (Q726). The view
+  and VS Code's own Repositories view follow each other as `repo.follow-source-control` says, a click on a row being
+  a `repo.select`. `RepositoriesApp` in `src/webview/RepositoriesApp.tsx`, `repositoryRowMenu` in
+  `src/webview/menus.ts`, `RepositoriesView` in `src/extension/repositoriesView.ts`, the rows in
+  `src/shared/repositories.ts`; tested by `test/repositories.test.ts`, `test/menus.test.ts` and the step "lists the
+  repositories in the Repositories view with their worktrees and what each is on, counts a file changed in one not
+  shown, and shows the row clicked" of `test/e2e/suite.ts`.
 
 The heading of the section says **Repositories**, with the chevron that folds it on its left and **+** on its right
 (`repo.open-tab`). Under it, a row for each repository open, in the order they were opened, each one line high, the

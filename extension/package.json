@@ -1586,7 +1586,7 @@
           {
             "id": "sideBar",
             "title": "Find the views in the side bar",
-            "description": "Commits, Gitardo Graph, Branches and Stashes are in the Source Control side bar, under the views of VS Code. Click the header of one to unfold it.\n[Show the commits](command:gitardo.openCommits)",
+            "description": "Gitardo Repositories, Commits, Gitardo Graph, Branches and Stashes are in the Source Control side bar, under the views of VS Code. Click the header of one to unfold it.\n[Show the commits](command:gitardo.openCommits)",
             "media": {
               "markdown": "media/walkthrough/side-bar.md"
             },

@@ -2,6 +2,7 @@
 
 Under the views of VS Code, folded until you open them:
 
+- **Gitardo Repositories**: the repositories of the workspace, each with its worktrees and its submodules under it and what each is on. Click one to show it in Gitardo.
 - **Commits**: the commits of the branch checked out, each with whether it is pushed and the files it changed.
 - **Gitardo Graph**: the graph without the references, for when the panel is closed.
 - **Branches**: the recent branches and the favorites, the local and remote branches, the tags and the worktrees.

@@ -26,8 +26,9 @@ workspace.
   (`RepoInfo.depth`). What a repository left keeps, with `gitardo.repositories.keepOpen` on, is `repo.keep-open`'s.
 - **Tested by**: `test/e2e/suite.ts`, steps "narrows the graph to the history of a file, switching repository if
   needed", "follows the repository selected in VS Code's Repositories view, selects there the one shown, and
-  shows a worktree of another" and "lists the worktrees of a repository of the workspace under it in the list of the
-  repositories"; `test/repositoryGroups.test.ts`.
+  shows a worktree of another", "lists the worktrees of a repository of the workspace under it in the list of the
+  repositories" and "lists the repositories in the Repositories view with their worktrees and what each is on,
+  counts a file changed in one not shown, and shows the row clicked"; `test/repositoryGroups.test.ts`.
 
 Acceptance:
 
@@ -54,7 +55,8 @@ selected there too.
   `Controller.onDidChooseRepo` in `src/extension/controller.ts`.
 - **Entry points**: a click on a repository in the Repositories view, or on the changes of one; whatever chooses the
   repository shown in Gitardo (`repo.select`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`,
-  **Show File History** of a file of another repository).
+  **Show File History** of a file of another repository), a click on a row of Gitardo's own Repositories view
+  (`repo.tabs`) among them.
 - **Offered when**: VS Code's Git extension is enabled. Gitardo to the view, also only while
   `scm.repositories.selectionMode` is `single` and the view has the repositories of Git alone.
 - **Reads**: the repositories of VS Code's Git extension and which one Source Control is on (`ui.selected`), through
@@ -71,6 +73,8 @@ Acceptance:
 
 - [ ] Clicking a repository in the Repositories view, or its changes, shows it in Gitardo, whether the view lists one
   repository at a time or several.
+- [ ] The row of what VS Code's view chose is the one marked in Gitardo's Repositories view, and the row clicked
+  there is selected in VS Code's view as any repository chosen in Gitardo is.
 - [ ] A worktree the view lists, of a repository of the workspace, is shown as `worktree.show-in-gitardo` shows it; a
   repository that is neither in the workspace nor a worktree of one of its repositories is not followed.
 - [ ] A repository VS Code has just opened, onto which it may move Source Control on its own, is not followed for 1.5

@@ -269,7 +269,8 @@ async function main() {
     const shown = repo ? await reads.parts(repo, true) : null;
     const rows = repositoryRows({ repositories: grouped, summaries, state: shown, running: null });
     rowFolders = rows.map((row) => row.folder);
-    return [{ type: 'repositories', rows }];
+    const parts = shown && { root: shown.folder, home: null, agentsWindow: false, worktrees: shown.worktrees, submodules: shown.submodules };
+    return [{ type: 'repositories', rows, shown: parts }];
   }
   /**
    * When each conflict was asked about, by file and fingerprint. There is no language model here: the preview pretends,

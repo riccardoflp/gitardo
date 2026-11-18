@@ -2,10 +2,10 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { reads } from '../engine/reads';
 import { samePath } from '../shared/paths';
-import type { HostMessage } from '../shared/protocol';
+import type { HostMessage, RepoState } from '../shared/protocol';
 import { type FollowedFolders, type ListedRepository, repositoryRows, routeChange } from '../shared/repositories';
 import type { Grouped } from '../shared/repositoryGroups';
-import type { RepositoryState } from '../shared/state';
+import type { Worktree } from '../shared/state';
 import type { FolderSummary } from '../shared/summaries';
 
 /** How long after the first change of a burst in a folder the engine is told of it, in milliseconds. */
@@ -27,7 +27,7 @@ export class RepositoriesView implements vscode.Disposable {
   /** The repositories of the workspace, grouped; undefined until they were looked for. */
   private repositories?: Grouped<ListedRepository>[];
   private summaries: FolderSummary[] = [];
-  private state: RepositoryState | null = null;
+  private state: RepoState | null = null;
   /** The folder an operation runs in. */
   private running: string | null = null;
   /** The pages of the view, and whether each is in sight. */
@@ -87,7 +87,7 @@ export class RepositoriesView implements vscode.Disposable {
    * What Gitardo shows was read. The folder shown is not read by the engine: its row says what this state says. One
    * that is no longer shown is read by the engine whatever changed there, since nothing told it meanwhile.
    */
-  shown(state: RepositoryState | null): void {
+  shown(state: RepoState | null): void {
     const before = this.state?.folder;
     this.state = state;
     if (state) this.forget(state.folder);
@@ -170,8 +170,11 @@ export class RepositoriesView implements vscode.Disposable {
   /** The folders the engine follows: those asked, and the worktrees git lists for them whose folder is there. */
   private followed(): FollowedFolders {
     const repositories = this.repositories ?? [];
-    const lists = [...this.summaries.map((each) => each.worktrees), this.state?.worktrees ?? null];
-    const families = lists.flatMap((worktrees) => (worktrees ? [worktrees.filter((each) => !each.isMissing).map((each) => each.folder)] : []));
+    // The state lists the worktrees of its repository last: what the engine listed for that one before is left out.
+    const ofState = this.state?.worktrees ?? [];
+    const inState = (worktrees: Worktree[]) => worktrees.some((each) => ofState.some((own) => samePath(own.folder, each.folder)));
+    const lists = [...this.summaries.flatMap((each) => (each.worktrees && !inState(each.worktrees) ? [each.worktrees] : [])), ofState];
+    const families = lists.map((worktrees) => worktrees.filter((each) => !each.isMissing).map((each) => each.folder)).filter((family) => family.length > 0);
     const folders: string[] = [];
     for (const folder of [...repositories.map((each) => each.repository.folder), ...families.flat()]) {
       if (!folders.some((each) => samePath(each, folder))) folders.push(folder);
@@ -228,8 +231,11 @@ export class RepositoriesView implements vscode.Disposable {
   private message(): HostMessage | undefined {
     if (!reads.available) return { type: 'repositories', rows: null, engineMissing: true };
     if (!this.repositories) return undefined;
-    const rows = repositoryRows({ repositories: this.repositories, summaries: this.summaries, state: this.state, running: this.running });
-    return { type: 'repositories', rows };
+    const state = this.state;
+    const rows = repositoryRows({ repositories: this.repositories, summaries: this.summaries, state, running: this.running });
+    // The menus of the rows of its worktrees and its submodules are made of these, as in the Branches view.
+    const shown = state && { root: state.root, home: state.home, agentsWindow: state.agentsWindow, worktrees: state.worktrees, submodules: state.submodules };
+    return { type: 'repositories', rows, shown };
   }
 
   /** Sends the pages their rows, when they are not the ones sent last. */
