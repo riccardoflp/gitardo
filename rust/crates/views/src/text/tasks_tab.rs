@@ -34,6 +34,12 @@ pub const ADD_TO_GROUP: &str = "Add to group";
 pub const NEW_GROUP: &str = "New group";
 /// Makes a group for a task, in the menu of the groups it can be added to.
 pub const NEW_GROUP_FOR: &str = "New group\u{2026}";
+/// The menu at the right of the heading of the groups.
+pub const MORE_OF_GROUPS: &str = "More of the groups";
+/// Adds the groups of a file to those of the repository.
+pub const IMPORT_GROUPS: &str = "Import groups\u{2026}";
+/// Saves groups of the repository to a file.
+pub const EXPORT_GROUPS: &str = "Export groups\u{2026}";
 /// Runs every task of a group.
 pub const RUN_ALL: &str = "Run all";
 /// Stops every task of a group that runs.

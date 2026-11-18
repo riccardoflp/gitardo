@@ -45,6 +45,8 @@ pub(super) struct Runner {
     pub log: RefCell<Vec<String>>,
     /// Whether no task is started: the test tells the store what a task would.
     pub pretend: Cell<bool>,
+    /// The titles of the dialogs of the system the store asked for and no test answered yet.
+    files_asked: RefCell<Vec<String>>,
 }
 
 impl Runner {
@@ -61,6 +63,7 @@ impl Runner {
             told,
             log: RefCell::new(Vec::new()),
             pretend: Cell::new(false),
+            files_asked: RefCell::new(Vec::new()),
         }
     }
 
@@ -89,6 +92,7 @@ impl Runner {
                         self.host.borrow_mut().take(asked);
                     }
                 }
+                Effect::ChooseFile { title, .. } => self.files_asked.borrow_mut().push(title),
                 Effect::Quit => self.log.borrow_mut().push(String::from("quit")),
                 _ => {}
             }
@@ -201,6 +205,16 @@ impl Runner {
             let running = state.operations.running.as_ref();
             running.is_some_and(|running| running.asking.is_some())
         });
+        self.intents(state, vec![Intent::Feature(FeatureIntent::Answer(Some(answer)))]);
+    }
+
+    /// Answers the dialog of the system of a title, which the operation running asked for, with a file.
+    pub fn choose_file(&self, state: &mut State, title: &str, path: &std::path::Path) {
+        self.until(state, "the dialog of the system", |_| {
+            !self.files_asked.borrow().is_empty()
+        });
+        assert_eq!(self.files_asked.borrow_mut().pop().as_deref(), Some(title));
+        let answer = model::contract::Answer::Path(path.to_owned());
         self.intents(state, vec![Intent::Feature(FeatureIntent::Answer(Some(answer)))]);
     }
 

@@ -77,6 +77,10 @@ pub enum QuickCommand {
     ShowTerminal,
     /// **New Terminal**: another terminal in the repository tab shown (`terminal.view`).
     NewTerminal,
+    /// **Import groups…**: groups of tasks from a file (`tasks.import-groups`).
+    ImportGroups,
+    /// **Export groups…**: groups of tasks to a file (`tasks.export-groups`).
+    ExportGroups,
     /// **Open Settings** (`settings.edit`).
     OpenSettings,
     /// **Welcome** (`welcome.page`).
@@ -147,7 +151,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 48] = [
+    pub const ALL: [QuickCommand; 50] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -163,6 +167,8 @@ impl QuickCommand {
         QuickCommand::ShowCommandLog,
         QuickCommand::ShowTerminal,
         QuickCommand::NewTerminal,
+        QuickCommand::ImportGroups,
+        QuickCommand::ExportGroups,
         QuickCommand::OpenSettings,
         QuickCommand::Welcome,
         QuickCommand::ShowChanges,

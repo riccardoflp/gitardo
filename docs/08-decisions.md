@@ -3940,6 +3940,11 @@ groups are exported to and imported from. Each is built as it says until the mai
   of a group dropped on the heading of its own group stays where it is. A group dropped on another goes before it,
   and dropped on **Groups** goes last. Nothing is drawn between two rows while a drag is over them: the row it would
   go before is lit. Is a line between the rows wanted, and a way to drag a task out of a group?
+- **Q742** — `tasks.import-groups`, `tasks.export-groups`: **Import groups…** and **Export groups…** chosen in Quick
+  search show the bottom panel at the Tasks tab before they ask anything, so that the groups imported are seen once
+  they are listed; and an import asked before the tasks of the worktree were read waits for them, since they say what
+  the names of the file stand for. In the menu of **Groups** the two items have no icon. Is the tab to be shown for an
+  export too, which changes nothing in it, and are icons wanted for the two items?
 
 ### Of the Repositories view of the extension, from Q720
 

@@ -1,5 +1,6 @@
-//! The groups of the Tasks tab (`tasks.edit-groups`, `tasks.run-group`): the operations the tab runs on the groups of
-//! the repository shown, and the tasks read again once one of them changed the groups.
+//! The groups of the Tasks tab (`tasks.edit-groups`, `tasks.run-group`, `tasks.import-groups`, `tasks.export-groups`):
+//! the operations the tab runs on the groups of the repository shown, and the tasks read again once one of them
+//! changed the groups.
 
 use std::sync::Arc;
 
@@ -7,7 +8,10 @@ use model::contract::{Answer, Answers, FeatureId, Target};
 use model::tasks::{GroupsAction, GroupsTarget, TaskChoice};
 use views::tasks::TasksIntent;
 
+use views::panel::{PanelIntent, PanelTab};
+
 use super::super::message::Effect;
+use super::super::panel;
 use super::super::state::State;
 use super::{TabTasks, ask, shown, shown_mut, view};
 
@@ -22,18 +26,19 @@ pub(super) fn named_by(tab: &TabTasks, key: &str) -> Option<String> {
 }
 
 /// Runs an operation on the groups of the repository shown.
-fn run(state: &mut State, feature: &'static str, target: GroupsTarget) -> Vec<Effect> {
+fn run(state: &mut State, feature: &'static str, target: Target) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
     let repository = (read.folder.clone(), Arc::clone(&read.state));
-    let asked = (FeatureId(feature), Target::TaskGroups(Box::new(target)));
+    let asked = (FeatureId(feature), target);
     super::super::feature::run_in(state, repository, asked, Answers::new())
 }
 
 /// A change of the groups asked by the tab: the operation that makes it and writes their file.
 fn edit(state: &mut State, action: GroupsAction) -> Vec<Effect> {
-    run(state, "tasks.edit-groups", GroupsTarget::Edit(action))
+    let target = GroupsTarget::Edit(action);
+    run(state, "tasks.edit-groups", Target::TaskGroups(Box::new(target)))
 }
 
 /// What the Tasks tab asked of the groups: a change of them, or the tasks of one run or stopped.
@@ -55,9 +60,44 @@ pub(super) fn reduce(state: &mut State, intent: TasksIntent) -> Vec<Effect> {
             }
             ask(state, "tasks.run-group", TaskChoice::Group(group), preset)
         }
+        TasksIntent::ImportGroups => import(state),
+        TasksIntent::ExportGroups => {
+            let mut effects = show(state);
+            effects.extend(run(state, "tasks.export-groups", Target::Head));
+            effects
+        }
         // The other intents are not about the groups.
         _ => Vec::new(),
     }
+}
+
+/// Shows the bottom panel at the Tasks tab, where the groups are listed.
+fn show(state: &mut State) -> Vec<Effect> {
+    panel::reduce(state, &PanelIntent::Show(PanelTab::Tasks))
+}
+
+/// **Import groups…**: the Tasks tab is shown, and the operation runs with the tasks of the worktree shown, once they
+/// were read.
+fn import(state: &mut State) -> Vec<Effect> {
+    let mut effects = show(state);
+    if let Some(tab) = shown_mut(state) {
+        tab.is_importing = true;
+    }
+    effects.extend(read(state));
+    effects
+}
+
+/// The tasks of the repository tab shown were read: an import that waited for them runs.
+pub(super) fn read(state: &mut State) -> Vec<Effect> {
+    let Some(tab) = shown_mut(state).filter(|tab| tab.is_importing) else {
+        return Vec::new();
+    };
+    let Some(tasks) = tab.read.as_ref().map(|read| read.tasks.clone()) else {
+        return Vec::new();
+    };
+    tab.is_importing = false;
+    let target = GroupsTarget::Import(tasks);
+    run(state, "tasks.import-groups", Target::TaskGroups(Box::new(target)))
 }
 
 /// An operation ended: the tasks of the repository tab shown are read again when it may have written the groups,

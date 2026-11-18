@@ -109,6 +109,8 @@ pub struct TabTasks {
     pub selected: Option<TaskReference>,
     /// The group whose heading was clicked last, which `F2` renames; none once a task is selected.
     pub group_selected: Option<String>,
+    /// Whether **Import groups…** waits for the tasks to be read, which say what the names of its file stand for.
+    pub is_importing: bool,
     /// What is typed in the search field.
     pub search: String,
     /// The headings folded, by their keys.
@@ -289,7 +291,11 @@ pub fn reduce(state: &mut State, intent: TasksIntent) -> Vec<Effect> {
             ask(state, "tasks.run", TaskChoice::Task(task), preset)
         }
         TasksIntent::Stop(task) => ask(state, "tasks.stop", TaskChoice::Task(task), Answers::new()),
-        TasksIntent::Groups(_) | TasksIntent::RunGroup(_) | TasksIntent::StopGroup(_) => groups::reduce(state, intent),
+        TasksIntent::Groups(_)
+        | TasksIntent::RunGroup(_)
+        | TasksIntent::StopGroup(_)
+        | TasksIntent::ImportGroups
+        | TasksIntent::ExportGroups => groups::reduce(state, intent),
         TasksIntent::Trust => ask(state, "tasks.run", TaskChoice::Trust, Answers::new()),
         TasksIntent::Terminal(asked) => terminal(state, asked),
         TasksIntent::CloseAnswer(is_closing) => closing::answered(state, is_closing),

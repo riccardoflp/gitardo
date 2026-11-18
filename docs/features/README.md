@@ -598,8 +598,8 @@ earns it.
 | [`tasks.stop`](19-tasks.md#tasksstop--stop-a-task) | Stop a task | Operation | Built | Host only |
 | [`tasks.edit-groups`](19-tasks.md#tasksedit-groups--make-and-change-groups-of-tasks) | Make and change groups of tasks | Operation | Built | Host only |
 | [`tasks.run-group`](19-tasks.md#tasksrun-group--run-or-stop-a-group-of-tasks) | Run or stop a group of tasks | Operation | Built | Host only |
-| [`tasks.import-groups`](19-tasks.md#tasksimport-groups--import-groups-of-tasks) | Import groups of tasks | Operation | Specified | Host only |
-| [`tasks.export-groups`](19-tasks.md#tasksexport-groups--export-groups-of-tasks) | Export groups of tasks | Operation | Specified | Host only |
+| [`tasks.import-groups`](19-tasks.md#tasksimport-groups--import-groups-of-tasks) | Import groups of tasks | Operation | Built | Host only |
+| [`tasks.export-groups`](19-tasks.md#tasksexport-groups--export-groups-of-tasks) | Export groups of tasks | Operation | Built | Host only |
 | [`tasks.quick-run`](19-tasks.md#tasksquick-run--run-a-task-from-anywhere) | Run a task from anywhere | View | Specified | Host only |
 
 ## The extension's identifiers

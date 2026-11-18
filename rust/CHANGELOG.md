@@ -31,6 +31,11 @@
   groups are kept in `gitardo/task-groups.json` in the common git folder of the repository, so every worktree and
   every window lists the same without a commit taking them; a task a worktree does not have stays in its group there,
   dimmed, and is left out and said when the group runs.
+- **Import groups…** and **Export groups…**, in the **…** menu of **Groups** in the Tasks tab and in Quick search.
+  The import reads the file that **Export Groups...** of Run My Tasks saves and lists its groups to choose from; for a
+  group named as one of the repository it asks whether to merge it, replace it or skip it; it leaves out the launch
+  configurations and says how many, and which tasks the worktree does not have. The export asks which groups and
+  where, and writes a file Run My Tasks reads, which another repository imports with the same groups in their order.
 - What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
   **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
   timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release

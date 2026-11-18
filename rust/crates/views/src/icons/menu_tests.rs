@@ -17,7 +17,7 @@ use super::menu::operation_icon;
 use super::*;
 
 /// The items made without an icon, by the file that makes them and the words it gives them, and why no icon says them.
-const WITHOUT_ICON: [(&str, &str, &str); 12] = [
+const WITHOUT_ICON: [(&str, &str, &str); 14] = [
     (
         "graph/commit_menu.rs",
         "label.as_str()",
@@ -49,6 +49,16 @@ const WITHOUT_ICON: [(&str, &str, &str); 12] = [
         "a task stopped and run again: no icon says it",
     ),
     ("tasks/menu.rs", "name", "a group of tasks: a name the user gave it"),
+    (
+        "tasks/groups.rs",
+        "words::IMPORT_GROUPS",
+        "groups read from a file: no icon says it",
+    ),
+    (
+        "tasks/groups.rs",
+        "words::EXPORT_GROUPS",
+        "groups saved to a file to import elsewhere: no icon says it",
+    ),
     (
         "tasks/groups.rs",
         "words::RUN_ALL",

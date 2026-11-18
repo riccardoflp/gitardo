@@ -1,5 +1,6 @@
-//! The groups of the Tasks tab (`tasks.edit-groups`, `tasks.run-group`): the heading **Groups** with **New group**,
-//! the heading of each group with **Run all** or **Stop all** and its menu, and what is dragged in the column: a task
+//! The groups of the Tasks tab (`tasks.edit-groups`, `tasks.run-group`): the heading **Groups** with **New group** and
+//! the menu with **Import groups…** and **Export groups…** (`tasks.import-groups`, `tasks.export-groups`), the heading
+//! of each group with **Run all** or **Stop all** and its menu, and what is dragged in the column: a task
 //! onto a group or to a place in one, a group to another place.
 
 use model::tasks::{GroupsAction, Shift, TaskReference, TaskSource};
@@ -84,8 +85,17 @@ pub(super) fn drop_place(
     dropped.map(|_source| tasks(TasksIntent::Groups(action)))
 }
 
-/// The heading **Groups**: it folds the groups as the heading of a source folds its tasks, has **New group** at its
-/// right, and a group dropped on it goes last.
+/// What the menu of the heading **Groups** does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ExchangeCommand {
+    /// **Import groups…**.
+    Import,
+    /// **Export groups…**.
+    Export,
+}
+
+/// The heading **Groups**: it folds the groups as the heading of a source folds its tasks, has at its right **New
+/// group** and the menu with **Import groups…** and **Export groups…**, and a group dropped on it goes last.
 pub(super) fn groups_heading(
     ui: &mut Ui<'_>,
     rect: Rect,
@@ -97,12 +107,22 @@ pub(super) fn groups_heading(
         Dragged::Task { .. } => None,
     }));
     let mut line = Area::with_gap(rect, ui.theme().sizes.spacing.small);
+    let more = Button::icon(icons::MORE, words::MORE_OF_GROUPS).kind(ButtonKind::Icon);
     let new = Button::icon(icons::ADD, words::NEW_GROUP).kind(ButtonKind::Icon);
-    let cell = line.right(rect.height);
+    let (more_cell, new_cell) = (line.right(rect.height), line.right(rect.height));
     super::list::heading_row(ui, line.rest(), (index, heading), intents);
-    if ui.button("new group of tasks", cell, &new).clicked {
+    if ui.button("new group of tasks", new_cell, &new).clicked {
         intents.push(tasks(TasksIntent::Groups(GroupsAction::New { task: None })));
     }
+    let entries = [
+        MenuEntry::Item(icons::without_icon(words::IMPORT_GROUPS, ExchangeCommand::Import)),
+        MenuEntry::Item(icons::without_icon(words::EXPORT_GROUPS, ExchangeCommand::Export)),
+    ];
+    let chosen = ui.menu_button("menu of the groups", more_cell, &more, &entries);
+    intents.extend(chosen.map(|command| match command {
+        ExchangeCommand::Import => tasks(TasksIntent::ImportGroups),
+        ExchangeCommand::Export => tasks(TasksIntent::ExportGroups),
+    }));
 }
 
 /// What the menu of a group does.

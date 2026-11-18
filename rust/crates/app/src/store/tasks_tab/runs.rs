@@ -204,6 +204,7 @@ fn told(state: &mut State, message: TaskRunMessage) -> Vec<Effect> {
             {
                 tasks.read = Some(*readout);
                 tasks.reading = None;
+                return super::groups::read(state);
             }
             return Vec::new();
         }

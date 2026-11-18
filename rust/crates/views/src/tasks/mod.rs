@@ -206,6 +206,10 @@ pub enum TasksIntent {
     RunGroup(String),
     /// **Stop all** on a group, by its name.
     StopGroup(String),
+    /// **Import groups…**: the groups of a file added to those of the repository.
+    ImportGroups,
+    /// **Export groups…**: groups of the repository saved to a file.
+    ExportGroups,
     /// The text of the search field changed.
     Search(String),
     /// A heading clicked: what is under it is folded, or unfolded.
