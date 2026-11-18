@@ -142,19 +142,27 @@ node test/perf/graph-load.mjs ../big --commit
   its first page. `GITARDO_ENGINE` names the engine, the release build for numbers to compare.
 
 What `graph-load.mjs` reported on 2026-11-18 on the large repository (56,123 commits), with the minified build and the
-release build of the engine, before milestone M25:
+release build of the engine, before milestone M25 and after its first five phases, one run of each build right after
+the other:
 
-| | Before M25 |
-| --- | --- |
-| **Refresh** at the top: the last row drawn | 3.9 s |
-| the longest frame of the view meanwhile | 1.9 s |
-| **Refresh** from row 28,061: the last row drawn | 9.3 s |
-| the longest frame of the view meanwhile | 4.1 s |
-| where the list is after it | row 992 |
-| A commit made outside, at row 28,061: the last row drawn | 10.3 s |
-| where the list is after it | row 992 |
-| The width of the graph during a **Refresh** | 62, 48, 62 px |
-| On 1,250 commits, after **Refresh** | 1,000 rows and **Loading more commits…** until scrolled to the end |
+| | Before M25 | After phases 1 to 5 |
+| --- | --- | --- |
+| **Refresh** at the top: the last row drawn | 4.6 s | 0.9 s |
+| the longest frame of the view meanwhile | 1.9 s | 71 ms |
+| **Refresh** from row 28,064: the last row drawn | 4.0 s | 1.0 s |
+| the longest frame of the view meanwhile | 1.9 s | 82 ms |
+| where the list is after it | row 992 | row 28,064 |
+| A commit made outside, at row 28,064: the last row drawn | 4.6 s | 1.7 s |
+| the longest frame of the view meanwhile | 1.8 s | 82 ms |
+| where the list is after it | row 992 | row 28,064 |
+| The width of the graph during a **Refresh** | 62, 48, 62 px | 62 px |
+| On 1,250 commits, after **Refresh** | 1,000 rows and **Loading more commits…** until scrolled to the end | every row, and no such row |
+
+The times are of one run each and move with what else the machine does: while other builds ran, the build of before
+took 3.9 s, 9.3 s and 10.3 s for the same three reads, with frames of up to 4.1 s, and the build of after 1.4 to 3.8 s,
+with no frame over 140 ms. Of the 1.7 s after a commit made outside, 0.9 s pass before the first page: the wait for
+the files of `.git` to stop changing. The row the list is at, the width of the graph and the rows of the small
+repository do not move from run to run.
 
 Measure rendering only on the minified build (`node esbuild.mjs --production`): React's development build is several
 times slower, in proportion to the rows. That build, and `npm run package`, leave `dist/` minified until the next
