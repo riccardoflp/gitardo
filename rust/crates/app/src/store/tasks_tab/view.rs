@@ -20,6 +20,14 @@ const WORKSPACE: &str = "workspace";
 /// The key of the heading **npm**.
 const NPM: &str = "npm";
 
+/// The key of the heading **New worktrees**.
+pub(super) const NEW_WORKTREES: &str = "new worktrees";
+
+/// The key of the heading of the commands of a new worktree, by its name.
+pub(super) fn worktree_key(name: &str) -> String {
+    format!("{NEW_WORKTREES}:{name}")
+}
+
 /// The key of the heading of a group, by its name.
 pub(super) fn group_key(name: &str) -> String {
     format!("group:{name}")
@@ -79,8 +87,9 @@ fn group_items(tab: &TabTasks) -> Vec<Item<'_>> {
 
 /// The rows of a tab, every heading and every task listed: **Groups** with the groups of the repository, when it has
 /// groups or the worktree has tasks, then **Workspace** with the tasks of `.vscode/tasks.json` that are not hidden,
-/// then **npm** with the scripts of each `package.json` under the name of its folder. A task that runs keeps its row
-/// under the heading of its source even when the file no longer has it.
+/// then **npm** with the scripts of each `package.json` under the name of its folder, then **New worktrees** with the
+/// commands of each worktree made in the session under its name. A task that runs keeps its row under the heading of
+/// its source even when the file no longer has it.
 pub(super) fn items(tab: &TabTasks) -> Vec<Item<'_>> {
     let mut items = Vec::new();
     let tasks = tab.read.as_ref().map(|read| &read.tasks);
@@ -120,12 +129,30 @@ pub(super) fn items(tab: &TabTasks) -> Vec<Item<'_>> {
             .map(|task| Item::Task(task, 1, words::NPM.to_owned(), None)),
     );
     let has_groups = tab.read.as_ref().is_some_and(|read| !read.groups.is_empty());
-    if items.is_empty() && !has_groups {
-        return items;
-    }
-    let mut all = group_items(tab);
+    let mut all = if items.is_empty() && !has_groups {
+        Vec::new()
+    } else {
+        group_items(tab)
+    };
     all.append(&mut items);
+    all.extend(command_items(tab));
     all
+}
+
+/// **New worktrees** and, under the name of each worktree made in the session, its commands in the order they run.
+fn command_items(tab: &TabTasks) -> Vec<Item<'_>> {
+    let mut items = Vec::new();
+    if !tab.commands.is_empty() {
+        items.push(Item::Heading(heading(NEW_WORKTREES, words::NEW_WORKTREES, 0)));
+    }
+    for commands in &tab.commands {
+        let key = worktree_key(&commands.worktree);
+        items.push(Item::Heading(heading(&key, &commands.worktree, 1)));
+        let over = format!("{} {}", words::NEW_WORKTREES, commands.worktree);
+        let tasks = commands.tasks.iter();
+        items.extend(tasks.map(|task| Item::Task(task, 2, over.clone(), None)));
+    }
+    items
 }
 
 /// The keys of every heading of a tab, which **Collapse all** folds.
@@ -173,7 +200,12 @@ fn task_row(tab: &TabTasks, task: &Task, (depth, group): (u8, Option<String>)) -
         reference: task.reference.clone(),
         group,
         name: task.reference.name.clone(),
-        command: shown_command(task),
+        // The name of a command of a new worktree is its command already.
+        command: if task.reference.is_of_new_worktree() {
+            String::new()
+        } else {
+            shown_command(task)
+        },
         copied: task.command_line(),
         depth,
         status: status(tab, &task.reference),
@@ -263,7 +295,12 @@ fn ended_lines(entry: &Entry) -> Option<(String, String)> {
     let EntryStatus::Ended(end) = &entry.status else {
         return None;
     };
-    let again = format!("{}.", words::PRESS_ENTER);
+    // A command of a new worktree runs once: nothing runs it again.
+    let again = if entry.task.reference.is_of_new_worktree() {
+        String::new()
+    } else {
+        format!("{}.", words::PRESS_ENTER)
+    };
     if let Err(TaskEnd::NotStarted(why)) = end {
         return Some((words::not_started(why), again));
     }
@@ -271,7 +308,7 @@ fn ended_lines(entry: &Entry) -> Option<(String, String)> {
     let seconds = entry.took.unwrap_or_default().as_secs();
     Some((
         words::task_ended(entry.code, is_stopped),
-        format!("{}. {again}", words::ran_for(seconds)),
+        format!("{}. {again}", words::ran_for(seconds)).trim_end().to_owned(),
     ))
 }
 
@@ -289,7 +326,12 @@ fn detail(tab: &TabTasks) -> Detail {
     Detail {
         reference: Some(reference.clone()),
         name: reference.to_string(),
-        command: task.command_line(),
+        // A command of a new worktree is named by its command already.
+        command: if reference.is_of_new_worktree() {
+            String::new()
+        } else {
+            task.command_line()
+        },
         folder: model::tasks::folder_said(&task.folder, &tab.folder),
         cannot_run: cannot_run.is_some(),
         said: cannot_run.or_else(|| tab.blocked.get(reference).cloned()),
@@ -321,6 +363,10 @@ pub fn task_list(state: &State) -> TaskList {
     list.search.clone_from(&tab.search);
     list.width = tab.width;
     list.detail = detail(tab);
+    list.reveal = tab.revealed.as_ref().and_then(|(serial, key)| {
+        let is_heading = |row: &Row| matches!(row, Row::Heading(heading) if heading.key == *key);
+        Some((*serial, list.rows.iter().position(is_heading)?))
+    });
     if let Some(read) = &tab.read {
         list.groups = read.groups.iter().map(|group| group.name.clone()).collect();
         list.problems = read

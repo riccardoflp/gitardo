@@ -21,7 +21,7 @@ use crate::store::{Effect, Message, State, ViewData, reduce};
 use crate::window::frame::system_title_bar;
 use crate::window::{Step, Surface, SurfaceOptions};
 use crate::work::github::{GitHubAccess, GitHubReader};
-use crate::work::{Deliver, Operations, PersistedWriter, SettingWriter, SettingsWatcher, TaskRunners, Workers};
+use crate::work::{CommandsWork, Deliver, Operations, PersistedWriter, SettingWriter, SettingsWatcher, Workers};
 use views::window::{CaptionState, WindowIntent};
 
 /// The timer of the frames of the window.
@@ -104,8 +104,8 @@ struct DesktopWindow {
     asking: crate::work::ai::Asking,
     /// What reads the pull requests of GitHub.
     github: GitHubReader,
-    /// The commands of new worktrees, in the Tasks of the Activity tab.
-    tasks: TaskRunners,
+    /// The Command log of the commands of new worktrees, and the steps their plans have after them.
+    commands: CommandsWork,
     /// The terminals of the bottom panel (`terminal.view`).
     terminals: crate::work::Terminals,
     /// The tasks of the Tasks tab, each in its terminal (`tasks.run`).
@@ -166,7 +166,7 @@ impl DesktopWindow {
             operations: Operations::new(&activities, deliver),
             asking: crate::work::ai::Asking::new(deliver, &activities, Box::new(engine::SystemSecrets)),
             github: GitHubReader::new(GitHubAccess::system(), &activities, deliver),
-            tasks: TaskRunners::new(&activities, deliver),
+            commands: CommandsWork::new(deliver),
             terminals: crate::work::Terminals::new(deliver),
             task_runs: crate::work::TaskRuns::new(deliver),
             watcher: SettingsWatcher::new(Arc::clone(deliver)),
@@ -247,9 +247,6 @@ impl DesktopWindow {
             if let Some(job) = crate::store::job_done(&message) {
                 self.workers.finished(job);
             }
-            if let Message::Task(crate::store::tasks::TaskMessage::Ended { batch, .. }) = &message {
-                self.tasks.finished(*batch);
-            }
             let message = self.terminals.read_screen(message);
             let message = self.task_runs.read(message);
             for effect in reduce(&mut self.state, message) {
@@ -311,7 +308,7 @@ impl DesktopWindow {
                 is_saving,
             } => return Ok(Some(self.choose_file(title, question, is_saving))),
             Effect::GitHub(job) => self.github.start(job),
-            Effect::Tasks(asked) => self.tasks_asked(asked),
+            Effect::Commands(asked) => self.commands.take(asked, self.state.settings.log_level),
             Effect::Terminal(asked) => self.terminals.take(asked),
             Effect::TaskRuns(asked) => self.task_runs.take(asked),
             Effect::OpenUrl(url) => {
@@ -365,16 +362,6 @@ impl DesktopWindow {
             (file, text)
         });
         Followed::Message(Box::new(Message::WorkspaceFileChosen(chosen)))
-    }
-
-    /// Runs, answers or stops the tasks of the Activity tab.
-    fn tasks_asked(&mut self, asked: crate::store::tasks::TaskEffect) {
-        use crate::store::tasks::TaskEffect;
-        match asked {
-            TaskEffect::Run { batch, steps } => self.tasks.run(batch, steps, self.state.settings.log_level),
-            TaskEffect::Answer { batch, line } => self.tasks.answer(batch, line),
-            TaskEffect::Stop(batch) => self.tasks.stop(batch),
-        }
     }
 
     /// Opens the system's dialog to choose a file to open or a path to save to, for the question of an operation, and

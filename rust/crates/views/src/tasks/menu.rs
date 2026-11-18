@@ -1,6 +1,7 @@
 //! The context menu of a task of the Tasks tab (`tasks.view`): **Run**, **Stop**, **Restart**, **Add to group** with
 //! the groups of the repository and **New group…**, what moves a task of a group or takes it out of it
-//! (`tasks.edit-groups`), **Open in tasks.json** and **Copy command**.
+//! (`tasks.edit-groups`), **Open in tasks.json** and **Copy command**; for a command of a new worktree, **Stop** and
+//! **Copy command**.
 
 use model::tasks::{GroupsAction, Shift};
 use ui::{MenuEntry, MenuItem, Response, Ui};
@@ -82,8 +83,44 @@ fn change(list: &TaskList, row: &TaskRow, command: TaskCommand) -> Option<Groups
     }
 }
 
-/// The context menu of a task, opened by a right click on its row.
-pub(super) fn task_menu(
+/// The context menu of a command of a new worktree, which runs once and is in no group: **Stop** while it runs, and
+/// **Copy command**.
+fn command_menu(ui: &mut Ui<'_>, response: &Response, (index, row): (usize, &TaskRow)) -> Option<Intent> {
+    let entries = [
+        able(
+            icons::action(icons::STOP, words::STOP, TaskCommand::Stop),
+            row.status.is_running(),
+        ),
+        MenuEntry::Separator,
+        MenuEntry::Item(icons::action(icons::COPY, words::COPY_COMMAND, TaskCommand::Copy)),
+    ];
+    match ui.context_menu(("task menu", index), response, &entries)? {
+        TaskCommand::Stop => Some(tasks(TasksIntent::Stop(row.reference.clone()))),
+        TaskCommand::Copy => {
+            ui.copy_to_clipboard(row.copied.clone());
+            None
+        }
+        // The menu of a command has no other item.
+        _ => None,
+    }
+}
+
+/// The context menu of a row, opened by a right click on it: that of a task, or that of a command of a new worktree.
+pub(super) fn row_menu(
+    list: &TaskList,
+    ui: &mut Ui<'_>,
+    response: &Response,
+    (index, row, can_run): (usize, &TaskRow, bool),
+) -> Option<Intent> {
+    if row.reference.is_of_new_worktree() {
+        command_menu(ui, response, (index, row))
+    } else {
+        task_menu(list, ui, response, (index, row, can_run))
+    }
+}
+
+/// The context menu of a task.
+fn task_menu(
     list: &TaskList,
     ui: &mut Ui<'_>,
     response: &Response,

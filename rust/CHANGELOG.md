@@ -41,6 +41,15 @@
   name and a spinner while it runs. What is typed leaves the tasks whose words hold it, and `Enter` runs the task or
   the group lit and shows it in the Tasks tab; a task that runs already is shown, not run again. **Show Tasks** in
   Quick search shows the Tasks tab.
+- The commands of `worktrees.setupCommands` run in the Tasks tab, as tasks of a source of their own, **New
+  worktrees**, under the name of the worktree: each in a terminal of its own, in the worktree, with its colors and
+  with what it asks answered from the keyboard, one after the other, the bottom panel shown at **Tasks** with the
+  first of them selected when they start. A command that fails, or is stopped with **Stop** on its row, leaves those
+  after it **did not run**, and Gitardo says which and offers to open the worktree all the same, as before. A command
+  runs once: its row has no **Run**. They run with the shell the tasks run with, that of `terminal.shellPath` or the
+  system's own, which on Windows is PowerShell where it was `cmd`. The column **Tasks** at the right of the
+  **Activity** tab is gone, and a command of a new worktree is no longer listed among what is running: the count
+  beside **Tasks** says that it runs.
 - What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
   **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
   timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release
@@ -57,10 +66,9 @@
   opened over the timeline and the inspector: it has the panel's height, its gap and its **Hide the panel**, and the
   panel remembers it for the workspace. The activity indicator of the status bar and **Activity** in the bar of views
   show the panel at it, and hide the panel when it shows it; **Show What Is Running** shows it, and `Escape` closes
-  nothing there. **Show the commands Gitardo runs** is gone: the Command log is the tab beside it. **Tasks**, the
-  commands of new worktrees, are at the right of the tab, what they print beside their rows, and the panel is shown at
-  the tab when they start. **Terminal** in the bar of views is marked while the panel shows its terminals or the
-  Command log, and shows the terminals when the panel is at **Activity**.
+  nothing there. **Show the commands Gitardo runs** is gone: the Command log is the tab beside it. **Terminal** in the
+  bar of views is marked while the panel shows its terminals or the Command log, and shows the terminals when the
+  panel is at **Activity**.
 - The labels of a commit, its branches, tags and the rest, come first on its row of the timeline, right after the
   graph and before its message, so that they are found at the same place on every row. They take the room the message
   leaves them, at least two fifths of the line, and those that do not fit are one label `+N`. The pointer resting on

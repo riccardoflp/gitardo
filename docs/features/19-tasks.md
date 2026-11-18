@@ -62,15 +62,17 @@ selected.
   are.
 - On the left, a column as wide as a third of the panel, its width dragged and kept: at its top a search field, every
   word of which must be in the name of a task or of its group or source; then **Groups** (`tasks.edit-groups`), then
-  each source of `tasks.read`, each folding by its heading. Each row has the task's name, its command dimmed after it
-  when there is room, and at its right **Run** or **Stop**; a spinner while it runs, a check when it ended with exit
-  code 0, the exit code in red otherwise.
+  each source of `tasks.read`, then **New worktrees** with the commands of the worktrees made in the session, each under
+  the name of its worktree (`worktree-setup.command-steps`), each folding by its heading. Each row has the task's name,
+  its command dimmed after it when there is room, and at its right **Run** or **Stop**; a spinner while it runs, a check
+  when it ended with exit code 0, the exit code in red otherwise.
 - On the right, the terminal of the task selected, drawn as those of `terminal.view`, with what it printed, the keys
   going to it while it runs; under its last line, once it ended, **The task ended with exit code `<n>`** and how long
   it ran. A task never run in the session shows its command, its folder and **Run**.
 - A click on a row selects it and shows its terminal; a double click runs it, or shows it when it is running. Its
   context menu: **Run**, **Stop**, **Restart**, **Add to group**, **Open in tasks.json** (the File page at the line of
-  its label), **Copy command**.
+  its label), **Copy command**. A command of a new worktree, which runs once, has **Stop** alone at the right of its
+  row, while it runs, and **Stop** and **Copy command** in its menu; a double click only selects it.
 - In the title of the column, **Open tasks.json** (made with an empty `tasks` when there is none, after asking),
   **Collapse all** and **Expand all**.
 - In a folder not trusted, the tab lists the tasks, every **Run** dimmed, and says at its top **Tasks run commands of

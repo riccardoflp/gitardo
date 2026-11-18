@@ -1285,7 +1285,7 @@ the right, the terminal of the task selected, as the two sides of one place (`ta
 - **The commands of new worktrees.** They are tasks already, run one after the other in a column of the drawer called
   **Tasks**. In phase 7 they run in the Tasks tab, as tasks of a source of their own, **New worktrees**, each with its
   terminal, rather than in a column of Activity: one place for what runs in a terminal, the same word for the same
-  thing. Proposed by the agent; Q630 asks whether to.
+  thing.
 
 In the extension nothing changes: VS Code runs its own tasks and Run My Tasks stays an extension of its own. Every card
 of the area is *Host only* there.
@@ -3664,7 +3664,8 @@ planned.
 
 - **Q630** — `worktree-setup.command-steps`: phase 7 of M19 runs the commands of new worktrees as tasks of the source
   **New worktrees** in the Tasks tab, rather than in a column of the tab of Activity. Should they move, or stay with
-  Activity?
+  Activity? *Answered by the maintainer on 2026-11-17*: they move to the Tasks tab, and the column **Tasks** of the
+  tab of Activity goes.
 - **Q631** — `tasks.read`: Gitardo runs the scripts of `package.json` and the tasks of `tasks.json` only. Should it also
   find the tasks of other tools of the repository, as extensions of VS Code do: `cargo build`, `cargo test` and
   `cargo run` for a `Cargo.toml`, the targets of a `Makefile`, the tasks of a `justfile`?
@@ -3951,6 +3952,26 @@ groups are exported to and imported from. Each is built as it says until the mai
   source hold every word, as the search of the Tasks tab does, rather than the fuzzy match of Quick search. A task
   that cannot run, and any task in a folder not trusted, is listed as the others, and choosing it says why it did not
   run. Are headings between the rows, the fuzzy match, or those tasks dimmed wanted instead?
+- **Q744** — `worktree-setup.command-steps`: the shell of the commands. As tasks of the Tasks tab they run with the
+  shell the tasks run with, that of `terminal.shellPath` or the system's own, which is PowerShell on Windows; the
+  column of the tab of Activity ran them with `cmd /S /C` on Windows and `sh -c` elsewhere. A command written for
+  `cmd`, with `copy`, `%NAME%` or, for Windows PowerShell 5, `&&`, no longer runs on Windows as it did; the extension
+  runs them with the shell of VS Code's tasks, PowerShell there too. Should the commands keep `cmd` and `sh`, whatever
+  the shell of the terminals?
+- **Q745** — `activity.describe-task`, `activity.status-bar`: a command of a new worktree was among what is running
+  while it ran, `Running <command> in <worktree>`, in the activity indicator and the tab of Activity. As a task it is
+  not, as no task of the Tasks tab is: the count beside **Tasks** says that it runs, and the row of the words of
+  `activity.describe-task` went. Should the tasks that run, or these commands alone, be listed among what is running?
+- **Q746** — `worktree-setup.command-steps`, `tasks.view`: a command of a new worktree runs once. Its row has **Stop**
+  while it runs and no **Run**, its menu **Stop** and **Copy command**, `Enter` in its terminal does not run it
+  again, no group has it and **Run Task…** does not list it. The tab lists the commands of the last five worktrees
+  made in the session, in each repository tab its own, those of a worktree made again under the same name taking the
+  place of the earlier ones, and forgets them when the window closes. Should a command that failed be run again from
+  its row, with those after it and what the plan does once they succeeded?
+- **Q747** — `worktree-setup.command-steps`: `engine::TaskRunner` still runs `Task` steps itself, through pipes, as the
+  column of the tab of Activity needed. The window now gives it only the steps a plan has after its commands, and the
+  extension runs the commands as tasks of VS Code, so only the tests of the engine run a task with it. Should that part
+  of the engine go?
 
 ### Of the Repositories view of the extension, from Q720
 

@@ -109,7 +109,7 @@ pub struct CommandStepsInput<'a> {
     pub commands: &'a [String],
     /// The folder of the worktree, where they run.
     pub worktree: &'a Path,
-    /// The worktree as the views name it, which names its tasks in the Activity tab.
+    /// The worktree as the views name it, which its tasks are listed under in the Tasks tab.
     pub name: &'a str,
     /// Whether the folder of the window is trusted: only then do they run.
     pub trust: Trust,
@@ -127,7 +127,7 @@ pub enum NoteStart {
 }
 
 /// The commands a new worktree runs once it is created, linked and copied, one task each in the worktree, named after
-/// it, which the Activity tab shows as it runs; in a folder that is not trusted none runs, and the log and Gitardo
+/// it, which the Tasks tab shows as it runs; in a folder that is not trusted none runs, and the log and Gitardo
 /// say why.
 ///
 /// Feature: worktree-setup.command-steps

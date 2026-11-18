@@ -175,6 +175,9 @@ pub struct TaskList {
     pub width: Option<f32>,
     /// The files that could not be read.
     pub problems: Vec<Problem>,
+    /// The row the column scrolls to once, by its place among the rows, with the number of the request: the heading
+    /// of the worktree whose commands started last.
+    pub reveal: Option<(u64, usize)>,
     /// The task selected.
     pub detail: Detail,
     /// How many tasks run, said beside the name of the tab.

@@ -12,6 +12,9 @@ pub enum TaskSource {
     /// The scripts of a `package.json`: **npm**, with the folder of the file from the top of the worktree, with `/`,
     /// `extension`; empty for the file at the top.
     Npm(String),
+    /// The commands of a new worktree (`worktree-setup.command-steps`): **New worktrees**, with the name of the
+    /// worktree. They run once, when the worktree is made: no group has them and no file of the worktree defines them.
+    NewWorktree(String),
 }
 
 /// How a task is named by a group, by the task that depends on it and by what runs it: its source and its name,
@@ -43,13 +46,28 @@ impl TaskReference {
         }
     }
 
+    /// A command of a new worktree, by the name of the worktree and the name the command is listed by.
+    #[must_use]
+    pub fn new_worktree(worktree: &str, name: &str) -> Self {
+        TaskReference {
+            source: TaskSource::NewWorktree(worktree.to_owned()),
+            name: name.to_owned(),
+        }
+    }
+
+    /// Whether it is a command of a new worktree, which runs once and is neither run again nor put in a group.
+    #[must_use]
+    pub fn is_of_new_worktree(&self) -> bool {
+        matches!(self.source, TaskSource::NewWorktree(_))
+    }
+
     /// The name VS Code gives the task, which is how Run My Tasks names it in a group: the label of a task of
     /// `tasks.json`, `build` for a script of the `package.json` at the top, `build - extension` for one of a folder.
     #[must_use]
     pub fn name_in_vs_code(&self) -> String {
         match &self.source {
             TaskSource::Npm(folder) if !folder.is_empty() => format!("{} - {folder}", self.name),
-            TaskSource::Workspace | TaskSource::Npm(_) => self.name.clone(),
+            TaskSource::Workspace | TaskSource::Npm(_) | TaskSource::NewWorktree(_) => self.name.clone(),
         }
     }
 }
@@ -59,7 +77,7 @@ impl fmt::Display for TaskReference {
     /// for a script, as VS Code names them.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.source {
-            TaskSource::Workspace => formatter.write_str(&self.name),
+            TaskSource::Workspace | TaskSource::NewWorktree(_) => formatter.write_str(&self.name),
             TaskSource::Npm(_) => write!(formatter, "npm: {}", self.name_in_vs_code()),
         }
     }

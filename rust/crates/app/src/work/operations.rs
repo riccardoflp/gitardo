@@ -144,7 +144,7 @@ fn serve(
             engine.keep_secrets_in((access.secrets)());
             engine.share_activities(activities.clone());
             engine.find_operations_with(features::operation);
-            // The commands of a new worktree run in the Tasks of the Activity tab, which other operations do not wait for.
+            // The commands of a new worktree run in the Tasks tab, which other operations do not wait for.
             engine.run_tasks(engine::TaskSteps::HandedOver);
             engine
         });
@@ -209,7 +209,7 @@ fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended 
             after: said_with_failures(plan.after, &went_on_after),
             prepared_message: None,
             waiting: (!waiting.is_empty()).then(|| {
-                Box::new(crate::store::tasks::Waiting {
+                Box::new(crate::store::tasks_tab::Waiting {
                     steps: waiting,
                     on_failure: plan.on_failure,
                 })

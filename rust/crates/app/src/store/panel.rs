@@ -99,7 +99,7 @@ pub fn is_log_shown(state: &State) -> bool {
     look.is_shown && look.tab == PanelTab::CommandLog
 }
 
-/// Whether the bottom panel shows its Activity tab, whose Tasks are then made.
+/// Whether the bottom panel shows its Activity tab.
 #[must_use]
 pub fn is_activity_shown(state: &State) -> bool {
     let look = look(state);

@@ -80,6 +80,8 @@ fn entries_of(tab: &TabTasks, typed: &str) -> Vec<QuickRunEntry> {
             HeadingKind::Group { name, is_running, .. } => Some(group_entry(tab, &name, is_running)),
             HeadingKind::Source | HeadingKind::Groups => None,
         },
+        // A command of a new worktree runs once, when the worktree is made.
+        Item::Task(task, ..) if task.reference.is_of_new_worktree() => None,
         // A task is listed once, under its source, however many groups have it.
         Item::Task(task, _, source, None) => Some(QuickRunEntry {
             name: task.reference.name.clone(),

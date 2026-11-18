@@ -39,6 +39,10 @@ pub(super) struct Runner {
     operations: app::work::Operations,
     /// The tasks.
     host: RefCell<app::work::TaskRuns>,
+    /// What the commands of new worktrees need besides their terminals.
+    commands: app::work::CommandsWork,
+    /// The folders the store asked to open in a window of their own.
+    pub opened: RefCell<Vec<PathBuf>>,
     /// What they tell.
     told: Receiver<Message>,
     /// What the store asked of the tasks and what they told, in order and in a few words: `start 0`, `ended 0`.
@@ -60,6 +64,8 @@ impl Runner {
         Runner {
             operations: app::work::Operations::new(&engine::Activities::new(), &deliver),
             host: RefCell::new(app::work::TaskRuns::new(&deliver)),
+            commands: app::work::CommandsWork::new(&deliver),
+            opened: RefCell::new(Vec::new()),
             told,
             log: RefCell::new(Vec::new()),
             pretend: Cell::new(false),
@@ -92,6 +98,8 @@ impl Runner {
                         self.host.borrow_mut().take(asked);
                     }
                 }
+                Effect::Commands(asked) => self.commands.take(asked, state.settings.log_level),
+                Effect::OpenWindow(folder) => self.opened.borrow_mut().push(folder),
                 Effect::ChooseFile { title, .. } => self.files_asked.borrow_mut().push(title),
                 Effect::Quit => self.log.borrow_mut().push(String::from("quit")),
                 _ => {}

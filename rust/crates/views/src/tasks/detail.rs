@@ -1,6 +1,6 @@
 //! The right side of the Tasks tab (`tasks.view`): the terminal of the task selected, with what it printed and, once
 //! it ended, how it ended and how long it ran; or, for a task never run in the session, its command, its folder and
-//! **Run**.
+//! **Run**, which a command of a new worktree does not have.
 
 use ui::layout::{Align, Area, place};
 use ui::{Button, Label, Rect, TextKind, Tone, Ui};
@@ -55,7 +55,8 @@ fn never_run(state: &TasksTabState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Inte
     if let Some(said) = &detail.said {
         let _ = ui.paragraph(area.top(row * 2.0), said, (TextKind::Detail, Tone::Warning));
     }
-    let Some(reference) = &detail.reference else {
+    // A command of a new worktree runs once, when the worktree is made.
+    let Some(reference) = detail.reference.as_ref().filter(|task| !task.is_of_new_worktree()) else {
         return intents;
     };
     let mut run = Button::primary(words::RUN);

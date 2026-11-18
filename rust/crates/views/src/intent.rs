@@ -128,8 +128,6 @@ pub enum Intent {
     Blame(crate::blame::BlameIntent),
     /// Something asked of the page that chooses what new worktrees get (`worktree-setup.page`).
     WorktreeSetup(crate::worktree_setup::SetupIntent),
-    /// Something asked of the Tasks of the Activity tab (`worktree-setup.command-steps`).
-    Tasks(crate::activity::TaskIntent),
     /// Something asked of the Tasks tab of the bottom panel (`tasks.view`).
     TasksTab(crate::tasks::TasksIntent),
     /// A button of the title bar the window draws itself (`window.caption-buttons`).

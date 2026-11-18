@@ -259,8 +259,9 @@ pub enum Message {
     },
     /// A job of the pull requests of GitHub is done (`github.read-pull-requests`).
     GitHub(super::github::GitHubMessage),
-    /// A task of the Activity tab started, printed or ended (`worktree-setup.command-steps`).
-    Task(super::tasks::TaskMessage),
+    /// Lines of the Command log for the commands of a new worktree, or the end of the steps after them
+    /// (`worktree-setup.command-steps`).
+    Commands(super::tasks_tab::CommandsMessage),
     /// A terminal of the bottom panel started, printed or ended (`terminal.view`).
     Terminal(super::terminals::TerminalMessage),
     /// What the window's task runs tell of the tasks of the Tasks tab (`tasks.view`).

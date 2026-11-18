@@ -48,7 +48,7 @@ pub enum Ended {
         /// (`FollowUp::PreparedMessage`).
         prepared_message: Option<String>,
         /// The steps handed over from the first task on, which what follows waits for (`worktree-setup.command-steps`).
-        waiting: Option<Box<super::tasks::Waiting>>,
+        waiting: Option<Box<super::tasks_tab::Waiting>>,
     },
     /// It refused to run, and said why, with what it offers to do instead.
     Refused(Text, Option<(FeatureId, Text)>),
@@ -328,7 +328,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     super::tasks_tab::operation_ended(state, feature);
     let mut effects = super::review::ended(state, feature, matches!(ended, Ended::Ran { .. }));
     effects.extend(super::trust::keep(state, &ended));
-    match super::tasks::hold(state, ended) {
+    match super::tasks_tab::hold(state, ended) {
         Ok(held) => effects.extend(held),
         Err(ended) => {
             effects.extend(ended_as_said(state, (*ended, feature)));

@@ -40,6 +40,8 @@ impl Dragged {
                 let (source, folder) = match &task.source {
                     TaskSource::Workspace => ("workspace", ""),
                     TaskSource::Npm(folder) => ("npm", folder.as_str()),
+                    // A command of a new worktree is not dragged: what its words would say is read back as nothing.
+                    TaskSource::NewWorktree(worktree) => ("new worktree", worktree.as_str()),
                 };
                 let from = from.as_deref().unwrap_or_default();
                 [source, folder, &task.name, from]

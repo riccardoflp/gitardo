@@ -139,7 +139,6 @@ fn activity_what_is_running__when_the_fetch_ends_the_tab_says_nothing_is_running
         &ActivityState {
             running: &[],
             ran: &ran,
-            tasks: None,
         },
     );
     assert!(says(&tree, "Nothing is running now"));

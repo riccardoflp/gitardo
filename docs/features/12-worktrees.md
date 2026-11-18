@@ -1159,8 +1159,8 @@ links and copies made.
 - **Kind**: Derivation
 - **Function**: `model::worktree_setup::command_steps(input) -> SetupSteps`
 - **Settings**: `worktrees.setupCommands`.
-- **Uses**: `worktree-setup.settings-in-effect`, `trust.ask`; by `worktree.create`, `worktree.create-from-branch`,
-  `worktree.create-at-commit`, `worktree.open-in-worktree`.
+- **Uses**: `worktree-setup.settings-in-effect`, `trust.ask`, `tasks.view`; by `worktree.create`,
+  `worktree.create-from-branch`, `worktree.create-at-commit`, `worktree.open-in-worktree`.
 - **Extension**: the commands are `gitardo.worktrees.setupCommands`, set in the workspace folder, the workspace file or
   the user's settings. The extension says `host.terminal` when it starts the engine, so the engine hands the `Task`
   steps over in `waiting` instead of running them, and `Controller.worktreeMade` runs them with `runSetupCommands` of
@@ -1175,13 +1175,19 @@ The rules:
 
 - Each command is a `Task` step in the worktree, named after it, `run <command>` in the log, after the links and
   copies. The engine runs the steps of the plan before the first task, then hands that task and the steps after it to
-  **Tasks**, which runs them apart.
-- They run one after the other in **Tasks**, at the right of the **Activity** tab of the bottom panel, which is
-  shown at that tab when they start, each as a task named after the worktree's folder,
-  with the shell of the system, so that what they print is seen and what they ask can be answered. One command to a
-  line, with no `&&` between them, which Windows PowerShell does not know.
-- One that fails or is stopped stops those after it, and Gitardo says which: **`<command>` failed with exit code `<n>`
-  in `<worktree>`, so the `<k>` commands after it did not run.**, or **did not finish** for one stopped.
+  the window, which runs them apart.
+- They run one after the other in the **Tasks** tab of the bottom panel (`tasks.view`), which is shown when they
+  start, with the first of them selected and its heading scrolled to: tasks of a source of their own, **New
+  worktrees**, listed under the name of the worktree's folder, each named by its command and run in a terminal of its
+  own, in the worktree, with the shell the tasks run with (`tasks.run`), so that what they print is seen, in color,
+  and what they ask is answered from the keyboard. One command to a line, with no `&&` between them, which Windows
+  PowerShell does not know. A command written twice is listed twice, the second as `<command> (2)`.
+- A command runs once, when its worktree is made: its row has **Stop** while it runs and no **Run**, its menu has
+  **Stop** and **Copy command**, no group has it and **Run Task…** does not list it. The tab lists the commands of the
+  last five worktrees made in the session, in each repository tab its own.
+- One that fails or is stopped stops those after it, whose rows say **did not run**, and Gitardo says which:
+  **`<command>` failed with exit code `<n>` in `<worktree>`, so the `<k>` commands after it did not run.**, or **did not
+  finish** for one stopped.
 - They run only in a trusted folder (`trust.is-trusted`); in another, Gitardo asks first whether to trust it
   (`trust.ask`). With **Not now**, none runs, the log says **The commands of worktrees.setupCommands did not
   run: this folder is not trusted.**, and Gitardo says **The commands for new worktrees did not run in `<worktree>`:
@@ -1194,10 +1200,11 @@ The rules:
 
 Acceptance:
 
-- [ ] With `["npm ci", "npm run build"]`, the plan ends with `run npm ci` and `run npm run build`, and Tasks, in the
-      **Activity** tab, shows both, one after the other, with the worktree as their folder.
+- [ ] With `["npm ci", "npm run build"]`, the plan ends with `run npm ci` and `run npm run build`, and the Tasks tab
+      lists both under **New worktrees** and the name of the worktree, and runs them one after the other, with the
+      worktree as their folder.
 - [ ] When `npm ci` exits with 1, `npm run build` does not run, and the warning says so and offers to open the worktree.
-- [ ] A command that waits for input can be answered in Tasks, in the **Activity** tab.
+- [ ] A command that waits for input can be answered in its terminal, in the Tasks tab.
 - [ ] In a folder that is not trusted, no command runs and the worktree is still created, linked and copied.
 - [ ] **Open in worktree** opens the worktree only once both commands exit with 0.
 - [ ] Extension: with `git update-ref refs/setup/one HEAD` and `git update-ref refs/setup/two refs/setup/one`, **Open in

@@ -152,6 +152,9 @@ pub fn groups_text(groups: &[TaskGroup]) -> String {
                 member("source", Value::from(NPM)),
                 member("folder", Value::from(folder.as_str())),
             ],
+            // No group has a command of a new worktree: were one given, it is written as a source this file does not
+            // have, which reading it back leaves out.
+            TaskSource::NewWorktree(_) => vec![member("source", Value::from("new worktree"))],
         };
         let name = member("name", Value::from(task.name.as_str()));
         Value::Object(members.into_iter().chain([name]).collect())

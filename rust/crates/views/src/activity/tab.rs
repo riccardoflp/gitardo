@@ -1,12 +1,10 @@
 //! The Activity tab of the bottom panel (`activity.what-is-running`, D64): what runs, each row where it is while it
-//! runs, and under **Ran** what ran, the latest first, in a list that scrolls; and at its right the Tasks once a new
-//! worktree runs commands (`worktree-setup.command-steps`). The Command log is the tab beside it (`log.show`,
-//! `panel.bottom`).
+//! runs, and under **Ran** what ran, the latest first, in a list that scrolls. The Command log is the tab beside it
+//! (`log.show`, `panel.bottom`), and the commands of new worktrees are tasks of the Tasks tab (`tasks.view`).
 
-use ui::layout::{Align, Area, Insets, Size, columns, inset, place};
+use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Label, Rect, TextKind, Tone, Ui};
 
-use super::tasks::{TasksState, tasks_column};
 use super::{RanTask, RunningTask, ask_for_next_frame, shown};
 use crate::icons;
 use crate::intent::Intent;
@@ -19,8 +17,6 @@ pub struct ActivityState<'a> {
     pub running: &'a [RunningTask],
     /// What ran, the latest first, each with when it ended and how long it took.
     pub ran: &'a [RanTask],
-    /// The Tasks, once a new worktree ran commands.
-    pub tasks: Option<TasksState<'a>>,
 }
 
 /// A line of the list of the tab.
@@ -50,26 +46,18 @@ impl Line<'_> {
 /// The Activity tab, over the rectangle its caller clipped it to: what has run for half a second, in the order it
 /// started, each with its title, how long it has run and its detail, or that nothing runs; under **Ran** what ran, the
 /// latest first, each with the time it ended and how long it took; the list scrolls when it is taller than the tab.
-/// At its right the Tasks, once a new worktree ran commands. The times go on while it is shown.
+/// The times go on while it is shown.
 ///
 /// Feature: activity.what-is-running
 pub fn what_is_running_view(state: &ActivityState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
-    let mut intents = Vec::new();
     let spacing = ui.theme().sizes.spacing;
     let rect = ui.current_clip();
     ask_for_next_frame(state.running, ui);
     ui.region("activity tab", (rect, AccessRole::Region, words::ACTIVITY), |ui| {
         let inside = inset(rect, Insets::symmetric(spacing.medium, 0.0));
-        if let Some(tasks) = &state.tasks {
-            let gap = spacing.large + spacing.small;
-            let [running, tasks_rect] = columns(inside, gap, [Size::Fill(1.0), Size::Fill(1.6)]);
-            running_column(state, ui, running);
-            tasks_column(tasks, ui, tasks_rect, &mut intents);
-        } else {
-            running_column(state, ui, inside);
-        }
+        running_column(state, ui, inside);
     });
-    intents
+    Vec::new()
 }
 
 /// The title of a column of the tab.

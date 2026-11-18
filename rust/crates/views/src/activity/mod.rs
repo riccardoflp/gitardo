@@ -3,7 +3,6 @@
 
 mod said;
 mod tab;
-mod tasks;
 #[cfg(test)]
 mod tests;
 
@@ -20,7 +19,6 @@ use crate::text::header;
 
 pub use said::{SAID_FOR, said_view};
 pub use tab::{ActivityState, what_is_running_view};
-pub use tasks::{TaskId, TaskIntent, TaskRow, TasksState};
 
 /// How long something runs before the activity indicator and the Activity tab list it, so that what is over sooner
 /// does not come and go (D64); what took less is not listed among what ran either.

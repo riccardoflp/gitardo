@@ -183,7 +183,7 @@ fn tasks_view__in_a_folder_not_trusted_run_is_dimmed_and_trust_this_folder_asks_
 }
 
 /// A screen of some lines in the default look, the cursor under them; a line that starts with `ok` has it in green.
-fn screen(lines: &[&str]) -> Screen {
+pub(super) fn screen(lines: &[&str]) -> Screen {
     let span = |column: usize, text: &str, foreground: CellColor| Span {
         column,
         width: text.chars().count(),

@@ -73,7 +73,7 @@ fn run_tasks(state: &mut State, key: &PathBuf, run: TasksToRun) -> Vec<Effect> {
 
 /// A run of an order begins in a tab: the tasks running already are not run again, and those of them that are ready
 /// let the tasks that wait for them start.
-fn begin(tab: &mut TabTasks, order: RunOrder) {
+pub(super) fn begin(tab: &mut TabTasks, order: RunOrder) {
     let mut run = Run::new(order, &tab.running());
     for entry in tab.entries.iter().filter(|entry| entry.is_running() && entry.is_ready) {
         run.ready(&entry.task.reference);
@@ -84,7 +84,7 @@ fn begin(tab: &mut TabTasks, order: RunOrder) {
 /// Starts every task the runs of a tab say to start now, until none says more: a task that ends as it starts, having
 /// no command of its own or not being in the worktree any more, lets those that wait for it go on at once. The tasks
 /// kept from running are remembered with what is said of them, and the runs that are over forgotten.
-fn advance(state: &mut State, key: &PathBuf) -> Vec<Effect> {
+pub(super) fn advance(state: &mut State, key: &PathBuf) -> Vec<Effect> {
     let shell_path = state.settings.terminal.shell_path.clone();
     let scrollback = state.settings.terminal.scrollback;
     let size = state.tasks_tab.size.unwrap_or(START_SIZE);
@@ -195,8 +195,25 @@ pub fn reduce_message(state: &mut State, message: TaskRunMessage) -> Vec<Effect>
     effects
 }
 
-/// What the window's task runs told of the tasks read, or of a task.
+/// What the window's task runs told of the tasks read, or of a task; the commands of a new worktree go on, or end,
+/// as their tasks do.
 fn told(state: &mut State, message: TaskRunMessage) -> Vec<Effect> {
+    let key = match &message {
+        TaskRunMessage::Started(id) | TaskRunMessage::NotStarted(id, _) | TaskRunMessage::Ended(id, ..) => {
+            tab_of(state, *id)
+        }
+        // What a task prints changes nothing for the commands that wait for it.
+        _ => None,
+    };
+    let mut effects = told_of(state, message);
+    if let Some(key) = key {
+        effects.extend(super::commands::follow(state, &key));
+    }
+    effects
+}
+
+/// What the window's task runs told of the tasks read, or of a task.
+fn told_of(state: &mut State, message: TaskRunMessage) -> Vec<Effect> {
     let id = match message {
         TaskRunMessage::Read { tab, serial, readout } => {
             if let Some(tasks) = state.tasks_tab.tabs.get_mut(&tab)

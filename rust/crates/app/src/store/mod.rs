@@ -35,7 +35,6 @@ mod settings_page;
 mod stashes;
 mod state;
 pub mod tabs;
-pub mod tasks;
 pub mod tasks_tab;
 pub mod terminals;
 #[cfg(test)]
@@ -182,7 +181,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         }
         message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
         Message::GitHub(message) => github::reduce(state, message),
-        Message::Task(message) => tasks::reduce_message(state, message),
+        Message::Commands(message) => tasks_tab::reduce_commands(state, message),
         Message::Terminal(message) => terminals::reduce_message(state, message),
         Message::TaskRun(message) => tasks_tab::reduce_message(state, message),
         Message::UrlNotOpened(said) => github::not_opened(state, said),
@@ -424,7 +423,6 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Rebase(intent) => rebase::reduce(state, intent),
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
         Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
-        Intent::Tasks(intent) => tasks::reduce(state, intent),
         Intent::TasksTab(intent) => tasks_tab::reduce(state, intent),
         Intent::Window(intent) => vec![Effect::Window(intent)],
     }

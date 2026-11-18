@@ -62,7 +62,6 @@ fn activity_what_is_running__what_runs_less_than_half_a_second_is_listed_neither
         &ActivityState {
             running: &running,
             ran: &ran,
-            tasks: None,
         },
     );
     assert!(says(&tree, "Nothing is running now"));
@@ -75,7 +74,6 @@ fn activity_what_is_running__what_runs_less_than_half_a_second_is_listed_neither
     let state = ActivityState {
         running: &running,
         ran: &ran,
-        tasks: None,
     };
     let tree = tab(&mut window, &state);
     assert!(says(&tree, "Pushing main to origin") && says(&tree, "2 s"));
@@ -97,7 +95,6 @@ fn activity_what_is_running__a_fetch_that_ended_is_under_ran_with_its_time_and_s
         &ActivityState {
             running: &running,
             ran: &later,
-            tasks: None,
         },
     );
     for words in [
@@ -213,7 +210,6 @@ fn activity_what_is_running__with_more_rows_than_fit_the_wheel_brings_the_last_i
     let state = ActivityState {
         running: &running,
         ran: &ran,
-        tasks: None,
     };
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let tree = tab(&mut window, &state);

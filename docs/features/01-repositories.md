@@ -423,7 +423,6 @@ that takes time.
 | A comparison | `Comparing <from> ↔ <to>` | |
 | A patch being made | `Making a patch of <commits>` | |
 | The pull requests | `Reading the pull requests from GitHub` | |
-| A command of a new worktree, in Tasks | `Running <command> in <worktree>` | `A command of a new worktree, in Tasks` |
 
 `<name>` is the one `repo.name-repositories` gives. How long it has run is said in whole seconds, `12 s`, and from a
 minute on as `1 min 5 s`. Reads of the same repository one after the other are said on one row, whose title counts
@@ -558,14 +557,8 @@ going on while it is shown. The list is laid out so that it holds still while it
 - The list scrolls, under the title of its column, when it is taller than the tab.
 
 With nothing running it says **Nothing is running now** and "Gitardo is not reading or changing anything", where the
-first row would be. The commands Gitardo runs are in the tab beside it, **Command log** (`log.show`).
-
-Once a new worktree has run commands (`worktree-setup.command-steps`), the tab has **Tasks** at its right: a row for
-each of the latest commands, as many as fit, with its worktree and how it stands (a spinner while it runs, **waits**,
-a check, **exit code `<n>`**, **stopped**, **did not run**); beside the rows, what the task shown printed, following
-its end, the colors of a terminal left out; a click on a row shows what that one printed. While the task shown runs, a
-box under its output answers what it asks, `Enter` giving it the line typed, and **Stop** stops it, so that those
-after it do not run.
+first row would be. The commands Gitardo runs are in the tab beside it, **Command log** (`log.show`), and the
+commands of a new worktree among the tasks of the **Tasks** tab (`worktree-setup.command-steps`, `tasks.view`).
 
 Acceptance:
 
@@ -628,7 +621,7 @@ A tab holds a repository with its worktrees and its submodules, which are rows u
 (`repo.group-tabs`,
 [D57](../08-decisions.md#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)). The tab's are: the header, the
 branches of the side column, the timeline, the inspector, the pages and the Changes page. The window's are: the bar of
-views, **Repositories**, the bottom panel's **Activity** tab with the Tasks and its Command log, the status bar, the
+views, **Repositories**, the bottom panel's **Activity** tab and its Command log, the status bar, the
 settings and the dialogs.
 
 The extension has no tabs: VS Code's views have the list of `repo.select` for that. It keeps what each repository

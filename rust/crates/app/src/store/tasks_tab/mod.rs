@@ -4,6 +4,7 @@
 //! shows, and asks the window's task runs to read, start, write, size, scroll, select, stop and end.
 
 mod closing;
+mod commands;
 mod groups;
 mod quick_run;
 mod runs;
@@ -27,6 +28,7 @@ use super::state::State;
 use super::terminals::shown_tab;
 
 pub use closing::{Closing, close_requested, close_tabs};
+pub use commands::{Commands, CommandsEffect, CommandsMessage, Waiting, hold, reduce_commands};
 pub use groups::operation_ended;
 pub use quick_run::{QuickRun, quick_run_entries, quick_run_state};
 pub use runs::{carry_out, follow, reduce_message};
@@ -107,6 +109,12 @@ pub struct TabTasks {
     pub restarting: Vec<(TaskReference, RunOrder)>,
     /// The tasks that did not run because one they waited for did not succeed, each with what is said of it.
     pub blocked: BTreeMap<TaskReference, String>,
+    /// The commands of the worktrees made from the tab in the session, the latest last
+    /// (`worktree-setup.command-steps`).
+    pub commands: Vec<Commands>,
+    /// The heading the column scrolls to, by its key, with the number of the request: the worktree whose commands
+    /// started last.
+    pub revealed: Option<(u64, String)>,
     /// The task selected.
     pub selected: Option<TaskReference>,
     /// The group whose heading was clicked last, which `F2` renames; none once a task is selected.
@@ -140,6 +148,10 @@ impl TabTasks {
     /// A task by its reference: as the worktree defines it now, or as it was when it last ran.
     #[must_use]
     pub fn task(&self, reference: &TaskReference) -> Option<&Task> {
+        if reference.is_of_new_worktree() {
+            let mut commands = self.commands.iter().flat_map(|commands| &commands.tasks);
+            return commands.find(|task| task.reference == *reference);
+        }
         let read = self.read.as_ref().and_then(|read| read.tasks.find(reference));
         read.or_else(|| self.entry(reference).map(|entry| &entry.task))
     }
@@ -154,6 +166,8 @@ pub struct TasksTab {
     pub next_id: u64,
     /// The number of the next read.
     pub next_read: u64,
+    /// The number of the next commands of a new worktree.
+    pub next_commands: u64,
     /// The size the tab last gave the terminals of the tasks, in columns and rows.
     pub size: Option<(u16, u16)>,
     /// What waits for the answer to **`<n>` tasks are running.**
@@ -282,6 +296,11 @@ pub(super) fn ask(state: &mut State, feature: &'static str, choice: TaskChoice, 
 pub fn reduce(state: &mut State, intent: TasksIntent) -> Vec<Effect> {
     match intent {
         TasksIntent::Select(task) => {
+            select(state, task);
+            Vec::new()
+        }
+        // A command of a new worktree runs once, when the worktree is made: asked again, it is only shown.
+        TasksIntent::Run(task) | TasksIntent::Restart(task) if task.is_of_new_worktree() => {
             select(state, task);
             Vec::new()
         }

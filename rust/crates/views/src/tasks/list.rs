@@ -128,6 +128,10 @@ fn rows(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>)
     let height = theme.sizes.row_height;
     let count = f32::from(u16::try_from(list.rows.len()).unwrap_or(u16::MAX));
     ui.region("tasks list", (rect, AccessRole::List, words::LIST), |ui| {
+        if let Some((serial, index)) = list.reveal {
+            let over = f32::from(u16::try_from(index).unwrap_or(u16::MAX));
+            let _went = ui.scroll_to_once("tasks rows", serial, height * over);
+        }
         let _ = ui.scroll_area("tasks rows", rect, (rect.width, height * count), |ui, inside| {
             let mut top = inside.y;
             for (index, row) in list.rows.iter().enumerate() {
@@ -225,13 +229,17 @@ fn standing(status: &RowStatus) -> (Option<(ui::Icon, Tone)>, String, Tone) {
 }
 
 /// A row of a task as what is dragged and dropped on: it is dragged onto a group, and in a group a task dropped on
-/// it goes before it.
+/// it goes before it. A command of a new worktree, which no group has, is only clicked.
 fn dragged_row(
     ui: &mut Ui<'_>,
     rect: Rect,
     (index, row): (usize, &TaskRow),
     intents: &mut Vec<Intent>,
 ) -> ui::Response {
+    if row.reference.is_of_new_worktree() {
+        let id = ui.id(("task", index));
+        return ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
+    }
     if let Some(group) = &row.group {
         intents.extend(groups::drop_place(ui, rect, |dragged| match dragged {
             Dragged::Task { task, from } if task != row.reference => Some(GroupsAction::PlaceTask {
@@ -253,7 +261,8 @@ fn dragged_row(
 
 /// A row of a task: the mark of how it stands, its name, its command dimmed after it when there is room, how it
 /// ended, and **Run** or **Stop** at its right. A click selects it, a double click runs it or shows it when it runs, a
-/// right click opens its menu; it is dragged onto a group, and in a group a task dropped on it goes before it.
+/// right click opens its menu; it is dragged onto a group, and in a group a task dropped on it goes before it. A
+/// command of a new worktree has **Stop** alone, while it runs, and a double click only selects it.
 fn task_row(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, (index, row): (usize, &TaskRow), intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
@@ -264,7 +273,8 @@ fn task_row(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, (index, row): (usize, 
     } else if response.contains_pointer {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
-    let can_run = list.is_trusted && row.cannot_run.is_none();
+    let is_command = row.reference.is_of_new_worktree();
+    let can_run = list.is_trusted && row.cannot_run.is_none() && !is_command;
     let is_running = row.status.is_running();
     let inside = inset(rect, Insets::symmetric(spacing.small, 0.0));
     let left = indent(ui, row.depth);
@@ -272,7 +282,9 @@ fn task_row(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, (index, row): (usize, 
         Rect::new(inside.x + left, inside.y, (inside.width - left).max(0.0), inside.height),
         spacing.medium,
     );
-    run_button(ui, &mut line, (index, row, can_run), intents);
+    if is_running || !is_command {
+        run_button(ui, &mut line, (index, row, can_run), intents);
+    }
     let (mark, said, tone) = standing(&row.status);
     let cell = place(
         line.left(theme.sizes.icon),
@@ -306,7 +318,7 @@ fn task_row(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, (index, row): (usize, 
     } else if response.clicked || response.double_clicked {
         intents.push(tasks(TasksIntent::Select(row.reference.clone())));
     }
-    intents.extend(super::menu::task_menu(list, ui, &response, (index, row, can_run)));
+    intents.extend(super::menu::row_menu(list, ui, &response, (index, row, can_run)));
 }
 
 /// **Run**, or **Stop** while the task runs, at the right of its row; **Run** is dimmed for a task that cannot run and
