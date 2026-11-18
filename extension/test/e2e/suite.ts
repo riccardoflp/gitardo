@@ -3823,7 +3823,8 @@ export async function run(): Promise<void> {
       return told(from);
     };
     assert.deepEqual(await sequence({ type: 'setFilter', filter: { kind: 'path', path: 'b.txt' } }), ['loading filter', 'state path', 'loading null']);
-    assert.deepEqual(await sequence({ type: 'loadMore' }), ['loading more', 'state path', 'loading null']);
+    // The history of the file is read to its end: the list asks for no page past it, and the views wait for nothing (Q781).
+    assert.deepEqual(await sequence({ type: 'loadMore' }), []);
     assert.deepEqual(await sequence({ type: 'setFilter', filter: null }), ['loading filter', 'state none', 'loading null']);
     assert.deepEqual(await sequence({ type: 'setScope', scope: { kind: 'kinds', kinds: ['branch'] } }), ['loading filter', 'state none', 'loading null']);
     await controller.setScope(null);
@@ -3840,9 +3841,12 @@ export async function run(): Promise<void> {
 
     // Reads that overlap are one wait, over when the last one is.
     const from = posted.length;
-    await Promise.all([internals.onMessage(graph, { type: 'loadMore' }), internals.onMessage(graph, { type: 'loadMore' })]);
+    await Promise.all([
+      internals.onMessage(graph, { type: 'setFilter', filter: { kind: 'path', path: 'b.txt' } }),
+      internals.onMessage(graph, { type: 'setFilter', filter: null }),
+    ]);
     const loading = told(from).filter((line) => line.startsWith('loading'));
-    assert.deepEqual(loading, ['loading more', 'loading null']);
+    assert.deepEqual(loading, ['loading filter', 'loading null']);
 
     // In a repository that keeps changing, as a large one does while it builds, the reads follow one another: the wait
     // is over with the first that started after it, not with the last of them.
