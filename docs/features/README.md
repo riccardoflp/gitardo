@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 470 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 472 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -21,7 +21,7 @@ earns it.
 | [02-graph.md](02-graph.md) | Graph | 58 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
-| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 22 |
+| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 24 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 37 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
@@ -195,6 +195,8 @@ earns it.
 | [`changes.unsaved`](05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved) | Files with edits not saved | Derivation | Built | Built |
 | [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-page-opens) | What a file of the Changes page opens | Derivation | Built | Built |
 | [`changes.beside-file`](05-changes-and-commit.md#changesbeside-file--the-changes-page-beside-what-it-opens) | The Changes page beside what it opens | View | Built | Host only |
+| [`changes.section`](05-changes-and-commit.md#changessection--changes-a-section-of-the-side-column) | Changes, a section of the side column | View | Specified | Host only |
+| [`changes.row-menu`](05-changes-and-commit.md#changesrow-menu--the-menu-of-a-file-of-the-changes) | The menu of a file of the changes | View | Specified | Planned |
 | [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Built | Built |
 | [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Built | Built |
 | [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Built | Built |

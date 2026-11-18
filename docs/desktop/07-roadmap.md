@@ -665,6 +665,45 @@ in a worktree not shown updates its count within two seconds; a click on a workt
 its row, and choosing another repository in the toolbar of the graph marks that one; nothing is read while nothing
 changes; every card of the milestone is Built in both apps, and the end-to-end step passes.
 
+## M24 — Changes, a section of the side column
+
+The changes of the repository shown are in the side column, between **Repositories** and **Branches**; the sections
+keep the line above their headings when they are folded; the files of the changes have no buttons on their rows, and
+what the buttons did is in the menu of the row; a click on a file shows its diff, in the middle of the window
+([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)). Asked by the
+maintainer after M23. In Gitardo Desktop alone: in the extension the Source Control side bar of VS Code is the column
+and **Gitardo Changes** a view of it, and whether its rows and its click follow is asked (Q763, Q764). Built in four
+phases, each one commit or more, each ending with its tests passing; the pictures of the window, nearly all of which
+show the side column, are recorded again once, when the section is as it stays.
+
+1. **A line above every heading.** The heading of every section of the side column but the first has a line above
+   it, whether the sections around it are open or folded; before, the line was drawn only between two open sections.
+   Only a line between open sections is dragged. Where the sections go and which lines are dragged is one function
+   of what is folded, tested for every combination. Cards: `repo.side-column`, `graph.resize-panes`.
+2. **The actions of a row, in its menu.** The rows of the changed files and of the files in conflict lose their
+   buttons and keep their boxes; the context menu of a row has what the buttons did, each item with its icon, and
+   opens by the right button and by the menu key on the row that has the keyboard, which `Tab` reaches. The buttons
+   of the heading of the list stay where the width holds them, and the others go into **…** at its right. Cards:
+   `changes.row-menu`, `changes.pane`, `ui.menu-icons`.
+3. **A click shows the diff.** `changes.openOnClick` is `diff` by default in Gitardo Desktop; the key and its values
+   keep their meaning, and the extension its default. Cards: `changes.open`, `settings.read`.
+4. **Changes, the third section.** **Changes** between **Repositories** and **Branches**: its heading with the count
+   of the changed files, folding as the others; in it the banners of an operation that stopped, the commit box,
+   **Conflicts** and the list of the changed files; nothing under its heading while no repository is shown. The two
+   lines between the three sections are dragged to share the height, and what is folded and the two heights are
+   remembered for the workspace under keys added to those kept (`changesFolded`, `changesSection`). A file of the
+   section opens in the middle of the window, its row marked: the Changes page beside a file draws the file alone
+   while the side column shows **Changes** open, and its own column of the list otherwise. The pictures of the window
+   are recorded again and looked at. Cards: `changes.section`, `repo.side-column`, `changes.beside-file`,
+   `graph.resize-panes`.
+
+Exit: with `a.txt` changed and the timeline shown, the side column lists **Repositories**, **Changes 1** and
+**Branches**, each heading but the first under a line whatever is folded; a click on `a.txt` shows its diff where
+the timeline was, the side column staying and the row marked; the row has its box and no button, and its menu, by
+the right button or the menu key, stages it, discards it, stashes it and opens the file; folding **Changes**, or
+dragging the line under it, is as it was left after the window opens again; `changes.section` and `changes.row-menu`
+are Built in the desktop, and the snapshots of the window match in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
