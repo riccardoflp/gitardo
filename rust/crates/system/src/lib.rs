@@ -22,6 +22,7 @@ mod linux;
 #[cfg(target_os = "macos")]
 pub mod macos;
 mod process_tree;
+mod pseudo_terminal;
 #[cfg(unix)]
 mod unix;
 #[cfg(windows)]
@@ -31,3 +32,4 @@ pub use credentials::{delete_secret, read_secret, write_secret};
 pub use error::SystemError;
 pub use links::link_folder;
 pub use process_tree::ProcessTree;
+pub use pseudo_terminal::open_program_side;

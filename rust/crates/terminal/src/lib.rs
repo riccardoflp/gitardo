@@ -171,6 +171,10 @@ pub struct Terminal {
     shell: Shell,
     /// The number of the process of its shell.
     process: Option<u32>,
+    /// The side of its pseudo-terminal the shell writes to, held open as long as the terminal is, on Linux and macOS:
+    /// what a program printed right before it ended is then still read, where a read that found the program gone
+    /// would drop it. Windows has no such side.
+    _program_side: Option<std::fs::File>,
 }
 
 impl Terminal {
@@ -202,6 +206,11 @@ impl Terminal {
         let process = pty.child_watcher().pid().map(std::num::NonZeroU32::get);
         #[cfg(not(windows))]
         let process = Some(pty.child().id());
+        // A terminal that cannot hold that side open still runs: what is printed right before the end may be lost.
+        #[cfg(not(windows))]
+        let program_side = system::open_program_side(pty.file()).ok();
+        #[cfg(windows)]
+        let program_side = None;
         let is_woken = Arc::new(AtomicBool::new(false));
         let listener = Listener {
             tell,
@@ -226,6 +235,7 @@ impl Terminal {
             size,
             shell: options.shell,
             process,
+            _program_side: program_side,
         })
     }
 

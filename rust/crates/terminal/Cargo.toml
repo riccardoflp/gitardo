@@ -11,6 +11,8 @@ publish.workspace = true
 # (ConPTY on Windows), without `serde` (R1.7) (D53, Q417).
 alacritty_terminal = { version = "=0.26.0", default-features = false }
 model = { path = "../model" }
+# The side of a pseudo-terminal its program writes to, held open on Linux and macOS so that nothing printed is lost.
+system = { path = "../system" }
 
 [dev-dependencies]
 testkit = { path = "../testkit" }
