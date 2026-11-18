@@ -1372,14 +1372,20 @@ finds commands, commits and branches; the search of commits; **Find**, inside on
 tree of the Files page. It had nothing that finds a text across the files of a repository. Now it has a page for it,
 **Search** (`file-search.page`):
 
-- **A page of its own**, reached from **Search** in the bar of views, from `Ctrl+Shift+F`, from **Search in files…**
-  of Quick search, and from **Search here** in the context menu of a file or a folder of the Files page, which narrows
-  the search to it (`file-search.open`). Text selected in the File page or the Diff page in front becomes what is
-  looked for. A page, as the other places that show files are: it has the width for results and a preview side by
-  side, and the way back to it in the title row of the File page it opens.
+- **A page of its own**, reached from **Search in files** in the bar of views, from `Ctrl+Shift+F`, from **Search in
+  files…** of Quick search, and from **Search here** in the context menu of a file or a folder of the Files page,
+  which narrows the search to it (`file-search.open`). Text selected in the File page or the Diff page in front
+  becomes what is looked for. A page, as the other places that show files are: it has the width for results and a
+  preview side by side, and the way back to it in the title row of the File page it opens. The page is named
+  **Search**; its button of the bar is named **Search in files**, since the header has a button **Search** already,
+  that of Quick search.
 - **What it finds.** The modes of Search Here but symbols: **All**, with the folders, the files and the lines of text
   in sections, **Text**, **Files** and **Folders**, on `Alt+1` to `Alt+4`; the switches **Match case**, **Whole word**
-  and **Regular expression** for the text. Names are matched as Search Here matches them: every term separated by a
+  and **Regular expression** for the text, on `Alt+C`, `Alt+W` and `Alt+R`. For those keys to reach the page while
+  its box has the keyboard, `Alt` with a key types nothing on Windows and Linux, in any box or editor: both systems
+  gave its letter as text, so that `Alt+B` of the blame typed a `b` too. With `Ctrl` too a key types, as `AltGr` does.
+  On macOS, where `Option` with a key types a character, the keys of the page are with `Ctrl` too, as those of the
+  blame are (Q819). Names are matched as Search Here matches them: every term separated by a
   space must match, its letters together or in order with others between, so that `usock` finds `useSocket.ts`
   (`file-search.rank-names`).
 - **Where.** The scopes are tabs: **Repository**, the worktree shown; **Changes**, the files that differ from the last
@@ -4060,3 +4066,8 @@ while it is planned and built; each is built as it says until the maintainer ans
 - **Q818** — `file-search.page`: the text is searched again at each key, the search before stopped, with no pause
   after the last key, where Search Here waits a moment. On a very large repository each key starts a git that is
   stopped at the next. Should it wait some 150 ms after the last key?
+- **Q819** — `file-search.page`: on Windows and Linux `Alt` with a key now types nothing in any box or editor, so that
+  `Alt+C` reaches the page while its box has the keyboard; with `Ctrl` too it still types, as `AltGr` does. On macOS
+  the keys of the page are `Ctrl+Option+C` and the like, as the blame's are, since `Option` with a key types a
+  character there; not tried on a Mac. Is a keyboard layout known whose characters need `Alt` alone on Windows or
+  Linux, which would no longer type?

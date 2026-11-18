@@ -677,7 +677,8 @@ results, and the preview of the one under the keyboard
 
 - **Kind**: View
 - **Function**: `views::file_search::page_view(state: &SearchPageState, ui) -> Vec<Intent>`
-- **Entry points**: **Search** in the bar of views (`graph.view-bar`); `Ctrl+Shift+F` (`Cmd+Shift+F` on macOS);
+- **Entry points**: **Search in files** in the bar of views (`graph.view-bar`); `Ctrl+Shift+F` (`Cmd+Shift+F` on
+  macOS);
   **Search in files…** in Quick search; **Search here** in the context menu of a file or a folder of the Files page
   (`file-search.open`).
 - **Reads**: `file-search.read-names` when the page opens and each time the repository is read while it is open;
@@ -687,10 +688,13 @@ results, and the preview of the one under the keyboard
 - **Extension**: Search Here, for those who have it, and VS Code's own search: nothing to build.
 
 - At the top, the box of what is looked for, which has the keyboard when the page opens, and at its right three
-  switches for the text: **Match case** (`Alt+C`), **Whole word** (`Alt+W`) and **Regular expression** (`Alt+R`).
-  Names are matched as `file-search.rank-names` says, whatever the switches.
+  switches for the text: **Match case** (`Alt+C`), **Whole word** (`Alt+W`) and **Regular expression** (`Alt+R`); in a
+  page too narrow for them beside the box, they are in a row under it. Names are matched as `file-search.rank-names`
+  says, whatever the switches.
 - Under it, the modes: **All**, the folders, the files and the lines of text in sections; **Text**; **Files**;
-  **Folders**. `Alt+1` to `Alt+4` choose them. At their right, the scopes: **Repository**, the worktree shown;
+  **Folders**. `Alt+1` to `Alt+4` choose them. The keys of the modes and of the switches work from the box too: `Alt`
+  with a key types nothing in a box. On macOS they are with `Ctrl` too, `Ctrl+Option+C`, since `Option` with a key
+  types a character there. At their right, the scopes: **Repository**, the worktree shown;
   **Changes**, the files that differ from the last commit, the untracked ones too; and, once **Search here** named
   one, the folder or the file it named, by its path, with **×** that takes it away.
 - Then **Include** and **Exclude**, patterns separated by commas (`file-search.pathspecs`), and two switches:
@@ -699,11 +703,14 @@ results, and the preview of the one under the keyboard
 - The results are on the left (`file-search.list-results`), found as it is typed: the names at once, from the list of
   the files read when the page opened; the lines of text as git finds them. The search of the text running is stopped
   and another started when what is typed, a switch, the mode, the scope or a filter changes. Under the results a line
-  counts them: `12 lines in 3 files`, and `5,000+ lines in 240 files` when there are more lines than are listed.
+  counts them: `12 lines in 3 files`, and `5,000+ lines in 240 files` when there are more lines than are listed; in
+  **Files** and **Folders**, `3 files`, and `2,000 of 5,282 files` when more match than are listed. When the
+  repository is read again the results stay as they are until those of the new read are whole.
 - On the right, the preview of the result under the keyboard (`file-search.preview`). The line between the two is
   dragged (`graph.resize-panes`). In the narrow layout the results take the page, with no preview.
-- `↑` and `↓` go to the result before and after, from the box too, and `Page Up` and `Page Down` ten further; the
-  headings are passed over. `Enter`, or a double click, opens the result: the File page of a file, at the line of a
+- The first result is under the keyboard as soon as there is one. `↑` and `↓` go to the result before and after,
+  from the box too, and `Page Up` and `Page Down` ten further; the headings are passed over. A click brings a result
+  under the keyboard. `Enter`, or a double click, opens the result: the File page of a file, at the line of a
   line of text, with **Search** before it in its title row to come back (`ui.page-trail`); a folder is shown in the
   tree of the Files page, opened.
 - While the files are listed the results say **Reading the files…**; with nothing typed in **Text**, **Type to search
@@ -725,8 +732,8 @@ Acceptance:
       under a folder `docs`.
 - [ ] With **.gitignore** off a line of `node_modules/pkg/index.js`, which git ignores, is found; with **Hidden** on,
       a line of `.github/workflows/ci.yml`.
-- [ ] `↓` from the box goes to the first result and then to the next, passing over a heading, and `Enter` on a line
-      of text opens the File page at that line, with **Search** in its title row.
+- [ ] The first result is under the keyboard, `↓` from the box goes to the next, passing over a heading, and `Enter`
+      on a line of text opens the File page at that line, with **Search** in its title row.
 - [ ] `(` typed with **Regular expression** on says what git said under the box, and lists no line.
 - [ ] A search that ends after another was started is thrown away: only the lines of what is typed are listed.
 

@@ -4,7 +4,8 @@ use winit::keyboard::{Key as LibraryKey, ModifiersState, NamedKey as LibraryName
 use winit::window::{CursorIcon, Theme};
 
 use super::{
-    appearance, button, cursor_icon, key, library_theme, logical_point, modifier_of, modifiers, typed_text, wheel_delta,
+    appearance, button, cursor_icon, key, library_theme, logical_point, modifier_of, modifiers, typed_text, types_text,
+    wheel_delta,
 };
 use crate::event::Cursor;
 use crate::geometry::{Point, Scale};
@@ -91,6 +92,21 @@ fn keeps_only_the_text_of_typed_text() {
     ];
     for (given, expected) in cases {
         assert_eq!(typed_text(given).as_deref(), expected, "{given:?}");
+    }
+}
+
+#[test]
+fn types_no_text_with_alt_alone_and_on_macos_with_ctrl_and_option() {
+    let on_macos = cfg!(target_os = "macos");
+    let cases = [
+        (Modifiers::NONE, true),
+        (Modifiers::SHIFT, true),
+        (Modifiers::ALT, on_macos),
+        (Modifiers::ALT | Modifiers::SHIFT, on_macos),
+        (Modifiers::ALT | Modifiers::CONTROL, !on_macos),
+    ];
+    for (held, expected) in cases {
+        assert_eq!(types_text(held), expected, "{held:?}");
     }
 }
 

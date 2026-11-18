@@ -260,6 +260,7 @@ pub(super) fn reduce_file_intent(state: &mut State, intent: views::Intent) -> Ve
         views::Intent::FileView(intent) => super::file_page::reduce(state, intent),
         views::Intent::Files(intent) => reduce(state, intent),
         views::Intent::Blame(intent) => super::blame::reduce(state, &intent),
+        views::Intent::FileSearch(intent) => super::file_search::reduce(state, intent),
         _ => Vec::new(),
     }
 }

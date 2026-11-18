@@ -162,7 +162,7 @@ earns it.
 | [`filter.bar`](03-search-and-filter.md#filterbar--the-bar-of-what-the-timeline-is-narrowed-to) | The bar of what the timeline is narrowed to | View | Built | Built |
 | [`filter.log-arguments`](03-search-and-filter.md#filterlog-arguments--which-history-the-timeline-lists) | Which history the timeline lists | Derivation | Built | Built |
 | [`filter.remember`](03-search-and-filter.md#filterremember--the-branches-shown-remembered-per-repository) | The branches shown, remembered per repository | Derivation | Built | Built |
-| [`file-search.page`](03-search-and-filter.md#file-searchpage--the-search-page) | The Search page | View | Specified | Host only |
+| [`file-search.page`](03-search-and-filter.md#file-searchpage--the-search-page) | The Search page | View | Built | Host only |
 | [`file-search.read-names`](03-search-and-filter.md#file-searchread-names--the-files-of-the-worktree-for-the-search) | The files of the worktree, for the search | Read | Built | Host only |
 | [`file-search.pathspecs`](03-search-and-filter.md#file-searchpathspecs--what-narrows-a-search-to-some-files) | What narrows a search to some files | Derivation | Built | Host only |
 | [`file-search.rank-names`](03-search-and-filter.md#file-searchrank-names--which-files-and-folders-match-best) | Which files and folders match best | Derivation | Built | Host only |

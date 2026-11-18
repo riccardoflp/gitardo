@@ -123,6 +123,8 @@ pub enum Intent {
     MergeView(crate::merge_view::MergeIntent),
     /// Something asked of the Files page.
     Files(crate::files::FilesPageIntent),
+    /// Something asked of the Search page (`file-search.page`).
+    FileSearch(crate::file_search::FileSearchIntent),
     /// An operation of the blame or of the history run on a File page, or the hover of its blame (`blame.file`,
     /// `blame.current-line`).
     Blame(crate::blame::BlameIntent),

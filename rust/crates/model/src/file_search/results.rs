@@ -3,10 +3,10 @@
 use super::{Mode, RankedNames, TextMatch};
 
 /// The most folders **All** lists.
-const MOST_FOLDERS_IN_ALL: usize = 50;
+pub const MOST_FOLDERS_IN_ALL: usize = 50;
 
 /// The most files **All** lists.
-const MOST_FILES_IN_ALL: usize = 100;
+pub const MOST_FILES_IN_ALL: usize = 100;
 
 /// A file or a folder found by its name.
 #[derive(Debug, Clone, PartialEq, Eq)]

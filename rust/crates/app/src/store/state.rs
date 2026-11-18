@@ -89,6 +89,8 @@ pub struct State {
     pub conflicts: super::conflicts::Conflicts,
     /// The Files page.
     pub files_page: super::files_page::FilesPage,
+    /// The Search page (`file-search.page`).
+    pub file_search: super::file_search::FileSearchPage,
     /// The page that chooses what new worktrees get (`worktree-setup.page`).
     pub new_worktrees: super::new_worktrees::NewWorktreesPage,
     /// The blame of the File pages (`blame.current-line`, `blame.file`).

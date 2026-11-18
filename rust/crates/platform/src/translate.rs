@@ -113,6 +113,19 @@ pub(crate) fn typed_text(text: &str) -> Option<String> {
     (!typed.is_empty()).then_some(typed)
 }
 
+/// Whether a key pressed with these modifier keys held types its text. `Alt` with a key is a command, not text, on
+/// Windows and Linux: there both give the letter of the key as text, which a box with the keyboard would take. With
+/// `Ctrl` too it types, as `AltGr` does where it arrives as both. On macOS `Option` with a key types a character, and
+/// the command is `Ctrl` and `Option` with the key.
+pub(crate) fn types_text(held: Modifiers) -> bool {
+    let (is_alt, is_control) = (held.contains(Modifiers::ALT), held.contains(Modifiers::CONTROL));
+    if cfg!(target_os = "macos") {
+        !(is_alt && is_control)
+    } else {
+        !is_alt || is_control
+    }
+}
+
 /// The modifier keys held.
 pub(crate) fn modifiers(state: ModifiersState) -> Modifiers {
     let pairs = [

@@ -14,7 +14,9 @@ use std::ops::Range;
 pub use open::{Asked, open_with};
 pub use pathspecs::{Filters, pathspecs};
 pub use rank::{RankRequest, RankedName, RankedNames, folders_of, rank_names};
-pub use results::{Found, NameFound, ResultRow, Section, counts, list_results, names_found};
+pub use results::{
+    Found, MOST_FILES_IN_ALL, MOST_FOLDERS_IN_ALL, NameFound, ResultRow, Section, counts, list_results, names_found,
+};
 
 /// The most names the results list, of files or of folders.
 pub const MOST_NAMES: usize = 2_000;

@@ -178,6 +178,14 @@ pub enum Message {
         /// The paths, or what git said when the read failed.
         result: Result<Vec<String>, String>,
     },
+    /// A read of the Search page says something: the files listed, the names ranked, or more lines of text found
+    /// (`file-search.page`).
+    FileSearch {
+        /// The job.
+        job: JobId,
+        /// What it says.
+        answer: crate::work::file_search::SearchAnswer,
+    },
     /// A job that read the settings of new worktrees, and what git ignores, for their page is done
     /// (`worktree-setup.page`).
     NewWorktreesRead {
@@ -414,6 +422,13 @@ pub enum JobKind {
     ReadFiles {
         /// The top folder of the working tree.
         folder: PathBuf,
+    },
+    /// Lists the files of the working tree for the Search page, or searches them (`file-search.page`).
+    FileSearch {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// What is read.
+        job: crate::work::file_search::SearchJob,
     },
     /// Reads the settings of new worktrees, and what git ignores when the page looks, for their page
     /// (`worktree-setup.page`).

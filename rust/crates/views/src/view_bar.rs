@@ -38,6 +38,8 @@ pub enum ViewShown {
     Changes,
     /// The Files page.
     Files,
+    /// The Search page.
+    Search,
     /// The settings page.
     Settings,
     /// Another page, which none of the buttons stands for.
@@ -50,6 +52,7 @@ enum View {
     Timeline,
     Changes,
     Files,
+    Search,
     Compare,
     Terminal,
     Activity,
@@ -63,6 +66,7 @@ impl View {
             View::Timeline => (icons::TIMELINE, words::TIMELINE),
             View::Changes => (icons::CHANGES, words::CHANGES),
             View::Files => (icons::FILES, words::FILES),
+            View::Search => (icons::SEARCH, crate::text::file_search::BUTTON),
             View::Compare => (icons::COMPARE, words::COMPARE),
             View::Terminal => (icons::TERMINAL, crate::text::panel::TERMINAL),
             View::Activity => (icons::RUNNING, words::ACTIVITY),
@@ -76,6 +80,7 @@ impl View {
             View::Timeline => state.shown == ViewShown::Timeline,
             View::Changes => state.shown == ViewShown::Changes,
             View::Files => state.shown == ViewShown::Files,
+            View::Search => state.shown == ViewShown::Search,
             View::Compare => false,
             View::Terminal => state.is_panel_shown,
             View::Activity => state.is_activity_shown,
@@ -87,7 +92,7 @@ impl View {
     fn needs_repository(self) -> bool {
         matches!(
             self,
-            View::Timeline | View::Changes | View::Files | View::Compare | View::Terminal
+            View::Timeline | View::Changes | View::Files | View::Search | View::Compare | View::Terminal
         )
     }
 
@@ -97,6 +102,7 @@ impl View {
             View::Timeline => Intent::ShowTimeline,
             View::Changes => Intent::ShowPage(Page::Changes),
             View::Files => Intent::ShowPage(Page::Files),
+            View::Search => Intent::FileSearch(crate::file_search::FileSearchIntent::Show),
             View::Compare => Intent::Feature(FeatureIntent::Run(FeatureId("compare.choose"), Target::Head)),
             View::Terminal => Intent::Panel(crate::panel::PanelIntent::Toggle),
             View::Activity => Intent::Panel(crate::panel::PanelIntent::ToggleActivity),
@@ -106,7 +112,7 @@ impl View {
 }
 
 /// The bar of views over the rectangle its caller clipped it to: **Timeline**, **Changes** with the number of changed
-/// files, **Files** and **Compare** from the top; **Terminal**, **Activity** and **Settings** at its foot. The place
+/// files, **Files**, **Search in files** and **Compare** from the top; **Terminal**, **Activity** and **Settings** at its foot. The place
 /// shown has the ground of an island behind its icon.
 ///
 /// Feature: graph.view-bar
@@ -118,7 +124,7 @@ pub fn view_bar_view(state: &ViewBarState, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     ui.region("view bar", (rect, AccessRole::Navigation, words::BAR), |ui| {
         let mut column = Area::with_gap(rect, spacing.small);
-        for view in [View::Timeline, View::Changes, View::Files, View::Compare] {
+        for view in [View::Timeline, View::Changes, View::Files, View::Search, View::Compare] {
             let cell = place(column.top(side), (side, side), (Align::Center, Align::Center));
             intents.extend(button(view, state, ui, cell));
         }

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- A Search page finds files, folders and lines of text in the files of the worktree shown, as it is typed:
+  **Search in files** in the bar of views opens it with the keyboard in its box. **All** lists the folders, the files
+  and the lines found under their headings, **Text** the lines under their files with their numbers, **Files** and
+  **Folders** the names, matched as `usock` finds `useSocket.ts`; `Alt+1` to `Alt+4` choose. **Match case**, **Whole
+  word** and **Regular expression** (`Alt+C`, `Alt+W`, `Alt+R`) narrow the text; **Repository** or **Changes** says
+  where to look, **Include** and **Exclude** take patterns such as `*.rs, src/` and `dist/`, and **.gitignore** and
+  **Hidden** say whether what git ignores and the names starting with a dot are searched. Every match is marked, a
+  line under the results counts them, `↑` and `↓` move from the box, and `Enter` or a double click opens the File page
+  at the line, with **Search** in its title row to come back. Git lists the files and searches them, at most 5,000
+  lines.
+- `Alt` with a key types nothing in a box or an editor on Windows and Linux, where it typed the letter of the key as
+  well as doing what the key does; with `Ctrl` too it types, as `AltGr` does.
+
 - What is selected is tinted with the accent of the theme in the dark and in the light theme: a selected commit, a
   selected file, the selected rows of any list that has the focus stand on the amber of the buttons and of the ring of
   the focus mixed into the ground, a warm brown in the dark theme and a sand in the light one, where they stood on a

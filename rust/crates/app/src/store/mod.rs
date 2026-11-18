@@ -17,6 +17,7 @@ mod draft;
 mod effect;
 pub mod feature;
 pub mod file_page;
+pub mod file_search;
 pub mod files_page;
 pub mod github;
 mod inspector;
@@ -105,6 +106,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(review::prune(state));
     effects.extend(review::follow(state));
     effects.extend(files_page::follow(state));
+    effects.extend(file_search::follow(state));
     effects.extend(new_worktrees::follow(state));
     effects.extend(changes::follow_unsaved(state));
     effects.extend(blame::follow(state));
@@ -163,6 +165,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
             reads::files_checked(state, job, result)
         }
         Message::IgnoredRead { job, result } => changes::ignored_read(state, job, result),
+        Message::FileSearch { job, answer } => file_search::answered(state, job, answer),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
@@ -413,7 +416,9 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
         Intent::Diff(intent) => diff_page::reduce(state, intent),
         Intent::MergeView(intent) => merge_page::reduce(state, intent),
-        Intent::FileView(_) | Intent::Files(_) | Intent::Blame(_) => files_page::reduce_file_intent(state, intent),
+        Intent::FileView(_) | Intent::Files(_) | Intent::Blame(_) | Intent::FileSearch(_) => {
+            files_page::reduce_file_intent(state, intent)
+        }
         Intent::Compare(intent) => compare::reduce(state, intent),
         Intent::Review(intent) => review::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
