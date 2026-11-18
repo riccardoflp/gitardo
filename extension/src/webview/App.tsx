@@ -40,6 +40,7 @@ import {
 } from './menus';
 import { ALL_FOLDED, foldedAmong, foldMerge, NO_FOLDS, recallFolds, rememberFolds, withoutGone, type Folds } from './folds';
 import { keptViews } from './kept';
+import { addedUnder } from './pages';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
@@ -314,10 +315,15 @@ export function App({ compact = false }: { compact?: boolean }) {
   }, [found, goTo]);
 
   // What was found is of the history as it was: when the commits change, a commit, a fetch or a filter later, it is found again.
+  // Not when more of them come under the same ones, the pages of a read: git was asked of the whole history.
   const rows = state?.rows;
+  const searchedRef = useRef<Row[] | undefined>(undefined);
   useEffect(() => {
+    const before = searchedRef.current;
+    searchedRef.current = rows;
     const current = findRef.current;
-    if (rows && current?.hashes && !current.failed) post({ type: 'find', search: current.search });
+    if (!rows || (before && addedUnder(before, rows))) return;
+    if (current?.hashes && !current.failed) post({ type: 'find', search: current.search });
   }, [rows]);
 
   if (!state) return <Placeholder loaded={loaded} />;

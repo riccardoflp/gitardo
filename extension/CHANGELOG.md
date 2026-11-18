@@ -25,6 +25,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 - The graph no longer stops for seconds while the commits of a long history come. The lines between days, weeks and months wrote the name of the month of every commit listed each time more commits came, two seconds for 56,000 commits: a **Refresh** of such a history took 4 to 10 seconds, in blocks, with the view not drawing in between. The name is now written once for each month, and the same **Refresh** has its last commit drawn in about a second.
 - In a repository of a little more than a page of commits, 1,000 unless `gitardo.graph.pageSize` says otherwise, the graph could stop at its first page, its last row saying **Loading more commits…** for good, until the list was scrolled to its end: the read of the other commits had ended before the view was given the first, and nothing told it after. The commits read meanwhile now come with the first.
+- While the commits of a long history came, each page of them was sent with the whole state of the repository to every view of Gitardo, the Changes, Branches and Stashes views too, which drew themselves again for nothing, and a search of the whole history was asked of git again at each page. The pages now go to the Graph views alone, and the search is asked again only when the commits listed are others.
 
 ## 1.0.0 - 2026-11-17
 

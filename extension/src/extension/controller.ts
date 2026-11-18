@@ -754,7 +754,8 @@ export class Controller implements vscode.Disposable {
     const hasMore = laid.source.hasMore;
     if (rows === state.rows && hasMore === state.hasMore) return;
     this.state = { ...state, rows, hasMore };
-    this.post({ type: 'state', state: this.state });
+    // The rows of a page change nothing of what the other views show: only those that list commits are sent them.
+    for (const [view, kind] of this.views) if (showsGraph(kind)) this.post({ type: 'state', state: this.state }, view);
   }
 
   /** How many commits come before one in the history listed with a filter and a scope, or -1 when it is not there. */
