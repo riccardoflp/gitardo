@@ -71,7 +71,12 @@ pub(super) fn dot_of(shown: &ShownRow, read: Option<&Row>) -> Dot {
 pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row, report: &mut RowReport) {
     let layout = context.state.layout;
     let Some(shown) = layout.folded.rows.get(row.index) else {
-        super::load_more::loading_row(ui, context.graph_width, row);
+        match context.state.awaited {
+            Some(awaited) if row.index > layout.len() || !context.state.has_more => {
+                awaited_row(ui, context, awaited, row);
+            }
+            _ => super::load_more::loading_row(ui, context.graph_width, row),
+        }
         return;
     };
     let graph = Rect::new(row.rect.x, row.rect.y, context.graph_width, row.rect.height);
@@ -96,6 +101,42 @@ pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row,
         let veil = ui.theme().colors.page_background.with_alpha(DIMMED);
         ui.fill_rect(row.rect, veil);
     }
+}
+
+/// A row listed before the same history was read again, under the rows read so far: drawn from the rows and the layout
+/// of before, with nothing brought out or selected, dimmed; what it would do is dropped (D72).
+fn awaited_row(ui: &mut Ui<'_>, context: &RowContext<'_>, awaited: super::state::Awaited<'_>, row: &ui::Row) {
+    if row.index >= awaited.layout.len() {
+        return;
+    }
+    let before = HistoryState {
+        rows: awaited.rows,
+        layout: awaited.layout,
+        selected: None,
+        several: &[],
+        trace: None,
+        hover: None,
+        label_list: None,
+        found: &[],
+        dims_others: false,
+        dropped: None,
+        awaited: None,
+        ..context.state.clone()
+    };
+    let shown = RowContext {
+        state: &before,
+        ..*context
+    };
+    let quiet = ui::Row {
+        is_selected: false,
+        is_hovered: false,
+        foreground: ui.theme().colors.foreground,
+        ..*row
+    };
+    let mut dropped = RowReport::default();
+    draw_row(ui, &shown, &quiet, &mut dropped);
+    let veil = ui.theme().colors.page_background.with_alpha(DIMMED);
+    ui.fill_rect(row.rect, veil);
 }
 
 /// What a row shows right of its cell of the graph: its message, labels, author, date and hash, or what a fold, the

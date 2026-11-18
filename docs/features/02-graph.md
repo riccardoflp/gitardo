@@ -861,6 +861,12 @@ shown (D54).
 - The commits already listed stay where they are: the rows of the page are added under them, and the scroll position,
   the selection and the folds do not move. A read that finds the same commits as before, as after a file is saved,
   changes none of the rows.
+- A read of the same history that finds other commits from some row on, after a commit, a fetch or **Refresh**, takes
+  out the rows listed from there, but the list keeps its length and the graph its width until the read reaches them
+  or ends ([D72](../08-decisions.md#d72--the-list-of-commits-keeps-its-length-while-its-commits-are-read-again-proposed)):
+  under the rows read, the rows of before are drawn where they were, dimmed, without their labels, and a click on one
+  selects nothing; the row right under those read says **Loading more commits…**. Where the list is scrolled to does
+  not move. A read that ends with fewer commits leaves the list as long as they are.
 - Choosing another repository, other branches, a filter or a search cancels the read running and starts a new one;
   the rows listed stay, dimmed, until its first page.
 
@@ -874,6 +880,9 @@ Acceptance:
 - [ ] Choosing another branch while a read runs stops it: no page of the old read is added after the first of the new.
 - [ ] Choosing a branch of 2,500 commits lists its first 1,000 while its read goes on, and the other pages after.
 - [ ] The last row says **Loading more commits…** while there are more, and is gone at the end of the history.
+- [ ] In a repository of 3,000 commits, the list scrolled to its end: a commit made and **Refresh** leave it at its
+      end at each page, with the rows of before under the first page, dimmed, and never the row that says **Loading
+      more commits…** in sight; once the last page is there, the 3,001 commits are listed and none of before.
 
 ### `graph.lanes` — Lay out the lines of the graph
 
@@ -960,6 +969,9 @@ it, whether lanes are cut off at its edge, and its natural width.
   more than a third of the list.
 - Dragged, it takes the width it was dragged to, but no more than its natural width and no more than 60% of the list.
 - It is never narrower than one lane at its ease (20 px).
+- While a read of the same history has not reached the rows listed before it found other commits, the most lanes are
+  those of the rows read or of the rows of before, whichever are more (D72), so that the graph does not get narrower
+  with the first page and wider again.
 - The lanes get `(width − 6) / lanes`, between 8 and 14 px. When even 8 px each do not fit, the lanes past the edge are
   cut off, and the graph fades out at its edge rather than push the messages away.
 

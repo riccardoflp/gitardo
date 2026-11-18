@@ -735,16 +735,16 @@ extension's alone; the sixth brings the extension to what the desktop does, and 
    same history again after a branch made, on **Refresh**, after a commit made on top, and with fewer commits.
 7. **The desktop keeps the length of its list.** What D72 says, in the timeline of Gitardo Desktop, with a test of the
    window that scrolls the timeline far down, makes a commit, and finds it where it was at each page (Q780). Cards:
-   `graph.load-more`, `graph.view`. Not built with the others: it changes how the desktop draws its timeline, and
-   waits for the maintainer's answer to D72.
+   `graph.load-more`, `graph.fit-width`. The store keeps the rows listed before and their layout aside
+   (`Timeline::awaited`), and the timeline draws them under the rows read, dimmed.
 
 Phases 1 to 5 are built, on 2026-11-18. With them, one run after the other on the same machine, a **Refresh** at the
 top of the list has its last row drawn after 0.9 s where it took 4.6 s, with no frame of the view over 71 ms where one
 took 1.9 s; from row 28,064, after 1.0 s where it took 4.0 s, and after a commit made outside 1.7 s where it took
 4.6 s, with the list at row 28,064 where it was left at row 992; the graph is 62 px wide all along; and the repository
 of 1,250 commits has every row after **Refresh**. The table is in
-[the extension's testing](../extension/06-testing.md#large-repositories). Phase 6 is built after them, as Q781
-recommends until the maintainer answers otherwise; phase 7 is not built yet.
+[the extension's testing](../extension/06-testing.md#large-repositories). Phases 6 and 7 are built after them, as
+Q781 and Q780 recommend until the maintainer answers otherwise.
 
 Exit: on the large repository, with the minified build and the release build of the engine, `graph-load.mjs` reports
 that a **Refresh** has the last row drawn within 1.5 s, with no frame of the view longer than 250 ms; that after

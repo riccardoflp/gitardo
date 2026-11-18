@@ -2,6 +2,7 @@
 //! and the read past the last commit (`graph.load-more`), the selection, the folds, the label under the pointer and the history
 //! brought out, laid out again only when one of them changes.
 
+mod awaited;
 mod folds;
 mod narrow;
 mod paging;
@@ -29,6 +30,7 @@ use super::message::{Effect, JobId};
 use super::state::State;
 pub use engine::timeline::{commits_request, history_of};
 
+pub use awaited::Awaited;
 pub use narrow::{cancel_unwanted, keep_shown, kept_shown, show, timeline_read};
 pub use paging::{
     cancel_more, commits_read, is_reading, known, load_up_to, pages_read, read_again, read_request, stop_stream,
@@ -87,6 +89,9 @@ pub struct Timeline {
     pub read_at: i64,
     /// What was dropped last on a row, for the menu of the drop while it is open (`drag.drop`).
     pub dropped: Option<views::drag::Dropped>,
+    /// The rows listed before a read of the same history found other commits, drawn dimmed under those it has read
+    /// until it reaches them or ends (D72).
+    pub awaited: Option<Awaited>,
 }
 
 impl Timeline {
@@ -147,6 +152,7 @@ pub fn take_read(
     (page, shown): (CommitPage, Option<BranchesShown>),
     (job, read_at): (JobId, i64),
 ) -> bool {
+    let is_held = state.timeline.folder.as_deref() == Some(folder) && !state.timeline.is_reading_again;
     if state.timeline.folder.as_deref() != Some(folder) {
         state.timeline = Timeline {
             folder: Some(folder.to_path_buf()),
@@ -154,10 +160,13 @@ pub fn take_read(
         };
         folds::restore(state, folder);
     }
+    if !is_held {
+        state.timeline.awaited = None;
+    }
     state.timeline.shown = shown;
     state.timeline.is_reading_again = false;
     state.timeline.read_at = read_at;
-    let mut stream = Stream::from_top(job);
+    let mut stream = Stream::from_top(job, is_held);
     let is_changed = put_page(state, &mut stream, page, repository) != Change::Nothing;
     if is_changed {
         state.timeline.asked_at = None;
@@ -253,11 +262,23 @@ fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository
         follows,
     } = page;
     let is_under = stream.at == timeline.rows.len();
+    if stream.cuts_held(&timeline.rows, &rows) {
+        awaited::hold(timeline, stream.at, draft_before.as_ref());
+    }
     let mut is_changed = stream.take(&mut timeline.rows, rows);
     let mut is_added = is_changed && is_under;
     if !follows && stream.finish(&mut timeline.rows, has_more) {
         is_changed = true;
         is_added = false;
+    }
+    let draft = usize::from(draft_before.is_some());
+    if !follows
+        || timeline
+            .awaited
+            .as_ref()
+            .is_some_and(|awaited| timeline.rows.len() + draft >= awaited.rows.len())
+    {
+        timeline.awaited = None;
     }
     timeline.has_more = has_more;
     timeline.stream = follows.then(|| stream.clone());

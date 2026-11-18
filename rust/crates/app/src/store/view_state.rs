@@ -11,8 +11,8 @@ use views::activity::{ActivityState, RanTask, RunningTask, StatusBarState};
 use views::branch::ReferenceMenus;
 use views::filter::NarrowedBar;
 use views::graph::{
-    Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, RepositoryEntry, SyncCounts, TimelineMenu,
-    ToolbarState, TraceShown, ViewMenuState, WhereState,
+    Awaited, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, RepositoryEntry, SyncCounts,
+    TimelineMenu, ToolbarState, TraceShown, ViewMenuState, WhereState,
 };
 use views::log::{LogLine, LogState};
 use views::page::Page;
@@ -357,6 +357,10 @@ impl ViewData {
             }),
             commit_box: super::changes::commit_box(state),
             dropped: timeline.dropped.as_ref(),
+            awaited: timeline.awaited.as_ref().map(|awaited| Awaited {
+                rows: &awaited.rows,
+                layout: &awaited.layout,
+            }),
         }
     }
 }

@@ -151,3 +151,46 @@ fn graph_load_more__another_branch_chosen_starts_a_new_read_whose_first_page_rea
     assert!(!state.timeline.has_more);
     assert_eq!(subjects(&state).first(), Some(&first));
 }
+
+#[test]
+fn graph_load_more__a_commit_made_while_the_timeline_is_scrolled_far_down_leaves_it_where_it_is_at_each_page() {
+    let repository = imported(&line(3_000));
+    let (mut state, mut held) = opened(&repository);
+    give_held(&mut state, &mut held);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let list = bounds(&tree, Role::ListBox, "History");
+    let _ = wheel(&mut window, &state, middle(list), 1_000_000.0);
+    let _ = repository.git(&[
+        "commit",
+        "--allow-empty",
+        "--quiet",
+        "-m",
+        "Made while the list was scrolled",
+    ]);
+    let _effects = run_holding(&mut state, Message::Intent(Intent::Refresh), &mut held);
+    assert_eq!(state.timeline.loaded(), 1_000, "the first page of the read");
+    // The list is as long as it was: still scrolled to its end, it shows the rows of before, not the row that says
+    // more are loading under the first page.
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(
+        !says(&tree, "Loading more commits…"),
+        "the list stays where it was scrolled to"
+    );
+    window.assert_snapshot("timeline-held-dark");
+    while !held.is_empty() {
+        give_next(&mut state, &mut held);
+        let (_, tree) = window.draw(&state, &[]);
+        assert!(
+            !says(&tree, "Loading more commits…"),
+            "at {} commits",
+            state.timeline.loaded()
+        );
+    }
+    assert_eq!(state.timeline.loaded(), 3_001);
+    assert_eq!(state.timeline.awaited, None);
+    assert_eq!(
+        subjects(&state).first().map(String::as_str),
+        Some("Made while the list was scrolled")
+    );
+}

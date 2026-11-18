@@ -1383,9 +1383,9 @@ history (another filter, other branches, another repository) starts from its top
 
 **In the extension first**, against [D39](#d39--desktop-first-and-a-status-for-each-app): until version 1.8 of the
 protocol the extension read again as many commits as it listed, at once, so that its list kept its length; it lost
-that with the pages of D54, and it is in the extension that it was reported. The desktop gets it in phase 7 of
-[milestone M25](desktop/07-roadmap.md#m25--the-graph-of-the-extension-loads-without-stopping), once the maintainer
-says it is wanted there.
+that with the pages of D54, and it is in the extension that it was reported. The desktop got it right after, in phase
+7 of [milestone M25](desktop/07-roadmap.md#m25--the-graph-of-the-extension-loads-without-stopping): its timeline keeps
+the rows listed before aside, with their layout, and draws them under the rows read until the read reaches them.
 
 Rejected: reading again as many commits as are listed before showing any (the first page would wait for the last, which
 D54 undid); leaving the rows not read yet empty (a list scrolled far down would show nothing but the row that says
@@ -3961,7 +3961,9 @@ until the maintainer answers otherwise.
   (`Stream::take` of `app/src/store/timeline/stream.rs`), and the list brings where it is scrolled to back within its
   rows at each frame (`ui/src/widget/list/mod.rs`). So after a commit or a fetch the timeline of the desktop, scrolled
   far down, would be left at the end of its first page as the extension's was. Read in the code, not seen in the
-  window. Should the desktop keep the length of its list as D72 says? Recommended: yes, phase 7 of M25, not built.
+  window. Should the desktop keep the length of its list as D72 says? Built so, phase 7 of M25: a window test scrolls
+  the timeline to the end of 3,000 commits, makes a commit, and finds it there at each page, where before the fix the
+  row **Loading more commits…** under the first page came into sight.
 - **Q781** — `graph.read-commits` in the extension: **Refresh**, a repository chosen again and a change of the settings
   read every commit again and send every row to the views again, where the desktop leaves the rows alone while the
   pages of the new read are the rows listed (D54: a read that finds the same commits changes none of the rows). So do
