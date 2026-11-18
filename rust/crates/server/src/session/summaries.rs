@@ -4,7 +4,8 @@
 //! time, then again only when the extension's watchers saw something change in it (`repository/folderChanged`): a file
 //! of its working tree reads it whatever its git folder says, a file of its git folder only when what
 //! [`git_folder_changed`] looks at changed, and never more than once in two seconds. A folder asked lists the
-//! worktrees of its repository with `git worktree list` alone, and each of them is followed too. Nothing is read
+//! worktrees of its repository with `git worktree list` alone, again when one is added, removed or checks out another
+//! branch, and each of them is followed too. Nothing is read
 //! while an operation runs or the state of a repository is read. What a read found is said in `repository/summaries`
 //! when it is not what was said before; the first read of a folder is said there only when no answer of
 //! `read/repo.worktree-summary` under way will hold it.
@@ -337,7 +338,6 @@ fn folder_changed(session: &Arc<Session>, params: &FolderChangedParams) {
     if changes.is_empty() && !params.paths.is_empty() {
         return;
     }
-    let is_listed = |change: &Change| matches!(change, Change::GitFolder(path) if path.starts_with("worktrees"));
     {
         let mut followed = locked(&session.summaries.followed);
         let Some(entry) = followed.entry(Path::new(&params.folder)) else {
@@ -345,9 +345,20 @@ fn folder_changed(session: &Arc<Session>, params: &FolderChangedParams) {
         };
         let due = entry.due.get_or_insert_default();
         due.is_forced |= changes.is_empty() || changes.iter().any(|change| matches!(change, Change::WorkingTree(_)));
-        due.lists_again |= changes.iter().any(is_listed);
+        due.lists_again |= changes.iter().any(is_of_the_list);
     }
     start_reading(session);
+}
+
+/// Whether a change is of what `git worktree list` says: the folder git keeps for a worktree, added or removed, or
+/// the `HEAD` or the `gitdir` in it, which say its branch and where it is. Its index and its logs change at every
+/// commit made there, and list nothing new.
+fn is_of_the_list(change: &Change) -> bool {
+    let Change::GitFolder(path) = change else {
+        return false;
+    };
+    let parts: Vec<&str> = path.iter().filter_map(|part| part.to_str()).collect();
+    matches!(parts.as_slice(), ["worktrees", _] | ["worktrees", _, "HEAD" | "gitdir"])
 }
 
 /// Starts the thread that reads the folders due, unless one reads them already.

@@ -165,8 +165,14 @@ fn repo_worktree_summary__nothing_changed_in_a_folder_runs_no_git_there_and_says
     let _first = engine.notifications(SUMMARIES, Duration::from_millis(100));
     let before = fs::read_to_string(&trace).unwrap().len();
 
-    // A file of the git folder the watchers saw, while nothing a summary reads changed; and what never asks for a read.
-    for path in [".git/HEAD", ".git/index.lock", ".git/objects/ab/cdef"] {
+    // A file of the git folder the watchers saw, while nothing a summary reads changed; what never asks for a read;
+    // and the index of a worktree, which a commit there writes and which lists no worktree anew.
+    for path in [
+        ".git/HEAD",
+        ".git/index.lock",
+        ".git/objects/ab/cdef",
+        ".git/worktrees/api-login/index",
+    ] {
         engine.notify(CHANGED, &json!({ "folder": folder(&repository), "paths": [path] }));
     }
     let said = engine.notifications(SUMMARIES, Duration::from_millis(2800));

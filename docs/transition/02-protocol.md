@@ -254,7 +254,8 @@ folder followed was read once, so asking again with the same folders answers at 
 
 From then on a folder is read again only when `repository/folderChanged` names it. A path of its working tree reads it
 whatever its git folder says; a path of its git folder reads it only when its `HEAD`, its index or its references
-changed since its last read, and lists the worktrees again when the path is in `.git/worktrees/`; the paths that never
+changed since its last read, and lists the worktrees again when the path is the folder git keeps for one in
+`.git/worktrees/`, or the `HEAD` or the `gitdir` in it; the paths that never
 ask for a read (`repo.watch-changes`: git's locks, its objects, what `fsmonitor` writes) are left out, and a
 notification of those alone does nothing. An empty `paths` reads the folder whatever changed. The reads run one at a
 time on one thread, no folder more than once in two seconds, and wait while an operation runs or the state of a
