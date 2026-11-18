@@ -1361,6 +1361,86 @@ rather than a webview (a row could not put the counts at its right in their colo
 putting the list inside the Branches view (two lists with two scrolls in one view, which VS Code already splits
 better).
 
+## D73 — Search, a page that finds files, folders and text in the worktree shown
+
+*Asked by the maintainer for milestone M26, who wants the extension Search Here, of their own, inside Gitardo Desktop,
+so that the window has a search across the files of a repository; the details proposed by the agent.*
+
+Search Here finds in VS Code the text, the files, the folders and the symbols of a workspace in one view, with a
+preview of the code beside the results, filters, scopes and saved scopes. Gitardo Desktop has Quick search, which
+finds commands, commits and branches; the search of commits; **Find**, inside one file (`file-view.find`); and the
+tree of the Files page. It had nothing that finds a text across the files of a repository. Now it has a page for it,
+**Search** (`file-search.page`):
+
+- **A page of its own**, reached from **Search** in the bar of views, from `Ctrl+Shift+F`, from **Search in files…**
+  of Quick search, and from **Search here** in the context menu of a file or a folder of the Files page, which narrows
+  the search to it (`file-search.open`). Text selected in the File page or the Diff page in front becomes what is
+  looked for. A page, as the other places that show files are: it has the width for results and a preview side by
+  side, and the way back to it in the title row of the File page it opens.
+- **What it finds.** The modes of Search Here but symbols: **All**, with the folders, the files and the lines of text
+  in sections, **Text**, **Files** and **Folders**, on `Alt+1` to `Alt+4`; the switches **Match case**, **Whole word**
+  and **Regular expression** for the text. Names are matched as Search Here matches them: every term separated by a
+  space must match, its letters together or in order with others between, so that `usock` finds `useSocket.ts`
+  (`file-search.rank-names`).
+- **Where.** The scopes are tabs: **Repository**, the worktree shown; **Changes**, the files that differ from the last
+  commit; and the folder or the file **Search here** named. **Include** and **Exclude** take the patterns of Search
+  Here (`src`, `./src`, `dist/`, globs), and the switches **.gitignore** and **Hidden** say whether what git ignores
+  and the names that start with a dot are searched (`file-search.pathspecs`).
+- **Results and preview.** The results on the left, the lines of text under their files with their numbers and the
+  matches marked (`file-search.list-results`); on the right the file of the result under the keyboard, drawn as the
+  File page draws it, the line of the result lit and every match marked (`file-search.preview`). `↑` and `↓` move
+  through the results, `Enter` opens the File page at the line, a double click on a line of the preview too.
+- **Git lists the files and searches them.** The names come from one `git ls-files` of the worktree, tracked and
+  untracked, the ignored ones left out unless **.gitignore** is off (`file-search.read-names`), and are matched in
+  memory at each key. The text is searched by `git grep`, read as it prints, stopped and started again when what is
+  looked for changes, and stopped at 5,000 lines with the count said (`file-search.read-text`). **Include**,
+  **Exclude** and **Hidden** are pathspecs given to both, so that one program, git, says which files are searched. Git
+  marks every match of a line itself when it is asked for its colors with the color of a match set to one of
+  Gitardo's own, the only form in which it says more than the first.
+- **Remembered.** What is typed, the mode, the scope, the filters and the switches are kept for each repository of the
+  workspace under a new key of `state.json`, `fileSearches` (`file-search.remember`); no key there is renamed or
+  changed.
+
+**`git grep`, not the libraries of ripgrep.** Weighed as [D22](#d22--libraries-with-judgment) says. The libraries
+(`grep`, `ignore`, and what they bring: `globset`, `walkdir`, `crossbeam`, `bstr`, some twenty packages) would search
+in the process and give the bytes of every match; they would also decide by themselves what is ignored, a second
+reading of `.gitignore`, of `.git/info/exclude` and of the user's excludes beside git's own, which the Files page and
+the Changes page already follow. Git is there already, searches with as many threads as the machine has, knows what is
+tracked, untracked and ignored, and takes the pathspecs Gitardo gives it everywhere else. Measured on the working tree
+of GIMP (5,282 tracked files, 112 MB of text) on Windows 11 with 24 threads, git 2.53 against ripgrep 15.0, the
+program built from those libraries, the best of five runs each: a name on 81 lines, 173 ms with `git grep` and 194 ms
+with ripgrep; `static void`, on 16,796 lines, 210 ms and 213 ms; `the`, on 246,790 lines, 233 ms and 327 ms; a regular
+expression on 2,009 lines, 262 ms and 253 ms; the same name with the ignored files searched too, 240 ms and 217 ms; the
+list of the files, 84 ms with `git ls-files` and 73 ms with ripgrep. Nothing to gain in time, so no library is added.
+What `git grep` costs: a process for each search, started in some 20 ms; regular expressions in the form git has,
+Perl's where git was built with PCRE, as Git for Windows is, and POSIX extended elsewhere (Q807), where Search Here has
+those of ripgrep; no limit on the size of a file searched; and the files named one by one, for **Changes**, given on
+the command line, in several runs when they are many.
+
+**Built differently from Search Here, and why**: a pattern that is a path from the top (`./src`, `src/app`) is from
+the top of what is searched, so from the folder **Search here** named and not from the top of the worktree, since git
+is run in that folder (Q808); the search is remembered for each repository, not once for the workspace, since each
+repository open has its own page and its own folders (Q817); a search starts at each key without waiting, the one
+before stopped (Q818).
+
+Desktop only. In VS Code, Search Here and VS Code's own search do it: every card of the area is *Host only* in the
+extension, and nothing changes there. The two reads and the derivations are features of the engine's crates all the
+same, so that the protocol can serve them later.
+
+**Left out**, each with its question: symbols, since Gitardo runs no language server (Q800); saved scopes and scopes
+shared in a file (Q801); the project selector, since the repositories and the worktrees are chosen in the side column,
+and a search across every repository open with it (Q802); replacing what is found (Q803); the search as a tab of the
+bottom panel or as a dialog (Q804); the scope of the open files (Q805); **Include in search**, **Exclude from search**
+and the permanent exclusions of a setting (Q811, Q814).
+
+Rejected: the libraries of ripgrep, for what is said above; a searcher written here over the `regex` library the
+`text` crate already has, reading the files git lists on threads of its own (one syntax of regular expressions for the
+whole window and the bytes of every match, but a walker, the detection of binary files and of encodings and a pool of
+threads to write and to keep, where git has them); a search in the bottom panel (too low for a preview) or in the
+side column (too narrow for lines of code); searching while typing in Quick search (its picker has no room for a
+preview, and its entries are commands); matching the names in git with a pathspec at each key (a process for each
+letter, and no ranking).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3918,3 +3998,65 @@ is on it; each is built as it says until the maintainer answers otherwise.
   nothing shows its buttons, as nothing is `hovered` then; a button pressed whose row the pointer leaves is drawn no
   more until the release. A browser keeps the row of the press lit. Should a row keep what it showed while a press
   that started on one of its buttons is held?
+
+### Of the search in the files, from Q800
+
+Questions of milestone M26 ([D73](#d73--search-a-page-that-finds-files-folders-and-text-in-the-worktree-shown)), asked
+while it is planned and built; each is built as it says until the maintainer answers otherwise.
+
+- **Q800** — `file-search.page`: the mode **Symbols** of Search Here is left out, since its symbols come from the
+  language servers of VS Code and Gitardo runs none. Should Gitardo find symbols some other way, as from the
+  tokenizers that color its code (`file-view.highlight`), or wait for language servers?
+- **Q801** — `file-search.page`: the scopes are **Repository**, **Changes** and the one **Search here** named. Should
+  a scope be saved with its filters as a tab, for the repository or for every repository, and should scopes be read
+  from a file the team shares, as Search Here reads them from the settings of the workspace: from
+  `.gitardo/settings.json`?
+- **Q802** — `file-search.page`: the page searches the worktree shown, chosen in the side column, where Search Here
+  has a selector of projects. Is a search across every repository open in the window wanted, its results under the
+  name of each?
+- **Q803** — `file-search.page`: what is found cannot be replaced. Is **Replace** wanted, in one file or in all of
+  them, and as an operation with its preview and its undo?
+- **Q804** — `file-search.page`: the search is a page. Search Here is also a tab of the bottom panel and a dialog that
+  previews in the editor. Is either wanted here: a tab of the bottom panel beside **Terminal**, or the results in the
+  picker of Quick search?
+- **Q805** — `file-search.page`: the scope of the open files of Search Here is left out. Should the files of the File
+  pages open be a scope?
+- **Q806** — `file-search.pathspecs`: with **Hidden** off, as it starts, a file or a folder whose name starts with a
+  dot is not searched, as in Search Here: `.github`, `.vscode` and `.gitignore` are left out though git tracks them.
+  In a program for git, should **Hidden** leave out only the names with a dot that git does not track, or start on?
+- **Q807** — `file-search.read-text`: a regular expression is Perl's (`git grep -P`) where git was built with PCRE,
+  as Git for Windows and most others are, and POSIX extended (`-E`) elsewhere, where a class such as `\d`, the edge of
+  a word `\b` and lookaround are not read; **Find** in a file (`file-view.find`) reads those of the `regex` library,
+  with no lookaround. One window has two forms, three on a git without PCRE. Is that acceptable, or should the text
+  be matched in one form everywhere, as by a searcher written here over `regex` (rejected in D73 for what it costs)?
+- **Q808** — `file-search.pathspecs`: with a folder named by **Search here**, a pattern that is a path from the top
+  (`./src`, `src/app`) is from that folder, since git runs there; in Search Here it stays from the top of the
+  workspace folder. Should it be from the top of the worktree in every scope?
+- **Q809** — `file-search.read-text`: the files of a submodule are not searched, and a submodule is one name in the
+  list, the folder git tracks for it, as in the Files page. Should the search enter the submodules that are
+  initialized (`git grep --recurse-submodules`, which does not search untracked files)?
+- **Q810** — `file-search.read-text`: the text is searched on disk, so that edits not saved in a File page are not
+  found, as in Search Here; the preview shows the file as it is on disk too. Should the files open with edits not
+  saved be searched as they are in the editor?
+- **Q811** — `file-search.read-text`, `file-search.rank-names`: the search stops at 5,000 lines of text, lists at most
+  2,000 names, 50 folders and 100 files in **All**, previews a file of at most 1 MB, and follows no symbolic link;
+  Search Here has settings for the first, for the size of a file searched and for the links, and a setting of
+  patterns always excluded. Should any be a setting of Gitardo?
+- **Q812** — `graph.view-bar`: **Search** in the bar of views has the magnifying glass, which the button of Quick
+  search has in the header too. Should it have an icon of its own, as Lucide's glass over lines of text?
+- **Q813** — `file-search.page`: `Ctrl+Enter` of Search Here opens a result to the side. Gitardo has pages, not sides;
+  it is left out. Should it open the file beside the results, in place of the preview, as the Files page opens a file
+  beside its tree?
+- **Q814** — `file-search.open`: the context menu of the Files page gets **Search here** alone, not **Include in
+  search**, **Exclude from search** and **Always exclude** of Search Here. Are they wanted?
+- **Q815** — `file-search.preview`: the preview of a folder lists what it holds and is not browsed by clicking, as it
+  is in Search Here; `Enter` on a folder shows it in the tree of the Files page, opened. Should the preview be
+  browsed, and should `Enter` narrow the search to the folder instead?
+- **Q816** — `file-search.read-text`: git marks the matches of a line with the escape sequence of a color of
+  Gitardo's own. A line of a file that holds that very sequence would be marked wrongly. No file seen has it; is a
+  check wanted all the same?
+- **Q817** — `file-search.remember`: what is searched is remembered for each repository of the workspace, by its
+  folder, not once for the workspace as Search Here does, since each repository open has its own page. Is that right?
+- **Q818** — `file-search.page`: the text is searched again at each key, the search before stopped, with no pause
+  after the last key, where Search Here waits a moment. On a very large repository each key starts a git that is
+  stopped at the next. Should it wait some 150 ms after the last key?
