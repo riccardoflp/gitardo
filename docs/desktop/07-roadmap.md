@@ -665,6 +665,85 @@ in a worktree not shown updates its count within two seconds; a click on a workt
 its row, and choosing another repository in the toolbar of the graph marks that one; nothing is read while nothing
 changes; every card of the milestone is Built in both apps, and the end-to-end step passes.
 
+## M25 — The graph of the extension loads without stopping
+
+A fix, asked by the maintainer: the graph of the extension seems to load badly, or in blocks, perhaps from a build
+left half made. It is not the build. On a clean one, minified, with the release build of the engine, on the repository
+`extension/test/perf/big-repo.mjs` makes (56,123 commits), watched in a real VS Code on 2026-11-18 by
+`extension/test/perf/graph-load.mjs`:
+
+- **Refresh** with the list at its top: the first page is drawn after 0.3 s and the last row after 3.9 s, in three
+  blocks (1,001 rows, then 30,001, then all), and the view draws nothing for 1.1 s and then for 1.9 s. The engine has
+  read every commit after less than a second.
+- **Refresh** with the list scrolled to row 28,061: 9.3 s to the last row, the view stopped for 1.1 s, 2.3 s and 4.1 s;
+  the list is cut to its first page, thrown to row 992, the end of it, and left there. A commit made in a terminal
+  does the same, in 10.3 s.
+- On a repository of 1,250 commits, after **Refresh** the list has its first 1,000 and its last row says **Loading
+  more commits…** for good: the 247 others come only when the list is scrolled to its end.
+- The graph is 62 px wide, 48 px with the first page and 62 px again, the messages moving with it.
+
+The causes, read in the code. Until milestone M15 the graph listed a page or a few; since it lists the whole history
+(D54), what was written for a thousand rows runs over all of them at each page.
+
+1. The lines between days, weeks and months (`graph.date-separators`) are worked out over every row each time the
+   rows change, and `period` of `extension/src/webview/util.ts` writes the name of the month of each commit with
+   `toLocaleDateString`, to keep one for each month: some 40 µs a row, 2.2 s for 56,000 rows, at each message with
+   rows. The profile of the view gives it 4.9 s of the 6.3 s of a **Refresh**.
+2. `Controller.load` of `extension/src/extension/controller.ts` lays out the pages that came, then waits for the
+   newest entry of the journal before it gives the state to the views; `pageRead` drops the pages that come meanwhile
+   when no state is shown yet, and when the read ends in that wait nothing tells the views after: they keep the rows of
+   before the wait, and are told there are more.
+3. A read of another history gives its first page as soon as it is read (`EngineGraph.commits`), and
+   `Controller.post` sends it in place of the rows the views have; the list is as long as its rows, and the browser
+   brings where it is scrolled to back within it. What was read before M15 at once, as many commits as were listed,
+   now comes a page at a time.
+4. The graph is as wide as the most lanes of the rows listed need (`graph.fit-width`): fewer with the first page.
+5. Each message with the rows of a page carries the whole state and goes to every view of Gitardo, those that list no
+   commits too, and a search of the whole history is asked of git again at each of them.
+
+Built in seven phases, each one commit or more, each ending with its tests passing. The first five are the
+extension's alone; the sixth brings the extension to what the desktop does, and the seventh the desktop to
+[D72](../08-decisions.md#d72--the-list-of-commits-keeps-its-length-while-its-commits-are-read-again-proposed).
+
+1. **The measure first.** `extension/test/perf/graph-load.mjs` opens a repository in the throwaway VS Code of
+   `npm run test:ui` and records, every 50 ms, how many commits the list has, where it is scrolled to, what says that
+   more are loading, how wide the graph is, each message with commits and each frame over 50 ms, while the graph opens,
+   on **Refresh**, scrolled to the end, on **Refresh** from the middle and, with `--commit`, after a commit made
+   outside; `--profile` says where the view spent a **Refresh**. `test/perf/vscode.mjs` is given the engine, which it
+   no longer found ([Q788](../08-decisions.md#of-how-the-graph-of-the-extension-loads-from-q780)). The numbers of
+   before go into [the extension's testing](../extension/06-testing.md). No card.
+2. **The name of a month is written once.** How far back a commit is, is worked out for each row without its name; the
+   name is written for the rows that start a time, a few tens in a long history. A test counts how many names are
+   written for 50,000 commits over four years. Cards: `graph.date-separators` in the extension.
+3. **The end of a read is told.** The rest of the state is read first, and the pages that came meanwhile are laid out
+   under the rows right before the state is given to the views, with whether more follow. A test ends a read while the
+   rest of the state is awaited, and finds every row in the state, with no more to come. Cards: `graph.load-more` in
+   the extension.
+4. **A page goes to who lists commits, and asks for no search.** The rows of a page are sent to the graph and to
+   Gitardo Graph alone; what a search of the whole history found is asked again when the commits listed are others, not
+   when more come under the same ones (Q787). Cards: `graph.load-more`, `search.history` in the extension.
+5. **The list keeps its length, and the graph its width (D72).** While the commits of the same history are read again,
+   the list is as long as it was until the read reaches it or ends, and the graph as wide; the row **Loading more
+   commits…** is drawn where the list is scrolled to when that is past the commits read. A test of what the list keeps
+   takes the rows as they come after **Refresh**, and the measure of phase 1 finds the list at the row it was scrolled
+   to. Cards: `graph.load-more`, `graph.fit-width` in the extension.
+6. **The same commits change no row in the extension.** `EngineGraph` compares the pages of a read that starts again
+   with the commits of the read before it, and keeps them, laid out as they are, while they are the same, as the
+   desktop's `Stream` does: **Refresh**, a branch or a tag made and a fetch with nothing new send the views no row
+   (Q781). Cards: `graph.read-commits`, `graph.load-more` in the extension. Not built with the others: it changes how
+   the extension keeps the commits it read, which the first five phases leave as it is.
+7. **The desktop keeps the length of its list.** What D72 says, in the timeline of Gitardo Desktop, with a test of the
+   window that scrolls the timeline far down, makes a commit, and finds it where it was at each page (Q780). Cards:
+   `graph.load-more`, `graph.view`. Not built with the others: it changes how the desktop draws its timeline, and
+   waits for the maintainer's answer to D72.
+
+Exit: on the large repository, with the minified build and the release build of the engine, `graph-load.mjs` reports
+that a **Refresh** has the last row drawn within 1.5 s, with no frame of the view longer than 250 ms; that after
+**Refresh** from the middle of the list, and after a commit made outside, the list is at the row it was scrolled to;
+and that the graph is as wide during the read as before it. On a repository of 1,250 commits, the last row stops
+saying **Loading more commits…** by itself after **Refresh**. The tests of each phase pass, and the cards say what the
+extension does.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
