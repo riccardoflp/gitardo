@@ -65,7 +65,7 @@ pub struct Settings {
     pub features: FeatureSettings,
     /// `diff.collapseUnchanged`: a new Diff page starts with its unchanged lines folded.
     pub collapse_unchanged: bool,
-    /// `changes.openOnClick`: what a click on a file of the Changes page opens.
+    /// `changes.openOnClick`: what a click on a file of the changes opens; its diff unless a file says `file` (D71).
     pub open_on_click: OpenOnClick,
     /// `editor.wordWrap`: whether the File page wraps a line longer than the page or cuts it at its right edge.
     pub word_wrap: LineWrap,
@@ -95,7 +95,7 @@ impl Default for Settings {
             log_level: LogLevel::Info,
             features: FeatureSettings::default(),
             collapse_unchanged: true,
-            open_on_click: OpenOnClick::File,
+            open_on_click: OpenOnClick::Diff,
             word_wrap: LineWrap::Cut,
             markdown_open_as_preview: false,
             file_blame: FileBlameLook::default(),

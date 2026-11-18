@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- A click on a file of the changes shows its diff, where it opened the file: `changes.openOnClick` is `diff` unless a
+  settings file says `file`, which brings the File page back. **Open file** of the menu of the row opens the file
+  either way.
 - The rows of the files of the Changes page have no buttons: the name of a file has the width of its row, in a narrow
   column too. What the buttons did is in the context menu of the row, by the right button, or by the menu key on a
   row that has the keyboard, which `Tab` gives it: **Open changes**, **Open file**, **Stage** or **Unstage**,

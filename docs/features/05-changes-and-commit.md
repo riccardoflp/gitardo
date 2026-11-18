@@ -216,7 +216,10 @@ file** of its menu (`changes.row-menu`), opens.
 
 - **Kind**: Derivation
 - **Function**: `model::changes::open(input: &OpenInput) -> PageRequest`
-- **Settings**: `changes.openOnClick`: `file` (the default) or `diff`. It changes only what a click on a row does.
+- **Settings**: `changes.openOnClick`: `diff`, the default in Gitardo Desktop
+  ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)), or `file`;
+  `gitardo.changes.openOnClick`, `file` by default, in the extension (Q763). It changes only what a click on a row
+  does.
 - **Uses**: `diff.page`, `file-view.page`, `merge-view.page`, `changes.beside-file`.
 - **Extension**: a click on a file of the Changes view, its buttons **Open File** and **Open Changes**, **Open all
   changes in one editor** on the header of **Changes**, and **Compare with the saved file** on a file only an editor
@@ -237,8 +240,8 @@ Rules:
   left side; a file deleted has nothing on its right side.
 - **Open file** opens the file in the File page, as it is on disk, beside the list. A deleted file opens its Diff page
   instead.
-- A click on a row does what **Open file** does, or, with `changes.openOnClick` set to `diff`, what **Open changes**
-  does.
+- A click on a row does what **Open changes** does, so that a review goes from diff to diff, or, with
+  `changes.openOnClick` set to `file`, what **Open file** does.
 - A click on a file in conflict opens its Merge page.
 - **Compare with the saved file**, on a file that only an editor has changed, opens a Diff page with the file as it is
   on disk on the left and the buffer not saved on the right, editable.
@@ -250,8 +253,8 @@ Acceptance:
 
 - [x] A file partly staged opens with the index on the left and the file on disk on the right.
 - [x] A file all staged opens with `HEAD` on the left and the index on the right.
-- [x] With `changes.openOnClick` set to `diff`, a click on a row opens the same Diff page as **Open changes**; with
-      `file`, the File page.
+- [x] With `changes.openOnClick` not set, or set to `diff`, a click on a row opens the same Diff page as **Open
+      changes**; with `file`, the File page.
 - [x] A click on a deleted file opens its Diff page whatever the setting says.
 - [x] **Open all changes in one Diff page** with three changed files opens one Diff page with three files.
 - [ ] Extension: **Open all changes in one editor** with `a.txt` wholly staged and `b.txt` with changes not staged
@@ -261,6 +264,7 @@ Acceptance:
       VS Code's comparison of the file on disk with what its editor has, not saved.
 - [ ] Extension: a click on a file in conflict that has its base and both sides opens it in the merge editor, whatever
       `gitardo.changes.openOnClick` says.
+- [ ] Extension: with `gitardo.changes.openOnClick` not set, a click on a file of the Changes view opens the file.
 
 ### `changes.beside-file` — The Changes page beside what it opens
 

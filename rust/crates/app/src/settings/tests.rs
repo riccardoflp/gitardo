@@ -29,6 +29,26 @@ fn settings_read__editor_word_wrap_on_wraps_the_lines_of_the_file_page_and_off_c
 }
 
 #[test]
+fn changes_open__a_click_shows_the_diff_unless_changes_open_on_click_says_file() {
+    use model::changes::OpenOnClick;
+    let on_click = |user: &str| parse(Some(user), None).open_on_click;
+    assert_eq!(on_click("{}"), OpenOnClick::Diff);
+    assert_eq!(Settings::default().open_on_click, OpenOnClick::Diff);
+    assert_eq!(on_click(r#"{ "changes.openOnClick": "diff" }"#), OpenOnClick::Diff);
+    assert_eq!(on_click(r#"{ "changes.openOnClick": "file" }"#), OpenOnClick::File);
+    let unknown = parse(Some(r#"{ "changes.openOnClick": "editor" }"#), None);
+    assert_eq!(unknown.open_on_click, OpenOnClick::Diff);
+    assert!(
+        unknown
+            .problems
+            .iter()
+            .any(|problem| problem.key == "changes.openOnClick"),
+        "{:?}",
+        unknown.problems
+    );
+}
+
+#[test]
 fn file_view_file_icons__the_setting_file_icons_chooses_symbols_monochrome_or_simple() {
     let style = |user: &str| parse(Some(user), None).file_icons;
     assert_eq!(style("{}"), ui::FileIconStyle::Symbols);

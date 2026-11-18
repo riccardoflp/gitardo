@@ -213,6 +213,28 @@ fn changes_beside_file__open_file_then_a_click_set_to_diff_show_each_in_the_same
 }
 
 #[test]
+fn changes_open__a_click_on_a_row_shows_its_diff_by_default_and_the_file_with_open_on_click_set_to_file() {
+    let repository = three_changed();
+    let (mut state, driver) = changes_page(&repository);
+    assert_eq!(state.settings.open_on_click, model::changes::OpenOnClick::Diff);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let intents = window.click_at(&state, name_of(&tree, "a.txt"), 1);
+    apply(&driver, &mut state, intents);
+    assert_eq!(beside(&state), Some(diff_of("a.txt")), "a click shows the diff");
+    assert_eq!(versions(&state), (DiffVersion::Index, DiffVersion::WorkingTree));
+    state.settings = app::settings::parse(Some(r#"{ "changes.openOnClick": "file" }"#), None);
+    let (_, tree) = window.draw(&state, &[]);
+    let intents = window.click_at(&state, name_of(&tree, "b.txt"), 1);
+    apply(&driver, &mut state, intents);
+    assert_eq!(
+        beside(&state),
+        Some(file_of("b.txt")),
+        "set to file, a click shows the file"
+    );
+}
+
+#[test]
 fn changes_beside_file__ticking_the_box_of_the_file_shown_stages_it_and_the_place_shows_its_staged_changes() {
     let repository = three_changed();
     let (mut state, driver) = changes_page(&repository);

@@ -13,8 +13,8 @@ Two versions of a file side by side, kept level, with every change joined across
 
 - **Kind**: View
 - **Function**: `views::diff::page_view(state, ui) -> Vec<Intent>`
-- **Entry points**: a click on a file in the Changes page when `changes.openOnClick` is `diff`, and **Open changes** on
-  its row; a file in the inspector, beside it (`diff.beside-inspector`); a file in the Commit page and in a
+- **Entry points**: a click on a file of the changes unless `changes.openOnClick` is `file`, and **Open changes** of
+  the menu of its row; a file in the inspector, beside it (`diff.beside-inspector`); a file in the Commit page and in a
   comparison; **Compare with the saved file** in the Changes page; **Compare with…** on a file; the button on the
   header of the Changes page that opens all its diffs in one page; **Show the result** in the review of the
   conflicts; `conflicts.open-file` for a file deleted on one side; a deleted file of the Files page
@@ -890,7 +890,7 @@ read-only.
 - **Kind**: View
 - **Function**: `views::file_view::page_view(state, ui) -> Vec<Intent>`
 - **Entry points**: a click on a file in the Files page, beside its tree (`file-view.beside-files`); a click on a file
-  in the Changes page when `changes.openOnClick` is not `diff`, and **Open file** on its row; **Open file** of a Diff
+  of the changes when `changes.openOnClick` is `file`, and **Open file** of the menu of its row; **Open file** of a Diff
   page; `F4` in a Diff or Merge page; `conflicts.open-file` for a file both sides added; a line number in the review of
   the conflicts; `merge-view.close`; **Open the file at this revision** on a file of a commit; **Blame the file as it
   was before** in the blame (`blame.`).
