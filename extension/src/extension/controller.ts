@@ -388,8 +388,8 @@ export class Controller implements vscode.Disposable {
       vscode.workspace.onDidChangeConfiguration((event) => {
         const sections = ['gitardo.conflicts', 'gitardo.pull', 'gitardo.worktrees', 'gitardo.branches', 'gitardo.graph', 'git.branchSortOrder'];
         if (sections.some((section) => event.affectsConfiguration(section))) {
-          // They can change what is listed: the commits are read again (Q442).
-          this.engineGraph.forget();
+          // They can change what is listed: the commits are read again (Q442), and those that are the same stay (Q781).
+          this.engineGraph.readAgain();
           this.scheduleRefresh('the settings changed');
           // The repositories kept were read with the settings before: each is read again once it is shown.
           this.kept.changedAll('the settings changed');
@@ -670,8 +670,9 @@ export class Controller implements vscode.Disposable {
     const client = reads.client();
     const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
     const firstParent = this.firstParent();
-    // **Refresh** reads every commit again; the other reads keep them while the history is the same (Q442).
-    if (everything) this.engineGraph.forget(repo.root);
+    // **Refresh** reads every commit again; the other reads keep them while the history is the same (Q442). The rows of
+    // the commits it finds the same stay as they are, and the views are sent none of them (Q781).
+    if (everything) this.engineGraph.readAgain(repo.root);
     // What the views show but the commits, and then the commits of the graph from what it says (stage 7).
     const parts = await reads.parts(repo, this.autoResolve(), everything);
     const reader = this.graphReader(client, repo);

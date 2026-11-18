@@ -3966,8 +3966,10 @@ until the maintainer answers otherwise.
   read every commit again and send every row to the views again, where the desktop leaves the rows alone while the
   pages of the new read are the rows listed (D54: a read that finds the same commits changes none of the rows). So do
   a branch or a tag made, and a fetch that brings nothing the graph lists: the references moved, the read is another,
-  and its 56,000 rows are the same. Recommended: `EngineGraph` compares the pages of a read that starts again with the
-  commits of the read before, and keeps them, with their layout, while they are the same; phase 6 of M25, not built.
+  and its 56,000 rows are the same. Built, phase 6 of M25: `EngineGraph` compares the pages of a read that starts
+  again with the commits of the read before, and keeps them, with their layout, while they are the same; from the
+  first that is not, the rows are cut there and laid out again. Should **Refresh** keep asking git for every commit,
+  or only for those of the first page when they are the same?
 - **Q782** — D72: under the last commit read, the list that keeps its length shows the rows it had before, dimmed
   after 150 ms as the whole list is until the first page of another history, without their labels and taking no click,
   for the second or two the pages take on 56,000 commits. They are the commits of before the read: after a commit made,

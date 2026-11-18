@@ -41,7 +41,15 @@ on to the end of the history, or to 100,000 commits (D54).
 - **Uses**: `filter.log-arguments`, `graph.place-stashes`, `graph.lanes`.
 - **Extension**: `read/graph.read-commits` of Gitardo's engine with `stream` (version 1.8 of the protocol), each page
   in a notification `read/graph.rows` as it is read; `EngineGraph` of `src/engine/graph.ts` keeps one read for each
-  repository, adds its pages as they come, and stops it when another history is asked for.
+  repository, adds its pages as they come, and stops it when another history is asked for. The same history read
+  again, after a commit, a fetch, a branch or a tag made, on **Refresh** (`readAgain`) or after a change of the
+  settings, goes over the commits listed: while its pages are the same commits, they stay, laid out as they are, and
+  the views are sent none of them; from the first that is not, the commits are cut there and those read follow, laid
+  out again; a read that ends with fewer leaves as many (milestone M25, Q781). Tested by `test/graphPages.test.ts`,
+  "keeps every row, and gives the views none, when a read after a branch was made finds the same commits", "reads
+  every commit again on Refresh, and keeps the rows of those that are the same", "cuts the rows where a read finds
+  other commits, as after a commit made on top, and lays them out as a first read would" and "takes out the commits
+  the history no longer has when a read of it ends with fewer".
 
 Acceptance:
 
