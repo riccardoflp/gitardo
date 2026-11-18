@@ -722,10 +722,14 @@ each folding by its heading, the line between them dragged
   **Repositories** (`repo.open-tab`); **Create branch**, **Compare** and the button of the rail's own filter for
   **Branches** (`branch.pane`), each an icon with its name in its tooltip. A folded section is its heading alone, and
   the other takes the height.
+- The heading of **Branches** has a line above it, whether the sections are open or folded
+  ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)): two folded
+  sections, or a folded one under an open one, are still told apart.
 - The side column is dense, as a list one reads at a glance: rows one line high, the gaps between them and between the
   sections those of a list (4 logical pixels above the filter box and between it and the lists, 8 between two lists of
   the rail), and no button less than 24 logical pixels high.
-- The line between them is dragged to share the height (`graph.resize-panes`), the arrows moving it with the keyboard.
+- While both are open, the line between them is dragged to share the height (`graph.resize-panes`), the arrows
+  moving it with the keyboard; while one is folded the line is drawn and takes neither the pointer nor the keyboard.
   **Repositories** starts at 160 logical pixels, or as tall as its rows when they need less; neither is shorter than 64
   logical pixels while both are open.
 - Which sections are folded and the height of **Repositories** are remembered for the workspace.
@@ -746,7 +750,11 @@ Acceptance:
 - [ ] The side column's top is under the header, level with the timeline's top, and its foot touches the status
       bar's gap.
 - [ ] Folding **Branches** gives **Repositories** the whole height but the heading of **Branches**.
-- [ ] Folding both leaves two headings at the top, and the rest of the island empty.
+- [ ] Folding both leaves two headings at the top, a line between them, and the rest of the island empty.
+- [ ] The line above the heading of **Branches** is drawn with both sections open, with either folded and with both
+      folded.
+- [ ] Every heading but the first has its line above it and the parts follow one another without overlapping,
+      whatever is folded; only the line under an open section with an open one under it is dragged.
 - [ ] Dragging the line between the sections changes their heights, and they are the same after the window opens
       again.
 - [ ] The side column stays beside the Changes page and the settings page.

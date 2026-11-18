@@ -5,14 +5,17 @@
 
 mod rows;
 mod side_column;
+mod side_sections;
+#[cfg(test)]
+mod side_sections_tests;
 mod summary;
 mod tabs;
 
 pub(crate) use side_column::side_column;
 pub use side_column::{
-    REPOSITORIES_START, SECTION_LEAST, SectionRects, SideColumnState, SideSections, repositories_height, section_rects,
-    side_column_view,
+    REPOSITORIES_START, SectionRects, SideColumnState, SideSections, section_rects, side_column_view,
 };
+pub use side_sections::{DraggedLine, SECTION_LEAST, SectionAsk, SectionPlace, section_places};
 pub use summary::{TabSummary, counts_words, head_words};
 pub use tabs::{TabEntry, TabMemberEntry, TabPlace, TabsState, cut_at_start, row_height, rows_height, tabs_view};
 

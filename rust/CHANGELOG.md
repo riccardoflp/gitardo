@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The sections of the side column keep the line above their headings when they are folded: the line above
+  **Branches** was drawn only while **Repositories** and **Branches** were both open, so that two folded sections, or
+  a folded one under an open one, ran into each other. The line is dragged, as before, only while both are open.
 - What is selected is tinted with the accent of the theme in the dark and in the light theme: a selected commit, a
   selected file, the selected rows of any list that has the focus stand on the amber of the buttons and of the ring of
   the focus mixed into the ground, a warm brown in the dark theme and a sand in the light one, where they stood on a

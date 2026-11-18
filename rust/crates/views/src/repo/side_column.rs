@@ -1,13 +1,14 @@
 //! The side column (`repo.side-column`, D56): one island on the left of the window, from under the header to the
 //! status bar, with **Repositories** above (`repo.tabs`) and **Branches** under it, which is the branch rail
-//! (`branch.pane`); each folds by its heading, which has the buttons of its section on its right, and the line between
-//! them is dragged to share the height.
+//! (`branch.pane`); each folds by its heading, which has the buttons of its section on its right and, but for the
+//! first, a line above it; the line between two open sections is dragged to share the height.
 
 use std::time::Duration;
 
 use ui::layout::{Area, Insets, inset};
 use ui::{AccessRole, Axis, Description, Label, Rect, Sense, Split, Splitter, TextKind, Tone, Ui};
 
+use super::side_sections::{DraggedLine, SECTION_LEAST, SectionAsk, SectionPlace, section_places};
 use super::tabs::{TabsState, open_button, rows_height, tabs_view};
 use crate::graph::{GraphIntent, HoverTarget, Pane, SideSection};
 use crate::icons;
@@ -17,9 +18,7 @@ use crate::text::repo as words;
 
 /// The height **Repositories** starts at, its heading included, unless its rows need less.
 pub const REPOSITORIES_START: f32 = 160.0;
-/// The least height of either section while both are open.
-pub const SECTION_LEAST: f32 = 64.0;
-/// How far an arrow moves the line between the sections.
+/// How far an arrow moves a line between the sections.
 const STEP: f32 = 16.0;
 
 /// What the side column shows.
@@ -45,83 +44,47 @@ pub struct SideSections {
     pub is_branches_folded: bool,
 }
 
-/// Where the parts of the side column go.
+/// Where the sections of the side column go, from the top.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SectionRects {
-    /// The heading of **Repositories**.
-    pub repositories_heading: Rect,
-    /// Its rows, while it is open.
-    pub repositories: Option<Rect>,
-    /// The heading of **Branches**.
-    pub branches_heading: Rect,
-    /// The branch rail, while it is open.
-    pub branches: Option<Rect>,
+    /// **Repositories**.
+    pub repositories: SectionPlace,
+    /// **Branches**.
+    pub branches: SectionPlace,
 }
 
-/// The height **Repositories** takes while both sections are open, its heading included: as dragged, or where it
-/// starts, [`REPOSITORIES_START`] or as tall as its rows when they need less; never less than [`SECTION_LEAST`], nor so
-/// tall that **Branches** has less, while there is room for both.
-#[must_use]
-pub fn repositories_height(column: f32, sections: SideSections, (heading, rows): (f32, f32), line: f32) -> f32 {
-    let start = REPOSITORIES_START.min(heading + rows);
-    let room = (column - line).max(0.0);
-    let most = (room - SECTION_LEAST).max(SECTION_LEAST);
-    sections
-        .repositories_height
-        .unwrap_or(start)
-        .clamp(SECTION_LEAST, most)
-        .min(room)
-}
-
-/// Where the headings and the sections go in a column: a folded section is its heading alone, and the other takes the
-/// height; **Branches** folded keeps its heading at the foot of the column.
+/// Where the headings, the lines and the sections go in a column, from the heights of a heading, of the rows of
+/// **Repositories** and of a line: **Repositories** as high as it was dragged, or where it starts,
+/// [`REPOSITORIES_START`] or as tall as its rows when they need less, while **Branches** is open under it; a folded
+/// section is its heading alone, and the heading of **Branches** has its line above it whatever is folded.
 #[must_use]
 pub fn section_rects(column: Rect, sections: SideSections, (heading, rows): (f32, f32), line: f32) -> SectionRects {
-    let mut area = Area::new(column);
-    let repositories_heading = area.top(heading);
-    match (sections.is_repositories_folded, sections.is_branches_folded) {
-        (true, true) => SectionRects {
-            repositories_heading,
-            repositories: None,
-            branches_heading: area.top(heading),
-            branches: None,
+    let asks = [
+        SectionAsk {
+            is_folded: sections.is_repositories_folded,
+            wanted: sections
+                .repositories_height
+                .unwrap_or_else(|| repositories_start(heading, rows)),
         },
-        (true, false) => {
-            let branches_heading = area.top(heading);
-            SectionRects {
-                repositories_heading,
-                repositories: None,
-                branches_heading,
-                branches: Some(area.rest()),
-            }
-        }
-        (false, true) => {
-            let branches_heading = area.bottom(heading);
-            SectionRects {
-                repositories_heading,
-                repositories: Some(area.rest()),
-                branches_heading,
-                branches: None,
-            }
-        }
-        (false, false) => {
-            let height = repositories_height(column.height, sections, (heading, rows), line);
-            let repositories = area.top((height - heading).max(0.0));
-            let _line = area.top(line);
-            let branches_heading = area.top(heading);
-            SectionRects {
-                repositories_heading,
-                repositories: Some(repositories),
-                branches_heading,
-                branches: Some(area.rest()),
-            }
-        }
-    }
+        SectionAsk {
+            is_folded: sections.is_branches_folded,
+            // The last section takes what is left.
+            wanted: SECTION_LEAST,
+        },
+    ];
+    let [repositories, branches] = section_places(column, asks, (heading, line));
+    SectionRects { repositories, branches }
+}
+
+/// The height **Repositories** starts at, its heading included: [`REPOSITORIES_START`], or as tall as its rows when
+/// they need less.
+fn repositories_start(heading: f32, rows: f32) -> f32 {
+    REPOSITORIES_START.min(heading + rows)
 }
 
 /// The side column over the rectangle its caller clipped it to: the heading of **Repositories** with its chevron and
-/// **+**, its rows, the line that is dragged between the sections while both are open, the heading of **Branches** and
-/// the branch rail. A click on a heading folds or unfolds its section.
+/// **+**, its rows, the line above the heading of **Branches**, which is dragged while both sections are open, that
+/// heading and the branch rail. A click on a heading folds or unfolds its section.
 ///
 /// Feature: repo.side-column
 pub fn side_column_view(state: &SideColumnState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -146,21 +109,28 @@ pub(crate) fn side_column(
         (column, AccessRole::Navigation, words::SIDE_COLUMN),
         |ui| {
             let rects = section_rects(column, sections, (heading, rows), line);
-            if !sections.is_repositories_folded && !sections.is_branches_folded {
-                intents.extend(section_line(ui, column, sections, (heading, rows)));
-            }
+            let start = repositories_start(heading, rows);
+            let lines = [&rects.repositories, &rects.branches];
+            intents.extend(lines.into_iter().filter_map(|place| {
+                let dragged = SectionLine {
+                    place,
+                    pane: Pane::Repositories,
+                    start,
+                };
+                section_line(ui, column, &dragged)
+            }));
             let open = heading_row(
                 ui,
-                rects.repositories_heading,
+                rects.repositories.heading,
                 (SideSection::Repositories, sections, heading),
             );
             intents.extend(open);
             intents.extend(open_button(
                 state.tabs.not_open,
                 ui,
-                Area::new(rects.repositories_heading).right(heading),
+                Area::new(rects.repositories.heading).right(heading),
             ));
-            if let Some(rows) = rects.repositories {
+            if let Some(rows) = rects.repositories.body {
                 intents.extend(ui.clip(rows, |ui| tabs_view(&state.tabs, ui)));
             }
             let buttons = state
@@ -169,15 +139,15 @@ pub(crate) fn side_column(
                 .map_or(0.0, |_| crate::branch::buttons_width(ui, heading));
             intents.extend(heading_row(
                 ui,
-                rects.branches_heading,
+                rects.branches.heading,
                 (SideSection::Branches, sections, buttons),
             ));
             if let Some(references) = &state.branches {
-                let room = Area::new(rects.branches_heading).right(buttons + theme.sizes.spacing.small);
+                let room = Area::new(rects.branches.heading).right(buttons + theme.sizes.spacing.small);
                 let room = inset(room, Insets::symmetric(theme.sizes.spacing.small, 0.0));
                 intents.extend(crate::branch::pane_buttons(references, ui, room));
             }
-            if let (Some(rail), Some(references)) = (rects.branches, &state.branches) {
+            if let (Some(rail), Some(references)) = (rects.branches.body, &state.branches) {
                 let (rail_intents, rail_hover) = ui.clip(rail, |ui| crate::branch::pane_view(references, ui));
                 intents.extend(rail_intents);
                 hover = rail_hover;
@@ -187,27 +157,46 @@ pub(crate) fn side_column(
     (intents, hover)
 }
 
-/// The line between the two sections, dragged or moved with the arrows to share the height; a double click puts
-/// **Repositories** back where it starts.
-fn section_line(ui: &mut Ui<'_>, column: Rect, sections: SideSections, (heading, rows): (f32, f32)) -> Option<Intent> {
+/// The lines of a section, and what the one under it changes when it is dragged.
+struct SectionLine<'a> {
+    /// Where the section is.
+    place: &'a SectionPlace,
+    /// The pane whose height the line under the section sets.
+    pane: Pane,
+    /// The height the section starts at, which a double click on the line brings back.
+    start: f32,
+}
+
+/// The lines of a section: the one above its heading, drawn whatever is folded, and the one under it while that one is
+/// dragged, or moved with the arrows, to change the height of the section; a double click puts the section back where
+/// it starts.
+fn section_line(ui: &mut Ui<'_>, column: Rect, section: &SectionLine<'_>) -> Option<Intent> {
+    if let Some(rule) = section.place.line {
+        ui.separator(rule, Axis::Horizontal);
+    }
+    let DraggedLine {
+        top,
+        height,
+        room,
+        least_after,
+    } = section.place.dragged?;
     let line = ui.theme().sizes.border;
-    let height = repositories_height(column.height, sections, (heading, rows), line);
     let splitter = Splitter {
         split: Split::Rows,
-        default_size: REPOSITORIES_START.min(heading + rows),
+        default_size: section.start,
         least_first: SECTION_LEAST,
-        least_second: SECTION_LEAST,
+        least_second: least_after,
         size: Some(height),
         step: STEP,
     };
-    let response = ui.splitter_across("side sections line", column, &splitter, line);
-    let rule = Rect::new(column.x, column.y + height, column.width, line);
-    ui.separator(rule, Axis::Horizontal);
-    let pane = |size| Intent::Graph(GraphIntent::SetPane(Pane::Repositories, size));
+    // The splitter counts from the top of the section, over the height it shares with the open sections under it.
+    let shared = Rect::new(column.x, top, column.width, room + line);
+    let response = ui.splitter_across(("side sections line", section.pane), shared, &splitter, line);
+    let sized = |size| Intent::Graph(GraphIntent::SetPane(section.pane, size));
     if response.is_reset {
-        Some(pane(None))
+        Some(sized(None))
     } else if response.is_changed {
-        Some(pane(Some(response.size)))
+        Some(sized(Some(response.size)))
     } else {
         None
     }

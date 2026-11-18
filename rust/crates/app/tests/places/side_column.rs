@@ -27,6 +27,8 @@ use super::{repository_with_history, showing};
 pub(super) const HEADER: f32 = 48.0;
 /// The height of the status bar.
 const STATUS: f32 = 26.0;
+/// The thickness of the line above the heading of a section.
+const LINE: f32 = 1.0;
 
 /// The side column drawn.
 pub(super) fn column(tree: &TreeUpdate) -> Rect {
@@ -167,7 +169,8 @@ fn repo_side_column__folding_branches_gives_repositories_the_whole_height_but_it
         (heading.bottom() - column.bottom()).abs() < 0.5,
         "{heading:?} {column:?}"
     );
-    assert!((rows(&tree).bottom() - heading.y).abs() < 0.5);
+    // The line above the heading of **Branches** is between the rows and the heading.
+    assert!((heading.y - rows(&tree).bottom() - LINE).abs() < 0.5);
     assert!(!has(&tree, Role::Navigation, views::text::rail::RAIL));
 }
 
@@ -186,9 +189,47 @@ fn repo_side_column__folding_both_leaves_two_headings_at_the_top_and_the_rest_em
     let first = bounds(&tree, Role::Button, words::REPOSITORIES);
     let second = bounds(&tree, Role::Button, words::BRANCHES);
     assert!((first.y - column.y).abs() < 0.5);
-    assert!((second.y - first.bottom()).abs() < 0.5);
+    assert!(
+        (second.y - first.bottom() - LINE).abs() < 0.5,
+        "a line apart: {first:?} {second:?}"
+    );
     assert!(!has(&tree, Role::Navigation, words::TABS));
     assert!(!has(&tree, Role::Navigation, views::text::rail::RAIL));
+}
+
+#[test]
+fn repo_side_column__the_line_above_the_heading_of_branches_is_drawn_whatever_is_folded() {
+    let border = render::Theme::new(ThemeName::Dark, render::Appearance::Dark)
+        .colors
+        .border;
+    for folded in [
+        vec![],
+        vec![SideSection::Repositories],
+        vec![SideSection::Branches],
+        vec![SideSection::Repositories, SideSection::Branches],
+    ] {
+        let (_kept, _clones, mut state) = three_clones();
+        let folds = folded
+            .iter()
+            .map(|section| Intent::Graph(GraphIntent::FoldSection(*section)));
+        apply(&mut state, folds.collect());
+        let mut window = Window::new(ThemeName::Dark, WIDE);
+        let (_, tree) = window.draw(&state, &[]);
+        let heading = bounds(&tree, Role::Button, words::BRANCHES);
+        let middle = heading.x + heading.width * 0.5;
+        #[allow(
+            clippy::cast_possible_truncation,
+            reason = "a window is far smaller than an i32 counts"
+        )]
+        let pixel = |y: f32| window.frame.pixel(middle as i32, y.floor() as i32);
+        assert_eq!(
+            pixel(heading.y - LINE),
+            Some(border),
+            "the line above the heading: {folded:?}"
+        );
+        assert_ne!(pixel(heading.y - LINE - 2.0), Some(border), "{folded:?}");
+        assert_ne!(pixel(heading.y + 2.0), Some(border), "{folded:?}");
+    }
 }
 
 #[test]
