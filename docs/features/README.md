@@ -163,11 +163,11 @@ earns it.
 | [`filter.log-arguments`](03-search-and-filter.md#filterlog-arguments--which-history-the-timeline-lists) | Which history the timeline lists | Derivation | Built | Built |
 | [`filter.remember`](03-search-and-filter.md#filterremember--the-branches-shown-remembered-per-repository) | The branches shown, remembered per repository | Derivation | Built | Built |
 | [`file-search.page`](03-search-and-filter.md#file-searchpage--the-search-page) | The Search page | View | Specified | Host only |
-| [`file-search.read-names`](03-search-and-filter.md#file-searchread-names--the-files-of-the-worktree-for-the-search) | The files of the worktree, for the search | Read | Specified | Host only |
-| [`file-search.pathspecs`](03-search-and-filter.md#file-searchpathspecs--what-narrows-a-search-to-some-files) | What narrows a search to some files | Derivation | Specified | Host only |
-| [`file-search.rank-names`](03-search-and-filter.md#file-searchrank-names--which-files-and-folders-match-best) | Which files and folders match best | Derivation | Specified | Host only |
-| [`file-search.read-text`](03-search-and-filter.md#file-searchread-text--search-the-text-of-the-files) | Search the text of the files | Read | Specified | Host only |
-| [`file-search.list-results`](03-search-and-filter.md#file-searchlist-results--the-results-as-the-list-shows-them) | The results, as the list shows them | Derivation | Specified | Host only |
+| [`file-search.read-names`](03-search-and-filter.md#file-searchread-names--the-files-of-the-worktree-for-the-search) | The files of the worktree, for the search | Read | Built | Host only |
+| [`file-search.pathspecs`](03-search-and-filter.md#file-searchpathspecs--what-narrows-a-search-to-some-files) | What narrows a search to some files | Derivation | Built | Host only |
+| [`file-search.rank-names`](03-search-and-filter.md#file-searchrank-names--which-files-and-folders-match-best) | Which files and folders match best | Derivation | Built | Host only |
+| [`file-search.read-text`](03-search-and-filter.md#file-searchread-text--search-the-text-of-the-files) | Search the text of the files | Read | Built | Host only |
+| [`file-search.list-results`](03-search-and-filter.md#file-searchlist-results--the-results-as-the-list-shows-them) | The results, as the list shows them | Derivation | Built | Host only |
 | [`file-search.preview`](03-search-and-filter.md#file-searchpreview--the-preview-of-a-result) | The preview of a result | View | Specified | Host only |
 | [`file-search.open`](03-search-and-filter.md#file-searchopen--search-from-anywhere) | Search from anywhere | Derivation | Specified | Host only |
 | [`file-search.remember`](03-search-and-filter.md#file-searchremember--the-search-remembered-for-each-repository) | The search, remembered for each repository | Derivation | Specified | Host only |
