@@ -11,7 +11,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import { fitGraph, foldMerges, laneCount, laneTips, mergedBranch, mergedCommits, oneLane, ownCommits, reachedFrom, reaching, traceGraph, type GraphTrace } from '../shared/graph';
+import { fitGraph, foldMerges, laneCount, laneTips, mergedBranch, mergedCommits, oneLane, ownCommits, reachedFrom, reaching, traceGraph, type GraphTrace, type ShownRow } from '../shared/graph';
 import { WORKTREE, type GraphColumn, type GraphRow, type Loading, type PullRequest, type Row } from '../shared/protocol';
 import { pullTitle } from '../shared/refs';
 import { Icon } from './Icon';
@@ -21,6 +21,7 @@ import { endDrag, startDrag, type DragSource } from './drag';
 import { datePeriods, fullDate, laneColor, relativeTime, shortHash } from './util';
 import { post } from './vscode';
 import { useKept } from './kept';
+import { held, type Held } from './pages';
 
 export interface Label {
   /** `good`, `bad` and `skipped` are the marks of a bisect in progress. */
@@ -41,6 +42,8 @@ export type SelectMode = 'single' | 'toggle' | 'range';
 interface Props {
   /** The repository the commits are of, which keeps where they were scrolled to while another is shown. */
   root: string;
+  /** The history the commits are of, the repository and what the graph is narrowed to: read again, the list keeps its length (D72). */
+  listing: string;
   /** Whether it does, as `gitardo.repositories.keepOpen` says (`repo.keep-open`). */
   keepOpen: boolean;
   rows: Row[];
@@ -381,7 +384,17 @@ export function CommitList(props: Props) {
     for (const row of rows) most = Math.max(most, laneCount(row.graph));
     return most;
   }, [rows]);
-  const fit = fitGraph(lanes, props.graphWidth, width);
+  // While the commits of the same history are read again from their first page, after a commit, a fetch or Refresh, the
+  // list keeps the length it had, so that it stays where it is scrolled to, and the graph its width (D72).
+  const kept = useRef<Held | null>(null);
+  kept.current = held(kept.current, props.listing, props.rows.length, lanes, hasMore);
+  // The rows not read again yet, under those that are.
+  const awaited = kept.current.loaded - props.rows.length;
+  const length = rows.length + awaited + (hasMore ? 1 : 0);
+  // The rows the list had before the read started again: they are drawn, dimmed, where its own are not read yet.
+  const before = useRef<ShownRow[]>(rows);
+  if (!awaited) before.current = rows;
+  const fit = fitGraph(kept.current.lanes, props.graphWidth, width);
   const matchSet = useMemo(() => (matches ? new Set(matches) : null), [matches]);
   const periods = useMemo(() => (props.dateSeparators ? datePeriods(rows) : null), [rows, props.dateSeparators]);
   // The branches whose tips are above the top of the list, on the lines that go on down it.
@@ -402,6 +415,9 @@ export function CommitList(props: Props) {
 
   const start = Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN);
   const end = Math.min(rows.length, Math.ceil((scrollTop + height) / rowHeight) + OVERSCAN);
+  // Under the row that says more are loading, the rows of before that are in sight, each where it was.
+  const awaitedFrom = Math.max(rows.length + 1, start);
+  const awaitedRows = awaited ? before.current.slice(awaitedFrom, Math.min(length, Math.ceil((scrollTop + height) / rowHeight) + OVERSCAN)) : [];
 
   // Ask for the next page once per loaded length, well before the end of the list comes into sight. With small pages
   // one follows the other until there are enough ahead.
@@ -526,7 +542,7 @@ export function CommitList(props: Props) {
         </div>
       )}
       {rows.length > 0 && height > 0 && (
-        <ScrollMarks rows={rows} total={rows.length + (hasMore ? 1 : 0)} height={height} head={props.head} selected={selected} matches={matchSet} />
+        <ScrollMarks rows={rows} total={length} height={height} head={props.head} selected={selected} matches={matchSet} />
       )}
       {offscreen.length > 0 && (
         <div className="lane-names" style={{ '--graph': `${fit.width}px` } as CSSProperties}>
@@ -552,7 +568,7 @@ export function CommitList(props: Props) {
         </div>
       )}
       {/* With more to load, one more row says so at the end, where scrolling gets before they come. */}
-      <div className="spacer" style={{ height: (rows.length + (hasMore ? 1 : 0)) * rowHeight }}>
+      <div className="spacer" style={{ height: length * rowHeight }}>
         {rows.slice(start, end).map((row, offset) => {
           const index = start + offset;
           if (row.folded) {
@@ -699,8 +715,42 @@ export function CommitList(props: Props) {
             </div>
           );
         })}
+        {awaitedRows.map((row, offset) => (
+          <div
+            key={`awaited:${row.hash}`}
+            className={tall ? 'row tall awaited' : 'row awaited'}
+            style={{ top: (awaitedFrom + offset) * rowHeight, height: rowHeight }}
+            aria-hidden="true"
+          >
+            <Graph graph={row.graph} width={fit.width} height={rowHeight} lane={fit.lane} node={row.folded ? 'folded' : row.hash === WORKTREE ? 'worktree' : row.stash ? 'stash' : props.oneLane && row.parents.length > 1 ? 'merge' : 'commit'} />
+            {!row.folded && tall && (
+              <div className="lines">
+                <span className="subject">{row.subject}</span>
+                <div className="message">
+                  {shows('author') && <span className="who">{row.author}</span>}
+                  {shows('date') && <span className="when">{relativeTime(row.date)}</span>}
+                </div>
+              </div>
+            )}
+            {!row.folded && !tall && (
+              <>
+                <div className="message">
+                  <span className="subject">{row.subject}</span>
+                </div>
+                {shows('author') && <div className="author">{row.author}</div>}
+                {shows('date') && <div className="date">{relativeTime(row.date)}</div>}
+                {shows('hash') && <div className="hash">{shortHash(row.hash)}</div>}
+              </>
+            )}
+          </div>
+        ))}
         {hasMore && rows.length > 0 && (
-          <div className="row more" style={{ top: rows.length * rowHeight, height: rowHeight }} aria-hidden="true">
+          // Scrolled past the commits read and the rows of before, while the others are read again, it is said where the list is.
+          <div
+            className="row more"
+            style={{ top: (first < before.current.length ? rows.length : Math.max(rows.length, Math.min(first, length - 1))) * rowHeight, height: rowHeight }}
+            aria-hidden="true"
+          >
             <Icon name="loading" spin />
             Loading more commits…
           </div>

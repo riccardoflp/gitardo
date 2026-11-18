@@ -1375,10 +1375,11 @@ there once every commit is back (measured in the extension on 2026-11-18, read i
 
 So, while the commits of the same history are read again (the same repository, branches shown, filter, search and
 parents followed), the list keeps the length it had until the read reaches it or ends: where it is scrolled to does not
-move, the rows not read yet are empty under the last one read, and the row that says **Loading more commits…** is
-drawn where the list is scrolled to when that is past the commits read. The graph keeps the width it had, rather than
-getting narrower with the first page and wider again. A read that ends with fewer commits leaves the list as long as
-they are; another history (another filter, other branches, another repository) starts from its top as before.
+move, and under the last commit read the rows the list had before stay where they were, dimmed, without their labels
+and taking no click, until the read reaches them; where the list had no row, the row that says **Loading more
+commits…** is drawn where the list is scrolled to. The graph keeps the width it had, rather than getting narrower with
+the first page and wider again. A read that ends with fewer commits leaves the list as long as they are; another
+history (another filter, other branches, another repository) starts from its top as before.
 
 **In the extension first**, against [D39](#d39--desktop-first-and-a-status-for-each-app): until version 1.8 of the
 protocol the extension read again as many commits as it listed, at once, so that its list kept its length; it lost
@@ -1387,10 +1388,10 @@ that with the pages of D54, and it is in the extension that it was reported. The
 says it is wanted there.
 
 Rejected: reading again as many commits as are listed before showing any (the first page would wait for the last, which
-D54 undid); keeping the rows listed before under those of the new read until they are read (they are of another
-history, a row further down for each commit made, and would be drawn as if they were not; asked in Q782); keeping the
-commit at the top of what is in sight rather than the row (the list would move by itself while it is being scrolled;
-asked in Q783).
+D54 undid); leaving the rows not read yet empty (a list scrolled far down would show nothing but the row that says
+more are loading for the second or two the read takes, and its commits again after: one more thing that moves; asked
+in Q782); keeping the commit at the top of what is in sight rather than the row (the list would move by itself while
+it is being scrolled; asked in Q783).
 
 ## Open questions
 
@@ -3967,9 +3968,11 @@ until the maintainer answers otherwise.
   a branch or a tag made, and a fetch that brings nothing the graph lists: the references moved, the read is another,
   and its 56,000 rows are the same. Recommended: `EngineGraph` compares the pages of a read that starts again with the
   commits of the read before, and keeps them, with their layout, while they are the same; phase 6 of M25, not built.
-- **Q782** — D72: under the last commit read, the list that keeps its length is empty until the pages come, less than
-  a second on 56,000 commits. Should the rows listed before stay there, dimmed, as the whole list does until the first
-  page of another history?
+- **Q782** — D72: under the last commit read, the list that keeps its length shows the rows it had before, dimmed
+  after 150 ms as the whole list is until the first page of another history, without their labels and taking no click,
+  for the second or two the pages take on 56,000 commits. They are the commits of before the read: after a commit made,
+  each is one row further down once it is read again. Built so. Should those rows be empty instead, or keep their
+  labels?
 - **Q783** — D72: the list keeps the row it is scrolled to, not the commit: after one commit made, what is in sight is
   one row further down, and after a fetch of thirty, thirty. Should the list go to the commit that was at the top of
   what was in sight once it is read, when it was not scrolled meanwhile?

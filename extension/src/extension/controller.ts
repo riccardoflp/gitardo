@@ -2722,8 +2722,9 @@ export class Controller implements vscode.Disposable {
       case 'refresh':
         return this.refreshAll();
       case 'loadMore': {
-        // While a read adds its pages, the next ones come without asking (`graph.load-more`).
-        if (!this.repo || this.engineGraph.isReading(this.repo.root)) return;
+        // While a read adds its pages, the next ones come without asking (`graph.load-more`); and a list that asked while
+        // the last page came has nothing left to ask for once the read ended at the end of the history.
+        if (!this.repo || this.engineGraph.isReading(this.repo.root) || this.state?.hasMore === false) return;
         this.cancelGraphRead();
         const listed = this.state?.rows.filter((row) => row.hash !== WORKTREE && row.stash === undefined).length ?? 0;
         this.limit = Math.max(this.limit, listed) + pageSize();

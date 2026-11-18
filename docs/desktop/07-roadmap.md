@@ -723,10 +723,11 @@ extension's alone; the sixth brings the extension to what the desktop does, and 
    Gitardo Graph alone; what a search of the whole history found is asked again when the commits listed are others, not
    when more come under the same ones (Q787). Cards: `graph.load-more`, `search.history` in the extension.
 5. **The list keeps its length, and the graph its width (D72).** While the commits of the same history are read again,
-   the list is as long as it was until the read reaches it or ends, and the graph as wide; the row **Loading more
-   commits…** is drawn where the list is scrolled to when that is past the commits read. A test of what the list keeps
-   takes the rows as they come after **Refresh**, and the measure of phase 1 finds the list at the row it was scrolled
-   to. Cards: `graph.load-more`, `graph.fit-width` in the extension.
+   the list is as long as it was until the read reaches it or ends, and the graph as wide; under the commits read so
+   far the rows the list had before are drawn where they were, dimmed, until the read reaches them (Q782), and a list
+   that asked for more commits while the last page came is no longer answered with another read of the repository. A
+   test of what the list keeps takes the rows as they come after **Refresh**, and the measure of phase 1 finds the list
+   at the row it was scrolled to. Cards: `graph.load-more`, `graph.fit-width` in the extension.
 6. **The same commits change no row in the extension.** `EngineGraph` compares the pages of a read that starts again
    with the commits of the read before it, and keeps them, laid out as they are, while they are the same, as the
    desktop's `Stream` does: **Refresh**, a branch or a tag made and a fetch with nothing new send the views no row

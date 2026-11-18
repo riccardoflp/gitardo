@@ -118,6 +118,21 @@ function busiest(profile) {
   for (const [name, time] of [...spent].sort((one, other) => other[1] - one[1]).slice(0, 30)) console.log(`${String(Math.round(time)).padStart(6)} ms  ${name}`);
 }
 
+/**
+ * Looks at the list while its commits are read again: screenshots from the first page of the read, when the last row
+ * says more are loading, then a wait until it no longer does. A read with nothing new to show has no such row.
+ */
+async function watch(graph, name) {
+  const loading = () => graph.evaluate(`!!document.querySelector('.commits .row.more')`);
+  const started = await until('the first page', loading, 8000).catch(() => false);
+  for (let index = 0; started && index < 6; index++) {
+    await shot(`${name}-${index}`);
+    await sleep(80);
+  }
+  await until('the last page', async () => !(await loading()), 30_000);
+  await sleep(1500);
+}
+
 try {
   await window.ready();
   await command('Gitardo: Show Graph');
@@ -151,11 +166,7 @@ try {
     await graph.session.send('Profiler.start');
   }
   await graph.evaluate(`document.querySelector('button[aria-label="Refresh"]').click()`);
-  for (let index = 0; index < 8 && !profiled; index++) {
-    await shot(`refresh-${index}`);
-    await sleep(120);
-  }
-  await sleep(7000);
+  await watch(graph, 'refresh');
   if (profiled) busiest((await graph.session.send('Profiler.stop')).profile);
   report('Refresh, at the top of the list', await graph.evaluate(TAKE), from);
 
@@ -175,11 +186,7 @@ try {
   from = (await graph.evaluate(TAKE)).now;
   await shot('middle-before');
   await graph.evaluate(`document.querySelector('button[aria-label="Refresh"]').click()`);
-  for (let index = 0; index < 8; index++) {
-    await shot(`middle-refresh-${index}`);
-    await sleep(120);
-  }
-  await sleep(7000);
+  await watch(graph, 'middle-refresh');
   report('Refresh, scrolled to the middle of the list', await graph.evaluate(TAKE), from);
   await shot('middle-after');
 
@@ -188,11 +195,7 @@ try {
     await sleep(500);
     from = (await graph.evaluate(TAKE)).now;
     execFileSync('git', ['commit', '--quiet', '--allow-empty', '--no-verify', '-m', 'Made while the graph was scrolled'], { cwd: path.resolve(repository) });
-    for (let index = 0; index < 8; index++) {
-      await shot(`commit-${index}`);
-      await sleep(250);
-    }
-    await sleep(8000);
+    await watch(graph, 'commit');
     report('A commit made outside, scrolled to the middle of the list', await graph.evaluate(TAKE), from);
     await shot('commit-after');
   }

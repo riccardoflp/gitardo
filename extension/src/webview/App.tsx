@@ -40,7 +40,7 @@ import {
 } from './menus';
 import { ALL_FOLDED, foldedAmong, foldMerge, NO_FOLDS, recallFolds, rememberFolds, withoutGone, type Folds } from './folds';
 import { keptViews } from './kept';
-import { addedUnder } from './pages';
+import { addedUnder, listingOf } from './pages';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
@@ -484,6 +484,7 @@ export function App({ compact = false }: { compact?: boolean }) {
         )}
         <CommitList
           root={state.root}
+          listing={listingOf(state)}
           keepOpen={state.keepOpen}
           rows={state.rows}
           empty={state.filter ? 'No commits found' : state.head.commit ? 'No commits to show' : 'No commits yet'}

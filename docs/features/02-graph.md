@@ -831,7 +831,17 @@ shown (D54).
   right before the views are given the state (`completed` of `src/engine/graph.ts`), so that a read that ends
   meanwhile, as in a repository of a little more than a page, leaves no commit waiting for the list to be scrolled
   (milestone M25). Tested by `test/graphPages.test.ts`, "has every commit, and no more to come, when the read ends
-  while the rest of the state is read".
+  while the rest of the state is read". While the commits of the history listed are read again from their first page,
+  after a commit, a fetch or **Refresh**, the list keeps the length it had until the read reaches it or ends, so that
+  it stays at the row it is scrolled to ([D72](../08-decisions.md#d72--the-list-of-commits-keeps-its-length-while-its-commits-are-read-again-proposed)):
+  `held` of `src/webview/pages.ts` says how long, and under the commits read so far the rows the list had before are
+  drawn where they were, dimmed after 150 ms, without their labels and taking no click, until the read reaches them.
+  Another repository, other branches, another filter or other parents followed start from the first page as before
+  (`listingOf`), and a read that ends with fewer commits leaves the list as long as they are. `loadMore` asks for
+  nothing either once the read ended at the end of the history, which a list asked for while the last page came.
+  Tested by `test/pages.test.ts`, "keeps its length and the width of its graph when Refresh reads its commits again
+  from the first page, until they are back"; in a window by `test/perf/graph-load.mjs`, which reports the row the list
+  is at.
 
 - Each page of a read is added under the rows as soon as it is read, whether the list is scrolled or not, until the
   read ends at the end of the history or at 100,000 commits (`graph.read-commits`).
@@ -924,6 +934,13 @@ The graph is as wide as its lines need, within limits, and draws its lines close
 - **Kind**: Derivation
 - **Function**: `model::graph::fit_width(lanes: usize, wanted: Option<f32>, available: f32) -> GraphFit`
 - **Uses**: by `graph.view` and `graph.resize-graph`.
+- **Extension**: `fitGraph` of `src/shared/graph.ts`. While the commits of the history listed are read again from
+  their first page, the most lanes are those the list had before the read, or those of the rows read when they are
+  more, so that the graph does not get narrower with the first page and wider again
+  ([D72](../08-decisions.md#d72--the-list-of-commits-keeps-its-length-while-its-commits-are-read-again-proposed);
+  `held` of `src/webview/pages.ts`); the first read of a history widens the graph as its pages come (Q784). Tested by
+  `test/pages.test.ts`, "keeps its length and the width of its graph when Refresh reads its commits again from the
+  first page, until they are back".
 
 Input: the most lanes any row of the list has, the width the graph was dragged to (none while it chooses its own), and
 the width of the list (0 while it is not known). Output: the width the graph is drawn in, the room each lane gets in
