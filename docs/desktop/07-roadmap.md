@@ -681,7 +681,7 @@ VS Code's own search do it, and the cards are *Host only* there.
 2. **The text searched.** `git grep` read as it prints, every match of a line marked, plain text or a regular
    expression, with match case and whole word, stopped at 5,000 lines; the rows of the list made from what was found,
    for each mode. Cards: `file-search.read-text`, `file-search.list-results`.
-3. **The Search page.** **Search** in the bar of views, a page with the box, its switches, the modes, the scopes
+3. **The Search page.** **Search in files** in the bar of views, a page with the box, its switches, the modes, the scopes
    **Repository** and **Changes**, **Include** and **Exclude**, **.gitignore** and **Hidden**, and the results, found
    as it is typed, the search before stopped; `↑`, `↓` and `Enter`, which opens the File page at the line with the way
    back in its title row. Cards: `file-search.page`, `graph.view-bar`.
@@ -690,7 +690,7 @@ VS Code's own search do it, and the cards are *Host only* there.
    File page there. Cards: `file-search.preview`, `file-search.page`.
 5. **From anywhere, and remembered.** `Ctrl+Shift+F`, **Search in files…** in Quick search, **Search here** in the
    context menu of a file or a folder of the Files page, which narrows the search to it; text selected in the File
-   page or the Diff page in front becomes what is looked for; what is searched kept for each repository between runs.
+   page or in the side of the Diff page in front that is edited becomes what is looked for; what is searched kept for each repository between runs.
    Cards: `file-search.open`, `file-search.remember`, `file-search.page`.
 
 Exit: in the repository of Gitardo, `Ctrl+Shift+F` shows the page with the keyboard in its box; `usock` in **Files**

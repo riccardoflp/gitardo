@@ -194,6 +194,18 @@ pub const KEYS_HELD: Modifiers = if cfg!(target_os = "macos") {
     Modifiers::ALT
 };
 
+/// Whether a key shows the Search page from anywhere in the window: `Ctrl+Shift+F`, and `Cmd+Shift+F` on macOS
+/// (`file-search.open`).
+#[must_use]
+pub fn is_search_key(key: ui::KeyEvent) -> bool {
+    let command = if cfg!(target_os = "macos") {
+        Modifiers::META
+    } else {
+        Modifiers::CONTROL
+    };
+    matches!(key.key, Key::Character('f' | 'F')) && key.modifiers == command | Modifiers::SHIFT
+}
+
 /// The keys of the page that no widget used: `Alt+1` to `Alt+4` choose a mode, `Alt+C`, `Alt+W` and `Alt+R` turn the
 /// switches of the text; with `Ctrl` too on macOS, where `Option` with a key types a character.
 fn keys(state: &SearchPageState<'_>, ui: &Ui<'_>) -> Vec<FileSearchIntent> {

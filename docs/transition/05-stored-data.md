@@ -66,7 +66,11 @@ is kept for a repository whose rail lists everything. Since milestone M14 the si
 (`file-view.beside-files`), absent where it starts; since milestone M16, `changesColumn`, the width of the column of
 the Changes page beside a file opened from it (`changes.beside-file`), absent where it starts; since milestone M26,
 `searchResults`, the width of the results of the Search page beside the preview (`file-search.preview`), absent where
-it starts. The extension's
+it starts; and since milestone M26 a key of its own, `fileSearches`, for each repository folder what its Search page
+searches (`file-search.remember`): what is typed, the switches, the mode, the scope with the path **Search here** named,
+**Include** and **Exclude**, only what differs from a first search, for the 20 repositories searched last; nothing is
+kept for a repository whose search is as a first one is, and an entry in a shape the version does not know is left
+out. The extension's
 references have their own filter since phase 3 of M13, kept under `gitardo.branchesListed` in the workspace state, in
 the shape of `gitardo.scope`; the engine reads neither, since what the references list is drawn by the webviews alone.
 

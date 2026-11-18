@@ -169,8 +169,8 @@ earns it.
 | [`file-search.read-text`](03-search-and-filter.md#file-searchread-text--search-the-text-of-the-files) | Search the text of the files | Read | Built | Host only |
 | [`file-search.list-results`](03-search-and-filter.md#file-searchlist-results--the-results-as-the-list-shows-them) | The results, as the list shows them | Derivation | Built | Host only |
 | [`file-search.preview`](03-search-and-filter.md#file-searchpreview--the-preview-of-a-result) | The preview of a result | View | Built | Host only |
-| [`file-search.open`](03-search-and-filter.md#file-searchopen--search-from-anywhere) | Search from anywhere | Derivation | Specified | Host only |
-| [`file-search.remember`](03-search-and-filter.md#file-searchremember--the-search-remembered-for-each-repository) | The search, remembered for each repository | Derivation | Specified | Host only |
+| [`file-search.open`](03-search-and-filter.md#file-searchopen--search-from-anywhere) | Search from anywhere | Derivation | Built | Host only |
+| [`file-search.remember`](03-search-and-filter.md#file-searchremember--the-search-remembered-for-each-repository) | The search, remembered for each repository | Derivation | Built | Host only |
 
 ## Details, commits and the page of a commit
 

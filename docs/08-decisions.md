@@ -4071,3 +4071,9 @@ while it is planned and built; each is built as it says until the maintainer ans
   the keys of the page are `Ctrl+Option+C` and the like, as the blame's are, since `Option` with a key types a
   character there; not tried on a Mac. Is a keyboard layout known whose characters need `Alt` alone on Windows or
   Linux, which would no longer type?
+- **Q820** — `file-search.open`: in the Diff page text is selected only in the side that is edited, the working tree;
+  the other side, and both sides of a diff of commits, choose a line and select no text, so the key there leaves what
+  the box held. Should the line chosen on such a side become what is looked for, as a selection of it would?
+- **Q821** — `file-search.open`: `Ctrl+Shift+F` shows the page wherever no widget uses the key, a File page with the
+  keyboard too; the terminal of the bottom panel sends it to the shell while it has the keyboard, as `Ctrl+F`, where
+  it lets `Ctrl+K` and `` Ctrl+` `` through to the window. Should the terminal let it through as well?

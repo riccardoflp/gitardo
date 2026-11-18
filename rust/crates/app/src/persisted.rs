@@ -16,6 +16,7 @@ use std::path::{Path, PathBuf};
 use json::{Member, Number, Value};
 
 pub mod changes;
+pub mod file_search;
 pub mod inputs;
 pub mod layouts;
 pub mod rail;
@@ -71,6 +72,8 @@ pub struct Persisted {
     pub branch_inputs: Vec<inputs::WorkspaceInputs>,
     /// The folders the user trusts, in the order they were trusted (`trust.ask`, `trust.manage`).
     pub trusted_folders: Vec<PathBuf>,
+    /// What the Search page searches, of the repositories searched last (`file-search.remember`).
+    pub file_searches: Vec<file_search::RepositorySearch>,
 }
 
 /// Where a window was, how large and whether it was maximized (`window.title-bar`).
@@ -145,6 +148,7 @@ impl Persisted {
             merge_shows_base: document.get("mergeShowsBase").and_then(Value::as_bool).unwrap_or(false),
             branch_inputs: list(&document, "branchInputs", inputs::workspace_inputs),
             trusted_folders: trust::trusted_folders(&document),
+            file_searches: list(&document, "fileSearches", file_search::repository_search),
         }
     }
 
@@ -180,6 +184,7 @@ impl Persisted {
             Value::Array(self.branches_shown.iter().filter_map(rail::shown_value).collect()),
         ));
         members.extend(rail::listed_member(&self.branches_listed));
+        members.extend(file_search::searches_member(&self.file_searches));
         if self.search_as_list {
             members.push(member("searchAsList", Value::Bool(true)));
         }

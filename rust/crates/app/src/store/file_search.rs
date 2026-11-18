@@ -3,20 +3,20 @@
 //! and what a search of them found, started again each time what is looked for changes, the search before stopped.
 
 mod answers;
+mod asked;
 mod preview;
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use git::read::file_search::NamesRequest;
-use model::file_search::{Asked, Found, Mode, ResultRow, Scope, Search, list_results, open_with, pathspecs};
+use model::file_search::{Asked, Found, Mode, ResultRow, Scope, Search, list_results, pathspecs};
 use views::file_search::{FileSearchIntent, SearchPageState, Status, Switch};
 use views::file_view::{FileTarget, FileViewIntent};
 use views::page::Page;
 
 use super::message::{Effect, JobId, JobKind};
 use super::state::State;
-use crate::persisted::same_folder;
 use crate::work::file_search::{FindJob, Names, SearchJob};
 
 pub(super) use answers::answered;
@@ -80,38 +80,31 @@ pub struct Finding {
 /// Something asked of the Search page.
 pub fn reduce(state: &mut State, intent: FileSearchIntent) -> Vec<Effect> {
     let page = &mut state.file_search;
+    let mut search = page.search.clone();
     match intent {
-        FileSearchIntent::Show => return show(state, None),
-        FileSearchIntent::Here(place) => return show(state, Some(Asked::Here(place))),
-        FileSearchIntent::Type(text) => page.search.query = text,
-        FileSearchIntent::Turn(switch) => turn(&mut page.search, switch),
-        FileSearchIntent::Mode(mode) => page.search.mode = mode,
-        FileSearchIntent::Scope(scope) => page.search.scope = scope,
+        FileSearchIntent::Show => return asked::show(state, None),
+        FileSearchIntent::Here(place) => return asked::show(state, Some(Asked::Here(place))),
+        FileSearchIntent::Type(text) => search.query = text,
+        FileSearchIntent::Turn(switch) => turn(&mut search, switch),
+        FileSearchIntent::Mode(mode) => search.mode = mode,
+        FileSearchIntent::Scope(scope) => search.scope = scope,
         FileSearchIntent::DropScope => {
-            page.search.named = None;
-            if page.search.scope == Scope::Named {
-                page.search.scope = Scope::Repository;
+            search.named = None;
+            if search.scope == Scope::Named {
+                search.scope = Scope::Repository;
             }
         }
-        FileSearchIntent::Include(text) => page.search.include = text,
-        FileSearchIntent::Exclude(text) => page.search.exclude = text,
+        FileSearchIntent::Include(text) => search.include = text,
+        FileSearchIntent::Exclude(text) => search.exclude = text,
         FileSearchIntent::Light(row) => {
             page.lit = Some(row);
             page.reveal += 1;
+            return Vec::new();
         }
         FileSearchIntent::Open(row) => return open(state, row),
         FileSearchIntent::OpenAt(path, line) => return open_file(state, path, Some(line)),
     }
-    Vec::new()
-}
-
-/// Shows the page as it was left, with the keyboard in its box; what it looks for and where follow how it was asked
-/// for (`file-search.open`). The way to it starts again from the timeline.
-fn show(state: &mut State, asked: Option<Asked>) -> Vec<Effect> {
-    let asked = asked.unwrap_or(Asked::Page { selected: None });
-    state.file_search.search = open_with(&state.file_search.search, &asked);
-    state.file_search.focus += 1;
-    super::pages::starting_again(state, |state| super::pages::show(state, Page::Search))
+    asked::remember(state, search)
 }
 
 /// Turns a switch of the page.
@@ -195,18 +188,8 @@ fn follow_search(state: &mut State) -> Vec<Effect> {
         return Vec::new();
     };
     let (folder, generation) = (read.state.folder.clone(), read.generation);
+    asked::adopt_folder(state);
     let page = &mut state.file_search;
-    if !page.folder.as_deref().is_some_and(|known| same_folder(known, &folder)) {
-        let search = std::mem::take(&mut page.search);
-        let (focus, reveal) = (page.focus, page.reveal);
-        *page = FileSearchPage {
-            search,
-            folder: Some(folder.clone()),
-            focus,
-            reveal,
-            ..FileSearchPage::default()
-        };
-    }
     let request = names_request(&page.search);
     let listed = page
         .names

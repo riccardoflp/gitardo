@@ -957,14 +957,14 @@ the file or the folder named.
 
 - **Kind**: Derivation
 - **Function**: `model::file_search::open_with(search: &Search, asked: &Asked) -> Search`
-- **Entry points**: **Search** in the bar of views; `Ctrl+Shift+F` (`Cmd+Shift+F` on macOS) anywhere in the window;
+- **Entry points**: **Search in files** in the bar of views; `Ctrl+Shift+F` (`Cmd+Shift+F` on macOS) anywhere in the window;
   **Search in files…** in Quick search; **Search here** in the context menu of a file, of a folder and of the top
   row of the tree of the Files page.
 - **Uses**: by `file-search.page`.
 
 - From the bar of views, the key or Quick search, the page shows as it was left. Text selected in the File page in
-  front, or in the column of the Diff page in front that has the keyboard, becomes what is looked for when it is not
-  empty and is on one line; otherwise what was typed stays.
+  front, or in the side of the Diff page in front that is edited, the only side text is selected in (Q820), becomes
+  what is looked for when it is not empty and is on one line; otherwise what was typed stays.
 - **Search here** on a folder makes it a scope, after **Changes**, named by its path, and chooses it; on a file, the
   scope is that file alone; on the top row, **Repository** is chosen. There is one such scope: the next **Search
   here** takes its place. What is typed, the mode and the filters stay.

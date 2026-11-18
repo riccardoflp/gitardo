@@ -13,7 +13,11 @@
   at the line, with **Search** in its title row to come back. Beside the results the preview shows the file of the
   one under the keyboard as the File page draws it, the line found lit and every match marked, or what a folder
   holds; a double click on one of its lines opens the File page there, and the line between the results and the
-  preview is dragged. Git lists the files and searches them, at most 5,000 lines.
+  preview is dragged. Git lists the files and searches them, at most 5,000 lines. `Ctrl+Shift+F` (`Cmd+Shift+F` on
+  macOS) and **Search in files…** of Quick search show the page from anywhere, with the text selected in the File page
+  or in the Diff page in front as what is looked for; **Search here** in the context menu of a file or a folder of the
+  Files page searches it alone, and on its top row the whole repository. What is searched in each repository comes
+  back when its page is shown again, after the window was closed too.
 - `Alt` with a key types nothing in a box or an editor on Windows and Linux, where it typed the letter of the key as
   well as doing what the key does; with `Ctrl` too it types, as `AltGr` does.
 

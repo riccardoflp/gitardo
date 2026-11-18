@@ -54,7 +54,7 @@ pub(super) fn row(tree: &TreeUpdate, name: &str) -> Point {
 }
 
 /// Opens the context menu of the row that says some words, then chooses an entry of it, and gives what it asks.
-fn choose(window: &mut Window, state: &State, (name, entry): (&str, &str)) -> Vec<Intent> {
+pub(super) fn choose(window: &mut Window, state: &State, (name, entry): (&str, &str)) -> Vec<Intent> {
     let (_, tree) = window.draw(state, &[]);
     let point = row(&tree, name);
     let _ = window.draw(state, &[moved(point)]);

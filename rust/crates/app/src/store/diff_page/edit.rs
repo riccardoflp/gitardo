@@ -125,6 +125,19 @@ fn edit(state: &mut State, (id, file): (DiffPageId, usize), commands: &[Command]
     Vec::new()
 }
 
+/// The text selected in the side of a page that is edited, when there is a selection there (`file-search.open`).
+#[must_use]
+pub fn selected_text(state: &State, id: DiffPageId) -> Option<String> {
+    let page = state.diff_pages.pages.iter().find(|page| page.id == id)?;
+    let Some(PageCaret::Text { file, cursor }) = &page.caret else {
+        return None;
+    };
+    let path = edited_path(page, *file)?;
+    let document = file_page::document_of(state, &page.top, &path)?;
+    let held = state.file_pages.pages.iter().find(|held| held.id == document)?;
+    Some(held.document()?.buffer().slice(cursor.range()).to_owned())
+}
+
 /// Brings the line of the caret of a page into sight, scrolled the least.
 fn reveal_caret(state: &mut State, id: DiffPageId) {
     let serial = state.diff_pages.serial + 1;
