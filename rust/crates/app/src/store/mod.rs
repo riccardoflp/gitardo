@@ -17,6 +17,7 @@ mod draft;
 mod effect;
 pub mod feature;
 pub mod file_page;
+pub mod file_search;
 pub mod files_page;
 pub mod github;
 mod inspector;
@@ -105,6 +106,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(review::prune(state));
     effects.extend(review::follow(state));
     effects.extend(files_page::follow(state));
+    effects.extend(file_search::follow(state));
     effects.extend(new_worktrees::follow(state));
     effects.extend(changes::follow_unsaved(state));
     effects.extend(blame::follow(state));
@@ -123,6 +125,15 @@ fn feature_ended(state: &mut State, ended: feature::Ended, log: Vec<engine::LogE
         rebase::ended(state, after);
     }
     feature::ended(state, ended, log)
+}
+
+/// Which files git ignores came back: for the files watched, when they asked, and for the Changes page otherwise.
+fn ignored_read(state: &mut State, job: JobId, result: Result<Vec<String>, String>) -> Vec<Effect> {
+    if state.reads.files.is_asking(job) {
+        reads::files_checked(state, job, result)
+    } else {
+        changes::ignored_read(state, job, result)
+    }
 }
 
 /// Changes the store as a message says.
@@ -160,10 +171,8 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         message @ (Message::FilesRead { .. } | Message::NewWorktreesRead { .. }) => files_page::read(state, message),
-        Message::IgnoredRead { job, result } if state.reads.files.is_asking(job) => {
-            reads::files_checked(state, job, result)
-        }
-        Message::IgnoredRead { job, result } => changes::ignored_read(state, job, result),
+        Message::IgnoredRead { job, result } => ignored_read(state, job, result),
+        Message::FileSearch { job, answer } => file_search::answered(state, job, answer),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
@@ -415,7 +424,9 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
         Intent::Diff(intent) => diff_page::reduce(state, intent),
         Intent::MergeView(intent) => merge_page::reduce(state, intent),
-        Intent::FileView(_) | Intent::Files(_) | Intent::Blame(_) => files_page::reduce_file_intent(state, intent),
+        Intent::FileView(_) | Intent::Files(_) | Intent::Blame(_) | Intent::FileSearch(_) => {
+            files_page::reduce_file_intent(state, intent)
+        }
         Intent::Compare(intent) => compare::reduce(state, intent),
         Intent::Review(intent) => review::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),

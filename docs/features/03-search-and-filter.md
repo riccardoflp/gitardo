@@ -4,7 +4,10 @@ Finding commits and narrowing the timeline. The search box at the top of the tim
 or in the whole history, by message, author or what they changed, steps through them and goes to a commit by its hash;
 **Go to commit…** goes to anything git takes for a commit. The branch filter chooses which branches, remote branches and
 tags the timeline shows, from presets, from ticks in a list, or from the context menu of a reference, and remembers the
-choice for each repository.
+choice for each repository. The **Search** page of Gitardo Desktop, the last cards of this page, finds files, folders
+and lines of text in the files of the worktree shown
+([D73](../08-decisions.md#d73--search-a-page-that-finds-files-folders-and-text-in-the-worktree-shown)); in the
+extension, Search Here and VS Code's own search do it, and those cards are *Host only* there.
 
 ### `search.box` — The search box
 
@@ -669,3 +672,337 @@ Acceptance:
       that is what is kept.
 - [ ] Narrowed to `feature` alone, deleting `feature` shows everything.
 - [ ] The choice is there after the window is closed and opened again on the workspace.
+
+### `file-search.page` — The Search page
+
+Finds files, folders and lines of text in the files of the worktree shown, in one page: what is looked for, where, the
+results, and the preview of the one under the keyboard
+([D73](../08-decisions.md#d73--search-a-page-that-finds-files-folders-and-text-in-the-worktree-shown)).
+
+- **Kind**: View
+- **Function**: `views::file_search::page_view(state: &SearchPageState, ui) -> Vec<Intent>`
+- **Entry points**: **Search in files** in the bar of views (`graph.view-bar`); `Ctrl+Shift+F` (`Cmd+Shift+F` on
+  macOS);
+  **Search in files…** in Quick search; **Search here** in the context menu of a file or a folder of the Files page
+  (`file-search.open`).
+- **Reads**: `file-search.read-names` when the page opens and each time the repository is read while it is open;
+  `file-search.read-text` as it is typed.
+- **Uses**: `file-search.pathspecs`, `file-search.rank-names`, `file-search.list-results`, `file-search.preview`,
+  `file-search.open`, `file-search.remember`, `file-view.page`, `ui.page-trail`, `graph.resize-panes`.
+- **Extension**: Search Here, for those who have it, and VS Code's own search: nothing to build.
+
+- At the top, the box of what is looked for, which has the keyboard when the page opens, and at its right three
+  switches for the text: **Match case** (`Alt+C`), **Whole word** (`Alt+W`) and **Regular expression** (`Alt+R`); in a
+  page too narrow for them beside the box, they are in a row under it. Names are matched as `file-search.rank-names`
+  says, whatever the switches.
+- Under it, the modes: **All**, the folders, the files and the lines of text in sections; **Text**; **Files**;
+  **Folders**. `Alt+1` to `Alt+4` choose them. The keys of the modes and of the switches work from the box too: `Alt`
+  with a key types nothing in a box. On macOS they are with `Ctrl` too, `Ctrl+Option+C`, since `Option` with a key
+  types a character there. At their right, the scopes: **Repository**, the worktree shown;
+  **Changes**, the files that differ from the last commit, the untracked ones too; and, once **Search here** named
+  one, the folder or the file it named, by its path, with **×** that takes it away.
+- Then **Include** and **Exclude**, patterns separated by commas (`file-search.pathspecs`), and two switches:
+  **.gitignore**, on at first, off to search what git ignores too; **Hidden**, off at first, on to search the files
+  and the folders whose name starts with a dot.
+- The results are on the left (`file-search.list-results`), found as it is typed: the names at once, from the list of
+  the files read when the page opened; the lines of text as git finds them. The search of the text running is stopped
+  and another started when what is typed, a switch, the mode, the scope or a filter changes. Under the results a line
+  counts them: `12 lines in 3 files`, and `5,000+ lines in 240 files` when there are more lines than are listed; in
+  **Files** and **Folders**, `3 files`, and `2,000 of 5,282 files` when more match than are listed. When the
+  repository is read again the results stay as they are until those of the new read are whole.
+- On the right, the preview of the result under the keyboard (`file-search.preview`). The line between the two is
+  dragged (`graph.resize-panes`). In the narrow layout the results take the page, with no preview.
+- The first result is under the keyboard as soon as there is one. `↑` and `↓` go to the result before and after,
+  from the box too, and `Page Up` and `Page Down` ten further; the headings are passed over. A click brings a result
+  under the keyboard. `Enter`, or a double click, opens the result: the File page of a file, at the line of a
+  line of text, with **Search** before it in its title row to come back (`ui.page-trail`); a folder is shown in the
+  tree of the Files page, opened.
+- While the files are listed the results say **Reading the files…**; with nothing typed in **Text**, **Type to search
+  the text of the files.**; with nothing found, **No results**. A regular expression git refuses is said under the
+  box, in git's words; a read that failed says what git said in place of the results.
+- Each repository tab has its own search, kept while another is shown.
+
+Acceptance:
+
+- [ ] `usock` typed in **Files** lists `src/hooks/useSocket.ts`, and the box had the keyboard without a click.
+- [ ] `socket` typed in **Text** lists the lines that hold it under their files, each with its line number, and the
+      line under the results counts them.
+- [ ] In **All**, the folders, the files and the lines found are under **Folders**, **Files** and **Text**.
+- [ ] `Alt+2` chooses **Text**, and `Alt+C` turns **Match case** on: `socket` no longer finds a line with `Socket`
+      alone.
+- [ ] With **Changes** chosen, a line of a file that does not differ from the last commit is not listed, and a line
+      of an untracked file is.
+- [ ] `*.rs` in **Include** leaves the lines of the Rust files alone, and `docs/` in **Exclude** takes out those
+      under a folder `docs`.
+- [ ] With **.gitignore** off a line of `node_modules/pkg/index.js`, which git ignores, is found; with **Hidden** on,
+      a line of `.github/workflows/ci.yml`.
+- [ ] The first result is under the keyboard, `↓` from the box goes to the next, passing over a heading, and `Enter`
+      on a line of text opens the File page at that line, with **Search** in its title row.
+- [ ] `(` typed with **Regular expression** on says what git said under the box, and lists no line.
+- [ ] A search that ends after another was started is thrown away: only the lines of what is typed are listed.
+
+### `file-search.read-names` — The files of the worktree, for the search
+
+The paths of the files the search lists by name and takes its folders from: those git tracks and those it does not
+track, without those it ignores unless they are asked for, narrowed by pathspecs.
+
+- **Kind**: Read
+- **Function**: `git::read::file_search::read_names(git: &Git, request: &NamesRequest) -> Result<Vec<String>, GitError>`
+- **Reads**: `git ls-files -z -t --full-name --cached --others --deleted --exclude-standard -- <pathspecs>`, run in
+  the top folder of the worktree, or in the folder **Search here** named, whose files alone it then lists; without
+  `--exclude-standard` when what git ignores is searched too. The pathspecs are those of `file-search.pathspecs`.
+- **Uses**: `file-search.pathspecs`.
+
+- Each path is from the top of the worktree, with `/`, once, in order. A file in conflict, listed once for each of
+  its stages, is kept once.
+- A file git tracks that is not in the working tree any more, which git lists with the tag `R` beside its tag `H`, is
+  left out: it has no text to search and none to show.
+- A submodule is one path, the folder git tracks for it.
+
+Acceptance:
+
+- [ ] The files git tracks and the untracked ones are listed, each once and in order, and
+      `node_modules/pkg/index.js`, which git ignores, is not.
+- [ ] Asked for what git ignores too, `node_modules/pkg/index.js` is listed.
+- [ ] A file git tracks that was deleted from the working tree is not listed.
+- [ ] Run in the folder `src`, only the files under it are listed, `src/ui/list.rs` by its path from the top.
+- [ ] With the pathspecs of **Hidden** off, `.hidden` and `.github/workflows/ci.yml` are not listed.
+- [ ] `docs/a b/é.md` is listed as it is written.
+
+### `file-search.pathspecs` — What narrows a search to some files
+
+**Include**, **Exclude** and **Hidden**, as the pathspecs git is given, so that git itself says which files are
+listed and searched.
+
+- **Kind**: Derivation
+- **Function**: `model::file_search::pathspecs(filters: &Filters) -> Vec<String>`
+- **Uses**: by `file-search.read-names` and `file-search.read-text`.
+
+**Include** and **Exclude** hold patterns separated by commas, as in Search Here:
+
+| Pattern | Finds | In **Include** | In **Exclude** |
+| --- | --- | --- | --- |
+| `src` | A file or a folder named `src`, anywhere | `:(glob)**/src`, `:(glob)**/src/**` | `:(exclude,glob)**/src`, `:(exclude,glob)**/src/**` |
+| `./src`, `/src`, `src/app` | A path from the top of what is searched | `:(glob)src/app`, `:(glob)src/app/**` | `:(exclude,glob)src/app`, `:(exclude,glob)src/app/**` |
+| `dist/` | Folders only, by name; `./dist/` from the top | `:(glob)**/dist/**` | `:(exclude,glob)**/dist/**` |
+| `**/*.test.ts`, `*.{js,ts}` | A glob | as a name or a path, one for each alternative in braces | the same, excluded |
+
+- A comma inside braces separates alternatives, not patterns; git has no braces in its globs, so each alternative is
+  a pattern of its own. Spaces around a pattern are dropped, `\` is read as `/`, and a pattern that is empty, `.` or
+  `./` is left out.
+- A pattern with a `/` in it, other than at its end, is a path from the top, as one that starts with `./` or `/` is.
+- With **Hidden** off, `:(exclude,glob)**/.*` and `:(exclude,glob)**/.*/**` are added: no file and no folder whose
+  name starts with a dot.
+- The top is the top of the worktree in **Repository** and **Changes**, and the folder **Search here** named when it
+  named one, since git is run there (Q808).
+- Git matches them: `*` and `?` stop at `/`, `**` crosses folders, and the case of letters matters.
+
+Acceptance:
+
+- [ ] `src` in **Include** gives `:(glob)**/src` and `:(glob)**/src/**`.
+- [ ] `./src` and `src/app` give `:(glob)src`, `:(glob)src/**`, `:(glob)src/app` and `:(glob)src/app/**`.
+- [ ] `dist/` in **Exclude** gives `:(exclude,glob)**/dist/**` alone.
+- [ ] `*.{js,ts}, docs` gives the pathspecs of `*.js`, of `*.ts` and of `docs`: the comma in the braces separates no
+      pattern.
+- [ ] With **Hidden** off the two pathspecs of the names with a dot are added, and with it on none is.
+- [ ] `src\ui` is read as `src/ui`, and ` , ` and `./` give nothing.
+
+### `file-search.rank-names` — Which files and folders match best
+
+The names that match what is typed, the best first, with the letters that matched, for the files and the folders of
+the search.
+
+- **Kind**: Derivation
+- **Function**: `model::file_search::rank_names(names: &[String], request: &RankRequest) -> RankedNames`
+- **Uses**: by `file-search.list-results`.
+
+- What is typed is cut at its spaces into terms. A name is kept when every term matches it, whatever the case of the
+  letters.
+- A term matches the last part of the path, the name of the file or of the folder, when its letters are there
+  together, or else in order with others between them: `usock` matches `useSocket.ts`. Failing that it matches the
+  whole path, the same two ways. A term with a `/` in it is matched against the whole path only.
+- In **All**, where the names share the list with the lines of text, a term whose letters are found only apart along
+  the whole path does not match: too much would.
+- From the best: a term found in the name before one found in the path alone; letters together before letters apart;
+  a letter that starts a word, after `/`, `.`, `_`, `-` or a space, or a capital after a small letter, before one
+  inside a word. When one term is typed, a name that is all of it, with or without its extension, comes first, then
+  one that starts with it. Of two that match as well, the shorter path comes first, then the one before in the order
+  of the names.
+- At most as many names as asked for are kept, the best, and how many matched in all is said.
+- With nothing typed, the names are kept in their order, as many as asked for.
+- The folders of the search are those of its files: every folder that holds one of them, each once, in order.
+
+Acceptance:
+
+- [ ] `usock` finds `src/hooks/useSocket.ts` and gives the letters `u`, `S`, `o`, `c`, `k` of its name to mark.
+- [ ] `use sock` finds it too, and `use zzz` finds nothing.
+- [ ] For `list`, `src/ui/list.rs` comes before `src/ui/list_view.rs`, then `src/playlist.rs`, then
+      `src/list/mod.rs`, found in its path alone.
+- [ ] `LIST` ranks them the same.
+- [ ] `ui/list` finds `src/ui/list.rs` and not `src/list/ui.rs`.
+- [ ] `rail` finds `src/render/ai/list.rs`, its letters apart along the path, in **Files**, and not in **All**.
+- [ ] Of 30 names that match with 20 asked for, the 20 best are given and 30 are counted.
+- [ ] With nothing typed, the names come in their order.
+
+### `file-search.read-text` — Search the text of the files
+
+The lines of the files that hold what is looked for, as git finds them, each with every match in it.
+
+- **Kind**: Read
+- **Function**: `git::read::file_search::read_text(git: &Git, request: &TextRequest, take: &mut dyn FnMut(Vec<TextMatch>) -> Taken) -> Result<TextEnd, GitError>`
+- **Reads**: `git grep --color=always --full-name -n -z -I --untracked <how> -e <text> -- <pathspecs>`, run in the top
+  folder of the worktree or in the folder **Search here** named, with the color of a match set for that command to
+  one of Gitardo's own and every other color to none (`-c color.grep.matchSelected=…`), so that git marks every match
+  of a line, where its other forms say only the first. `<how>`:
+
+  | What is asked | Arguments |
+  | --- | --- |
+  | Plain text | `-F` |
+  | **Regular expression** | `-P`, or `-E` when git says it was built without PCRE |
+  | **Match case** off | `-i` |
+  | **Whole word** | `-w` |
+  | **.gitignore** off | `--no-exclude-standard` |
+
+- **Refuses**: a regular expression git cannot read is an error with git's words, not a search that found nothing.
+- **Uses**: `file-search.pathspecs`.
+
+- What git prints is read as it comes, a part at a time, and the lines of each part are handed on at once. The read
+  stops git once it has handed on as many lines as asked for, 5,000 for the page, and says there are more.
+- Each line comes with the path of its file from the top of the worktree, its number from 1, its text without the
+  white space at its start, and where each match is in that text. A line longer than 240 characters is cut to 240,
+  starting 60 before its first match when that is further in.
+- The pathspecs are those of `file-search.pathspecs`. Files named one by one, as for **Changes**, are given as
+  `:(top,literal)<path>`, in as many runs of git as their paths ask: at most 24,000 characters of them in each, for
+  the length a command line has on Windows.
+- Git searches the files it tracks and those it does not track, as they are in the working tree, the ignored ones
+  too when asked. A file with a NUL byte is not searched (`-I`), and a submodule is not entered (Q809).
+- The match is told from the text by the escape sequence of its color, which no other part of the output has (Q816).
+
+Acceptance:
+
+- [ ] `socket` finds the lines that hold it in the files git tracks and in the untracked ones, whatever the case of
+      its letters, and none of `node_modules/pkg/index.js`, which git ignores.
+- [ ] With **Match case**, `Socket` finds `useSocket` and not `socket`.
+- [ ] With **Whole word**, `sock` does not find `socket`.
+- [ ] `a.b` finds `a.b` and not `axb`; as a regular expression it finds both.
+- [ ] `let a = useSocket(); let b = useSocket();` is given once, with its two matches.
+- [ ] In `héllo socket` the match is the bytes of `socket`.
+- [ ] `(` as a regular expression is an error that says what git said.
+- [ ] A text no file holds gives no line and no error.
+- [ ] With ten lines that match and three asked for, three are given and the read says there are more.
+- [ ] Asked for what git ignores too, a line of `node_modules/pkg/index.js` is found.
+- [ ] Given `src/a.rs` alone to search, a line of `src/b.rs` is not found.
+- [ ] A line of 1,000 characters with its match at the 500th is given as 240 characters, the match marked in them.
+- [ ] A file with a NUL byte is not searched.
+- [ ] A line that comes in two parts of what git prints is given once, whole.
+
+### `file-search.list-results` — The results, as the list shows them
+
+What was found, as the rows of the list of the Search page, for the mode chosen.
+
+- **Kind**: Derivation
+- **Function**: `model::file_search::list_results(found: &Found, mode: Mode) -> Vec<ResultRow>`
+- **Uses**: `file-search.rank-names`; by `file-search.page`.
+
+- **Files** and **Folders**: a row for each name kept, the best first (`file-search.rank-names`), at most 2,000.
+- **Text**: for each file with lines found, in the order git gave them, a row of the file that counts its lines, then
+  a row for each line, with its number and its text.
+- **All**: **Folders**, with at most 50 folders, then **Files**, with at most 100 files, then **Text**, with the
+  lines as in **Text**, each under a heading; a section with nothing in it has no heading.
+- With nothing typed, **Files**, **Folders** and **All** list the names in their order, and **Text** nothing.
+
+Acceptance:
+
+- [ ] In **Files**, the rows are the files kept, in their order.
+- [ ] In **Text**, the two lines of `src/a.rs` are under a row of `src/a.rs` that counts 2, then the line of
+      `src/b.rs` under its own.
+- [ ] In **All**, **Folders**, **Files** and **Text** head their rows, in that order.
+- [ ] In **All** with no folder found there is no **Folders**.
+- [ ] In **All**, of 80 folders and 300 files kept, 50 and 100 are listed.
+
+### `file-search.preview` — The preview of a result
+
+The file of the result under the keyboard, beside the results, with the line found lit.
+
+- **Kind**: View
+- **Function**: `views::file_search::preview_view(state: &PreviewState, ui) -> Vec<Intent>`
+- **Entry points**: the right side of the Search page.
+- **Uses**: `file-view.highlight`, `file-view.page`, `file-view.file-icons`.
+- **Extension**: the preview of Search Here: nothing to build.
+
+- The file is read from the working tree when a result comes under the keyboard, and drawn as the File page draws a
+  file: the font of code, the numbers of the lines, the colors of its code (`file-view.highlight`). Above it, its
+  path. Until it is read, the preview before stays.
+- For a line of text, that line is brought to the middle and lit across the preview, and every match found in the
+  file is marked, the one of the line outlined.
+- A file found by its name is shown from its first line, the matches found in it marked when the text was searched
+  too.
+- A folder shows what it holds, its folders first, then its files, each with its icon, from the files listed.
+- The preview is read only, and nothing is selected in it. A double click on one of its lines opens the File page at
+  that line, as `Enter` in the results does for the line found.
+- A file with a NUL byte says **This file is not text.** A file larger than 1 MB is not read: **This file is too
+  large to preview. Press Enter to open it.** A file that cannot be read says what the system said.
+
+Acceptance:
+
+- [ ] With a line of text under the keyboard, the preview shows its file with that line lit, and every match found in
+      the file marked.
+- [ ] `↓` to a line of another file shows that file.
+- [ ] A file found by its name is shown from its first line.
+- [ ] A folder shows what it holds, its folders first.
+- [ ] A double click on a line of the preview opens the File page at that line.
+- [ ] A file with a NUL byte says **This file is not text.**
+- [ ] A file larger than 1 MB is not read, and the preview says so.
+
+### `file-search.open` — Search from anywhere
+
+What the Search page looks for and where, when it is asked for from a place of the window: the text selected there,
+the file or the folder named.
+
+- **Kind**: Derivation
+- **Function**: `model::file_search::open_with(search: &Search, asked: &Asked) -> Search`
+- **Entry points**: **Search in files** in the bar of views; `Ctrl+Shift+F` (`Cmd+Shift+F` on macOS) anywhere in the window;
+  **Search in files…** in Quick search; **Search here** in the context menu of a file, of a folder and of the top
+  row of the tree of the Files page.
+- **Uses**: by `file-search.page`.
+
+- From the bar of views, the key or Quick search, the page shows as it was left. Text selected in the File page in
+  front, or in the side of the Diff page in front that is edited, the only side text is selected in (Q820), becomes
+  what is looked for when it is not empty and is on one line; otherwise what was typed stays.
+- **Search here** on a folder makes it a scope, after **Changes**, named by its path, and chooses it; on a file, the
+  scope is that file alone; on the top row, **Repository** is chosen. There is one such scope: the next **Search
+  here** takes its place. What is typed, the mode and the filters stay.
+- The box takes the keyboard each time.
+
+Acceptance:
+
+- [ ] Asked for with `parse_log` selected in the File page in front, the box holds `parse_log`.
+- [ ] A selection of two lines, or none, leaves what the box held.
+- [ ] **Search here** on `src/ui` adds the scope `src/ui` and chooses it, and what is typed stays.
+- [ ] **Search here** on `src/app.rs` makes that file the scope.
+- [ ] **Search here** on the top row chooses **Repository**.
+- [ ] **Search here** on `docs`, after `src/ui`, puts `docs` in its place.
+- [ ] `Ctrl+Shift+F` shows the page from the timeline, and **Search in files…** of Quick search does too.
+
+### `file-search.remember` — The search, remembered for each repository
+
+What is searched comes back when the page is opened again in the same repository, after the window was closed too.
+
+- **Kind**: Derivation
+- **Function**: `app::persisted::file_search::keep_search(list: &mut Vec<RepositorySearch>, folder: &Path, search: &Search)`
+- **Uses**: by `file-search.page`.
+
+- What is typed, the three switches of the text, the mode, the scope (**Repository**, **Changes**, or the one
+  **Search here** named, with its path), **Include**, **Exclude**, **.gitignore** and **Hidden** are kept for each
+  repository, by its folder, under `fileSearches` in Gitardo's `state.json`, for the 20 repositories searched last
+  (Q817).
+- A search that is as a first one is, with nothing typed and nothing changed, is not written.
+- What is kept in a shape this version does not know is left out, and the page starts as a first one.
+
+Acceptance:
+
+- [ ] `socket`, the mode **Text**, **Match case**, `*.rs` in **Include** and the scope `src/ui` read back as they
+      were kept.
+- [ ] A search as a first one is, is not written.
+- [ ] Of 21 repositories searched, the 20 searched last are kept.
+- [ ] After the window is closed and opened again on the workspace, the page shows what was typed.

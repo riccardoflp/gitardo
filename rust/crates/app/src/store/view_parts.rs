@@ -91,6 +91,7 @@ pub(super) fn view_bar(state: &State) -> ViewBarState {
         (true, None) => ViewShown::Timeline,
         (_, Some(Page::Changes)) => ViewShown::Changes,
         (_, Some(Page::Files)) => ViewShown::Files,
+        (_, Some(Page::Search)) => ViewShown::Search,
         (_, Some(Page::Settings)) => ViewShown::Settings,
         (false, None) | (_, Some(_)) => ViewShown::Other,
     };

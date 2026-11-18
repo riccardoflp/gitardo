@@ -63,6 +63,7 @@ pub(super) fn write_box_view(state: &CardState<'_>, writing: &WritingBox<'_>, ui
         colors: &[],
         marks: &[],
         current_mark: None,
+        lit_line: None,
         is_read_only: state.is_running,
         reveal: None,
         focus: writing.focus,

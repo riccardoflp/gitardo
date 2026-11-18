@@ -200,7 +200,10 @@ impl WindowShared {
                 InputEvent::KeyReleased(key_event)
             });
         }
-        if is_pressed && let Some(text) = typed(event).and_then(translate::typed_text) {
+        if is_pressed
+            && translate::types_text(self.modifiers.get())
+            && let Some(text) = typed(event).and_then(translate::typed_text)
+        {
             events.push(InputEvent::TextTyped(text));
         }
         events

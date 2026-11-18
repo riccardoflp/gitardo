@@ -101,6 +101,8 @@ enum MenuChoice {
     FolderHistory,
     /// **Compare with Branch, Tag or Commit…**.
     Compare,
+    /// **Search here** (`file-search.open`).
+    SearchHere,
 }
 
 /// The Files page over the rectangle its caller clipped it to: the tree of the files of the working tree under the row
@@ -255,24 +257,32 @@ fn row_icons(ui: &mut Ui<'_>, parts: &mut Area, row: &FilesRow<'_>) {
     }
 }
 
-/// The context menu of a row: **Open file**, **Show file history** and **Compare with…** for a file; **Show folder
-/// history** and **Compare with…** for a folder; **Compare with…** alone for the top folder, whose history is all of it.
+/// The context menu of a row: **Open file**, **Show file history**, **Compare with…** and **Search here** for a file;
+/// **Show folder history**, **Compare with…** and **Search here** for a folder; **Compare with…** and **Search here**
+/// for the top folder, whose history is all of it.
 fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_>, &str)) -> Option<Intent> {
     let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
     let compare = item(icons::COMPARE, words::COMPARE_WITH, MenuChoice::Compare);
+    let search_here = item(
+        icons::SEARCH,
+        crate::text::file_search::SEARCH_HERE,
+        MenuChoice::SearchHere,
+    );
     let entries: Vec<MenuEntry<'_, MenuChoice>> = match row {
         FilesRow::File { .. } => vec![
             item(icons::OPEN_FILE, words::OPEN_FILE, MenuChoice::Open),
             item(icons::HISTORY, words::SHOW_FILE_HISTORY, MenuChoice::FileHistory),
             MenuEntry::Separator,
             compare,
+            search_here,
         ],
         FilesRow::Folder { .. } => vec![
             item(icons::HISTORY, words::SHOW_FOLDER_HISTORY, MenuChoice::FolderHistory),
             MenuEntry::Separator,
             compare,
+            search_here,
         ],
-        FilesRow::Top => vec![compare],
+        FilesRow::Top => vec![compare, search_here],
     };
     let run = |feature: &'static str| files_intent(FilesPageIntent::Run(FeatureId(feature), path.to_owned()));
     match ui.context_menu(("files row menu", path), response, &entries)? {
@@ -280,6 +290,18 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
         MenuChoice::FileHistory => Some(run("file-history.file")),
         MenuChoice::FolderHistory => Some(run("file-history.folder")),
         MenuChoice::Compare => Some(run("compare.path-with")),
+        MenuChoice::SearchHere => {
+            let place = |is_file| model::file_search::Place {
+                path: path.to_owned(),
+                is_file,
+            };
+            let place = match row {
+                FilesRow::File { .. } => Some(place(true)),
+                FilesRow::Folder { .. } => Some(place(false)),
+                FilesRow::Top => None,
+            };
+            Some(Intent::FileSearch(crate::file_search::FileSearchIntent::Here(place)))
+        }
     }
 }
 

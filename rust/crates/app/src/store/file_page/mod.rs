@@ -34,7 +34,7 @@ pub use markdown::{Preview, image_read, preview_read};
 pub use shown::{close_question, page_state};
 
 /// How many columns a tab goes to in the editor.
-const TAB_WIDTH: usize = 4;
+pub(crate) const TAB_WIDTH: usize = 4;
 
 /// Something asked of the File pages.
 pub fn reduce(state: &mut State, intent: FileViewIntent) -> Vec<Effect> {

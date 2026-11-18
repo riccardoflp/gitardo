@@ -127,6 +127,7 @@ The cards of the catalog name the places of the window with these words, and onl
 | **Inspector** | The card of the selected commit, on the right. |
 | **Changes page** | Every uncommitted file, staged or not, with its diff; opened by **Review** in the draft. |
 | **Files page** | The tree of the working tree, each file that differs from the last commit marked, where a file or a folder is picked for its history, its blame or a comparison. |
+| **Search page** | Files, folders and lines of text found in the worktree shown, as it is typed, with the preview of the one under the keyboard; opened by **Search in files** in the bar of views, `Ctrl+Shift+F`, **Search in files…** of Quick search and **Search here** in the context menu of the Files page. |
 | **Commit**, **Compare**, **Diff**, **Merge**, **Conflicts**, **File**, **Settings**, **Welcome** and **Worktree setup** pages | The other pages, each opened in place of the timeline with its trail. |
 | **Bottom panel** | The island under the timeline: the terminals, **Activity** (what is running and the Tasks) and the Command log. |
 | **Quick search** | `Ctrl+K`: commits, branches, files and commands. |

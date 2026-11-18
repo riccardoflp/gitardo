@@ -183,11 +183,11 @@ fn graph_view_bar__with_the_panel_at_activity_a_click_on_terminal_shows_its_term
 }
 
 #[test]
-fn graph_view_bar__with_no_repository_read_timeline_changes_files_compare_and_terminal_cannot_be_clicked() {
+fn graph_view_bar__with_no_repository_read_timeline_changes_files_search_compare_and_terminal_cannot_be_clicked() {
     let state = window();
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
-    for name in ["Timeline", "Changes", "Files", "Compare", "Terminal"] {
+    for name in ["Timeline", "Changes", "Files", "Search in files", "Compare", "Terminal"] {
         assert!(find(&tree, Role::Button, name).is_disabled(), "{name} can be clicked");
     }
     for name in ["Activity", "Settings"] {
@@ -196,6 +196,24 @@ fn graph_view_bar__with_no_repository_read_timeline_changes_files_compare_and_te
             "{name} cannot be clicked"
         );
     }
+}
+
+#[test]
+fn graph_view_bar__a_click_on_search_in_files_opens_the_search_page_and_marks_it() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let intents = window.click(&state, Role::Button, "Search in files");
+    assert_eq!(
+        intents,
+        [Intent::FileSearch(views::file_search::FileSearchIntent::Show)]
+    );
+    for intent in intents {
+        let _effects = run(&mut state, Message::Intent(intent));
+    }
+    assert_eq!(state.page_shown(), Some(Page::Search));
+    let data = app::store::ViewData::new(&state, Vec::new(), super::support::NOW);
+    assert_eq!(data.window_state(&state).view_bar.shown, views::ViewShown::Search);
 }
 
 #[test]

@@ -45,6 +45,8 @@ pub enum Page {
     Files,
     /// The page that chooses what new worktrees get (`worktree-setup.page`).
     NewWorktrees,
+    /// The Search page (`file-search.page`).
+    Search,
 }
 
 impl Page {
@@ -64,6 +66,7 @@ impl Page {
             Page::File(_) => crate::text::file_view::PAGE,
             Page::Files => crate::text::files::PAGE,
             Page::NewWorktrees => crate::text::worktree_setup::PAGE,
+            Page::Search => crate::text::file_search::PAGE,
         }
     }
 }
@@ -103,6 +106,8 @@ pub enum PageState<'a> {
     FilesBeside(Box<crate::file_view::BesideFilesState<'a>>),
     /// The page that chooses what new worktrees get, with its title.
     NewWorktrees(crate::worktree_setup::SetupPageState<'a>, &'a str),
+    /// The Search page.
+    Search(Box<crate::file_search::SearchPageState<'a>>),
 }
 
 impl<'a> PageState<'a> {
@@ -123,6 +128,7 @@ impl<'a> PageState<'a> {
             PageState::File(file) => Page::File(file.id),
             PageState::Files(_) | PageState::FilesBeside(_) => Page::Files,
             PageState::NewWorktrees(..) => Page::NewWorktrees,
+            PageState::Search(_) => Page::Search,
         }
     }
 
@@ -135,7 +141,8 @@ impl<'a> PageState<'a> {
             | PageState::Settings(_)
             | PageState::Changes(_)
             | PageState::Rebase(_)
-            | PageState::Files(_) => self.page().title(),
+            | PageState::Files(_)
+            | PageState::Search(_) => self.page().title(),
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
             PageState::CompareBeside(beside) => beside.diff.title,
@@ -244,6 +251,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Files(files) => crate::files::page_view(files, ui),
         PageState::FilesBeside(beside) => crate::file_view::beside_files_view(beside, ui),
         PageState::NewWorktrees(setup, _) => crate::worktree_setup::page(setup, ui),
+        PageState::Search(search) => crate::file_search::page_view(search, ui),
     }));
     // `Alt+Left` is read after the page, which may use it in a field.
     if state.has_trail && trail::is_back_pressed(ui) {

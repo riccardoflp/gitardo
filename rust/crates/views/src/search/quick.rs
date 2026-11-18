@@ -127,6 +127,8 @@ pub enum QuickCommand {
     ReviewConflicts,
     /// **Show files**: the Files page.
     ShowFiles,
+    /// **Search in files…**: the Search page (`file-search.open`).
+    SearchInFiles,
     /// **Choose the model that resolves conflicts** (`ai.choose-model`).
     ChooseAiModel,
     /// **Trusted folders…** (`trust.manage`).
@@ -155,7 +157,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 52] = [
+    pub const ALL: [QuickCommand; 53] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -179,6 +181,7 @@ impl QuickCommand {
         QuickCommand::Welcome,
         QuickCommand::ShowChanges,
         QuickCommand::ShowFiles,
+        QuickCommand::SearchInFiles,
         QuickCommand::ChooseWhatNewWorktreesGet,
         QuickCommand::ShowFileHistory,
         QuickCommand::ShowLinesHistory,
@@ -220,6 +223,7 @@ impl QuickCommand {
                 QuickCommand::ShowStashes
                     | QuickCommand::ReviewConflicts
                     | QuickCommand::ShowFiles
+                    | QuickCommand::SearchInFiles
                     | QuickCommand::ChooseWhatNewWorktreesGet
             )
     }

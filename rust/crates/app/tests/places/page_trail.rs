@@ -22,7 +22,7 @@ const WIDE: (u32, u32) = (1200, 700);
 
 /// The names the title row says, from its left: its buttons and its labels but the button of the side column, the
 /// `›` between them and the button that closes the page.
-fn names(tree: &TreeUpdate) -> Vec<String> {
+pub(super) fn names(tree: &TreeUpdate) -> Vec<String> {
     let trail = bounds(tree, Role::Navigation, words::TRAIL);
     let mut found: Vec<(f64, String)> = tree
         .nodes

@@ -14,6 +14,7 @@ pub mod diff;
 mod existing;
 pub(crate) mod fields;
 pub mod file_history;
+pub mod file_search;
 pub mod file_view;
 pub mod files;
 pub mod github;

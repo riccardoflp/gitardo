@@ -147,6 +147,9 @@ impl Ui<'_> {
     /// The parts of a row behind its text: what is selected, and what a search found, the current find outlined.
     fn backgrounds(&mut self, editor: &CodeEditor<'_>, layout: Layout, place: &RowPlace) {
         let colors = self.theme().colors;
+        if editor.lit_line == Some(place.line) {
+            self.fill_rect(place.rect, colors.list_inactive_selection);
+        }
         let range = editor.buffer.line_range(place.line);
         let selection = editor.cursor.range();
         if !selection.is_empty() {

@@ -24,7 +24,7 @@ use super::state::State;
 use crate::persisted::same_folder;
 use crate::work::diff::{DiffJob, DiffRead};
 
-pub use edit::{PageCaret, follow_document, reduce_edit};
+pub use edit::{PageCaret, follow_document, reduce_edit, selected_text};
 pub use navigate::reduce_page;
 pub use owner::Owner;
 use owner::show_opened;

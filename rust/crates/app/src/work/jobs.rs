@@ -39,6 +39,9 @@ pub fn run(job: &Job, cancel: &CancelToken, send: &mut dyn FnMut(Message)) {
         JobKind::ReadCommits { folder, request, known } => {
             super::pages::read_more(job.id, (folder, request, known), cancel, send);
         }
+        JobKind::FileSearch { folder, job: search } => {
+            super::file_search::run(job.id, (folder, search), cancel, send);
+        }
         _ => send(answer(job, cancel)),
     }
 }
@@ -104,14 +107,8 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::review::read_review(folder, request, cancel).map(Box::new),
         },
-        JobKind::CountConflicts { .. }
-        | JobKind::ReadNewWorktrees { .. }
-        | JobKind::ReadFiles { .. }
-        | JobKind::ReadBlame { .. }
-        | JobKind::ReadIgnored { .. }
-        | JobKind::ReadRepository { .. }
-        | JobKind::ReadTimeline { .. }
-        | JobKind::ReadCommits { .. } => files_read(job, cancel),
+        // The reads of files, and those `run` sends itself, which never come here.
+        _ => files_read(job, cancel),
     }
 }
 

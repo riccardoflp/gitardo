@@ -459,6 +459,9 @@ fn shortcuts(ui: &Ui<'_>, state: &WindowState<'_>) -> Vec<Intent> {
         .filter_map(|key| match (key.key, key.modifiers) {
             (Key::Named(NamedKey::Tab), Modifiers::CONTROL) => Some(Intent::NextPage),
             (Key::Character(','), Modifiers::CONTROL) => Some(Intent::ShowPage(Page::Settings)),
+            _ if crate::file_search::is_search_key(key) => {
+                Some(Intent::FileSearch(crate::file_search::FileSearchIntent::Show))
+            }
             (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_side_over => {
                 Some(Intent::Graph(GraphIntent::CloseSideColumn))
             }

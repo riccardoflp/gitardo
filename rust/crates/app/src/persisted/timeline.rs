@@ -34,6 +34,8 @@ pub struct WorkspacePanes {
     pub sizes: PaneSizes,
     /// The width the graph was dragged to.
     pub graph_width: Option<f32>,
+    /// The width of the results of the Search page beside the preview (`file-search.preview`).
+    pub search_results: Option<f32>,
     /// Whether the side column is put away.
     pub is_rail_hidden: bool,
     /// The height of **Changes** in the side column, its heading included, as dragged; none where it starts
@@ -102,6 +104,7 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
         ("inspectorOver", panes.sizes.inspector_over),
         ("filesTree", panes.sizes.files_tree),
         ("changesColumn", panes.sizes.changes_column),
+        ("searchResults", panes.search_results),
         ("graph", panes.graph_width),
     ];
     for (name, length) in lengths {
@@ -143,6 +146,7 @@ pub(super) fn workspace_panes(value: &Value) -> Option<WorkspacePanes> {
         },
         graph_width: length("graph"),
         changes_section: length("changesSection"),
+        search_results: length("searchResults"),
         is_rail_hidden: is_on("railHidden"),
         folds: SideFolds {
             is_repositories_folded: is_on("repositoriesFolded"),

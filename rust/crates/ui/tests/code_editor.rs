@@ -41,6 +41,7 @@ impl Page {
             colors: &[],
             marks: &[],
             current_mark: None,
+            lit_line: None,
             is_read_only: self.is_read_only,
             reveal: None,
             focus: None,

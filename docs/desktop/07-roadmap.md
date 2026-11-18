@@ -794,6 +794,43 @@ and that the graph is as wide during the read as before it. On a repository of 1
 saying **Loading more commits…** by itself after **Refresh**. The tests of each phase pass, and the cards say what the
 extension does.
 
+## M26 — Search: files, folders and text across the worktree
+
+A page that finds the files, the folders and the lines of text of the worktree shown, with a preview of the result
+under the keyboard: what the extension Search Here does in VS Code, inside Gitardo Desktop
+([D73](../08-decisions.md#d73--search-a-page-that-finds-files-folders-and-text-in-the-worktree-shown)). Asked by the
+maintainer, who had no way to search across the files of a repository in the window. Built in five phases, each one
+commit or more, each ending with its cards built and their tests passing. Desktop only: in VS Code, Search Here and
+VS Code's own search do it, and the cards are *Host only* there.
+
+1. **The names read and ranked.** The files of the worktree listed by git, tracked and untracked, the ignored ones
+   too when asked, narrowed by the pathspecs that **Include**, **Exclude** and **Hidden** become; a name matched
+   against what is typed, every term of it, its letters together or apart, and ranked. Cards:
+   `file-search.read-names`, `file-search.pathspecs`, `file-search.rank-names`.
+2. **The text searched.** `git grep` read as it prints, every match of a line marked, plain text or a regular
+   expression, with match case and whole word, stopped at 5,000 lines; the rows of the list made from what was found,
+   for each mode. Cards: `file-search.read-text`, `file-search.list-results`.
+3. **The Search page.** **Search in files** in the bar of views, a page with the box, its switches, the modes, the scopes
+   **Repository** and **Changes**, **Include** and **Exclude**, **.gitignore** and **Hidden**, and the results, found
+   as it is typed, the search before stopped; `↑`, `↓` and `Enter`, which opens the File page at the line with the way
+   back in its title row. Cards: `file-search.page`, `graph.view-bar`.
+4. **The preview.** Beside the results, the file of the result under the keyboard, drawn as the File page draws it,
+   the line of the result lit and every match marked; the content of a folder; a double click on a line opens the
+   File page there. Cards: `file-search.preview`, `file-search.page`.
+5. **From anywhere, and remembered.** `Ctrl+Shift+F`, **Search in files…** in Quick search, **Search here** in the
+   context menu of a file or a folder of the Files page, which narrows the search to it; text selected in the File
+   page or in the side of the Diff page in front that is edited becomes what is looked for; what is searched kept for each repository between runs.
+   Cards: `file-search.open`, `file-search.remember`, `file-search.page`.
+
+Exit: in the repository of Gitardo, `Ctrl+Shift+F` shows the page with the keyboard in its box; `usock` in **Files**
+finds a file named `useSocket.ts`; a word typed in **Text** lists its lines under their files as git finds them, and
+typing on stops the search before; `↓` shows each result in the preview with its line lit, and `Enter` opens the File
+page at that line, **Search** before it in the title row; **Changes** searches the changed files alone; **Search
+here** on a folder of the Files page searches under it; with **.gitignore** off a line of `node_modules` is found;
+the page comes back as it was after the window is closed and opened; on the working tree of GIMP a word is found in
+under half a second; every card of the milestone passes its tests, and the snapshots of the page match, empty, with
+results in each mode and with a match lit in the preview, in the dark and in the light theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

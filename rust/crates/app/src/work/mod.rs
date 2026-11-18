@@ -7,6 +7,7 @@ mod commands;
 pub mod compare;
 pub mod diagram;
 pub mod diff;
+pub mod file_search;
 pub mod file_view;
 pub mod github;
 pub mod jobs;
@@ -193,6 +194,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadMerge { folder, .. } => (folder, activity::SHOWING_MERGE),
         JobKind::ReadReview { folder, .. } => (folder, activity::REVIEWING_CONFLICTS),
         JobKind::ReadFiles { folder } => (folder, activity::LISTING_FILES),
+        JobKind::FileSearch { folder, .. } => (folder, activity::SEARCHING_FILES),
         JobKind::ReadNewWorktrees { folder, .. } => (folder, activity::LOOKING_AT_IGNORED),
         JobKind::ReadIgnored { folder, .. } => (folder, activity::CHECKING_IGNORED),
         JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),

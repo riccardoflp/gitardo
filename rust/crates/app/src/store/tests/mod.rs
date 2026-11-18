@@ -77,6 +77,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadInPlace { .. }
             | JobKind::ReadReview { .. }
             | JobKind::ReadFiles { .. }
+            | JobKind::FileSearch { .. }
             | JobKind::ReadNewWorktrees { .. }
             | JobKind::ReadIgnored { .. }
             | JobKind::ReadBlame { .. }
@@ -259,6 +260,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             result: Err(String::from("not read in these tests")),
         },
         JobKind::ReadFiles { .. }
+        | JobKind::FileSearch { .. }
         | JobKind::ReadNewWorktrees { .. }
         | JobKind::ReadIgnored { .. }
         | JobKind::ReadImage { .. }

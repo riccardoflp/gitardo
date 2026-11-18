@@ -18,6 +18,7 @@ pub mod details;
 pub mod diff;
 pub mod drag;
 pub mod file_history;
+pub mod file_search;
 pub mod file_view;
 pub mod filter;
 pub mod github;

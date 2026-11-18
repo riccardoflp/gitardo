@@ -40,6 +40,8 @@ pub const OPENING_FILE: &str = "Opening a file";
 pub const DRAWING_DIAGRAM: &str = "Drawing a diagram";
 /// Why the Files page reads.
 pub const LISTING_FILES: &str = "Listing the files";
+/// Why the Search page reads.
+pub const SEARCHING_FILES: &str = "Searching the files";
 /// Why the page of new worktrees reads.
 pub const LOOKING_AT_IGNORED: &str = "Looking at what git ignores";
 /// Why git is asked which files it ignores: the files not saved (`changes.unsaved`), and the files that changed

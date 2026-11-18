@@ -32,6 +32,7 @@ pub fn job_done(message: &Message) -> Option<JobId> {
             };
             (!follows).then_some(*job)
         }
+        Message::FileSearch { job, answer } => answer.is_last().then_some(*job),
         // Every other message is not the end of a job the workers keep a token for.
         _ => None,
     }

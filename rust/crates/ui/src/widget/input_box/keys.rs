@@ -37,8 +37,24 @@ pub(crate) fn is_used(key: KeyEvent) -> bool {
                 ('a' | 'c' | 'x' | 'v' | 'z' | 'y', false) | ('z', true)
             )
         }
-        Key::Character(_) => !modifiers.contains(Modifiers::META),
+        Key::Character(_) => types(modifiers),
     }
+}
+
+/// Whether a key of a character types with these modifier keys held. Not with the Windows or Command key; and not
+/// with `Alt` alone, which is a shortcut of the view, while with `Ctrl` too it types, as `AltGr` does. On macOS
+/// `Option` with a key types a character, and the shortcut of the view is `Ctrl` and `Option` with the key.
+fn types(modifiers: Modifiers) -> bool {
+    let (is_alt, is_control) = (
+        modifiers.contains(Modifiers::ALT),
+        modifiers.contains(Modifiers::CONTROL),
+    );
+    let is_shortcut = if cfg!(target_os = "macos") {
+        is_alt && is_control
+    } else {
+        is_alt && !is_control
+    };
+    !modifiers.contains(Modifiers::META) && !is_shortcut
 }
 
 /// Applies a key to the line of an input box.
@@ -127,5 +143,16 @@ mod tests {
             press(&mut line, Key::Character('c'), Modifiers::NONE),
             KeyOutcome::default()
         );
+    }
+
+    #[test]
+    fn a_key_with_alt_alone_is_left_to_the_view_and_on_macos_one_with_ctrl_and_option() {
+        let on_macos = cfg!(target_os = "macos");
+        let used = |modifiers: Modifiers| is_used(KeyEvent::press(Key::Character('c'), modifiers));
+        assert!(used(Modifiers::NONE));
+        assert!(used(Modifiers::SHIFT));
+        assert_eq!(used(Modifiers::ALT), on_macos);
+        assert_eq!(used(Modifiers::ALT | Modifiers::CONTROL), !on_macos);
+        assert!(!used(Modifiers::META));
     }
 }

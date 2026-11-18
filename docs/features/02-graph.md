@@ -380,12 +380,13 @@ A column of icons on the left edge of the window, each the way to a place of it.
 - **Kind**: View
 - **Function**: `views::view_bar_view(state: &ViewBarState, ui) -> Vec<Intent>`
 - **Entry points**: the left edge of the window.
-- **Uses**: `graph.view`, `changes.pane`, `compare.choose`, `panel.bottom`, `activity.what-is-running`,
-  `settings.edit`.
+- **Uses**: `graph.view`, `changes.pane`, `file-search.page`, `compare.choose`, `panel.bottom`,
+  `activity.what-is-running`, `settings.edit`.
 
 From the top: **Timeline**, which comes back to the timeline (`graph.view`); **Changes**, with the number of changed
-files on it, which opens the Changes page (`changes.pane`); **Files**, which opens the Files page; **Compare**, which
-asks what to compare (`compare.choose`); and at its foot **Terminal**, which shows the bottom panel at its terminals
+files on it, which opens the Changes page (`changes.pane`); **Files**, which opens the Files page; **Search in
+files**, which opens the Search page with the keyboard in its box (`file-search.page`); **Compare**, which asks what
+to compare (`compare.choose`); and at its foot **Terminal**, which shows the bottom panel at its terminals
 or its Command log and hides it (`panel.bottom`), **Activity**, which shows the bottom panel at its **Activity** tab
 and hides it (`activity.what-is-running`), and **Settings**, which opens the settings page (`settings.edit`). The
 place shown is marked with the ground of an island; **Terminal** is marked while the bottom panel shows its terminals
@@ -400,7 +401,9 @@ Acceptance:
 - [ ] A click on **Activity** shows the bottom panel at **Activity**, and another hides the panel.
 - [ ] A click on **Terminal** shows the bottom panel, and another hides it.
 - [ ] With the bottom panel at **Activity**, a click on **Terminal** shows its terminals.
-- [ ] With no repository read, **Timeline**, **Changes**, **Files**, **Compare** and **Terminal** cannot be clicked.
+- [ ] With no repository read, **Timeline**, **Changes**, **Files**, **Search in files**, **Compare** and
+      **Terminal** cannot be clicked.
+- [ ] A click on **Search in files** opens the Search page and marks **Search in files**.
 
 ### `panel.bottom` — The bottom panel
 

@@ -55,6 +55,10 @@ impl ViewData {
                 (&self.blame, self.panes.sizes.changes_column),
             )),
             Page::Files => Some(self.files_page(state)),
+            Page::Search => Some(PageState::Search(Box::new(crate::store::file_search::page_state(
+                state,
+                self.panes.search_results,
+            )))),
             Page::NewWorktrees => Some(PageState::NewWorktrees(
                 crate::store::new_worktrees::page_state(state),
                 &state.new_worktrees.title,

@@ -43,6 +43,8 @@ pub struct RepositoryView {
     pub conflicts: super::super::conflicts::Conflicts,
     /// The Files page.
     pub files_page: super::super::files_page::FilesPage,
+    /// Its Search page.
+    pub file_search: super::super::file_search::FileSearchPage,
     /// The page of what new worktrees get.
     pub new_worktrees: super::super::new_worktrees::NewWorktreesPage,
     /// The blame of the File pages.
@@ -101,6 +103,7 @@ impl Answered {
             | Message::ReviewRead { job, .. }
             | Message::IgnoredRead { job, .. }
             | Message::FilesRead { job, .. }
+            | Message::FileSearch { job, .. }
             | Message::NewWorktreesRead { job, .. }
             | Message::BlameRead { job, .. }
             | Message::GitHub(
@@ -167,6 +170,7 @@ pub(super) fn take_view(state: &mut State) -> RepositoryView {
         rebase_page: state.rebase_page.take(),
         conflicts: std::mem::take(&mut state.conflicts),
         files_page: std::mem::take(&mut state.files_page),
+        file_search: std::mem::take(&mut state.file_search),
         new_worktrees: std::mem::take(&mut state.new_worktrees),
         blames: std::mem::take(&mut state.blames),
         worktrees: std::mem::take(&mut state.worktrees),
@@ -204,6 +208,7 @@ pub(super) fn put_view(state: &mut State, view: RepositoryView) {
     state.rebase_page = view.rebase_page;
     state.conflicts = view.conflicts;
     state.files_page = view.files_page;
+    state.file_search = view.file_search;
     state.new_worktrees = view.new_worktrees;
     state.blames = view.blames;
     state.worktrees = view.worktrees;

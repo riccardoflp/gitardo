@@ -109,6 +109,8 @@ pub enum Pane {
     FilesTree,
     /// The width of the column of the Changes page beside a file opened from it (`changes.beside-file`).
     ChangesColumn,
+    /// The width of the results of the Search page beside the preview (`file-search.preview`).
+    SearchResults,
 }
 
 /// A section of the side column (`repo.side-column`).

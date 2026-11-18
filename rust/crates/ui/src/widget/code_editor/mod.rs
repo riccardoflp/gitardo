@@ -58,6 +58,8 @@ pub struct CodeEditor<'a> {
     pub marks: &'a [Range<usize>],
     /// The mark that is current, by its place among them.
     pub current_mark: Option<usize>,
+    /// A line lit across the editor, from zero: the line a search found, in its preview.
+    pub lit_line: Option<usize>,
     /// Whether typing does nothing: the file at a revision.
     pub is_read_only: bool,
     /// A line to bring to the middle, once for each number: the line a page opens at, a match gone to.

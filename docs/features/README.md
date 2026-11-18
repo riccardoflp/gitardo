@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 472 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 481 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -19,7 +19,7 @@ earns it.
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 30 |
 | [02-graph.md](02-graph.md) | Graph | 58 |
-| [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
+| [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 24 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 37 |
@@ -162,6 +162,15 @@ earns it.
 | [`filter.bar`](03-search-and-filter.md#filterbar--the-bar-of-what-the-timeline-is-narrowed-to) | The bar of what the timeline is narrowed to | View | Built | Built |
 | [`filter.log-arguments`](03-search-and-filter.md#filterlog-arguments--which-history-the-timeline-lists) | Which history the timeline lists | Derivation | Built | Built |
 | [`filter.remember`](03-search-and-filter.md#filterremember--the-branches-shown-remembered-per-repository) | The branches shown, remembered per repository | Derivation | Built | Built |
+| [`file-search.page`](03-search-and-filter.md#file-searchpage--the-search-page) | The Search page | View | Built | Host only |
+| [`file-search.read-names`](03-search-and-filter.md#file-searchread-names--the-files-of-the-worktree-for-the-search) | The files of the worktree, for the search | Read | Built | Host only |
+| [`file-search.pathspecs`](03-search-and-filter.md#file-searchpathspecs--what-narrows-a-search-to-some-files) | What narrows a search to some files | Derivation | Built | Host only |
+| [`file-search.rank-names`](03-search-and-filter.md#file-searchrank-names--which-files-and-folders-match-best) | Which files and folders match best | Derivation | Built | Host only |
+| [`file-search.read-text`](03-search-and-filter.md#file-searchread-text--search-the-text-of-the-files) | Search the text of the files | Read | Built | Host only |
+| [`file-search.list-results`](03-search-and-filter.md#file-searchlist-results--the-results-as-the-list-shows-them) | The results, as the list shows them | Derivation | Built | Host only |
+| [`file-search.preview`](03-search-and-filter.md#file-searchpreview--the-preview-of-a-result) | The preview of a result | View | Built | Host only |
+| [`file-search.open`](03-search-and-filter.md#file-searchopen--search-from-anywhere) | Search from anywhere | Derivation | Built | Host only |
+| [`file-search.remember`](03-search-and-filter.md#file-searchremember--the-search-remembered-for-each-repository) | The search, remembered for each repository | Derivation | Built | Host only |
 
 ## Details, commits and the page of a commit
 

@@ -75,7 +75,8 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | choice (in the review) | A side, both sides, or lines written by hand, that the user put in place of a proposal in the review: a proposal of its own, **Your choice**. | proposal (of the rules or the AI) | | `Choice`, `choices` |
 | take a side | Resolve a whole file with the version of one side of the operation under way. | | | action `takeSide` |
 | branches shown | The branches, remote branches and tags the graph is narrowed to, chosen with the button before the search. The README calls choosing them "filter by branch". | search | | `Scope`, `src/shared/scope.ts` |
-| search | Finding commits in the graph by message, author, hash or change. | branches shown, branches listed | | `Filter`, `Search` |
+| search | Finding commits in the graph by message, author, hash or change. | branches shown, branches listed, Search page | | `Filter`, `Search` |
+| Search page | In Gitardo Desktop, the page that finds files, folders and lines of text in the files of the worktree shown, with the preview of a result beside them (D73). Its **scope** is where it looks: **Repository**, **Changes**, or the folder or file **Search here** named. | search (of commits), Quick search, Find in a file | | `views::file_search`, `file-search.page` |
 | branches listed | The branches, remote branches and tags the references list, chosen with the funnel at their top, apart from the branches shown. | branches shown | | `RepoState.listed`, `listedRefs` in `src/shared/scope.ts` |
 | fold (a merge) | Put the commits a merge brought in under one row of the graph. | | | `src/webview/folds.ts` |
 | edit a message | Give a commit a new message: an amend for the last commit, an interactive rebase for an older one. | | | action `reword` |

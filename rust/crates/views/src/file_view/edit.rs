@@ -47,6 +47,7 @@ pub fn edit_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         colors: text.colors,
         marks,
         current_mark,
+        lit_line: None,
         is_read_only: state.is_read_only,
         reveal: text.reveal,
         focus: text.focus,

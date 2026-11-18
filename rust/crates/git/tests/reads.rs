@@ -9,6 +9,8 @@
 mod branch_log;
 #[path = "reads/conflicts.rs"]
 mod conflicts;
+#[path = "reads/file_search.rs"]
+mod file_search;
 #[path = "reads/github.rs"]
 mod github;
 #[path = "reads/golden.rs"]
