@@ -73,7 +73,7 @@ import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Targe
 import { type HostHooks, VscodeAsker, type WindowEngine, sayEngineMissing } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
 import { type Repository, reads, repositoryName } from '../engine/reads';
-import { type CommitsReader, EngineGraph, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
+import { type CommitsReader, EngineGraph, completed, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
 import type { EngineClient } from '../engine/client';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
 import { extensionKey } from '../engine/settings';
@@ -514,21 +514,20 @@ export class Controller implements vscode.Disposable {
         // Unless another was chosen while this one was read.
         if (scope === this.scope) this.settleScope(state.root, state.scope);
         const sort = branchSort();
-        // The pages of the read that came while the rest was read are laid out under its rows.
-        const laid = laidOutOf(state.rows);
-        if (laid) state = { ...state, rows: laid.catchUp(), hasMore: laid.source.hasMore };
-        this.setState({
-          ...sortRefs(state, sort),
-          favorites: this.favorites(state),
+        const read = state;
+        // The pages of the read that come while the rest is read are laid out under its rows once it is: a read that
+        // ended meanwhile would not be told to the views after.
+        const shown = await completed(sortRefs(read, sort), async () => ({
+          favorites: this.favorites(read),
           defaultPull: this.defaultPull(),
           repos: this.repos,
           github: this.github,
           pulls: this.pulls,
           agentsWindow: await (this.agentsWindow ??= hasCommand(AGENTS_WINDOW)),
-          undo: await this.newestInJournal(state.root),
-          worktreesRoot: worktreesFolder(state),
-          openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? 'worktree' : 'checkout',
-          listed: this.listedIn(state),
+          undo: await this.newestInJournal(read.root),
+          worktreesRoot: worktreesFolder(read),
+          openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? ('worktree' as const) : ('checkout' as const),
+          listed: this.listedIn(read),
           sortOrder: sort,
           traceSelected: vscode.workspace.getConfiguration('gitardo').get('graph.traceSelected') !== false,
           oneLane: vscode.workspace.getConfiguration('gitardo').get('graph.oneLane') === true,
@@ -537,9 +536,10 @@ export class Controller implements vscode.Disposable {
           combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
           islands: vscode.workspace.getConfiguration('gitardo').get('graph.islands') === true,
           resolveWithAI: this.resolveWithAI(),
-          home: this.homeOf(state.root),
+          home: this.homeOf(read.root),
           keepOpen: keepOpen(),
-        });
+        }));
+        this.setState(shown);
         for (const resolve of waiting.splice(0)) resolve();
       }
     } catch (error) {

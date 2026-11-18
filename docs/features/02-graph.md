@@ -825,7 +825,12 @@ shown (D54).
 - **Uses**: `graph.read-commits`.
 - **Extension**: the pages `EngineGraph` adds are laid out and sent to the views by `Controller.showPages`, those that
   come within 150 ms together, with only the rows the views do not have; `loadMore` of the list of commits asks for
-  nothing while a read adds its pages, and past 100,000 commits reads from the last one.
+  nothing while a read adds its pages, and past 100,000 commits reads from the last one. The pages that come while the
+  rest of the state is read, the newest entry of the journal among it, are laid out under the rows right before the
+  views are given the state (`completed` of `src/engine/graph.ts`), so that a read that ends meanwhile, as in a
+  repository of a little more than a page, leaves no commit waiting for the list to be scrolled (milestone M25).
+  Tested by `test/graphPages.test.ts`, "has every commit, and no more to come, when the read ends while the rest of the
+  state is read".
 
 - Each page of a read is added under the rows as soon as it is read, whether the list is scrolled or not, until the
   read ends at the end of the history or at 100,000 commits (`graph.read-commits`).

@@ -126,6 +126,18 @@ export async function graphState(
 }
 
 /**
+ * A state read, as the views are given it: with what else they show of the repository, read by `rest`, and with the
+ * pages its read of the commits added while that was read laid out under its rows. The pages are looked at after the
+ * rest, in the same turn the state is given: a read that ends while the rest is read tells nobody after, and its last
+ * commits would wait for the list to be scrolled to its end, under a row that says more are loading.
+ */
+export async function completed<Rest extends Partial<RepoState>>(state: RepoState, rest: () => Promise<Rest>): Promise<RepoState> {
+  const read = await rest();
+  const laid = laidOutOf(state.rows);
+  return laid ? { ...state, ...read, rows: laid.catchUp(), hasMore: laid.source.hasMore } : { ...state, ...read };
+}
+
+/**
  * The commits read, and whether the history has more, read or still to read. A read that goes on adds the commits of
  * each page to `commits` as it comes.
  */
