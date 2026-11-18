@@ -381,8 +381,8 @@ Tells git that a file's conflicts are resolved, by staging it.
 
 - **Kind**: Operation
 - **Function**: `features::conflicts::mark_resolved(context, answers) -> Outcome`
-- **Entry points**: the **+** button **Mark as resolved** on the row of a file in the **Conflicts** group of the
-  Changes page.
+- **Entry points**: **Mark as resolved** in the menu of a file of the **Conflicts** group of the Changes page
+  (`changes.row-menu`).
 - **Offered when**: the file is in conflict.
 - **Plan**: `git add -- <file>`. Title: **Stage \<file\>**.
 - **Danger**: None.
@@ -416,8 +416,8 @@ when that side deleted it.
 
 - **Kind**: Operation
 - **Function**: `features::conflicts::take_side(context, answers) -> Outcome`
-- **Entry points**: the buttons **Take the current side for the whole file** (←) and **Take the incoming side for the
-  whole file** (→) on the row of a file in conflict in the Changes page; **Keep it, with these changes** and
+- **Entry points**: **Take the current side for the whole file** and **Take the incoming side for the whole file**
+  in the menu of a file in conflict in the Changes page (`changes.row-menu`); **Keep it, with these changes** and
   **Delete it** on a card of `review.deleted-card`.
 - **Offered when**: the file is in conflict.
 - **Reads**: `conflicts.read-files` for the stages of the file; `conflicts.side-names` for what each side is.
@@ -781,8 +781,8 @@ accepted or not, and written. Nothing is written until the user writes what was 
 - **Function**: `views::review::page_view(state, ui) -> Vec<Intent>`
 - **Entry points**: **Review the resolutions of the conflicts** in Quick search; **Resolve … automatically** and
   **Resolve with AI** in `conflicts.banner`; the wand (**Resolve its conflicts automatically, after looking at what is
-  proposed**) and the sparkle (**Resolve with AI, after looking at what is proposed**) on the row of a file in conflict
-  in the Changes page, which open it with that file alone; **Review** in the question of
+  proposed**) and the sparkle (**Resolve with AI, after looking at what is proposed**) in the menu of a file in
+  conflict in the Changes page (`changes.row-menu`), which open it with that file alone; **Review** in the question of
   `conflicts.resolve-automatically`.
 - **Offered when**: `conflicts.autoResolve` or `conflicts.ai` is on.
 - **Reads**: `conflicts.read-files`; for each file with markers, its text and three versions; for the files without,
@@ -1400,8 +1400,8 @@ proposal to accept or not.
 
 - **Kind**: View
 - **Function**: `views::review::resolve_conflicts_view(state, ui) -> Vec<Intent>`
-- **Entry points**: **Resolve with AI** in `conflicts.banner` and in `conflicts.stopped`; the sparkle on the row of a
-  file in conflict in the Changes page; **Resolve conflicts with AI** in Quick search; in `review.page`, **Ask the AI
+- **Entry points**: **Resolve with AI** in `conflicts.banner` and in `conflicts.stopped`; the sparkle in the menu of a
+  file in conflict in the Changes page (`changes.row-menu`); **Resolve conflicts with AI** in Quick search; in `review.page`, **Ask the AI
   about the rest (N)** (*Ask the language model about each conflict that has nothing proposed*) and **Ask the AI** or
   **Ask again** on a card.
 - **Offered when**: `conflicts.ai` is on (it is marked **Experimental** in the settings).

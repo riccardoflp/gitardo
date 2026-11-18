@@ -13,6 +13,18 @@ use super::{MOST_RECENT, member, number, number_value, same_folder, same_folders
 /// How many merges folded, and how many unfolded by hand, are kept for a repository: those folded or unfolded last.
 pub const MOST_FOLDS: usize = 200;
 
+/// Which sections of the side column are folded to their headings (`repo.side-column`), each kept under its own key:
+/// `repositoriesFolded`, `changesFolded` and `branchesFolded`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub struct SideFolds {
+    /// Whether **Repositories** is folded.
+    pub is_repositories_folded: bool,
+    /// Whether **Changes** is folded (`changes.section`).
+    pub is_changes_folded: bool,
+    /// Whether **Branches** is folded.
+    pub is_branches_folded: bool,
+}
+
 /// The sizes of the panes of a workspace, as dragged.
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct WorkspacePanes {
@@ -24,10 +36,11 @@ pub struct WorkspacePanes {
     pub graph_width: Option<f32>,
     /// Whether the side column is put away.
     pub is_rail_hidden: bool,
-    /// Whether **Repositories** is folded in the side column (`repo.side-column`).
-    pub is_repositories_folded: bool,
-    /// Whether **Branches** is folded in the side column.
-    pub is_branches_folded: bool,
+    /// The height of **Changes** in the side column, its heading included, as dragged; none where it starts
+    /// (`changes.section`). It is kept beside the other sizes, under `changesSection`.
+    pub changes_section: Option<f32>,
+    /// Which sections of the side column are folded.
+    pub folds: SideFolds,
     /// The repositories open whose worktrees and submodules are folded under their rows in **Repositories**, by their
     /// folders (`repo.group-tabs`).
     pub folded_tabs: Vec<PathBuf>,
@@ -84,6 +97,7 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
     let lengths = [
         ("rail", panes.sizes.rail),
         ("repositories", panes.sizes.repositories),
+        ("changesSection", panes.changes_section),
         ("inspector", panes.sizes.inspector),
         ("inspectorOver", panes.sizes.inspector_over),
         ("filesTree", panes.sizes.files_tree),
@@ -97,8 +111,9 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
     }
     members.push(member("railHidden", Value::Bool(panes.is_rail_hidden)));
     for (name, is_folded) in [
-        ("repositoriesFolded", panes.is_repositories_folded),
-        ("branchesFolded", panes.is_branches_folded),
+        ("repositoriesFolded", panes.folds.is_repositories_folded),
+        ("changesFolded", panes.folds.is_changes_folded),
+        ("branchesFolded", panes.folds.is_branches_folded),
     ] {
         if is_folded {
             members.push(member(name, Value::Bool(true)));
@@ -115,6 +130,7 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
 pub(super) fn workspace_panes(value: &Value) -> Option<WorkspacePanes> {
     let folders = folders(value)?;
     let length = |name: &str| value.get(name).and_then(number);
+    let is_on = |name: &str| value.get(name).and_then(Value::as_bool).unwrap_or(false);
     Some(WorkspacePanes {
         folders,
         sizes: PaneSizes {
@@ -126,12 +142,13 @@ pub(super) fn workspace_panes(value: &Value) -> Option<WorkspacePanes> {
             changes_column: length("changesColumn"),
         },
         graph_width: length("graph"),
-        is_rail_hidden: value.get("railHidden").and_then(Value::as_bool).unwrap_or(false),
-        is_repositories_folded: value
-            .get("repositoriesFolded")
-            .and_then(Value::as_bool)
-            .unwrap_or(false),
-        is_branches_folded: value.get("branchesFolded").and_then(Value::as_bool).unwrap_or(false),
+        changes_section: length("changesSection"),
+        is_rail_hidden: is_on("railHidden"),
+        folds: SideFolds {
+            is_repositories_folded: is_on("repositoriesFolded"),
+            is_changes_folded: is_on("changesFolded"),
+            is_branches_folded: is_on("branchesFolded"),
+        },
         folded_tabs: listed_folders(value, "foldedTabs").unwrap_or_default(),
         panel: panel_look(value),
     })

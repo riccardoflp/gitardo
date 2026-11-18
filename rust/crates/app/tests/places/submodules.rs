@@ -148,7 +148,9 @@ fn submodule_section__a_repository_without_submodules_has_no_submodules_list() {
     let (_, tree) = window.draw(&state, &[]);
     assert!(!has(&tree, Role::Button, views::text::rail::SUBMODULES));
     let (with, _kept) = with_lib(false);
-    let (_, tree) = window.draw(&showing(with.path().to_path_buf()), &[]);
+    let mut with_submodule = showing(with.path().to_path_buf());
+    super::fold_changes(&mut with_submodule);
+    let (_, tree) = window.draw(&with_submodule, &[]);
     assert!(has(&tree, Role::Button, views::text::rail::SUBMODULES));
 }
 

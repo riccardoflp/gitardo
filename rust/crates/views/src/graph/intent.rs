@@ -99,6 +99,8 @@ pub enum Pane {
     Rail,
     /// The height of **Repositories**, in the side column (`repo.side-column`).
     Repositories,
+    /// The height of **Changes**, in the side column (`changes.section`).
+    ChangesSection,
     /// The width of the inspector beside the commits.
     Inspector,
     /// The height of the inspector over the commits, in the narrow layout.
@@ -114,6 +116,8 @@ pub enum Pane {
 pub enum SideSection {
     /// **Repositories**, the repositories open.
     Repositories,
+    /// **Changes**, the changes of the repository shown (`changes.section`).
+    Changes,
     /// **Branches**, the branch rail.
     Branches,
 }

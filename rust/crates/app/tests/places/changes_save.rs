@@ -25,7 +25,7 @@ fn committed() -> Repository {
 
 /// A window showing a repository, with a File page for each file given, its text replaced and not saved, and the
 /// Changes page open.
-fn edited(repository: &Repository, files: &[(&str, &str)]) -> (State, OperationsDriver) {
+pub(super) fn edited(repository: &Repository, files: &[(&str, &str)]) -> (State, OperationsDriver) {
     let mut state = super::showing(repository.path().to_path_buf());
     let driver = OperationsDriver::new();
     for (path, text) in files {
@@ -87,7 +87,9 @@ fn changes_save__save_on_a_file_edited_in_the_file_page_writes_it_and_its_row_th
         find(&drawn(&state), Role::CheckBox, "a.txt").is_disabled(),
         "not saved, it cannot be staged"
     );
-    let intents = Window::new(ThemeName::Dark, WIDE).click(&state, Role::Button, "Save");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let _ = super::changes_menu::menu_of(&mut window, &state, "a.txt");
+    let intents = window.click(&state, Role::MenuItem, "Save");
     assert!(
         intents.contains(&Intent::FileView(FileViewIntent::Save(String::from("a.txt")))),
         "{intents:?}"
@@ -190,7 +192,8 @@ fn changes_unsaved__a_file_changed_for_git_with_edits_not_saved_has_a_dot_after_
     let (state, _driver) = edited(&repository, &[("a.txt", "a, typed\n")]);
     let tree = drawn(&state);
     assert!(says(&tree, views::text::changes::UNSAVED), "the dot");
-    assert!(has(&tree, Role::Button, "Save"));
+    let items = super::changes_menu::menu_of(&mut Window::new(ThemeName::Dark, WIDE), &state, "a.txt");
+    assert!(items.iter().any(|item| item == "Save"), "{items:?}");
     let can_be_staged = !find(&tree, Role::CheckBox, "a.txt").is_disabled();
     assert!(can_be_staged, "changed for git, it can be staged");
 }

@@ -49,9 +49,15 @@ pub fn resize(state: &mut State, intent: &GraphIntent) -> Vec<Effect> {
         GraphIntent::SetPane(Pane::Rail, size) => panes.sizes.rail = *size,
         GraphIntent::SetPane(Pane::Repositories, size) => panes.sizes.repositories = *size,
         GraphIntent::FoldSection(SideSection::Repositories) => {
-            panes.is_repositories_folded = !panes.is_repositories_folded;
+            panes.folds.is_repositories_folded = !panes.folds.is_repositories_folded;
         }
-        GraphIntent::FoldSection(SideSection::Branches) => panes.is_branches_folded = !panes.is_branches_folded,
+        GraphIntent::SetPane(Pane::ChangesSection, size) => panes.changes_section = *size,
+        GraphIntent::FoldSection(SideSection::Changes) => {
+            panes.folds.is_changes_folded = !panes.folds.is_changes_folded;
+        }
+        GraphIntent::FoldSection(SideSection::Branches) => {
+            panes.folds.is_branches_folded = !panes.folds.is_branches_folded;
+        }
         GraphIntent::SetPane(Pane::Inspector, size) => panes.sizes.inspector = *size,
         GraphIntent::SetPane(Pane::InspectorOver, size) => panes.sizes.inspector_over = *size,
         GraphIntent::SetPane(Pane::FilesTree, size) => panes.sizes.files_tree = *size,

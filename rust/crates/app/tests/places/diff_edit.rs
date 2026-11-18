@@ -45,6 +45,8 @@ fn sides(tree: &TreeUpdate) -> (Rect, Rect) {
         .iter()
         .filter(|(_, node)| node.role() == Role::TextInput)
         .filter_map(|(_, node)| node.bounds().map(rect))
+        // The message box of the **Changes** section of the side column is an input box too.
+        .filter(|found| !super::pointer::is_in_changes_section(tree, *found))
         .collect();
     found.sort_by(|one, other| one.x.total_cmp(&other.x));
     match found.as_slice() {

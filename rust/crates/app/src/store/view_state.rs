@@ -194,7 +194,8 @@ impl ViewData {
         }
     }
 
-    /// The side column of an open workspace: its repositories, and the rail of the one read (`repo.side-column`).
+    /// The side column of an open workspace: its repositories, and the changes and the rail of the one read
+    /// (`repo.side-column`).
     fn side_column<'a>(&'a self, state: &'a State) -> Option<SideColumnState<'a>> {
         let tabs = self.tabs.island(state)?;
         let branches = match state.workspace.as_ref().map(|workspace| &workspace.shown) {
@@ -203,11 +204,14 @@ impl ViewData {
         };
         Some(SideColumnState {
             tabs,
+            changes: Box::new(self.changes.page_state(state)),
             branches,
             sections: SideSections {
                 repositories_height: self.panes.sizes.repositories,
-                is_repositories_folded: self.panes.is_repositories_folded,
-                is_branches_folded: self.panes.is_branches_folded,
+                changes_height: self.panes.changes_section,
+                is_repositories_folded: self.panes.folds.is_repositories_folded,
+                is_changes_folded: self.panes.folds.is_changes_folded,
+                is_branches_folded: self.panes.folds.is_branches_folded,
             },
         })
     }

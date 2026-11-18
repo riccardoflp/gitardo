@@ -28,6 +28,8 @@ pub const NO_IDENTITY: &str = "No identity configured";
 pub const CONFLICTS: &str = "Conflicts";
 /// The Changes page as a column beside the file it opened, for the screen reader (`changes.beside-file`).
 pub const COLUMN: &str = "List of changes";
+/// What the **Changes** section of the side column shows, for the screen reader (`changes.section`).
+pub const SECTION: &str = "Changes of the repository shown";
 /// The heading of the files changed.
 pub const CHANGES: &str = "Changes";
 /// The box on the header of the list, for the screen reader.
@@ -46,6 +48,12 @@ pub const STASH_ALL: &str = "Stash all changes\u{2026}";
 pub const SAVE_ALL: &str = "Save all";
 /// **Discard all changes**.
 pub const DISCARD_ALL: &str = "Discard all changes";
+/// **…** at the right of the heading of the list, which has the buttons the heading has no room for.
+pub const MORE_FOR_ALL: &str = "More for all changes";
+/// **Stage**, in the menu of a file.
+pub const STAGE: &str = "Stage";
+/// **Unstage**, in the menu of a file wholly staged.
+pub const UNSTAGE: &str = "Unstage";
 /// **Open file**.
 pub const OPEN_FILE: &str = "Open file";
 /// **Open changes**.

@@ -11,6 +11,7 @@ use views::diff::{DiffVersion, FileStep};
 use views::page::{Page, PageState};
 use views::{Content, Intent};
 
+use super::changes_menu::name_of;
 use super::pointer::{bounds, drag, middle, rect};
 use super::showing;
 use super::support::{self, OperationsDriver, Window, find, has};
@@ -51,9 +52,12 @@ pub(super) fn three_changed() -> Repository {
     repository
 }
 
-/// A window showing a repository with its Changes page open.
+/// A window showing a repository with its Changes page open, and the **Changes** section of the side column folded,
+/// so that the page lists the files alone, in its column once a file is beside it (`changes.section` has its own
+/// tests, with the section open).
 pub(super) fn changes_page(repository: &Repository) -> (State, OperationsDriver) {
     let mut state = showing(repository.path().to_path_buf());
+    super::fold_changes(&mut state);
     let driver = OperationsDriver::new();
     driver.intent(&mut state, Intent::Changes(ChangesIntent::Open));
     (state, driver)
@@ -103,6 +107,15 @@ pub(super) fn diff_of(path: &str) -> Beside {
     }
 }
 
+/// What a file shown in its File page beside the list looks like.
+pub(super) fn file_of(path: &str) -> Beside {
+    Beside {
+        shown: path.to_owned(),
+        is_diff: false,
+        marked: Some(path.to_owned()),
+    }
+}
+
 /// The two versions the Diff page beside the list compares.
 fn versions(state: &State) -> (DiffVersion, DiffVersion) {
     let page = state
@@ -114,29 +127,14 @@ fn versions(state: &State) -> (DiffVersion, DiffVersion) {
     (page.target.left.clone(), page.target.right.clone())
 }
 
-/// The button of a role and a name in the row of a file of the list, found by the path the row's box is named.
-fn in_row(tree: &TreeUpdate, (role, name): (Role, &str), path: &str) -> Point {
-    let row = rect(find(tree, Role::CheckBox, path).bounds().unwrap());
-    let found = tree
-        .nodes
-        .iter()
-        .filter(|(_, node)| node.role() == role && node.label() == Some(name))
-        .filter_map(|(_, node)| node.bounds().map(rect))
-        .find(|button| (button.y - row.y).abs() < row.height)
-        .unwrap_or_else(|| panic!("the button in the row"));
-    middle(found)
-}
-
-/// Clicks a button of the row of a file, and reduces what it asks.
+/// Chooses an item of the menu of the row of a file, and reduces what it asks.
 pub(super) fn click_in_row(
     driver: &OperationsDriver,
     state: &mut State,
     window: &mut Window,
     (name, path): (&str, &str),
 ) {
-    let (_, tree) = window.draw(state, &[]);
-    let intents = window.click_at(state, in_row(&tree, (Role::Button, name), path), 1);
-    apply(driver, state, intents);
+    let _ = super::changes_menu::choose(driver, state, window, (name, path));
 }
 
 /// Presses a key with `Alt` and reduces what it asks; gives what it asked.
@@ -148,7 +146,7 @@ fn alt(driver: &OperationsDriver, state: &mut State, window: &mut Window, key: N
 }
 
 /// Waits for the operation running to end.
-fn until_ended(driver: &OperationsDriver, state: &mut State) {
+pub(super) fn until_ended(driver: &OperationsDriver, state: &mut State) {
     for _ in 0..8 {
         if matches!(driver.next(state), Message::FeatureEnded { .. }) {
             return;
@@ -214,6 +212,28 @@ fn changes_beside_file__open_file_then_a_click_set_to_diff_show_each_in_the_same
         state.pages.open,
         [Page::Changes],
         "Ctrl+Tab lists the Changes page alone"
+    );
+}
+
+#[test]
+fn changes_open__a_click_on_a_row_shows_its_diff_by_default_and_the_file_with_open_on_click_set_to_file() {
+    let repository = three_changed();
+    let (mut state, driver) = changes_page(&repository);
+    assert_eq!(state.settings.open_on_click, model::changes::OpenOnClick::Diff);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let intents = window.click_at(&state, name_of(&tree, "a.txt"), 1);
+    apply(&driver, &mut state, intents);
+    assert_eq!(beside(&state), Some(diff_of("a.txt")), "a click shows the diff");
+    assert_eq!(versions(&state), (DiffVersion::Index, DiffVersion::WorkingTree));
+    state.settings = app::settings::parse(Some(r#"{ "changes.openOnClick": "file" }"#), None);
+    let (_, tree) = window.draw(&state, &[]);
+    let intents = window.click_at(&state, name_of(&tree, "b.txt"), 1);
+    apply(&driver, &mut state, intents);
+    assert_eq!(
+        beside(&state),
+        Some(file_of("b.txt")),
+        "set to file, a click shows the file"
     );
 }
 
@@ -326,9 +346,10 @@ fn changes_beside_file__its_title_row_starts_with_the_button_of_the_side_column_
     );
     let changes = trail_changes(&tree);
     let diff = bounds(&tree, Role::Main, views::text::diff::PAGE);
+    // The side column lists the changes in its section, so the diff has the page to itself, under the title row.
     assert!(
-        changes.x < diff.x,
-        "Changes is in the title row, before the diff's name"
+        changes.y < diff.y && changes.x > diff.x,
+        "Changes is in the title row, above the diff: {changes:?} {diff:?}"
     );
     let alt_left = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::ArrowLeft), Modifiers::ALT));
     let (intents, _) = window.draw(&state, &[alt_left]);
@@ -398,18 +419,6 @@ fn the_changes_page_beside_a_diff_is_drawn_in_each_theme() {
         let _ = window.draw(&state, &[]);
         window.assert_snapshot(name);
     }
-}
-
-/// The middle of the name of a file of the list: its box is named by its path too, and the name is right of it.
-fn name_of(tree: &TreeUpdate, path: &str) -> Point {
-    let name = tree
-        .nodes
-        .iter()
-        .filter(|(_, node)| node.role() != Role::CheckBox && (node.label() == Some(path) || node.value() == Some(path)))
-        .filter_map(|(_, node)| node.bounds().map(rect))
-        .max_by(|one, other| one.x.total_cmp(&other.x))
-        .unwrap_or_else(|| panic!("the name of the file"));
-    Point::new(name.x + 4.0, name.y + name.height * 0.5)
 }
 
 #[test]

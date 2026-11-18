@@ -201,8 +201,8 @@ Sets aside every change to one file, or to the files chosen, staged or not.
 
 - **Kind**: Operation
 - **Function**: `features::stash::push_file(context, answers) -> Outcome`
-- **Entry points**: **Stash this file…** on the row of a file in the Changes page and in the inspector while the draft
-  is selected; **Stash N selected files…** above the files of the draft in the inspector, while some are ticked.
+- **Entry points**: **Stash this file…** in the menu of a file of the Changes page (`changes.row-menu`), and on the
+  row of a file in the inspector while the draft is selected; **Stash N selected files…** above the files of the draft in the inspector, while some are ticked.
 - **Extension**: **Stash this file…** on each file of the Changes view and of the uncommitted changes in the details;
   **Stash 1 selected file…** or **Stash N selected files…** above the files of the uncommitted changes in the details,
   while some are ticked; **Stash This File…** on each file of the **Staged Changes**, **Changes** and **Untracked

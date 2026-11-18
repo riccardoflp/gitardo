@@ -569,8 +569,8 @@ Acceptance:
 
 - [ ] No icon of the window is drawn for two meanings of the table: a test goes through every `Icon` the views use and
       the meaning each is given.
-- [ ] **Discard changes** on a file of the Changes page and **Revert this change** in a Diff page draw the same icon,
-      and **Drop** on a stash another one.
+- [ ] **Discard changes** in the menu of a file of the Changes page and **Revert this change** in a Diff page draw
+      the same icon, and **Drop** on a stash another one.
 - [ ] Each icon drawn at 16 px and at 32 px matches its snapshot, in the dark and the light theme.
 - [ ] The licence of Lucide is in the repository beside its outlines.
 
@@ -712,8 +712,8 @@ the same action draws, so that the eye finds an action in a long menu and one me
   worktree, a stash and a submodule in the side column, and of their lists; the menu of the view, the **…** and the
   **Sync** menus of the header, the repository and the worktree of the header, the menu of a repository tab and the
   **+** of **Repositories**; the menus of a file in the Files page, the inspector, the Commit page and the comparison;
-  the menus of the editors of the File, Diff and Merge pages; the chooser of the comparison, the sections of the
-  settings.
+  the menu of a file of the changes and the **…** of their heading (`changes.row-menu`); the menus of the editors of
+  the File, Diff and Merge pages; the chooser of the comparison, the sections of the settings.
 - **Uses**: `graph.icons`.
 - **Extension**: the extension draws its own menus in its webviews, with no icons yet (Q619); VS Code's own menus show
   none.
@@ -1022,7 +1022,8 @@ widths.
 | Line | Starts at | Least | Most | Double click |
 | --- | --- | --- | --- | --- |
 | Side column and commits | 210 px | 120 px | 35% of the window | back to 210 px |
-| **Repositories** and **Branches**, in the side column | 160 px for **Repositories** | 64 px for either | the column less 64 px | back to 160 px |
+| Under **Repositories**, in the side column | 160 px for **Repositories**, or as tall as its rows | 64 px for each section open | the column less 64 px for each open section under it | back to where it starts |
+| Under **Changes**, in the side column | 280 px for **Changes**, or as tall as what it shows | 64 px for each section open | the column less 64 px for **Branches** | back to where it starts |
 | Commits and inspector, side by side | 320 px for the inspector | 200 px | 55% of the window | back to 320 px |
 | Inspector over the commits, in the narrow layout | half the height for the inspector | 80 px | 80% of the height | back to half |
 
@@ -1034,6 +1035,8 @@ Acceptance:
 
 - [ ] The side column cannot be dragged narrower than 120 px nor wider than 35% of the window.
 - [ ] Dragging the line under **Repositories** down gives it the height **Branches** loses.
+- [ ] Dragging the line under **Changes** down gives it the height **Branches** loses, and it is as high after the
+      window opens again.
 - [ ] A double click on the line before the inspector gives it 320 px again.
 - [ ] The sizes are there after the window is closed and opened again on the same workspace.
 

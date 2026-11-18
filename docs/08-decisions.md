@@ -1361,6 +1361,62 @@ rather than a webview (a row could not put the counts at its right in their colo
 putting the list inside the Branches view (two lists with two scrolls in one view, which VS Code already splits
 better).
 
+## D71 — Changes, a section of the side column, whose files open their diffs
+
+*Asked by the maintainer for milestone M24; the details proposed by the agent.*
+
+The changes were a page: to see what was not committed one left the timeline, and the list of the files came back
+only as a column of that page while one of them was open. The side column already holds what one keeps an eye on, the
+repositories and the branches, so the changes go there too, and a file opens where the timeline is.
+
+- **Changes, the section in the middle.** The side column has three sections: **Repositories**, **Changes** and
+  **Branches**, in that order (`changes.section`, `repo.side-column`). The heading of **Changes** says how many files
+  are changed, `CHANGES 3`, and folds the section as the other two fold. The section shows what the Changes page
+  showed as a column beside a file: the banners of an operation that stopped, the commit box with its message,
+  **Commit** or **Amend**, the sparkle and the identity (Q761), **Conflicts**, and the list of the changed files with
+  their boxes. With no repository shown it is its heading alone over an empty room. In the narrow layout it is in the
+  side column opened over the timeline, as the other sections are.
+- **The three share the height.** A folded section is its heading; the open ones share what is left: each but the
+  last open one has the height it was dragged to, or the one it starts at (**Repositories** 160 logical pixels,
+  **Changes** 280, each as tall as what it shows when that is less), and the last open one takes the rest. The line
+  under an open section that has another open section under it is dragged, and moves with the arrows (Q767). What is
+  folded and the two heights are remembered for the workspace, under keys added to those the side column has:
+  `changesFolded`, and `changesSection` among the sizes; no key changes its name or its meaning.
+- **Every heading but the first is under a line, always.** The line between two sections was drawn only while both
+  were open, so that two folded sections, or a folded one under an open one, ran into each other. Now the line above
+  the heading of **Changes** and the one above the heading of **Branches** are drawn whatever is folded; only the
+  lines that can be dragged take the pointer.
+- **A row has no buttons, and its actions are in its menu.** A row of a changed file was a name squeezed between a
+  box and up to five buttons, which a narrow column cannot hold. The row keeps its box, which is the state of the
+  file, and loses its buttons; what they did is in the context menu of the row (`changes.row-menu`), by the right
+  button and by the menu key on a row that has the keyboard, each item with the icon its button drew (D63): **Open
+  changes**, **Open file**, **Stage** or **Unstage**, **Discard changes**, **Stash this file…**, **Save** on a file
+  not saved, **Compare with the saved file**; for a file in conflict, the two ways of resolving it after looking at
+  what is proposed, **Mark as resolved** and the two sides. The same rows are in the section and in the Changes page.
+  The buttons of the heading of the list act on every file and stay where the width holds them; those it does not
+  hold go into a **…** menu at the right of the heading (Q762).
+- **A click on a file shows its diff.** `changes.openOnClick` is `diff` by default in Gitardo Desktop: the question a
+  changed file answers is what changed. The key and its two values mean what they meant, and **Open file** is in the
+  menu of the row. The extension keeps `gitardo.changes.openOnClick` at `file` until the maintainer says (Q763).
+- **A file opens in the middle of the window.** A file of the section opens where the timeline or the page is, the
+  side column staying where it is, with the row of the file marked in the section; `Alt+Down` and `Alt+Up` show the
+  next and the previous file. It is what the Changes page beside a file was (`changes.beside-file`), with the section
+  as its list: while the side column shows **Changes** open, the page draws the file alone; with the side column put
+  away, or the section folded, it draws its own column of the list as before.
+- **The Changes page stays**, for now: the Changes view of the bar of views, **Review** in the draft of the timeline
+  and **Show changes** in Quick search still open it whole (Q760).
+
+In the extension VS Code's Source Control side bar is the column, and **Gitardo Changes** a view of it: the section
+is *Host only* there. The rows of that view keep their buttons and a click still opens the file; whether they follow
+the desktop is asked (Q763, Q764), and nothing of the extension is built in this milestone.
+
+Rejected: a tab of the bottom panel for the changes (a list of files wants height, and the panel is wide and low);
+the section under **Branches** (the changes are looked at more often than the branches, and would be the first
+thing a long list of branches pushes out of sight); buttons that show only on the row under the pointer (they still
+cover the end of the name when it matters, and the keyboard never reaches them); taking the Changes page
+away in the same milestone (three ways lead to it, and the commit box is wider there: asked first, Q760); opening the
+file in place of the side column (the list would go the moment one looks at a file).
+
 ## D72 — The list of commits keeps its length while its commits are read again (proposed)
 
 *Proposed by the agent for milestone M25, after the maintainer reported that the graph of the extension loads badly, or
@@ -4119,6 +4175,71 @@ is on it; each is built as it says until the maintainer answers otherwise.
   nothing shows its buttons, as nothing is `hovered` then; a button pressed whose row the pointer leaves is drawn no
   more until the release. A browser keeps the row of the press lit. Should a row keep what it showed while a press
   that started on one of its buttons is held?
+
+### Of the Changes section of the side column, from Q760
+
+Questions of [D71](#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs), asked while planning and
+building milestone M24; each is built as it says until the maintainer answers otherwise.
+
+- **Q760** — `changes.pane`: the Changes page stays, opened whole by the Changes view of the bar of views, by
+  **Review** in the draft of the timeline and by **Show changes** in Quick search, so that with the page whole and
+  the section open the same commit box and the same list are on screen twice. Should the page go now that the section
+  is there, the three ways showing the side column at **Changes** instead, with the keyboard in its message box?
+- **Q761** — `changes.section`: the commit box, its message, **Commit** or **Amend**, **Amend last commit**, the
+  sparkle and the identity, is in the section, as it was in the column of the page. Does it belong there, or should
+  the section hold the list alone, the message staying in the draft of the timeline and in the page?
+- **Q762** — `changes.pane`: the buttons of the heading of the list that the width does not hold go into **…** at
+  its right. Planned: they leave the heading in this order, the first to go first: **View as tree** or **View as
+  list**, **Stash only the staged changes…**, **Save all**, **Stash all changes…**, **Discard all changes**, **Open
+  all changes in one Diff page**, which goes last; the heading keeps room for its box, its name and its count. Which
+  should stay?
+- **Q763** — `changes.open`: a click on a file shows its diff in Gitardo Desktop, `changes.openOnClick` being `diff`
+  by default there; the extension keeps `gitardo.changes.openOnClick` at `file`, its default since the setting was
+  made. Should the extension's default become `diff` too? It would change what a click does for whoever never set
+  it.
+- **Q764** — `changes.row-menu`: the rows of the **Gitardo Changes** view of the extension keep their buttons, which
+  show beside the name. Should they go into the context menu of the row there too, as in the desktop? The card is
+  *Planned* in the extension until this is answered.
+- **Q765** — `changes.row-menu`: the menu of a row opens by the menu key on the row that has the keyboard, as every
+  context menu of the window does (`NamedKey::ContextMenu`); `Shift+F10`, which opens a context menu on Windows and
+  Linux where the keyboard has no menu key, opens none in the window today. Should the toolkit read `Shift+F10` as
+  the menu key, for every context menu?
+- **Q766** — `changes.beside-file`: when the file shown in the middle of the window leaves the list, committed or
+  discarded, the Changes page is shown whole in its place, as before M24, beside the section that lists the same
+  files. Should the timeline come back instead while the section is what lists them?
+- **Q767** — `repo.side-column`: the line that is dragged is the one under an open section that has another open
+  section under it, and it sets the height of the section above it; the last open section takes the rest. With
+  **Changes** folded between **Repositories** and **Branches** open, the line under **Repositories**, above the
+  heading of **Changes**, is the one dragged, and the line above the heading of **Branches** is not. Is that the
+  line expected?
+- **Q768** — `changes.section`: the section starts 280 logical pixels high, its heading included, or as tall as what
+  it shows when that is less, so that a repository with two changed files leaves the rest to **Branches**. Is that
+  the height wanted where nothing was dragged?
+- **Q769** — `changes.section`: its heading counts the files of the list and the files in conflict together,
+  `CHANGES 3`, and says `CHANGES` alone when there are none and while no repository is shown. Should the files in
+  conflict be counted apart, or the count be drawn as a number in a circle as VS Code draws it?
+- **Q770** — `changes.row-menu`: the menu has **Stage** on a file with something not staged and **Unstage** on a
+  file wholly staged, which is what a click on its box does. A file partly staged has **Stage** alone. Should it have
+  both?
+- **Q771** — `changes.section`: in the narrow layout the section is in the side column opened over the timeline, and
+  a file clicked there opens under the column, which stays open until a click outside it or `Escape`, as it does when
+  a repository or a branch is chosen there. Should opening a file close the column?
+- **Q772** — `changes.row-menu`: each row of a file takes the keyboard by `Tab`, so that `Enter` opens it and the
+  menu key opens its menu; a list of two hundred files is two hundred stops of `Tab`. Should the list have a cursor
+  moved by the arrows, as the timeline has, and be one stop?
+- **Q773** — `changes.section`: the list of the changes, with its tree, is now worked out at every frame while the
+  side column is shown, where before it was only while the Changes page was open. It is a pass over the files of the
+  working tree, quick for a few hundred files; with tens of thousands changed, should it be kept between frames until
+  the repository is read again?
+- **Q774** — `changes.section`: with the Changes page shown and the section open, the commit box and the list are
+  drawn twice, in the section and in the page, which share what is typed and ticked. Should showing the whole page
+  fold the section while it is shown, or should the page, with the section open, show something else?
+- **Q775** — `changes.beside-file`: a file opened from the section shows the Changes page with the file alone, and
+  its trail reads `Timeline › Changes › a.txt`; **Changes** there shows the whole page, with the list in the section
+  too. Should that step of the trail go while the section is open, so that `Alt+Left` comes back to the timeline?
+- **Q776** — `changes.section`: tests of the Changes page, of the branch rail and of the stashes in a window 520
+  logical pixels high fold the **Changes** section first, since a third open section leaves the rail too little height
+  for what they look at. Is 520 still the height the window tests should assume, or should they use a taller window?
 
 ### Of how the graph of the extension loads, from Q780
 

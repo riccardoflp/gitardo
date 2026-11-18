@@ -72,16 +72,15 @@ fn review_page__the_wand_of_a_file_on_the_changes_page_opens_the_review_of_that_
     let mut state = showing_with(repository.path().to_path_buf(), auto_resolve());
     let _effects = run(&mut state, Message::Intent(Intent::Changes(ChangesIntent::Open)));
     let mut window = Window::new(ThemeName::Dark, (1200, 560));
-    let (_, tree) = window.draw(&state, &[]);
-    let wands = tree
-        .nodes
-        .iter()
-        .filter(|(_, node)| {
-            node.role() == Role::Button && node.label() == Some(views::text::changes::RESOLVE_AUTOMATICALLY)
-        })
-        .count();
-    assert_eq!(wands, 2);
-    let intents = window.click(&state, Role::Button, views::text::changes::RESOLVE_AUTOMATICALLY);
+    for path in ["two.txt", "one.txt"] {
+        let items = super::changes_menu::menu_of(&mut window, &state, path);
+        let has_wand = items
+            .iter()
+            .any(|item| item == views::text::changes::RESOLVE_AUTOMATICALLY);
+        assert!(has_wand, "the menu of {path}: {items:?}");
+    }
+    let _ = super::changes_menu::menu_of(&mut window, &state, "one.txt");
+    let intents = window.click(&state, Role::MenuItem, views::text::changes::RESOLVE_AUTOMATICALLY);
     reduce_all(&mut state, intents);
     assert_eq!(state.page_shown(), Some(Page::Review));
     assert_eq!(only(&state).map(|files| files.len()), Some(1));
@@ -94,10 +93,11 @@ fn review_page__without_conflicts_auto_resolve_the_changes_page_has_no_wand() {
     let repository = merged(&[file("one.txt", NEXT_TO_EACH_OTHER)]);
     let mut state = showing_with(repository.path().to_path_buf(), Settings::default());
     let _effects = run(&mut state, Message::Intent(Intent::Changes(ChangesIntent::Open)));
-    let (_, tree) = Window::new(ThemeName::Dark, (1200, 560)).draw(&state, &[]);
-    assert!(!super::support::has(
-        &tree,
-        Role::Button,
-        views::text::changes::RESOLVE_AUTOMATICALLY
-    ));
+    let items = super::changes_menu::menu_of(&mut Window::new(ThemeName::Dark, (1200, 560)), &state, "one.txt");
+    assert!(
+        !items
+            .iter()
+            .any(|item| item == views::text::changes::RESOLVE_AUTOMATICALLY),
+        "{items:?}"
+    );
 }

@@ -243,9 +243,10 @@ fn review_page__opening_it_from_the_sparkle_of_one_file_shows_only_that_file_and
         Message::Intent(Intent::Changes(views::changes::ChangesIntent::Open)),
     );
     let mut window = super::support::Window::new(render::ThemeName::Dark, (1400, 1000));
+    let _ = super::changes_menu::menu_of(&mut window, &state, "one.txt");
     let intents = window.click(
         &state,
-        Role::Button,
+        Role::MenuItem,
         "Resolve with AI, after looking at what is proposed",
     );
     let resolve = Intent::Review(ReviewIntent::ResolveWithAi(Some(vec![String::from("one.txt")])));

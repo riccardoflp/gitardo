@@ -54,6 +54,26 @@
   The read starts from its first page, and the timeline was cut to it: scrolled far down, it was thrown to the end of
   that page, under a row that said more commits were loading, and left there. It now keeps its length and the graph
   its width until the commits are back, with the rows it had before dimmed under those read so far.
+- **Changes** is a section of the side column, between **Repositories** and **Branches**: its heading counts the
+  changed files, `CHANGES 3`, and under it are the commit box, **Conflicts** and the list of the changed files with
+  their boxes, as the Changes page has them, beside the timeline and beside every page. A click on a file shows its
+  diff in the middle of the window, the side column staying and the row of the file marked, and `Alt+Down` and
+  `Alt+Up` go to the next and the previous file; the Changes page with a file beside it draws the file alone while the
+  section is open. The section folds as the others, the lines above and under it are dragged, and both are remembered
+  for the workspace. With no repository shown it is its heading alone.
+- A click on a file of the changes shows its diff, where it opened the file: `changes.openOnClick` is `diff` unless a
+  settings file says `file`, which brings the File page back. **Open file** of the menu of the row opens the file
+  either way.
+- The rows of the files of the Changes page have no buttons: the name of a file has the width of its row, in a narrow
+  column too. What the buttons did is in the context menu of the row, by the right button, or by the menu key on a
+  row that has the keyboard, which `Tab` gives it: **Open changes**, **Open file**, **Stage** or **Unstage**,
+  **Discard changes**, **Stash this file…** and **Save** on a changed file; **Resolve with AI**, **Resolve its
+  conflicts automatically**, **Mark as resolved** and the two sides on a file in conflict, each with the icon its
+  button drew. The box of a file stays on its row. When the heading of **Changes** is too narrow for its buttons,
+  those that do not fit are in **…** at its right, and **Open all changes in one Diff page** is the last to go.
+- The sections of the side column keep the line above their headings when they are folded: the line above
+  **Branches** was drawn only while **Repositories** and **Branches** were both open, so that two folded sections, or
+  a folded one under an open one, ran into each other. The line is dragged, as before, only while both are open.
 - What is selected is tinted with the accent of the theme in the dark and in the light theme: a selected commit, a
   selected file, the selected rows of any list that has the focus stand on the amber of the buttons and of the ring of
   the focus mixed into the ground, a warm brown in the dark theme and a sand in the light one, where they stood on a

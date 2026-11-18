@@ -60,8 +60,9 @@ fn settings_of(mut lookup: Lookup) -> Settings {
     let sort_order = ::settings::sort_order(&mut lookup);
     let collapse_unchanged = lookup.boolean(keys::COLLAPSE_UNCHANGED, Scope::User);
     let open_on_click = match lookup.choice(keys::OPEN_ON_CLICK, &keys::OPEN_ON_CLICKS) {
+        Some("file") => OpenOnClick::File,
         Some("diff") => OpenOnClick::Diff,
-        _ => OpenOnClick::File,
+        _ => defaults.open_on_click,
     };
     let log_level = match lookup.choice(keys::LOG_LEVEL, &keys::LOG_LEVELS) {
         Some("debug") => LogLevel::Debug,

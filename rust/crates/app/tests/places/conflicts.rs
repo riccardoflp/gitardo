@@ -47,7 +47,7 @@ fn logged(state: &State) -> Vec<String> {
 
 /// Gives the intents to the window, saying yes to every plan shown and the default to every question, until the
 /// operation they start ends.
-fn to_the_end(driver: &OperationsDriver, state: &mut State, intents: Vec<Intent>) {
+pub(super) fn to_the_end(driver: &OperationsDriver, state: &mut State, intents: Vec<Intent>) {
     for intent in intents {
         driver.intent(state, intent);
     }
@@ -132,6 +132,16 @@ fn conflicts_banner__git_am_stopped_on_a_patch_is_named_patch_and_offers_skip() 
     assert!(has(&tree, Role::Button, "Abort"));
 }
 
+/// Opens the menu of the row of a file in conflict and chooses an item of it; gives what it asks.
+fn in_menu(window: &mut Window, state: &State, (path, item): (&str, &str)) -> Vec<Intent> {
+    let items = super::changes_menu::menu_of(window, state, path);
+    assert!(
+        items.iter().any(|name| name == item),
+        "{item} is in the menu: {items:?}"
+    );
+    window.click(state, Role::MenuItem, item)
+}
+
 #[test]
 fn conflicts_banner__staging_the_last_file_in_conflict_enables_continue() {
     let mut repository = Repository::new();
@@ -141,7 +151,7 @@ fn conflicts_banner__staging_the_last_file_in_conflict_enables_continue() {
     let (_, tree) = window.draw(&state, &[]);
     assert!(find(&tree, Role::Button, "Continue").is_disabled());
     std::fs::write(repository.path().join(CONFLICT_FILE), "both\n").unwrap();
-    let intents = window.click(&state, Role::Button, "Mark as resolved");
+    let intents = in_menu(&mut window, &state, (CONFLICT_FILE, "Mark as resolved"));
     to_the_end(&driver, &mut state, intents);
     assert_eq!(logged(&state), [format!("git add -- {CONFLICT_FILE}")]);
     let (_, tree) = window.draw(&state, &[]);
@@ -219,11 +229,11 @@ fn conflicts_mark_resolved__a_file_deleted_on_one_side_and_kept_is_staged_with_i
     git_may_fail(&repository, &["merge", "feature"]);
     let (mut state, driver) = changes_page(&repository, Settings::default());
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let intents = window.click(&state, Role::Button, "Mark as resolved");
+    let intents = in_menu(&mut window, &state, ("a.txt", "Mark as resolved"));
     to_the_end(&driver, &mut state, intents);
     assert_eq!(repository.git(&["show", ":a.txt"]), "changed\n");
     let (_, tree) = window.draw(&state, &[]);
-    assert!(!has(&tree, Role::Button, "Mark as resolved"));
+    assert!(!says(&tree, "Conflicts 1"), "the file is no longer in conflict");
 }
 
 #[test]
@@ -232,7 +242,11 @@ fn conflicts_take_side__undo_after_taking_the_current_side_brings_the_markers_ba
     repository.conflict();
     let (mut state, driver) = changes_page(&repository, Settings::default());
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let intents = window.click(&state, Role::Button, "Take the current side for the whole file");
+    let intents = in_menu(
+        &mut window,
+        &state,
+        (CONFLICT_FILE, "Take the current side for the whole file"),
+    );
     to_the_end(&driver, &mut state, intents);
     assert_eq!(read(&repository, CONFLICT_FILE), "ours\n");
     let intents = window.click(&state, Role::Button, "Undo");
@@ -351,10 +365,14 @@ fn changes_pane__a_file_in_conflict_is_under_conflicts_only_with_no_box_and_a_cl
     let named: Vec<f64> = tree
         .nodes
         .iter()
-        .filter(|(_, node)| node.value() == Some(CONFLICT_FILE) || node.label() == Some(CONFLICT_FILE))
-        .filter_map(|(_, node)| node.bounds().map(|bounds| bounds.y0))
+        .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(CONFLICT_FILE))
+        .filter_map(|(_, node)| node.bounds())
+        // The **Changes** section of the side column lists it too.
+        .filter(|bounds| !super::pointer::is_in_changes_section(&tree, super::pointer::rect(*bounds)))
+        .map(|bounds| bounds.y0)
         .collect();
-    let changes = find(&tree, Role::CheckBox, "Changes 1").bounds().unwrap().y0;
+    let page = super::pointer::bounds(&tree, Role::Main, views::text::changes::PAGE);
+    let changes = f64::from(super::pointer::bounds_in(&tree, (Role::CheckBox, "Changes 1"), page).y);
     assert_eq!(named.len(), 1, "it is listed once, under Conflicts: {named:?}");
     assert!(named[0] < changes, "above the changes");
     let whole = render::Rect::new(0.0, 0.0, 1200.0, 560.0);

@@ -27,6 +27,8 @@ use super::{repository_with_history, showing};
 pub(super) const HEADER: f32 = 48.0;
 /// The height of the status bar.
 const STATUS: f32 = 26.0;
+/// The thickness of the line above the heading of a section.
+const LINE: f32 = 1.0;
 
 /// The side column drawn.
 pub(super) fn column(tree: &TreeUpdate) -> Rect {
@@ -151,7 +153,7 @@ fn repo_side_column__its_top_is_under_the_header_level_with_the_timeline_and_its
 }
 
 #[test]
-fn repo_side_column__folding_branches_gives_repositories_the_whole_height_but_its_heading() {
+fn repo_side_column__folding_changes_and_branches_gives_repositories_the_whole_height_but_their_headings() {
     let (_kept, _clones, mut state) = three_clones();
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let intents = window.click(&state, Role::Button, words::BRANCHES);
@@ -161,34 +163,94 @@ fn repo_side_column__folding_branches_gives_repositories_the_whole_height_but_it
     );
     apply(&mut state, intents);
     let (_, tree) = window.draw(&state, &[]);
+    let branches = bounds(&tree, Role::Button, words::BRANCHES);
+    assert!((branches.bottom() - column(&tree).bottom()).abs() < 0.5, "{branches:?}");
+    assert!(!has(&tree, Role::Navigation, views::text::rail::RAIL));
+    // **Changes**, the last section open, has the height **Branches** left.
+    let changes = super::pointer::changes_section(&tree).unwrap();
+    assert!((branches.y - changes.bottom() - LINE).abs() < 0.5, "{changes:?}");
+    let intents = window.click(&state, Role::Button, words::CHANGES);
+    assert_eq!(intents, [Intent::Graph(GraphIntent::FoldSection(SideSection::Changes))]);
+    apply(&mut state, intents);
+    let (_, tree) = window.draw(&state, &[]);
     let column = column(&tree);
-    let heading = bounds(&tree, Role::Button, words::BRANCHES);
+    let changes = bounds(&tree, Role::Button, words::CHANGES);
+    let branches = bounds(&tree, Role::Button, words::BRANCHES);
     assert!(
-        (heading.bottom() - column.bottom()).abs() < 0.5,
-        "{heading:?} {column:?}"
+        (branches.bottom() - column.bottom()).abs() < 0.5,
+        "{branches:?} {column:?}"
     );
-    assert!((rows(&tree).bottom() - heading.y).abs() < 0.5);
+    // Each heading has its line above it: the rows, a line, **Changes**, a line, **Branches**.
+    assert!(
+        (branches.y - changes.bottom() - LINE).abs() < 0.5,
+        "{changes:?} {branches:?}"
+    );
+    assert!((changes.y - rows(&tree).bottom() - LINE).abs() < 0.5);
+    assert_eq!(super::pointer::changes_section(&tree), None);
+}
+
+#[test]
+fn repo_side_column__folding_all_three_leaves_three_headings_at_the_top_a_line_between_them_and_the_rest_empty() {
+    let (_kept, _clones, mut state) = three_clones();
+    let folds = [SideSection::Repositories, SideSection::Changes, SideSection::Branches]
+        .map(|section| Intent::Graph(GraphIntent::FoldSection(section)));
+    apply(&mut state, folds.to_vec());
+    let (_, tree) = Window::new(ThemeName::Dark, WIDE).draw(&state, &[]);
+    let column = column(&tree);
+    let first = bounds(&tree, Role::Button, words::REPOSITORIES);
+    let second = bounds(&tree, Role::Button, words::CHANGES);
+    let third = bounds(&tree, Role::Button, words::BRANCHES);
+    assert!((first.y - column.y).abs() < 0.5);
+    assert!(
+        (second.y - first.bottom() - LINE).abs() < 0.5,
+        "a line apart: {first:?} {second:?}"
+    );
+    assert!(
+        (third.y - second.bottom() - LINE).abs() < 0.5,
+        "a line apart: {second:?} {third:?}"
+    );
+    assert!(!has(&tree, Role::Navigation, words::TABS));
+    assert_eq!(super::pointer::changes_section(&tree), None);
     assert!(!has(&tree, Role::Navigation, views::text::rail::RAIL));
 }
 
 #[test]
-fn repo_side_column__folding_both_leaves_two_headings_at_the_top_and_the_rest_empty() {
-    let (_kept, _clones, mut state) = three_clones();
-    apply(
-        &mut state,
-        vec![
-            Intent::Graph(GraphIntent::FoldSection(SideSection::Repositories)),
-            Intent::Graph(GraphIntent::FoldSection(SideSection::Branches)),
-        ],
-    );
-    let (_, tree) = Window::new(ThemeName::Dark, WIDE).draw(&state, &[]);
-    let column = column(&tree);
-    let first = bounds(&tree, Role::Button, words::REPOSITORIES);
-    let second = bounds(&tree, Role::Button, words::BRANCHES);
-    assert!((first.y - column.y).abs() < 0.5);
-    assert!((second.y - first.bottom()).abs() < 0.5);
-    assert!(!has(&tree, Role::Navigation, words::TABS));
-    assert!(!has(&tree, Role::Navigation, views::text::rail::RAIL));
+fn repo_side_column__the_line_above_the_headings_of_changes_and_of_branches_is_drawn_whatever_is_folded() {
+    let border = render::Theme::new(ThemeName::Dark, render::Appearance::Dark)
+        .colors
+        .border;
+    let sections = [SideSection::Repositories, SideSection::Changes, SideSection::Branches];
+    for bits in 0..8_u8 {
+        let folded: Vec<SideSection> = sections
+            .into_iter()
+            .enumerate()
+            .filter(|(index, _)| bits & (1 << index) != 0)
+            .map(|(_, section)| section)
+            .collect();
+        let (_kept, _clones, mut state) = three_clones();
+        let folds = folded
+            .iter()
+            .map(|section| Intent::Graph(GraphIntent::FoldSection(*section)));
+        apply(&mut state, folds.collect());
+        let mut window = Window::new(ThemeName::Dark, WIDE);
+        let (_, tree) = window.draw(&state, &[]);
+        for name in [words::CHANGES, words::BRANCHES] {
+            let heading = bounds(&tree, Role::Button, name);
+            let middle = heading.x + heading.width * 0.5;
+            #[allow(
+                clippy::cast_possible_truncation,
+                reason = "a window is far smaller than an i32 counts"
+            )]
+            let pixel = |y: f32| window.frame.pixel(middle as i32, y.floor() as i32);
+            assert_eq!(
+                pixel(heading.y - LINE),
+                Some(border),
+                "the line above the heading of {name}: {folded:?}"
+            );
+            assert_ne!(pixel(heading.y - LINE - 2.0), Some(border), "{name}: {folded:?}");
+            assert_ne!(pixel(heading.y + 2.0), Some(border), "{name}: {folded:?}");
+        }
+    }
 }
 
 #[test]
@@ -385,8 +447,10 @@ fn repo_tabs__the_snapshots_of_the_section_with_one_repository_with_several_and_
                 let side = window_state.side.unwrap();
                 let section = SideColumnState {
                     tabs: side.tabs,
+                    changes: side.changes,
                     branches: None,
                     sections: SideSections {
+                        is_changes_folded: true,
                         is_branches_folded: true,
                         ..SideSections::default()
                     },

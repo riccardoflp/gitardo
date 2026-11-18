@@ -222,7 +222,7 @@ fn graph_compact_rows__on_the_draft_and_a_stash_are_rows_as_tall_as_those_of_the
     // The draft keeps its buttons on its one line.
     let draft = rows[0];
     for name in ["Review", "Commit"] {
-        let button = bounds(&tree, Role::Button, name);
+        let button = super::pointer::bounds_in(&tree, (Role::Button, name), draft);
         assert!(
             button.y >= draft.y && button.bottom() <= draft.bottom(),
             "{name}: {button:?} {draft:?}"

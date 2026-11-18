@@ -86,10 +86,10 @@ fn graph_icons__discard_changes_and_revert_this_change_draw_the_same_icon_and_dr
         staged: StagedBox::Empty,
         is_unsaved: false,
     };
-    let discard = crate::changes::file_buttons(&row)
+    let discard = crate::changes::file_actions(&row)
         .into_iter()
-        .find(|(said, _, _)| *said == crate::text::changes::DISCARD)
-        .map(|(_, icon, _)| icon);
+        .find(|action| action.words == crate::text::changes::DISCARD)
+        .map(|action| action.icon);
     let revert = crate::diff::revert_change_icon();
     let drop = crate::refs::drop_stash_icon();
     assert_eq!(discard, Some(revert));

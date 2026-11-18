@@ -103,14 +103,48 @@ pub fn says(tree: &TreeUpdate, words: &str) -> bool {
         .any(|(_, node)| node.value() == Some(words) || node.label() == Some(words))
 }
 
-/// The rows of the list drawn, from the top.
+/// The rows of the list drawn, from the top: those of the timeline, not those of the list of the **Changes** section
+/// of the side column.
 pub fn rows_drawn(tree: &TreeUpdate) -> Vec<Rect> {
     tree.nodes
         .iter()
         .filter(|(_, node)| node.role() == Role::ListBoxOption)
         .filter_map(|(_, node)| node.bounds())
         .map(rect)
+        .filter(|row| !is_in_changes_section(tree, *row))
         .collect()
+}
+
+/// What the **Changes** section of the side column shows under its heading, as the screen reader names it; none while
+/// it shows nothing, folded or with no repository.
+pub fn changes_section(tree: &TreeUpdate) -> Option<Rect> {
+    tree.nodes
+        .iter()
+        .find(|(_, node)| node.role() == Role::Region && node.label() == Some(views::text::changes::SECTION))
+        .and_then(|(_, node)| node.bounds().map(rect))
+}
+
+/// Whether a rectangle is inside the **Changes** section of the side column.
+pub fn is_in_changes_section(tree: &TreeUpdate, found: Rect) -> bool {
+    changes_section(tree).is_some_and(|part| is_inside(found, part))
+}
+
+/// Whether a rectangle is inside another, to half a pixel.
+pub fn is_inside(found: Rect, part: Rect) -> bool {
+    found.x >= part.x - 0.5
+        && found.right() <= part.right() + 0.5
+        && found.y >= part.y - 0.5
+        && found.bottom() <= part.bottom() + 0.5
+}
+
+/// The rectangle of a node of a role and a name inside a part of the window, which the test fails without.
+pub fn bounds_in(tree: &TreeUpdate, (role, name): (Role, &str), part: Rect) -> Rect {
+    tree.nodes
+        .iter()
+        .filter(|(_, node)| node.role() == role && node.label() == Some(name))
+        .filter_map(|(_, node)| node.bounds().map(rect))
+        .find(|found| is_inside(*found, part))
+        .unwrap_or_else(|| panic!("no {role:?} named {name} in {part:?}"))
 }
 
 /// A rectangle of the tree in logical pixels.

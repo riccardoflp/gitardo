@@ -48,26 +48,30 @@ From top to bottom the page shows:
    is kept while the page is closed and when the window is opened again.
 3. Under the commit box, the identity commits will be made with, as `Name <email>`, or **No identity configured**,
    here only. A click on it is `identity.switch`.
-4. **Conflicts**, when there are files in conflict, with their count: each file with no box, and the buttons
-   **Resolve its conflicts automatically, after looking at what is proposed** (only when the rules can resolve some of
-   them, `conflicts.resolve-by-rules`), **Resolve with AI, after looking at what is proposed** (only when `ai.*` is set
-   up for conflicts and the rules leave some, `ai.resolve-conflicts`), **Take the current side for the whole
-   file** and **Take the incoming side for the whole file** (`conflicts.take-side`), and **Mark as resolved**
-   (`conflicts.mark-resolved`). A click on one opens it in the Merge page.
+4. **Conflicts**, when there are files in conflict, with their count: each file with no box and no button. What
+   resolves it is in the menu of its row (`changes.row-menu`): **Resolve with AI, after looking at what is proposed**
+   (only when `ai.*` is set up for conflicts, `ai.resolve-conflicts`), **Resolve its conflicts automatically, after
+   looking at what is proposed** (only when the rules can resolve some of them, `conflicts.resolve-by-rules`), **Mark
+   as resolved** (`conflicts.mark-resolved`), **Take the incoming side for the whole file** and **Take the current
+   side for the whole file** (`conflicts.take-side`). A click on one opens it in the Merge page.
 5. **Changes**, with their count: the box on its header (`changes.stage-all`, `changes.unstage-all`), then the buttons
    **View as tree** or **View as list**, **Open all changes in one Diff page**, **Stash only the staged changes…**
    (only while something is staged), **Stash all changes…**, **Save all** (only while a file has edits not saved) and
-   **Discard all changes** (`changes.discard-all`). Each file has its box, its name with a dot after it when it has
-   edits not saved, and the buttons **Open file** (not on a deleted file), **Open changes**, **Save** (only when not
-   saved), **Stash this file…** and **Discard changes**. A file that only an editor has changed has its box greyed out,
-   with the tooltip **Not saved: save it to stage it**, and the buttons **Compare with the saved file** and **Save**.
+   **Discard all changes** (`changes.discard-all`). When the heading is too narrow for them, as in a column, those
+   that fit stay and **…** (**More for all changes**) at its right has the others in a menu; they leave in this
+   order: the layout, **Stash only the staged changes…**, **Save all**, **Stash all changes…**, **Discard all
+   changes**, and **Open all changes in one Diff page** last (Q762). Each file has its box and its name, with a dot
+   after it when it has edits not saved, and no button, so that the name has the width of the row: what is done to
+   the file is in the menu of its row (`changes.row-menu`). A file that only an editor has changed has its box greyed
+   out, with the tooltip **Not saved: save it to stage it**.
 6. **No changes** when there is nothing in either list.
 
 A file opened from the page, its diff or the file itself, shows on the right of the page, which stays on the left as a
 column with the file marked (`changes.beside-file`); the Changes view of the bar of views shows the whole page again.
 
 With no repository the page says **No Git repository in this workspace** with **Check again**, which reads the folders
-of the workspace again. While an operation runs, the buttons that change something are disabled.
+of the workspace again. While an operation runs, the buttons and the items of the menus that change something are
+disabled.
 
 **View as tree** shows the files under their directories, which fold; **View as list** shows them one after the other,
 each with its directory beside its name. The choice is kept for the page, and the folds while the window is open. Each
@@ -84,7 +88,9 @@ Acceptance:
 - [ ] A file in conflict is listed under **Conflicts** only, with no box, and a click on it opens the Merge page.
 - [ ] **View as tree** then closing the Changes page and opening it again keeps the tree; it is kept after the window
       is closed and opened again.
-- [ ] A deleted file has no **Open file** button.
+- [ ] The menu of a deleted file has no **Open file**.
+- [ ] In a column too narrow for the buttons of the heading of **Changes**, those that do not fit are in **…** at
+      its right, in the order they leave, and **Open all changes in one Diff page** is the last on the heading.
 - [ ] With no repository in the workspace, the page shows **No Git repository in this workspace** and **Check again**.
 - [ ] The identity line reads `Ada <ada@example.com>` when `git config user.name` and `user.email` say so, and
       **No identity configured** when neither is set.
@@ -205,11 +211,15 @@ Acceptance:
 
 ### `changes.open` — What a file of the Changes page opens
 
-Decides which page, and which two versions, a click or a button on a file of the Changes page opens.
+Decides which page, and which two versions, a click on a file of the Changes page, or **Open changes** and **Open
+file** of its menu (`changes.row-menu`), opens.
 
 - **Kind**: Derivation
 - **Function**: `model::changes::open(input: &OpenInput) -> PageRequest`
-- **Settings**: `changes.openOnClick`: `file` (the default) or `diff`. It changes only what a click on a row does.
+- **Settings**: `changes.openOnClick`: `diff`, the default in Gitardo Desktop
+  ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)), or `file`;
+  `gitardo.changes.openOnClick`, `file` by default, in the extension (Q763). It changes only what a click on a row
+  does.
 - **Uses**: `diff.page`, `file-view.page`, `merge-view.page`, `changes.beside-file`.
 - **Extension**: a click on a file of the Changes view, its buttons **Open File** and **Open Changes**, **Open all
   changes in one editor** on the header of **Changes**, and **Compare with the saved file** on a file only an editor
@@ -230,8 +240,8 @@ Rules:
   left side; a file deleted has nothing on its right side.
 - **Open file** opens the file in the File page, as it is on disk, beside the list. A deleted file opens its Diff page
   instead.
-- A click on a row does what **Open file** does, or, with `changes.openOnClick` set to `diff`, what **Open changes**
-  does.
+- A click on a row does what **Open changes** does, so that a review goes from diff to diff, or, with
+  `changes.openOnClick` set to `file`, what **Open file** does.
 - A click on a file in conflict opens its Merge page.
 - **Compare with the saved file**, on a file that only an editor has changed, opens a Diff page with the file as it is
   on disk on the left and the buffer not saved on the right, editable.
@@ -243,8 +253,8 @@ Acceptance:
 
 - [x] A file partly staged opens with the index on the left and the file on disk on the right.
 - [x] A file all staged opens with `HEAD` on the left and the index on the right.
-- [x] With `changes.openOnClick` set to `diff`, a click on a row opens the same Diff page as **Open changes**; with
-      `file`, the File page.
+- [x] With `changes.openOnClick` not set, or set to `diff`, a click on a row opens the same Diff page as **Open
+      changes**; with `file`, the File page.
 - [x] A click on a deleted file opens its Diff page whatever the setting says.
 - [x] **Open all changes in one Diff page** with three changed files opens one Diff page with three files.
 - [ ] Extension: **Open all changes in one editor** with `a.txt` wholly staged and `b.txt` with changes not staged
@@ -254,6 +264,7 @@ Acceptance:
       VS Code's comparison of the file on disk with what its editor has, not saved.
 - [ ] Extension: a click on a file in conflict that has its base and both sides opens it in the merge editor, whatever
       `gitardo.changes.openOnClick` says.
+- [ ] Extension: with `gitardo.changes.openOnClick` not set, a click on a file of the Changes view opens the file.
 
 ### `changes.beside-file` — The Changes page beside what it opens
 
@@ -264,10 +275,11 @@ as the Files page keeps its tree (`file-view.beside-files`).
 
 - **Kind**: View
 - **Function**: `views::changes::beside_file_view(state: &BesideFileState, ui) -> Vec<Intent>`
-- **Entry points**: a click on a file of the Changes page, its buttons **Open changes** and **Open file**, and **Open
-  all changes in one Diff page**, as `changes.open` decides; `Alt+Down` and `Alt+Up` in the page opened so, for the
-  next and the previous file of the list.
-- **Uses**: `changes.pane`, `changes.open`, `diff.page`, `file-view.page`, `graph.resize-panes`.
+- **Entry points**: a click on a file of the Changes page or of the **Changes** section of the side column
+  (`changes.section`), **Open changes** and **Open file** of its menu (`changes.row-menu`), and **Open all changes in
+  one Diff page**, as `changes.open` decides; `Alt+Down` and `Alt+Up` in the page opened so, for the next and the
+  previous file of the list.
+- **Uses**: `changes.pane`, `changes.section`, `changes.open`, `diff.page`, `file-view.page`, `graph.resize-panes`.
 - **Extension**: VS Code keeps its Source Control view beside its editors: nothing to build.
 
 - The Changes page is split in two: the page itself on the left as a column, its commit box, its identity and its
@@ -294,6 +306,10 @@ as the Files page keeps its tree (`file-view.beside-files`).
   draft do (Q551). The File page or the Diff page beside the list is forgotten then, unless it has edits not saved. A
   page opened from the page beside the list names the Changes page by the name of that page, and that name goes back
   to the Changes page as it was left, with the same file beside its list.
+- While the side column shows **Changes** open, the list is there, with the row of the file shown marked, and the
+  page draws the file alone, in the middle of the window
+  ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)); with the side
+  column put away, or the section folded, it draws its own column of the list as above.
 - In the narrow layout the page of the file takes the whole page, and **Changes** in the trail comes back to the list.
 - A file in conflict still opens its Merge page in place of the Changes page.
 
@@ -315,6 +331,102 @@ Acceptance:
 - [x] In a window narrower than the narrow layout, the diff is shown alone, with no column.
 - [x] **Open all changes in one Diff page** shows every file beside the list with no row marked; `Alt+Down` then shows
       the first.
+- [x] While the side column shows **Changes** open, a file opened from the page is drawn alone where the page was; with
+      the section folded, beside the column of the page.
+
+### `changes.section` — Changes, a section of the side column
+
+The changes of the repository shown, in the side column between **Repositories** and **Branches**, so that what is
+not committed is in sight beside the timeline and beside every page, and a file of it opens in the middle of the
+window ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)).
+
+- **Kind**: View
+- **Function**: `views::changes::section_view(state: &ChangesState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: the side column (`repo.side-column`), under **Repositories**; a click on its heading folds and
+  unfolds it.
+- **Uses**: `repo.side-column`, `changes.pane`, `changes.list`, `changes.unsaved`, `changes.row-menu`,
+  `changes.open`, `changes.beside-file`, `commit.create`, `commit.amend`, `commit.draft-message`, `identity.switch`,
+  `conflicts.banner`, `graph.resize-panes`.
+- **Extension**: VS Code's Source Control side bar is the column, and **Gitardo Changes** a view of it
+  (`changes.pane`): nothing to build.
+
+- Its heading reads `CHANGES` and how many files are changed, those in conflict counted with them, `CHANGES 3`;
+  `CHANGES` alone when there are none and while no repository is shown (Q769). It has the chevron of the other
+  headings, and a line above it whatever is folded; the screen reader hears the count as the value of the heading.
+- Under the heading the section shows what the Changes page shows, with the margins of a column: the banner of
+  another worktree and of an operation that stopped, the commit box with its message, the sparkle, **Commit** or
+  **Amend**, **Amend last commit** and the identity (Q761), **Conflicts**, and **Changes** with the box on its
+  heading and the files, each with its box and no button (`changes.row-menu`). The buttons of the heading of the
+  list that the width of the column does not hold are in **…** at its right (`changes.pane`). What is typed, ticked
+  and folded there is what the page has: they are one commit box and one list, shown in two places, both drawn while
+  the Changes page is shown with the section open (Q774). The keyboard that **Show changes** in Quick search puts in
+  the message box goes to the page, not to the section.
+- While no repository is shown, none in the workspace or the one shown being read, the section is its heading over
+  an empty room.
+- A click on a file shows its diff in the middle of the window, where the timeline or the page was, the side column
+  staying, and the row of the file is marked (`changes.open`, `changes.beside-file`); **Open file** of its menu shows
+  the file there. `Alt+Down` and `Alt+Up` then show the next and the previous file.
+- The section starts 280 logical pixels high, its heading included, or as tall as what it shows when that is less
+  (Q768); the lines around it are dragged as `repo.side-column` says, and its height and whether it is folded are
+  remembered for the workspace (`changesSection`, `changesFolded`).
+- In the narrow layout it is in the side column opened over the timeline (Q771).
+
+Acceptance:
+
+- [x] With `a.txt` changed, the side column has **Changes** between **Repositories** and **Branches**, its heading
+      reads `CHANGES 1`, and `a.txt` is listed under it with its box.
+- [x] With no repository in the workspace, the section is its heading alone, with nothing under it.
+- [x] Ticking the box of `a.txt` in the section stages it, and a message typed there with **Commit** makes the
+      commit.
+- [x] A click on `a.txt` in the section, the timeline shown, shows its diff where the timeline was, with the side
+      column beside it and the row of `a.txt` marked.
+- [x] Folding **Changes** leaves its heading alone, and it is folded after the window opens again.
+- [x] In a window 800 logical pixels wide the section is in the side column opened over the timeline.
+- [x] The side column with its three sections matches its snapshots in each theme.
+- [x] `Alt+Down` and `Alt+Up` after a click in the section show the next and the previous file, and **Open file** of
+      the menu of a row of the section shows the file.
+- [x] With the Changes page shown too, both list the files, and a box ticked in either stages its file and shows
+      ticked in both.
+
+### `changes.row-menu` — The menu of a file of the changes
+
+What is done to one file of the changes, in the context menu of its row: the rows have no buttons, so that a name is
+read whole in a narrow column, and keep their box
+([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose-files-open-their-diffs)).
+
+- **Kind**: View
+- **Function**: `views::changes::row_menu(state: &RowMenuState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: the right button on the row of a changed file or of a file in conflict, in the Changes page
+  (`changes.pane`) and in the **Changes** section of the side column (`changes.section`); the menu key on a row that
+  has the keyboard, which `Tab` gives it (Q765, Q772).
+- **Offered when**: the row is of a file; the headings and the folders of the tree have no menu.
+- **Uses**: `changes.open`, `changes.stage`, `changes.unstage`, `changes.discard`, `stash.push-file`, `changes.save`,
+  `conflicts.mark-resolved`, `conflicts.take-side`, `review.page`, `ai.resolve-conflicts`, `ui.menu-icons`.
+- **Extension**: the rows of the **Gitardo Changes** view have these actions as buttons beside the name
+  (`changes.pane`); whether they go into a context menu there too is Q764.
+
+- A changed file: **Open changes**, **Open file** (not on a deleted file); then **Stage**, or **Unstage** on a file
+  wholly staged (Q770), **Discard changes**, **Stash this file…**; then **Save**, only on a file with edits not
+  saved.
+- A file only an editor has changed: **Save** and **Compare with the saved file**.
+- A file in conflict: **Resolve with AI, after looking at what is proposed** (only when `ai.*` is set up for
+  conflicts), **Resolve its conflicts automatically, after looking at what is proposed** (only when the rules can
+  resolve some of them), **Mark as resolved**, **Take the incoming side for the whole file** and **Take the current
+  side for the whole file**.
+- Each item does what the button of the same name did, and draws the icon that button drew (`ui.menu-icons`). While
+  an operation runs, the items that change something cannot be chosen.
+- The row takes the keyboard: `Enter` does what a click on it does, and the menu key opens its menu at the row.
+
+Acceptance:
+
+- [x] The row of a changed file has its box and no button.
+- [x] The menu of a changed file has **Open changes**, **Open file**, **Stage**, **Discard changes** and **Stash
+      this file…**, each with an icon, and **Unstage** in place of **Stage** on a file wholly staged.
+- [x] **Stage** stages the file, **Discard changes** asks and discards it, **Stash this file…** stashes it, **Open
+      file** shows the file and **Open changes** its diff.
+- [x] The menu of a deleted file has no **Open file**; the menu of a file with edits not saved has **Save**.
+- [x] The menu of a file in conflict has **Mark as resolved** and the two sides, and **Mark as resolved** stages it.
+- [x] With the keyboard on the row of a file, the menu key opens its menu, and `Enter` on **Stage** stages the file.
 
 ### `changes.stage` — Stage a file
 
@@ -475,7 +587,7 @@ given at once are discarded together.
 
 - **Kind**: Operation
 - **Function**: `features::changes::discard(context, answers) -> Outcome`
-- **Entry points**: **Discard changes** on a file of the Changes page.
+- **Entry points**: **Discard changes** in the menu of a file of the Changes page (`changes.row-menu`).
 - **Extension**: **Discard changes** on a file of the Changes view, which gives the file alone when nothing of it is
   staged and the file with both names of a rename otherwise; **Discard all changes in this file, staged too…** on a file
   of the uncommitted changes in the details of the graph; **Discard all changes in 1 selected file…** or **Discard all
@@ -594,8 +706,8 @@ Writes to disk the edits typed in Gitardo's editors and not saved yet, so that g
 - **Kind**: Operation
 - **Function**: `features::changes::save(context, answers) -> Outcome`
 - **Entry points**: **Save all** on the header of the list, for every file of the working tree with edits not saved
-  in a File page. **Save** on a row of the Changes page saves that file through `file-view.save`, which asks before
-  writing over a file another program changed.
+  in a File page. **Save** in the menu of a row of the Changes page (`changes.row-menu`) saves that file through
+  `file-view.save`, which asks before writing over a file another program changed.
 - **Extension**: **Save** on the row of a file with edits not saved, and **Save all** on the header of **Changes** in
   the Changes view, have VS Code save its own editors of those files (`Controller.save` in
   `src/extension/controller.ts`), as `Ctrl+S` would: no git command runs, and nothing is written to the log.

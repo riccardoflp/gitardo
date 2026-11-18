@@ -81,6 +81,7 @@ fn refs_list_filter__ticking_main_and_feature_lists_only_those_two_among_the_loc
     let (repository, _remote) = repository_with_history();
     repository.branch("fix");
     let mut state = showing(repository.path().to_path_buf());
+    super::fold_changes(&mut state);
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let _tree = open_list(&mut window, &mut state, "All branches");
     let _tree = click(&mut window, &mut state, (Role::CheckBox, "main"));
