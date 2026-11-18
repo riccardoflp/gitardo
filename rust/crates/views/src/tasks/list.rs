@@ -1,11 +1,13 @@
 //! The column of the tasks of the Tasks tab (`tasks.view`): the search field and the menu of the column, what the
 //! column says of a folder not trusted and of the files it could not read, and the rows, each heading folding what
-//! is under it.
+//! is under it, each task dragged onto a group or to a place in one.
 
+use model::tasks::GroupsAction;
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Button, ButtonKind, Description, InputBox, Label, MenuEntry, Rect, Sense, TextKind, Tone, Ui};
 
-use super::{HeadingRow, Row, RowStatus, TaskList, TaskRow, TasksIntent, tasks};
+use super::groups::{self, Dragged};
+use super::{HeadingKind, HeadingRow, Row, RowStatus, TaskList, TaskRow, TasksIntent, tasks};
 use crate::icons;
 use crate::intent::Intent;
 use crate::text::tasks_tab as words;
@@ -19,21 +21,6 @@ enum ColumnCommand {
     Collapse,
     /// **Expand all**.
     Expand,
-}
-
-/// What the menu of a task does.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum TaskCommand {
-    /// **Run**.
-    Run,
-    /// **Stop**.
-    Stop,
-    /// **Restart**.
-    Restart,
-    /// **Open in tasks.json**.
-    OpenAt,
-    /// **Copy command**.
-    Copy,
 }
 
 /// A line of muted words at the top of a rectangle.
@@ -81,6 +68,7 @@ pub(super) fn list_view(list: &TaskList, ui: &mut Ui<'_>) -> Vec<Intent> {
     } else {
         rows(list, ui, body, &mut intents);
     }
+    intents.extend(groups::keys(list, ui));
     intents
 }
 
@@ -149,7 +137,11 @@ fn rows(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>)
                     continue;
                 }
                 match row {
-                    Row::Heading(heading) => heading_row(ui, cell, (index, heading), intents),
+                    Row::Heading(heading) => match heading.kind {
+                        HeadingKind::Source => heading_row(ui, cell, (index, heading), intents),
+                        HeadingKind::Groups => groups::groups_heading(ui, cell, (index, heading), intents),
+                        HeadingKind::Group { .. } => groups::group_heading(list, ui, cell, (index, heading), intents),
+                    },
                     Row::Task(task) => task_row(list, ui, cell, (index, task), intents),
                 }
             }
@@ -158,13 +150,18 @@ fn rows(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>)
 }
 
 /// How far a row starts from the left of the column, by how far in it is.
-fn indent(ui: &Ui<'_>, depth: u8) -> f32 {
+pub(super) fn indent(ui: &Ui<'_>, depth: u8) -> f32 {
     let sizes = ui.theme().sizes;
     f32::from(depth) * (sizes.icon + sizes.spacing.small)
 }
 
 /// A heading: its chevron and its name; a click folds or unfolds what is under it.
-fn heading_row(ui: &mut Ui<'_>, rect: Rect, (index, heading): (usize, &HeadingRow), intents: &mut Vec<Intent>) {
+pub(super) fn heading_row(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    (index, heading): (usize, &HeadingRow),
+    intents: &mut Vec<Intent>,
+) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let id = ui.id(("tasks heading", index));
@@ -227,14 +224,41 @@ fn standing(status: &RowStatus) -> (Option<(ui::Icon, Tone)>, String, Tone) {
     }
 }
 
+/// A row of a task as what is dragged and dropped on: it is dragged onto a group, and in a group a task dropped on
+/// it goes before it.
+fn dragged_row(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    (index, row): (usize, &TaskRow),
+    intents: &mut Vec<Intent>,
+) -> ui::Response {
+    if let Some(group) = &row.group {
+        intents.extend(groups::drop_place(ui, rect, |dragged| match dragged {
+            Dragged::Task { task, from } if task != row.reference => Some(GroupsAction::PlaceTask {
+                group: group.clone(),
+                task,
+                before: Some(row.reference.clone()),
+                from,
+            }),
+            Dragged::Task { .. } | Dragged::Group(_) => None,
+        }));
+    }
+    let dragged = Dragged::Task {
+        task: row.reference.clone(),
+        from: row.group.clone(),
+    };
+    let source = ui.drag_source_carrying(("task", index), rect, &row.name, &dragged.payload());
+    source.response
+}
+
 /// A row of a task: the mark of how it stands, its name, its command dimmed after it when there is room, how it
 /// ended, and **Run** or **Stop** at its right. A click selects it, a double click runs it or shows it when it runs, a
-/// right click opens its menu.
+/// right click opens its menu; it is dragged onto a group, and in a group a task dropped on it goes before it.
 fn task_row(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, (index, row): (usize, &TaskRow), intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
-    let id = ui.id(("task", index));
-    let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
+    let response = dragged_row(ui, rect, (index, row), intents);
+    let id = response.id;
     if row.is_selected {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_inactive_selection);
     } else if response.contains_pointer {
@@ -282,7 +306,7 @@ fn task_row(list: &TaskList, ui: &mut Ui<'_>, rect: Rect, (index, row): (usize, 
     } else if response.clicked || response.double_clicked {
         intents.push(tasks(TasksIntent::Select(row.reference.clone())));
     }
-    intents.extend(task_menu(ui, &response, (index, row, can_run)));
+    intents.extend(super::menu::task_menu(list, ui, &response, (index, row, can_run)));
 }
 
 /// **Run**, or **Stop** while the task runs, at the right of its row; **Run** is dimmed for a task that cannot run and
@@ -309,49 +333,4 @@ fn run_button(
         };
         intents.push(tasks(asked));
     }
-}
-
-/// The context menu of a task: **Run**, **Stop**, **Restart**, **Open in tasks.json** and **Copy command**.
-fn task_menu(
-    ui: &mut Ui<'_>,
-    response: &ui::Response,
-    (index, row, can_run): (usize, &TaskRow, bool),
-) -> Option<Intent> {
-    let is_running = row.status.is_running();
-    let able = |item: ui::MenuItem<'static, TaskCommand>, is_able: bool| {
-        MenuEntry::Item(if is_able { item } else { item.disabled() })
-    };
-    let mut entries = vec![
-        able(icons::without_icon(words::RUN, TaskCommand::Run), can_run),
-        able(icons::action(icons::STOP, words::STOP, TaskCommand::Stop), is_running),
-        able(
-            icons::without_icon(words::RESTART, TaskCommand::Restart),
-            is_running && can_run,
-        ),
-        MenuEntry::Separator,
-    ];
-    if row.line.is_some() {
-        entries.push(MenuEntry::Item(icons::action(
-            icons::OPEN_FILE,
-            words::OPEN_IN_TASKS_FILE,
-            TaskCommand::OpenAt,
-        )));
-    }
-    entries.push(able(
-        icons::action(icons::COPY, words::COPY_COMMAND, TaskCommand::Copy),
-        !row.copied.is_empty(),
-    ));
-    let reference = row.reference.clone();
-    Some(tasks(
-        match ui.context_menu(("task menu", index), response, &entries)? {
-            TaskCommand::Run => TasksIntent::Run(reference),
-            TaskCommand::Stop => TasksIntent::Stop(reference),
-            TaskCommand::Restart => TasksIntent::Restart(reference),
-            TaskCommand::OpenAt => TasksIntent::OpenAt(reference),
-            TaskCommand::Copy => {
-                ui.copy_to_clipboard(row.copied.clone());
-                return None;
-            }
-        },
-    ))
 }

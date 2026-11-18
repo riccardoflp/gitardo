@@ -223,8 +223,8 @@ fn pretend(runner: &Runner, state: &mut State, label: &str, lines: &[&str]) -> u
     id
 }
 
-/// A repository whose task `build` ended with exit code 0 and `lint` with 2, while `serve` runs, none of them a
-/// process: the tests say what each printed.
+/// A repository whose task `build` ended with exit code 0 and `lint` with 2, while `serve`, of the group `Servers`,
+/// runs, none of them a process: the tests say what each printed.
 fn some_ended_and_one_running() -> (testkit::Repository, State, Runner) {
     let plain = |label: &str, command: &str| shell_task(label, (command, command), "");
     let tasks = [
@@ -239,6 +239,7 @@ fn some_ended_and_one_running() -> (testkit::Repository, State, Runner) {
         "{ \"name\": \"site\", \"scripts\": { \"dev\": \"vite\", \"build\": \"vite build\" } }\n",
     )
     .unwrap();
+    super::tasks_groups::write_groups(&repository, &[super::tasks_groups::group("Servers", &["serve"])]);
     let runner = Runner::new();
     runner.pretend.set(true);
     runner.open(&mut state);

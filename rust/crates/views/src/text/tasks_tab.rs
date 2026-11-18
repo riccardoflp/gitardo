@@ -30,6 +30,24 @@ pub const STOP: &str = "Stop";
 pub const RESTART: &str = "Restart";
 /// Opens the menu of the groups a task can be added to.
 pub const ADD_TO_GROUP: &str = "Add to group";
+/// Makes a group, whose name is asked.
+pub const NEW_GROUP: &str = "New group";
+/// Makes a group for a task, in the menu of the groups it can be added to.
+pub const NEW_GROUP_FOR: &str = "New group\u{2026}";
+/// Runs every task of a group.
+pub const RUN_ALL: &str = "Run all";
+/// Stops every task of a group that runs.
+pub const STOP_ALL: &str = "Stop all";
+/// Renames a group.
+pub const RENAME: &str = "Rename";
+/// Deletes a group.
+pub const DELETE: &str = "Delete";
+/// Moves a group, or a task of one, before the one before it.
+pub const MOVE_UP: &str = "Move up";
+/// Moves a group, or a task of one, after the one after it.
+pub const MOVE_DOWN: &str = "Move down";
+/// Takes a task out of the group its row is in.
+pub const REMOVE_FROM_GROUP: &str = "Remove from group";
 /// Opens `.vscode/tasks.json` at the line of the label of a task.
 pub const OPEN_IN_TASKS_FILE: &str = "Open in tasks.json";
 /// Copies the command of a task.
@@ -125,7 +143,13 @@ pub fn ran_for(seconds: u64) -> String {
     }
 }
 
-/// The heading of the scripts of a `package.json`, under **npm**: the name of its folder.
+/// What the row of a task of a group says when the worktree shown does not have the task.
+#[must_use]
+pub fn not_in_worktree(task: &str) -> String {
+    format!("`{task}` is not in this worktree.")
+}
+
+/// The folder a task runs in, where its terminal would be: `Folder: extension`.
 #[must_use]
 pub fn folder_line(folder: &str) -> String {
     format!("Folder: {folder}")

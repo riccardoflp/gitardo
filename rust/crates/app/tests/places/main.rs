@@ -107,6 +107,8 @@ mod tab_operations;
 mod tabs;
 mod tasks;
 mod tasks_depend;
+mod tasks_group_runs;
+mod tasks_groups;
 mod tasks_run;
 mod tasks_stop;
 mod tasks_tab;

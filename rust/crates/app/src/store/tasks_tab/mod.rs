@@ -4,6 +4,7 @@
 //! shows, and asks the window's task runs to read, start, write, size, scroll, select, stop and end.
 
 mod closing;
+mod groups;
 mod runs;
 mod view;
 
@@ -25,6 +26,7 @@ use super::state::State;
 use super::terminals::shown_tab;
 
 pub use closing::{Closing, close_requested, close_tabs};
+pub use groups::operation_ended;
 pub use runs::{carry_out, follow, reduce_message};
 pub use view::{task_list, terminal_state};
 
@@ -105,6 +107,8 @@ pub struct TabTasks {
     pub blocked: BTreeMap<TaskReference, String>,
     /// The task selected.
     pub selected: Option<TaskReference>,
+    /// The group whose heading was clicked last, which `F2` renames; none once a task is selected.
+    pub group_selected: Option<String>,
     /// What is typed in the search field.
     pub search: String,
     /// The headings folded, by their keys.
@@ -250,7 +254,7 @@ pub fn running_count(state: &State) -> usize {
 
 /// Runs an operation of the tasks in the repository shown, on a task, a group or the folder, with the tasks of the
 /// worktree and those running.
-fn ask(state: &mut State, feature: &'static str, choice: TaskChoice, preset: Answers) -> Vec<Effect> {
+pub(super) fn ask(state: &mut State, feature: &'static str, choice: TaskChoice, preset: Answers) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
@@ -285,6 +289,7 @@ pub fn reduce(state: &mut State, intent: TasksIntent) -> Vec<Effect> {
             ask(state, "tasks.run", TaskChoice::Task(task), preset)
         }
         TasksIntent::Stop(task) => ask(state, "tasks.stop", TaskChoice::Task(task), Answers::new()),
+        TasksIntent::Groups(_) | TasksIntent::RunGroup(_) | TasksIntent::StopGroup(_) => groups::reduce(state, intent),
         TasksIntent::Trust => ask(state, "tasks.run", TaskChoice::Trust, Answers::new()),
         TasksIntent::Terminal(asked) => terminal(state, asked),
         TasksIntent::CloseAnswer(is_closing) => closing::answered(state, is_closing),
@@ -300,6 +305,7 @@ pub fn reduce(state: &mut State, intent: TasksIntent) -> Vec<Effect> {
 fn select(state: &mut State, task: TaskReference) {
     if let Some(tab) = shown_mut(state) {
         tab.selected = Some(task);
+        tab.group_selected = None;
         tab.anchor = None;
         state.panel.focus += 1;
     }
@@ -313,6 +319,7 @@ fn look(state: &mut State, intent: TasksIntent) {
     match intent {
         TasksIntent::Search(text) => tab.search = text,
         TasksIntent::Fold(key) => {
+            tab.group_selected = groups::named_by(tab, &key);
             if !tab.folded.remove(&key) {
                 let _new = tab.folded.insert(key);
             }

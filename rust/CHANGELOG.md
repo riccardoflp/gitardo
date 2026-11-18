@@ -22,6 +22,15 @@
   running while the tasks that waited for it start; its row says **ready**. A task whose dependency failed does not
   run, and says **It did not run: `<task>` ended with exit code `<n>`.**; a row that waits says **waits**. Tasks that
   depend on each other in a loop, or on a task the worktree does not have, run nothing, and Gitardo says which.
+- Groups of tasks, listed first in the Tasks tab under **Groups**. **New group** at the right of that heading makes
+  one, and **Add to group** in the menu of a task puts the task in a group, or in a new one; a task is also dragged
+  onto a group, and to its place among the tasks of one. **Run all** on the heading of a group runs its tasks in their
+  order, each started as soon as the one before it started, leaving alone those that run already; while one runs the
+  heading has a spinner and **Stop all**. The menu of a group has **Rename**, also on `F2`, **Delete**, **Move up** and
+  **Move down**, and a group is dragged to its place; the menu of a task of a group moves it or takes it out. The
+  groups are kept in `gitardo/task-groups.json` in the common git folder of the repository, so every worktree and
+  every window lists the same without a commit taking them; a task a worktree does not have stays in its group there,
+  dimmed, and is left out and said when the group runs.
 - What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
   **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
   timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release

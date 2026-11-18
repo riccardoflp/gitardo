@@ -3930,6 +3930,16 @@ groups are exported to and imported from. Each is built as it says until the mai
 - **Q719** — `tasks.view`: in the terminal of a task that ended, `Enter` runs it again, and Gitardo says so after how
   long it ran, **Press Enter to run it again**; the card has neither. Is the key wanted there, or only **Run** on the
   row?
+- **Q740** — `tasks.edit-groups`: the card gives the menu of a task in a group **Rename**, **Delete**, **Move up** and
+  **Move down**, as that of a group. Built: a task of a group has **Move up**, **Move down** and **Remove from
+  group**, which takes it out of the group and leaves it under its source, since a task has no name of its own to
+  change and is not deleted. `F2` renames the group whose heading was clicked last, drawn as a row selected is until a
+  task is selected, since a heading does not take the keyboard. Are the words and the key right?
+- **Q741** — `tasks.edit-groups`: where what is dragged goes. A task dropped on the heading of a group goes last in
+  it, taken out of the group it was dragged from, and one dropped on a task of a group goes before that task; a task
+  of a group dropped on the heading of its own group stays where it is. A group dropped on another goes before it,
+  and dropped on **Groups** goes last. Nothing is drawn between two rows while a drag is over them: the row it would
+  go before is lit. Is a line between the rows wanted, and a way to drag a task out of a group?
 
 ### Of the Repositories view of the extension, from Q720
 

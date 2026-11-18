@@ -2,9 +2,11 @@
 //! search field over them, and on the right the terminal of the task selected, drawn as those of `terminal.view`.
 
 mod detail;
+mod groups;
 mod list;
+mod menu;
 
-use model::tasks::TaskReference;
+use model::tasks::{GroupsAction, TaskReference};
 use ui::{ConfirmAnswer, ConfirmStyle, Confirmation, Rect, Split, Splitter, Ui};
 
 use crate::intent::Intent;
@@ -51,9 +53,30 @@ impl RowStatus {
     }
 }
 
-/// A heading of the list: a source of tasks, or the scripts of one `package.json`.
+/// What a heading of the list is over.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub enum HeadingKind {
+    /// A source of tasks, or the scripts of one `package.json`.
+    #[default]
+    Source,
+    /// **Groups**: the groups of the repository.
+    Groups,
+    /// A group of tasks.
+    Group {
+        /// Its name.
+        name: String,
+        /// Whether one of its tasks runs.
+        is_running: bool,
+        /// Whether it is the one clicked last, which `F2` renames.
+        is_selected: bool,
+    },
+}
+
+/// A heading of the list: **Groups**, a group, a source of tasks, or the scripts of one `package.json`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HeadingRow {
+    /// What it is over.
+    pub kind: HeadingKind,
     /// What its fold is kept by.
     pub key: String,
     /// Its words.
@@ -69,6 +92,8 @@ pub struct HeadingRow {
 pub struct TaskRow {
     /// The task.
     pub reference: TaskReference,
+    /// The group its row is in; none under the heading of its source.
+    pub group: Option<String>,
     /// Its name.
     pub name: String,
     /// Its command, on one line: the script of a `package.json` as the file has it.
@@ -139,6 +164,8 @@ pub struct TaskList {
     pub is_trusted: bool,
     /// The rows, those under a folded heading left out, those the search does not find too.
     pub rows: Vec<Row>,
+    /// The names of the groups of the repository, in their order.
+    pub groups: Vec<String>,
     /// What is typed in the search field.
     pub search: String,
     /// The width of the column, when it was dragged.
@@ -173,6 +200,12 @@ pub enum TasksIntent {
     Restart(TaskReference),
     /// **Stop** on a row or in its menu.
     Stop(TaskReference),
+    /// A change of the groups: one made, renamed, deleted or moved, a task put in one, moved in it or taken out.
+    Groups(GroupsAction),
+    /// **Run all** on a group, by its name.
+    RunGroup(String),
+    /// **Stop all** on a group, by its name.
+    StopGroup(String),
     /// The text of the search field changed.
     Search(String),
     /// A heading clicked: what is under it is folded, or unfolded.
@@ -197,10 +230,11 @@ pub enum TasksIntent {
 
 /// The Tasks tab over the rectangle its caller clipped it to: the column of the tasks, as wide as a third of the tab
 /// until the line at its right is dragged, with its search field, the menu with **Open tasks.json**, **Collapse all**
-/// and **Expand all**, and a row for each task under the heading of its source, with **Run** or **Stop** at its
-/// right, a spinner while it runs, a check when it ended with exit code 0 and the exit code in red otherwise; and at
-/// its right the terminal of the task selected, or its command, its folder and **Run** while it was never run. In a
-/// folder not trusted every **Run** is dimmed, and the column says so with **Trust this folder**.
+/// and **Expand all**, the groups of the repository under **Groups**, each with **Run all** or **Stop all**, and a row
+/// for each task under the heading of its source, with **Run** or **Stop** at its right, a spinner while it runs, a
+/// check when it ended with exit code 0 and the exit code in red otherwise; and at its right the terminal of the task
+/// selected, or its command, its folder and **Run** while it was never run. In a folder not trusted every **Run** is
+/// dimmed, and the column says so with **Trust this folder**.
 ///
 /// Feature: tasks.view
 pub fn tasks_view(state: &TasksTabState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {

@@ -195,17 +195,24 @@ impl Runner {
         });
     }
 
+    /// Answers the question the operation running asks.
+    pub fn answer(&self, state: &mut State, answer: model::contract::Answer) {
+        self.until(state, "a question", |state| {
+            let running = state.operations.running.as_ref();
+            running.is_some_and(|running| running.asking.is_some())
+        });
+        self.intents(state, vec![Intent::Feature(FeatureIntent::Answer(Some(answer)))]);
+    }
+
     /// Answers the question the operation running asks with one of its choices.
     pub fn choose(&self, state: &mut State, choice: &str) {
-        self.until(state, "a question", |state| {
-            state
-                .operations
-                .running
-                .as_ref()
-                .is_some_and(|running| running.asking.is_some())
-        });
-        let answer = model::contract::Answer::Choice(choice.to_owned());
-        self.intents(state, vec![Intent::Feature(FeatureIntent::Answer(Some(answer)))]);
+        self.answer(state, model::contract::Answer::Choice(choice.to_owned()));
+    }
+
+    /// Drags from a point to another and lets go there, and reduces what the frames ask.
+    pub fn drag(&self, state: &mut State, window: &mut Window, from: render::Point, to: render::Point) {
+        let intents = super::pointer::drag(window, state, from, to);
+        self.intents(state, intents);
     }
 }
 
@@ -343,10 +350,10 @@ fn tasks_view__tasks_in_the_tabs_of_the_panel_shows_the_list_and_the_command_of_
     });
     assert_eq!(listed(&state), ["build", "watch", "watch:css", "test"]);
     let tree = runner.draw(&mut state, &mut window, &[]);
-    for heading in ["Workspace", "npm", "site"] {
+    for heading in ["Groups", "Workspace", "npm", "site"] {
         assert!(has(&tree, Role::Button, heading), "the heading {heading}");
     }
-    assert!(has(&tree, Role::ListBoxOption, "watch:css, sass --watch"));
+    assert!(has(&tree, Role::ListBoxOption, "watch, echo watching"));
     assert!(says(&tree, "Select a task to see its terminal"));
     runner.click(&mut state, &mut window, Role::ListBoxOption, "build, echo building");
     let tree = runner.draw(&mut state, &mut window, &[]);

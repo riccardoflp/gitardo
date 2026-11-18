@@ -325,6 +325,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     let feature = state.operations.running.take().map(|running| running.feature);
     state.is_operation_running = false;
     let log_at = said::append_log(state, log);
+    super::tasks_tab::operation_ended(state, feature);
     let mut effects = super::review::ended(state, feature, matches!(ended, Ended::Ran { .. }));
     effects.extend(super::trust::keep(state, &ended));
     match super::tasks::hold(state, ended) {

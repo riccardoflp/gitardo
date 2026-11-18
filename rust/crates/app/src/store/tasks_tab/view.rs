@@ -4,7 +4,7 @@
 use model::tasks::{StepState, Task, TaskEnd, TaskReference, TaskSource};
 use model::trust::{Trust, is_trusted};
 use views::panel::PanelTab;
-use views::tasks::{Detail, HeadingRow, Problem, Row, RowStatus, TaskList, TaskRow};
+use views::tasks::{Detail, HeadingKind, HeadingRow, Problem, Row, RowStatus, TaskList, TaskRow};
 use views::terminal::{TerminalState, TerminalStatus};
 use views::text::tasks_tab as words;
 
@@ -13,23 +13,74 @@ use super::super::state::State;
 use super::super::terminals::shown_tab;
 use super::{Entry, EntryStatus, TabTasks, closing, running_count, selected_entry, shown};
 
+/// The key of the heading **Groups**.
+const GROUPS: &str = "groups";
 /// The key of the heading **Workspace**.
 const WORKSPACE: &str = "workspace";
 /// The key of the heading **npm**.
 const NPM: &str = "npm";
 
+/// The key of the heading of a group, by its name.
+pub(super) fn group_key(name: &str) -> String {
+    format!("group:{name}")
+}
+
 /// A row of the column before the search and the folds: a heading, or a task with the names it is searched by besides
 /// its own.
 enum Item<'a> {
-    /// A heading, by its key, its words and how far in it is.
-    Heading(String, String, u8),
-    /// A task, how far in it is, and the names of the headings over it.
-    Task(&'a Task, u8, String),
+    /// A heading, not folded yet.
+    Heading(HeadingRow),
+    /// A task, how far in it is, the names of the headings over it, and the group its row is in.
+    Task(&'a Task, u8, String, Option<String>),
+    /// A task of a group that the worktree shown does not have, with the name of the group.
+    Missing(&'a TaskReference, String),
 }
 
-/// The rows of a tab, every heading and every task listed: **Workspace** with the tasks of `.vscode/tasks.json` that
-/// are not hidden, then **npm** with the scripts of each `package.json` under the name of its folder. A task that
-/// runs keeps its row under the heading of its source even when the file no longer has it.
+/// A heading of a source, by its key, its words and how far in it is.
+fn heading(key: &str, name: &str, depth: u8) -> HeadingRow {
+    HeadingRow {
+        kind: HeadingKind::Source,
+        key: key.to_owned(),
+        name: name.to_owned(),
+        depth,
+        is_folded: false,
+    }
+}
+
+/// **Groups** and the groups of the repository, each with its tasks in their order: a task the worktree shown does
+/// not have keeps its row, which says so.
+fn group_items(tab: &TabTasks) -> Vec<Item<'_>> {
+    let Some(read) = &tab.read else {
+        return Vec::new();
+    };
+    let mut items = vec![Item::Heading(HeadingRow {
+        kind: HeadingKind::Groups,
+        ..heading(GROUPS, words::GROUPS, 0)
+    })];
+    for group in &read.groups {
+        let mut runs = group.tasks.iter().filter_map(|task| tab.entry(task));
+        let kind = HeadingKind::Group {
+            name: group.name.clone(),
+            is_running: runs.any(Entry::is_running),
+            is_selected: tab.group_selected.as_ref() == Some(&group.name),
+        };
+        items.push(Item::Heading(HeadingRow {
+            kind,
+            ..heading(&group_key(&group.name), &group.name, 1)
+        }));
+        let over = format!("{} {}", words::GROUPS, group.name);
+        items.extend(group.tasks.iter().map(|reference| match read.tasks.find(reference) {
+            Some(task) => Item::Task(task, 2, over.clone(), Some(group.name.clone())),
+            None => Item::Missing(reference, group.name.clone()),
+        }));
+    }
+    items
+}
+
+/// The rows of a tab, every heading and every task listed: **Groups** with the groups of the repository, when it has
+/// groups or the worktree has tasks, then **Workspace** with the tasks of `.vscode/tasks.json` that are not hidden,
+/// then **npm** with the scripts of each `package.json` under the name of its folder. A task that runs keeps its row
+/// under the heading of its source even when the file no longer has it.
 fn items(tab: &TabTasks) -> Vec<Item<'_>> {
     let mut items = Vec::new();
     let tasks = tab.read.as_ref().map(|read| &read.tasks);
@@ -44,30 +95,44 @@ fn items(tab: &TabTasks) -> Vec<Item<'_>> {
     let listed = workspace.iter().filter(|task| !task.is_hidden);
     let listed: Vec<&Task> = listed.chain(gone(|source| *source == TaskSource::Workspace)).collect();
     if !listed.is_empty() {
-        items.push(Item::Heading(WORKSPACE.to_owned(), words::WORKSPACE.to_owned(), 0));
+        items.push(Item::Heading(heading(WORKSPACE, words::WORKSPACE, 0)));
         let over = words::WORKSPACE.to_owned();
-        items.extend(listed.into_iter().map(|task| Item::Task(task, 1, over.clone())));
+        items.extend(listed.into_iter().map(|task| Item::Task(task, 1, over.clone(), None)));
     }
     let packages = tasks.map(|tasks| tasks.packages.as_slice()).unwrap_or_default();
     let gone: Vec<&Task> = gone(|source| matches!(source, TaskSource::Npm(_))).collect();
     if packages.iter().any(|package| !package.scripts.is_empty()) || !gone.is_empty() {
-        items.push(Item::Heading(NPM.to_owned(), words::NPM.to_owned(), 0));
+        items.push(Item::Heading(heading(NPM, words::NPM, 0)));
     }
     for package in packages.iter().filter(|package| !package.scripts.is_empty()) {
         let key = format!("{NPM}:{}", package.folder);
-        items.push(Item::Heading(key, package.name.clone(), 1));
+        items.push(Item::Heading(heading(&key, &package.name, 1)));
         let over = format!("{} {}", words::NPM, package.name);
-        items.extend(package.scripts.iter().map(|task| Item::Task(task, 2, over.clone())));
+        items.extend(
+            package
+                .scripts
+                .iter()
+                .map(|task| Item::Task(task, 2, over.clone(), None)),
+        );
     }
-    items.extend(gone.into_iter().map(|task| Item::Task(task, 1, words::NPM.to_owned())));
-    items
+    items.extend(
+        gone.into_iter()
+            .map(|task| Item::Task(task, 1, words::NPM.to_owned(), None)),
+    );
+    let has_groups = tab.read.as_ref().is_some_and(|read| !read.groups.is_empty());
+    if items.is_empty() && !has_groups {
+        return items;
+    }
+    let mut all = group_items(tab);
+    all.append(&mut items);
+    all
 }
 
 /// The keys of every heading of a tab, which **Collapse all** folds.
 pub(super) fn heading_keys(tab: &TabTasks) -> Vec<String> {
     let headings = items(tab).into_iter().filter_map(|item| match item {
-        Item::Heading(key, ..) => Some(key),
-        Item::Task(..) => None,
+        Item::Heading(heading) => Some(heading.key),
+        Item::Task(..) | Item::Missing(..) => None,
     });
     headings.collect()
 }
@@ -102,44 +167,68 @@ fn shown_command(task: &Task) -> String {
     task.script.clone().unwrap_or_else(|| task.command_line())
 }
 
+/// The row of a task of a tab, at a depth and in a group or under its source.
+fn task_row(tab: &TabTasks, task: &Task, (depth, group): (u8, Option<String>)) -> TaskRow {
+    TaskRow {
+        reference: task.reference.clone(),
+        group,
+        name: task.reference.name.clone(),
+        command: shown_command(task),
+        copied: task.command_line(),
+        depth,
+        status: status(tab, &task.reference),
+        cannot_run: task.not_runnable().map(|why| why.said()),
+        line: task.line,
+        is_selected: tab.selected.as_ref() == Some(&task.reference),
+    }
+}
+
+/// The row of a task of a group that the worktree shown does not have: dimmed, saying so.
+fn missing_row(tab: &TabTasks, reference: &TaskReference, group: String) -> TaskRow {
+    TaskRow {
+        reference: reference.clone(),
+        group: Some(group),
+        name: reference.name.clone(),
+        command: String::new(),
+        copied: String::new(),
+        depth: 2,
+        status: RowStatus::NotRun,
+        cannot_run: Some(words::not_in_worktree(&reference.to_string())),
+        line: None,
+        is_selected: tab.selected.as_ref() == Some(reference),
+    }
+}
+
 /// The rows of a tab as the column lists them: with words searched, the tasks whose name, source or group holds every
 /// word, under their headings, whatever is folded; otherwise every heading, and the tasks not under a folded one.
 fn rows(tab: &TabTasks) -> Vec<Row> {
     let search = tab.search.to_lowercase();
     let searched: Vec<&str> = search.split_whitespace().collect();
+    let is_found = |name: &str, over: &str| {
+        let names = format!("{name} {over}").to_lowercase();
+        searched.iter().all(|word| names.contains(word))
+    };
     let mut rows: Vec<Row> = Vec::new();
     let mut folded_from: Option<u8> = None;
     for item in items(tab) {
         match item {
-            Item::Heading(key, name, depth) => {
-                if folded_from.is_some_and(|from| depth > from) {
+            Item::Heading(heading) => {
+                if folded_from.is_some_and(|from| heading.depth > from) {
                     continue;
                 }
-                let is_folded = searched.is_empty() && tab.folded.contains(&key);
-                folded_from = is_folded.then_some(depth);
-                rows.push(Row::Heading(HeadingRow {
-                    key,
-                    name,
-                    depth,
-                    is_folded,
-                }));
+                let is_folded = searched.is_empty() && tab.folded.contains(&heading.key);
+                folded_from = is_folded.then_some(heading.depth);
+                rows.push(Row::Heading(HeadingRow { is_folded, ..heading }));
             }
-            Item::Task(task, depth, over) => {
-                let names = format!("{} {over}", task.reference.name).to_lowercase();
-                if folded_from.is_some() || !searched.iter().all(|word| names.contains(word)) {
-                    continue;
+            Item::Task(task, depth, over, group) => {
+                if folded_from.is_none() && is_found(&task.reference.name, &over) {
+                    rows.push(Row::Task(task_row(tab, task, (depth, group))));
                 }
-                rows.push(Row::Task(TaskRow {
-                    reference: task.reference.clone(),
-                    name: task.reference.name.clone(),
-                    command: shown_command(task),
-                    copied: task.command_line(),
-                    depth,
-                    status: status(tab, &task.reference),
-                    cannot_run: task.not_runnable().map(|why| why.said()),
-                    line: task.line,
-                    is_selected: tab.selected.as_ref() == Some(&task.reference),
-                }));
+            }
+            Item::Missing(reference, group) => {
+                if folded_from.is_none() && is_found(&reference.name, &format!("{} {group}", words::GROUPS)) {
+                    rows.push(Row::Task(missing_row(tab, reference, group)));
+                }
             }
         }
     }
@@ -233,6 +322,7 @@ pub fn task_list(state: &State) -> TaskList {
     list.width = tab.width;
     list.detail = detail(tab);
     if let Some(read) = &tab.read {
+        list.groups = read.groups.iter().map(|group| group.name.clone()).collect();
         list.problems = read
             .tasks
             .problems
