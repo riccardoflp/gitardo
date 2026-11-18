@@ -66,6 +66,8 @@ pub struct ViewData {
     task_rows: Vec<views::activity::TaskRow>,
     /// What the Tasks tab of the bottom panel lists.
     task_list: views::tasks::TaskList,
+    /// What the picker of **Run Task…** lists, while it is open.
+    quick_run: Vec<views::tasks::QuickRunEntry>,
 }
 
 impl ViewData {
@@ -127,6 +129,7 @@ impl ViewData {
             blame: super::blame::BlameData::new(state, now),
             task_rows: state.tasks.rows_while(super::panel::is_activity_shown(state)),
             task_list: super::tasks_tab::task_list(state),
+            quick_run: super::tasks_tab::quick_run_entries(state),
         }
     }
 
@@ -275,6 +278,7 @@ impl ViewData {
                 active_file: state.file_in_front(),
             },
             quick: self.search.quick(state),
+            quick_run: super::tasks_tab::quick_run_state(state, &self.quick_run),
         }
     }
 

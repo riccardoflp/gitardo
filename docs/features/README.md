@@ -600,7 +600,7 @@ earns it.
 | [`tasks.run-group`](19-tasks.md#tasksrun-group--run-or-stop-a-group-of-tasks) | Run or stop a group of tasks | Operation | Built | Host only |
 | [`tasks.import-groups`](19-tasks.md#tasksimport-groups--import-groups-of-tasks) | Import groups of tasks | Operation | Built | Host only |
 | [`tasks.export-groups`](19-tasks.md#tasksexport-groups--export-groups-of-tasks) | Export groups of tasks | Operation | Built | Host only |
-| [`tasks.quick-run`](19-tasks.md#tasksquick-run--run-a-task-from-anywhere) | Run a task from anywhere | View | Specified | Host only |
+| [`tasks.quick-run`](19-tasks.md#tasksquick-run--run-a-task-from-anywhere) | Run a task from anywhere | View | Built | Host only |
 
 ## The extension's identifiers
 

@@ -101,6 +101,7 @@ fn picker_view(ui: &mut Ui<'_>, headings: &[bool]) -> PickListResponse {
         headings,
         typed: "",
         keys_from: ui.id("box"),
+        is_tall: false,
     };
     ui.pick_list("list", LIST, &list)
 }

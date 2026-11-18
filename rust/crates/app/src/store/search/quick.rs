@@ -40,6 +40,22 @@ fn close(state: &mut State) {
     state.search.quick.typed.clear();
 }
 
+/// What a command of the tasks asks: the picker of **Run Task…**, the Tasks tab, or the groups imported or exported.
+fn of_tasks(command: QuickCommand) -> Vec<Intent> {
+    use views::tasks::{QuickRunIntent, TasksIntent};
+    let asked = match command {
+        QuickCommand::RunTask => TasksIntent::QuickRun(QuickRunIntent::Open),
+        QuickCommand::ImportGroups => TasksIntent::ImportGroups,
+        QuickCommand::ExportGroups => TasksIntent::ExportGroups,
+        // **Show Tasks**, the only other command of the tasks.
+        _ => {
+            let tab = views::panel::PanelTab::Tasks;
+            return vec![Intent::Panel(views::panel::PanelIntent::Show(tab))];
+        }
+    };
+    vec![Intent::TasksTab(asked)]
+}
+
 /// What an entry chosen does.
 fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
     let command = match choice {
@@ -81,8 +97,9 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::ShowCommandLog => vec![Intent::ShowCommandLog],
         QuickCommand::ShowTerminal => vec![Intent::Panel(views::panel::PanelIntent::Open)],
         QuickCommand::NewTerminal => vec![Intent::Terminal(views::terminal::TerminalIntent::New)],
-        QuickCommand::ImportGroups => vec![Intent::TasksTab(views::tasks::TasksIntent::ImportGroups)],
-        QuickCommand::ExportGroups => vec![Intent::TasksTab(views::tasks::TasksIntent::ExportGroups)],
+        QuickCommand::RunTask | QuickCommand::ShowTasks | QuickCommand::ImportGroups | QuickCommand::ExportGroups => {
+            of_tasks(command)
+        }
         QuickCommand::OpenSettings => vec![Intent::ShowPage(views::page::Page::Settings)],
         QuickCommand::Welcome => vec![Intent::ShowPage(views::page::Page::Welcome)],
         QuickCommand::ShowChanges => vec![Intent::Changes(views::changes::ChangesIntent::Open)],

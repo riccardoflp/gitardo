@@ -275,6 +275,8 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::ShowCommandLog => "Show Command Log",
         QuickCommand::ShowTerminal => "Show Terminal",
         QuickCommand::NewTerminal => "New Terminal",
+        QuickCommand::RunTask => super::tasks_tab::RUN_TASK,
+        QuickCommand::ShowTasks => super::tasks_tab::SHOW_TASKS,
         QuickCommand::ImportGroups => super::tasks_tab::IMPORT_GROUPS,
         QuickCommand::ExportGroups => super::tasks_tab::EXPORT_GROUPS,
         QuickCommand::UndoLastOperation => "Undo Last Operation",

@@ -27,7 +27,7 @@ pub(super) fn group_key(name: &str) -> String {
 
 /// A row of the column before the search and the folds: a heading, or a task with the names it is searched by besides
 /// its own.
-enum Item<'a> {
+pub(super) enum Item<'a> {
     /// A heading, not folded yet.
     Heading(HeadingRow),
     /// A task, how far in it is, the names of the headings over it, and the group its row is in.
@@ -81,7 +81,7 @@ fn group_items(tab: &TabTasks) -> Vec<Item<'_>> {
 /// groups or the worktree has tasks, then **Workspace** with the tasks of `.vscode/tasks.json` that are not hidden,
 /// then **npm** with the scripts of each `package.json` under the name of its folder. A task that runs keeps its row
 /// under the heading of its source even when the file no longer has it.
-fn items(tab: &TabTasks) -> Vec<Item<'_>> {
+pub(super) fn items(tab: &TabTasks) -> Vec<Item<'_>> {
     let mut items = Vec::new();
     let tasks = tab.read.as_ref().map(|read| &read.tasks);
     let gone = |source: fn(&TaskSource) -> bool| {
@@ -163,7 +163,7 @@ fn status(tab: &TabTasks, task: &TaskReference) -> RowStatus {
 
 /// The command of a task as its row shows it: the script of a `package.json` as the file has it, the command line
 /// otherwise.
-fn shown_command(task: &Task) -> String {
+pub(super) fn shown_command(task: &Task) -> String {
     task.script.clone().unwrap_or_else(|| task.command_line())
 }
 

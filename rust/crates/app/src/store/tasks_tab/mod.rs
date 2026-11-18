@@ -5,6 +5,7 @@
 
 mod closing;
 mod groups;
+mod quick_run;
 mod runs;
 mod view;
 
@@ -27,6 +28,7 @@ use super::terminals::shown_tab;
 
 pub use closing::{Closing, close_requested, close_tabs};
 pub use groups::operation_ended;
+pub use quick_run::{QuickRun, quick_run_entries, quick_run_state};
 pub use runs::{carry_out, follow, reduce_message};
 pub use view::{task_list, terminal_state};
 
@@ -158,6 +160,8 @@ pub struct TasksTab {
     pub closing: Option<Closing>,
     /// What closes once the tasks it stopped ended, with the terminals of those tasks.
     pub closing_once_ended: Option<(Closing, Vec<u64>)>,
+    /// The picker of **Run Task…**, while it is open.
+    pub quick_run: Option<QuickRun>,
 }
 
 /// What the window's task runs are asked.
@@ -296,6 +300,7 @@ pub fn reduce(state: &mut State, intent: TasksIntent) -> Vec<Effect> {
         | TasksIntent::StopGroup(_)
         | TasksIntent::ImportGroups
         | TasksIntent::ExportGroups => groups::reduce(state, intent),
+        TasksIntent::QuickRun(asked) => quick_run::reduce(state, asked),
         TasksIntent::Trust => ask(state, "tasks.run", TaskChoice::Trust, Answers::new()),
         TasksIntent::Terminal(asked) => terminal(state, asked),
         TasksIntent::CloseAnswer(is_closing) => closing::answered(state, is_closing),

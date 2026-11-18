@@ -13,8 +13,8 @@ pub enum KeyUse {
     Send(Vec<u8>),
     /// It copies what is selected: `Ctrl+Shift+C`, or `Ctrl+C` while text is selected.
     Copy,
-    /// It is the window's: `` Ctrl+` ``, `Ctrl+Tab`, `Ctrl+K`, `Ctrl+Shift+V`, which the window turns into a paste, and
-    /// a key alone such as Shift, which sends nothing.
+    /// It is the window's: `` Ctrl+` ``, `Ctrl+Tab`, `Ctrl+K`, `Ctrl+Shift+T`, `Ctrl+Shift+V`, which the window turns
+    /// into a paste, and a key alone such as Shift, which sends nothing.
     Window,
     /// It types a character, which comes as text after it.
     Typed,
@@ -32,6 +32,7 @@ pub fn key_use(key: KeyEvent, screen: Option<&Screen>) -> KeyUse {
         Key::Character('c') if control && !alt && (shift || is_selected) => KeyUse::Copy,
         Key::Character('`') if control => KeyUse::Window,
         Key::Character('k' | 'v') if control && !alt => KeyUse::Window,
+        _ if crate::tasks::is_quick_run_key(key) => KeyUse::Window,
         _ if is_panel_key(key.key, modifiers) => KeyUse::Window,
         Key::Named(NamedKey::Tab) if control => KeyUse::Window,
         Key::Character(character) if control && !alt => {
@@ -188,6 +189,7 @@ mod tests {
             press(Key::Character('`'), Modifiers::CONTROL),
             press(Key::Character('`'), Modifiers::CONTROL | Modifiers::SHIFT),
             press(Key::Character('k'), Modifiers::CONTROL),
+            press(Key::Character('T'), Modifiers::CONTROL | Modifiers::SHIFT),
             press(Key::Named(NamedKey::Tab), Modifiers::CONTROL),
             press(Key::Named(NamedKey::Shift), Modifiers::SHIFT),
         ] {

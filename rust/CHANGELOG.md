@@ -36,6 +36,11 @@
   group named as one of the repository it asks whether to merge it, replace it or skip it; it leaves out the launch
   configurations and says how many, and which tasks the worktree does not have. The export asks which groups and
   where, and writes a file Run My Tasks reads, which another repository imports with the same groups in their order.
+- **Run Task…** in Quick search, and `Ctrl+Shift+T` (`Cmd+Shift+T` on macOS) wherever the window is, a terminal
+  included: a picker of the groups of the repository, then of its tasks by source, each with its command under its
+  name and a spinner while it runs. What is typed leaves the tasks whose words hold it, and `Enter` runs the task or
+  the group lit and shows it in the Tasks tab; a task that runs already is shown, not run again. **Show Tasks** in
+  Quick search shows the Tasks tab.
 - What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
   **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
   timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release

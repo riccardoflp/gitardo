@@ -1,6 +1,7 @@
 //! The list of a picker whose rows the view draws itself, such as the references of a branch filter with their ticks:
 //! the keys of the box over it move the row lit and keep it in view, the wheel and a bar scroll it by rows, and the
-//! headings of its groups are never lit (`ui.picker-scroll`).
+//! headings of its groups are never lit (`ui.picker-scroll`). Its rows are all as tall: one row of a list, or two for
+//! rows that say something under their names.
 
 use std::hash::Hash;
 
@@ -25,6 +26,16 @@ pub struct PickList<'a> {
     pub typed: &'a str,
     /// The input box whose keys move through the list.
     pub keys_from: WidgetId,
+    /// Whether each row is as tall as two rows of a list, for a line under its name.
+    pub is_tall: bool,
+}
+
+impl PickList<'_> {
+    /// How tall each of its rows is.
+    fn row_height(&self, ui: &Ui<'_>) -> f32 {
+        let row = ui.theme().sizes.row_height;
+        if self.is_tall { 2.0 * row } else { row }
+    }
 }
 
 /// What a list of a picker did in a frame.
@@ -86,7 +97,7 @@ impl Ui<'_> {
     /// chosen with Enter; the view draws the rows, clipped to the rectangle.
     pub fn pick_list(&mut self, key: impl Hash, rect: Rect, list: &PickList<'_>) -> PickListResponse {
         let id = self.id(key);
-        let row_height = self.theme().sizes.row_height;
+        let row_height = list.row_height(self);
         let count = list.headings.len();
         let shown = crate::number::index_at(f64::from(rect.height), f64::from(row_height)).max(1);
         let mut state = self.memory().pick_lists.remove(&id).unwrap_or_default();
@@ -108,7 +119,7 @@ impl Ui<'_> {
         state.scroll.clamp(f64::from(content - rect.height));
         let mut width = rect.width;
         if content > rect.height + 0.5 {
-            width -= self.pick_list_bar(id, rect, content, &mut state.scroll);
+            width -= self.pick_list_bar(id, (rect, row_height), content, &mut state.scroll);
         }
         let offset = crate::number::narrow(state.scroll.offset());
         if let Some(lit) = state.lit {
@@ -140,7 +151,7 @@ impl Ui<'_> {
     /// The keys of the box over a list of a picker: they move the row lit and scroll the list by whole rows so that it
     /// is shown whole. Returns the row lit when Enter was pressed.
     fn pick_list_keys(&mut self, list: &PickList<'_>, state: &mut PickListState, shown: usize) -> Option<usize> {
-        let row_height = f64::from(self.theme().sizes.row_height);
+        let row_height = f64::from(list.row_height(self));
         let is_typed = !list.typed.is_empty();
         let mut chosen = None;
         for key in self.unclaimed_keys_of(list.keys_from) {
@@ -166,11 +177,17 @@ impl Ui<'_> {
         chosen
     }
 
-    /// Draws the bar of a list of a picker on its right and moves the scroll as it is dragged, snapped to whole rows
-    /// once it is let go. Returns the width it takes.
-    fn pick_list_bar(&mut self, id: WidgetId, rect: Rect, content: f32, scroll: &mut ScrollAxis) -> f32 {
+    /// Draws the bar of a list of a picker, of rows of a height, on its right and moves the scroll as it is dragged,
+    /// snapped to whole rows once it is let go. Returns the width it takes.
+    fn pick_list_bar(
+        &mut self,
+        id: WidgetId,
+        (rect, row_height): (Rect, f32),
+        content: f32,
+        scroll: &mut ScrollAxis,
+    ) -> f32 {
         let thickness = self.theme().sizes.scrollbar;
-        let row_height = f64::from(self.theme().sizes.row_height);
+        let row_height = f64::from(row_height);
         let track = Rect::new(rect.right() - thickness, rect.y, thickness, rect.height);
         let spec = BarSpec {
             axis: Axis::Vertical,

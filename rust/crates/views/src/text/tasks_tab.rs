@@ -85,6 +85,16 @@ pub const NO_MATCH: &str = "No task matches the search";
 pub const NOTHING_SELECTED: &str = "Select a task to see its terminal";
 /// The button that opens a file of tasks that could not be read.
 pub const OPEN_THE_FILE: &str = "Open the file";
+/// The command of Quick search that opens the picker of the tasks.
+pub const RUN_TASK: &str = "Run Task\u{2026}";
+/// The command of Quick search that shows the Tasks tab.
+pub const SHOW_TASKS: &str = "Show Tasks";
+/// What the picker of the tasks is called.
+pub const PICKER: &str = "Run a task";
+/// What the empty box of the picker says.
+pub const PICKER_BOX: &str = "Run a task or a group";
+/// What the picker says in a worktree with no tasks and a repository with no groups.
+pub const NOTHING_TO_RUN: &str = "This worktree has no tasks to run";
 /// The terminal of a task, as the screen reader says it.
 pub const TERMINAL_AREA: &str = "Terminal of the task";
 /// What the terminal of a task says under its output once it ended, after how it ended.

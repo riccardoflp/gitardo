@@ -298,8 +298,8 @@ fn ended(state: &mut State, key: &PathBuf, id: u64, end: &Result<(), TaskEnd>) -
 }
 
 /// After each message: the tasks of the tabs that closed end, with every process they started, and the tasks of the
-/// repository tab shown are read when the Tasks tab shows them and they were not read, or a file of theirs changed
-/// since, or another worktree is shown in the tab.
+/// repository tab shown are read when the Tasks tab or the picker of **Run Task…** shows them and they were not read,
+/// or a file of theirs changed since, or another worktree is shown in the tab.
 pub fn follow(state: &mut State) -> Vec<Effect> {
     let shown = shown_tab(state);
     let mut kept: Vec<PathBuf> = state.tabs.open.iter().map(|tab| tab.folder.clone()).collect();
@@ -319,7 +319,7 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
         }
     }
     let look = panel::look(state);
-    let is_listed = look.is_shown && look.tab == PanelTab::Tasks;
+    let is_listed = (look.is_shown && look.tab == PanelTab::Tasks) || state.tasks_tab.quick_run.is_some();
     let Some((key, folder)) = shown.filter(|_| is_listed) else {
         return effects;
     };

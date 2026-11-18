@@ -3945,6 +3945,12 @@ groups are exported to and imported from. Each is built as it says until the mai
   they are listed; and an import asked before the tasks of the worktree were read waits for them, since they say what
   the names of the file stand for. In the menu of **Groups** the two items have no icon. Is the tab to be shown for an
   export too, which changes nothing in it, and are icons wanted for the two items?
+- **Q743** — `tasks.quick-run`: the rows of the picker. Each row is two lines tall, the name over the command; a group
+  has its tasks under its name, and each row says at its right where it is from, **Groups**, **Workspace** or **npm**
+  and the name of the package, in place of headings between the rows. What is typed leaves the rows whose name and
+  source hold every word, as the search of the Tasks tab does, rather than the fuzzy match of Quick search. A task
+  that cannot run, and any task in a folder not trusted, is listed as the others, and choosing it says why it did not
+  run. Are headings between the rows, the fuzzy match, or those tasks dimmed wanted instead?
 
 ### Of the Repositories view of the extension, from Q720
 

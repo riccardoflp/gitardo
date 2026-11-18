@@ -110,6 +110,7 @@ mod tasks_depend;
 mod tasks_exchange;
 mod tasks_group_runs;
 mod tasks_groups;
+mod tasks_quick_run;
 mod tasks_run;
 mod tasks_stop;
 mod tasks_tab;

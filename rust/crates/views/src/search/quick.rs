@@ -81,6 +81,10 @@ pub enum QuickCommand {
     ImportGroups,
     /// **Export groups…**: groups of tasks to a file (`tasks.export-groups`).
     ExportGroups,
+    /// **Run Task…**: the picker of the tasks and the groups (`tasks.quick-run`).
+    RunTask,
+    /// **Show Tasks**: the bottom panel at the Tasks tab (`tasks.view`).
+    ShowTasks,
     /// **Open Settings** (`settings.edit`).
     OpenSettings,
     /// **Welcome** (`welcome.page`).
@@ -151,7 +155,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 50] = [
+    pub const ALL: [QuickCommand; 52] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -167,6 +171,8 @@ impl QuickCommand {
         QuickCommand::ShowCommandLog,
         QuickCommand::ShowTerminal,
         QuickCommand::NewTerminal,
+        QuickCommand::RunTask,
+        QuickCommand::ShowTasks,
         QuickCommand::ImportGroups,
         QuickCommand::ExportGroups,
         QuickCommand::OpenSettings,

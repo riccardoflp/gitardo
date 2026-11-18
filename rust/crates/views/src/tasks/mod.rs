@@ -5,6 +5,9 @@ mod detail;
 mod groups;
 mod list;
 mod menu;
+mod quick_run;
+
+pub use quick_run::{QuickRunChoice, QuickRunEntry, QuickRunIntent, QuickRunState, is_quick_run_key, quick_run_view};
 
 use model::tasks::{GroupsAction, TaskReference};
 use ui::{ConfirmAnswer, ConfirmStyle, Confirmation, Rect, Split, Splitter, Ui};
@@ -210,6 +213,8 @@ pub enum TasksIntent {
     ImportGroups,
     /// **Export groups…**: groups of the repository saved to a file.
     ExportGroups,
+    /// Something asked of the picker of **Run Task…**.
+    QuickRun(QuickRunIntent),
     /// The text of the search field changed.
     Search(String),
     /// A heading clicked: what is under it is folded, or unfolded.
