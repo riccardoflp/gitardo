@@ -1,14 +1,27 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { Branch, RepoState, Row, Worktree } from '../src/shared/protocol';
+import type { Branch, RepoState, Row, Submodule, Worktree } from '../src/shared/protocol';
+import type { ShownParts } from '../src/shared/repositories';
 import { changesText, upstreamHint, worktreeOf, worktreeStatus } from '../src/shared/refs';
 import { branchAt, headAt, remoteAt, upstreamOf, workingTreeOf } from './states';
 
 // The menus post what is chosen to the extension; here they are only read.
 const posted = vi.hoisted(() => [] as unknown[]);
 vi.mock('../src/webview/vscode', () => ({ post: (message: unknown) => posted.push(message) }));
-const { branchMenu, canFormatPatch, canReword, canSquash, changesMenu, commitMenu, dropMenu, openBranch, openRemoteBranch, remoteBranchMenu, selectionMenu, worktreeMenu } = await import(
-  '../src/webview/menus'
-);
+const {
+  branchMenu,
+  canFormatPatch,
+  canReword,
+  canSquash,
+  changesMenu,
+  commitMenu,
+  dropMenu,
+  openBranch,
+  openRemoteBranch,
+  remoteBranchMenu,
+  repositoryRowMenu,
+  selectionMenu,
+  worktreeMenu,
+} = await import('../src/webview/menus');
 
 const worktree = (overrides: Partial<Worktree>): Worktree => ({
   folder: 'C:/prj/app',
@@ -326,5 +339,58 @@ describe('commits as a patch', () => {
       { type: 'formatPatch', hashes: ['a', 'b', 'd'], save: false },
       { type: 'formatPatch', hashes: ['a', 'b', 'd'], save: true },
     ]);
+  });
+});
+
+describe('the menu of a row of the Repositories view', () => {
+  const main = worktree({});
+  const login = worktree({ folder: 'C:/prj/app-login', commit: 'bbb', branch: 'refs/heads/feature/login', isCurrent: false, isMain: false });
+  const core: Submodule = {
+    name: 'lib/core',
+    folder: 'lib/core',
+    parent: null,
+    url: 'https://example.com/core.git',
+    branch: null,
+    recorded: 'ccc',
+    staged: null,
+    checkout: { commit: 'ccc', branch: null, uncommitted: 0, distance: { ahead: 0, behind: 0 } },
+  };
+  const shown: ShownParts = { root: 'C:\\prj\\app', home: null, agentsWindow: false, worktrees: [main, login], submodules: [core] };
+  const run = (entries: ReturnType<typeof repositoryRowMenu>, label: string | RegExp) => {
+    posted.length = 0;
+    for (const entry of entries) if (entry && entry !== 'separator' && (typeof label === 'string' ? entry.label === label : label.test(entry.label))) entry.run();
+    return [...posted];
+  };
+
+  it('reveals the folder of a row of another repository, copies its path, opens a terminal there and shows it', () => {
+    const menu = repositoryRowMenu({ folder: 'C:/prj/web', isShown: false }, shown);
+    expect(labels(menu)).toEqual(['Open in terminal', expect.stringMatching(/^Reveal in|^Open containing folder$/), 'Show in Gitardo', 'Copy path']);
+    expect(run(menu, 'Open in terminal')).toEqual([{ type: 'action', action: { kind: 'worktreeTerminal', path: 'C:/prj/web' } }]);
+    expect(run(menu, /^Reveal in|^Open containing folder$/)).toEqual([{ type: 'action', action: { kind: 'worktreeReveal', path: 'C:/prj/web' } }]);
+    expect(run(menu, 'Show in Gitardo')).toEqual([{ type: 'selectRepo', root: 'C:/prj/web' }]);
+    expect(run(menu, 'Copy path')).toEqual([{ type: 'copy', text: 'C:/prj/web' }]);
+    // Before the repository shown is read, every row has these.
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/app-login', isShown: true }, null))).toEqual(['Open in terminal', expect.any(String), 'Copy path']);
+  });
+
+  it('has what the menu of a worktree has in the Branches view, for a worktree of the repository shown', () => {
+    const menu = repositoryRowMenu({ folder: 'c:\\prj\\app-login', isShown: false }, shown);
+    expect(labels(menu)).toEqual(labels(worktreeMenu(login, shown)));
+    expect(labels(menu)).toEqual(expect.arrayContaining(['Open in new window', 'Show in Gitardo', 'Rename…', 'Copy path', 'Bring ignored files…', 'Remove…']));
+    expect(run(menu, 'Remove…')).toEqual([{ type: 'action', action: { kind: 'worktreeRemove', path: login.folder } }]);
+    // The one shown is not shown again, nor removed from here.
+    const own = labels(repositoryRowMenu({ folder: 'C:/prj/app', isShown: true }, shown));
+    expect(own).toContain('Copy path');
+    expect(own).not.toEqual(expect.arrayContaining(['Show in Gitardo']));
+    expect(own).not.toContain('Remove…');
+  });
+
+  it('has what the menu of a submodule has in the Branches view, for a submodule of the repository shown', () => {
+    const menu = repositoryRowMenu({ folder: 'C:/prj/app/lib/core', isShown: false }, shown);
+    expect(labels(menu)).toEqual(expect.arrayContaining(['Open in new window', 'Show in Gitardo', 'Update to the latest of its remote', 'Copy URL', 'Deinitialize…']));
+    expect(run(menu, 'Show in Gitardo')).toEqual([{ type: 'selectRepo', root: 'C:\\prj\\app/lib/core' }]);
+    expect(run(menu, 'Deinitialize…')).toEqual([{ type: 'action', action: { kind: 'submoduleDeinit', path: 'lib/core' } }]);
+    // A submodule of another repository is a folder like another.
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web/lib/core', isShown: false }, shown))).toHaveLength(4);
   });
 });

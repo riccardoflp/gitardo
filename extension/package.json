@@ -56,6 +56,13 @@
       "scm": [
         {
           "type": "webview",
+          "id": "gitardo.repositories",
+          "name": "Gitardo Repositories",
+          "contextualTitle": "Gitardo",
+          "initialSize": 2
+        },
+        {
+          "type": "webview",
           "id": "gitardo.changes",
           "name": "Gitardo Changes",
           "contextualTitle": "Gitardo",
@@ -430,6 +437,11 @@
       {
         "command": "gitardo.stopCopyingIntoWorktrees",
         "title": "Stop Copying into New Worktrees",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.openRepositories",
+        "title": "Show Repositories",
         "category": "Gitardo"
       },
       {
@@ -1574,7 +1586,7 @@
           {
             "id": "sideBar",
             "title": "Find the views in the side bar",
-            "description": "Commits, Gitardo Graph, Branches and Stashes are in the Source Control side bar, under the views of VS Code. Click the header of one to unfold it.\n[Show the commits](command:gitardo.openCommits)",
+            "description": "Gitardo Repositories, Commits, Gitardo Graph, Branches and Stashes are in the Source Control side bar, under the views of VS Code. Click the header of one to unfold it.\n[Show the commits](command:gitardo.openCommits)",
             "media": {
               "markdown": "media/walkthrough/side-bar.md"
             },

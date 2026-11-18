@@ -36,6 +36,7 @@ across restarts. Written through `saveUiState` (`src/webview/vscode.ts`), which 
 | Changes view | The draft of the commit message; which folders of its files are open. |
 | Details, tab of a commit | Which folders of the files are open. |
 | References, Branches view | Which sections are open, for the session (`openedIn`). |
+| Repositories view | The repositories whose rows are folded, by their folders (`foldedRepositories`). |
 | Review | Which proposals are accepted, the layout (cards or columns), the widths of the columns, the file selected, the filter. |
 | What new worktrees get | Which groups are open. |
 | Flow Diff, Flow Merge | The widths of the columns. |

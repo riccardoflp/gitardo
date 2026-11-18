@@ -263,3 +263,4 @@ is. Nothing a user starts can be cancelled once its commands run; a question can
 | A command of the Command Palette, a setting | `package.json` (`contributes`) and `src/extension/extension.ts` |
 | The look of a view | the component in `src/webview`, and `src/webview/styles.css` |
 | Which repository is shown, and VS Code's Repositories view | `Controller.selectRepo` in `src/extension/controller.ts`, `src/extension/sourceControlSelection.ts` |
+| The rows of the Repositories view, what each is on, and what its watchers tell the engine | `src/shared/repositories.ts`, `src/shared/summaries.ts`, `RepositoriesView` in `src/extension/repositoriesView.ts`, `src/webview/RepositoriesApp.tsx` |

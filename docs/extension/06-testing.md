@@ -76,7 +76,7 @@ and closes by itself. Pass the path of the executable as an argument, or set `VS
 place.
 
 The suite drives the extension through its commands and its controller, with VS Code's dialogs, input boxes and pickers
-answered by stubs that record what they were asked. Among other things it checks that the webviews of all five views
+answered by stubs that record what they were asked. Among other things it checks that the webviews of all the views
 load, that only the views that list commits are sent them, that the commands shown in a confirmation are the ones that
 run and the ones logged, that diffs and the merge editor open with the right content, that nothing about resolving
 conflicts automatically is offered or run until its setting is on, and that with a language model standing in for a
@@ -174,6 +174,9 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   answer against what git itself prints of the same throwaway repositories (`git show`, `git diff`, `git blame
   --line-porcelain`, …). `test/reads.test.ts` asks the reads as the views ask them, through `src/engine/reads.ts`,
   against git's own output, and, with the binary missing, checks that each read throws `EngineMissing`.
+- `test/engineSummaries.test.ts` follows repositories and their worktrees through the engine (1.10, milestone M22), and
+  checks what each is said to be on, that a folder said changed is said again, that a worktree added is followed once
+  its repository lists it, and that the folders are followed again after the engine was ended and started again.
 - `test/engineGraph.test.ts` reads the graph through the engine (`src/engine/graph.ts`), in every way the graph can be
   shown, as one read whose pages come as git prints them (1.8, D54), each page laid out under the rows before it as all
   the rows at once, with a stash of a later page placed where all the commits read at once put it, the commits kept

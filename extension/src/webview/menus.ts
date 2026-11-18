@@ -15,6 +15,8 @@ import {
   type Upstream,
   type Worktree,
 } from '../shared/protocol';
+import { samePath } from '../shared/paths';
+import type { RepositoryRow, ShownParts } from '../shared/repositories';
 import { checkedOutBranch, stashName, upstreamBranch, upstreamName } from '../shared/state';
 import { canFastForward, isHome, nameOnRemote, pullOf, pushedName, refArg, worktreeOf } from '../shared/refs';
 import { submoduleFolder, submoduleStatus } from '../shared/submodules';
@@ -476,7 +478,7 @@ const REVEAL = /Windows/.test(navigator.userAgent)
     : 'Open containing folder';
 
 /** What opens a worktree. In the menu of its branch they say that they are about the worktree. */
-function worktreeOpenEntries(worktree: Worktree, state: RepoState, ofBranch = false): MenuEntry[] {
+function worktreeOpenEntries(worktree: Worktree, state: Pick<RepoState, 'agentsWindow'>, ofBranch = false): MenuEntry[] {
   const { folder: path } = worktree;
   if (worktree.isMissing) return [];
   const it = ofBranch ? ' worktree' : '';
@@ -493,7 +495,7 @@ function worktreeOpenEntries(worktree: Worktree, state: RepoState, ofBranch = fa
   ];
 }
 
-export function worktreeMenu(worktree: Worktree, state: RepoState, onReveal?: (hash: string) => void): MenuEntry[] {
+export function worktreeMenu(worktree: Worktree, state: Pick<RepoState, 'agentsWindow' | 'home' | 'worktrees'>, onReveal?: (hash: string) => void): MenuEntry[] {
   const { folder: path } = worktree;
   // The folder of this window, while the views show another worktree.
   const home = isHome(path, state);
@@ -535,7 +537,7 @@ export function worktreesMenu(state: RepoState): MenuEntry[] {
  * What can be done with a submodule. One that is not initialized can only be cloned; the others open like a worktree,
  * and the commit they have checked out can be recorded when it is not the one recorded.
  */
-export function submoduleMenu(submodule: Submodule, state: RepoState): MenuEntry[] {
+export function submoduleMenu(submodule: Submodule, state: Pick<RepoState, 'root'>): MenuEntry[] {
   const { folder: path, recorded } = submodule;
   const head = submodule.checkout?.commit ?? null;
   const folder = submoduleFolder(submodule, state);
@@ -568,6 +570,26 @@ export function submoduleMenu(submodule: Submodule, state: RepoState): MenuEntry
     'separator',
     initialized && { label: 'Deinitialize…', danger: true, run: () => act({ kind: 'submoduleDeinit', path }) },
     { label: 'Remove…', danger: true, run: () => act({ kind: 'submoduleRemove', path }) },
+  ];
+}
+
+/**
+ * What can be done with a row of the Repositories view (`repo.tabs`). A worktree and a submodule of the repository
+ * Gitardo shows have what their menus have in the Branches view, which is made of its state; the other rows have what
+ * asks only for their folder.
+ */
+export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown'>, shown: ShownParts | null | undefined): MenuEntry[] {
+  const { folder: path } = row;
+  const worktree = shown?.worktrees.find((each) => samePath(each.folder, path));
+  if (shown && worktree) return worktreeMenu(worktree, shown);
+  const submodule = shown?.submodules.find((each) => samePath(submoduleFolder(each, shown), path));
+  if (shown && submodule) return submoduleMenu(submodule, shown);
+  return [
+    { label: 'Open in terminal', run: () => act({ kind: 'worktreeTerminal', path }) },
+    { label: REVEAL, run: () => act({ kind: 'worktreeReveal', path }) },
+    !row.isShown && { label: 'Show in Gitardo', run: () => post({ type: 'selectRepo', root: path }) },
+    'separator',
+    { label: 'Copy path', run: () => copy(path) },
   ];
 }
 

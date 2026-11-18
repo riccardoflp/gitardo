@@ -8,6 +8,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import type { JournalEntry } from './journal';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
+import type { FolderSummary } from '../shared/summaries';
 import type { FileChange, RepositoryState } from '../shared/state';
 import {
   AiMethod,
@@ -63,6 +64,8 @@ import {
   type Side,
   type StateParams,
   type Submodule,
+  SummariesMethod,
+  type SummariesResult,
   type TakeRequest,
   type Target,
   type Timeline,
@@ -148,6 +151,9 @@ export class EngineClient {
   private readonly openings = new Map<string, Promise<RepositoryState>>();
   private readonly exits: number[] = [];
   private readonly stateHandlers = new Set<(repository: string, state: RepositoryState) => void>();
+  private readonly summaryHandlers = new Set<(summaries: FolderSummary[]) => void>();
+  /** The folders the engine was last asked to follow for the Repositories view, which it is asked again after a restart. */
+  private followed: string[] = [];
   /** The askers of the runs waiting for their answer, by the id of their `feature/run`. */
   private readonly askers = new Map<number, FeatureAsker>();
   /** The follow-ups of the runs, sent before their answers. */
@@ -496,6 +502,33 @@ export class EngineClient {
     return connection.request<MermaidAnswer>(MermaidMethod.draw, { source, theme }, signal);
   }
 
+  /**
+   * Follows these folders in place of those before, the repositories of the workspace, and gives what each of them and
+   * each worktree git lists for them is on, once each was read (`repo.worktree-summary`, 1.10). From then on the engine
+   * reads one again when `folderChanged` says it changed, and says what it found to the handlers of `onSummaries`. No
+   * repository is opened for it.
+   */
+  async summaries(folders: string[], signal?: AbortSignal): Promise<FolderSummary[]> {
+    this.followed = folders;
+    const connection = await this.ready();
+    const { summaries } = await connection.request<SummariesResult>(SummariesMethod.follow, { folders }, signal);
+    return summaries;
+  }
+
+  /**
+   * Says which paths the watchers saw change in a folder followed, from the top of its working tree, or in its git
+   * folder with `.git/` before them. With no path the folder is read again whatever changed.
+   */
+  folderChanged(folder: string, paths: string[]): void {
+    this.connection?.notify(SummariesMethod.folderChanged, { folder, paths });
+  }
+
+  /** Calls a handler with what the folders followed are on, each time the engine read some again; disposing it stops that. */
+  onSummaries(handler: (summaries: FolderSummary[]) => void): { dispose(): void } {
+    this.summaryHandlers.add(handler);
+    return { dispose: () => this.summaryHandlers.delete(handler) };
+  }
+
   // Area 6 of stage 4: the reads that ask a language model of VS Code.
 
   /** The draft of a commit message from the changes, matching the style of these subjects (`commit.draft-message`). */
@@ -632,6 +665,10 @@ export class EngineClient {
       const { repository, state } = params as StateParams;
       for (const handler of this.stateHandlers) handler(repository, state);
     });
+    connection.on(SummariesMethod.summaries, (params) => {
+      const { summaries } = params as SummariesResult;
+      for (const handler of this.summaryHandlers) handler(summaries);
+    });
     const failed = new Promise<never>((_, reject) => {
       child.once('error', (error) => reject(new EngineError(ENDED, `Gitardo's engine could not be started: ${error.message}`)));
     });
@@ -692,8 +729,16 @@ export class EngineClient {
     );
   }
 
-  /** Opens again the repositories that were open before a restart. */
+  /** Opens again the repositories that were open before a restart, and follows again the folders that were followed. */
   private async reopen(): Promise<void> {
+    if (this.followed.length) {
+      void this.summaries(this.followed).then(
+        (summaries) => {
+          for (const handler of this.summaryHandlers) handler(summaries);
+        },
+        (error: unknown) => this.options.log.warn(`Gitardo's engine could not follow the repositories again: ${error instanceof Error ? error.message : String(error)}`),
+      );
+    }
     for (const repository of [...this.opened]) {
       try {
         await this.open(repository);

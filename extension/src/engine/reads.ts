@@ -39,6 +39,7 @@ import {
   type WorkingTree,
 } from '../shared/protocol';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
+import type { FolderSummary } from '../shared/summaries';
 import { uncommittedDetail } from '../shared/state';
 import type { CommandProposal, IgnoredEntry, SetupPatterns, SetupPreview } from '../shared/worktreeSetup';
 
@@ -130,6 +131,24 @@ export class Reads {
    */
   discover(folders: string[]): Promise<DiscoveredRepository[]> {
     return this.client().discover(folders);
+  }
+
+  /**
+   * Follows these repositories for the rows of the Repositories view, in place of those followed before, and gives
+   * what each of them and each worktree git lists for them is on (`repo.worktree-summary`).
+   */
+  summaries(folders: string[]): Promise<FolderSummary[]> {
+    return this.client().summaries(folders);
+  }
+
+  /** Says which paths the watchers saw change in a folder followed; nothing without the engine. */
+  folderChanged(folder: string, paths: string[]): void {
+    this.engine()?.folderChanged(folder, paths);
+  }
+
+  /** Calls a handler with what the folders followed are on, each time the engine read some again. */
+  onSummaries(handler: (summaries: FolderSummary[]) => void): { dispose(): void } {
+    return this.client().onSummaries(handler);
   }
 
   /**

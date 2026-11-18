@@ -62,8 +62,10 @@ pub mod methods {
 /// `read/graph.read-commits` sent as they are read (`stream`, `read/graph.rows`), `refresh` in
 /// `read/repo.read-state`, and `read/repo.watch-changes`, which says which files of a burst ask for a read; 1.9 what
 /// milestone M17 needs: `read/file-view.mermaid`, a diagram of Mermaid as an SVG for VS Code's preview of Markdown
-/// ([`crate::mermaid`]).
-pub const VERSION: &str = "1.9";
+/// ([`crate::mermaid`]); 1.10 what milestone M22 needs: `read/repo.worktree-summary`, what each repository of the
+/// workspace, each of its worktrees and each of its submodules is on, with `repository/summaries` for those read again
+/// and `repository/folderChanged` for what the extension's watchers saw ([`crate::summaries`]).
+pub const VERSION: &str = "1.10";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

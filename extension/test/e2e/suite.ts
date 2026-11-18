@@ -39,6 +39,8 @@ interface Internals {
   locate(): Promise<void>;
   /** The workspace state of the extension. */
   memento: { get<T>(key: string): T | undefined };
+  /** The host of the Repositories view, with what its pages were last sent, as one text. */
+  repositoriesView: { sent?: string };
 }
 
 /** A comparison open in a tab, as the controller keeps it. */
@@ -216,8 +218,8 @@ export async function run(): Promise<void> {
   // button that shows the log, and so does every command that needs the engine. That is all there is to check.
   if (!internals.engine?.running) {
     await step('says in every view that the engine is not available, with a button that shows the log', async () => {
-      for (const name of ['Graph', 'Changes', 'Commits', 'SideGraph', 'Branches', 'Stashes']) await vscode.commands.executeCommand(`gitardo.open${name}`);
-      await until('the webviews', () => kinds().join() === 'branches,changes,commits,graph,sideGraph,stashes');
+      for (const name of ['Graph', 'Repositories', 'Changes', 'Commits', 'SideGraph', 'Branches', 'Stashes']) await vscode.commands.executeCommand(`gitardo.open${name}`);
+      await until('the webviews', () => kinds().join() === 'branches,changes,commits,graph,repositories,sideGraph,stashes');
       // The views are sent no state; `post` adds that it is for want of the engine, which the UI suite sees drawn.
       await until('the views told there is no state', () => posted.some((message) => message.type === 'state' && message.state === null));
       assert.equal(internals.state, null);
@@ -264,16 +266,16 @@ export async function run(): Promise<void> {
     assert.deepEqual([...internals.views.values()], ['graph']);
   });
 
-  await step('the five views of the side bar load too, and the graph opens as an editor tab', async () => {
+  await step('the six views of the side bar load too, and the graph opens as an editor tab', async () => {
     const before = received.filter((incoming) => incoming.type === 'ready').length;
     // The stashes start folded, and a folded view is not loaded: its command unfolds it.
-    for (const name of ['Changes', 'Commits', 'SideGraph', 'Branches', 'Stashes']) await vscode.commands.executeCommand(`gitardo.open${name}`);
-    await until('the webviews of the side bar', () => kinds().join() === 'branches,changes,commits,graph,sideGraph,stashes');
+    for (const name of ['Repositories', 'Changes', 'Commits', 'SideGraph', 'Branches', 'Stashes']) await vscode.commands.executeCommand(`gitardo.open${name}`);
+    await until('the webviews of the side bar', () => kinds().join() === 'branches,changes,commits,graph,repositories,sideGraph,stashes');
     await vscode.commands.executeCommand('gitardo.openInEditor');
-    await until('the new webviews to say they are ready', () => received.filter((incoming) => incoming.type === 'ready').length >= before + 6);
-    assert.deepEqual(kinds(), ['branches', 'changes', 'commits', 'graph', 'graph', 'sideGraph', 'stashes']);
+    await until('the new webviews to say they are ready', () => received.filter((incoming) => incoming.type === 'ready').length >= before + 7);
+    assert.deepEqual(kinds(), ['branches', 'changes', 'commits', 'graph', 'graph', 'repositories', 'sideGraph', 'stashes']);
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-    await until('the editor tab to detach', () => internals.views.size === 6);
+    await until('the editor tab to detach', () => internals.views.size === 7);
   });
 
   await step('notices commits and files that come from outside the editor', async () => {
@@ -1155,6 +1157,61 @@ export async function run(): Promise<void> {
       ['workspace/app', 'workspace/lib'],
     );
     assert.ok(samePath(state().root, app), state().root);
+  });
+
+  await step('lists the repositories in the Repositories view with their worktrees and what each is on, counts a file changed in one not shown, and shows the row clicked', async () => {
+    const login = path.join(workspace, 'app-login');
+    type Rows = Extract<HostMessage, { type: 'repositories' }>;
+    /** What the view was last sent. */
+    const sent = (): Rows | undefined => (internals.repositoriesView.sent ? (JSON.parse(internals.repositoriesView.sent) as Rows) : undefined);
+    const rows = () => sent()?.rows ?? [];
+    const names = () => rows().map((row) => `${'  '.repeat(row.depth)}${row.kind} ${row.name}${row.isShown ? ' *' : ''}`);
+    const row = (folder: string) => rows().find((each) => samePath(each.folder, folder));
+    const listed = (expected: string[]) =>
+      until(`the rows ${expected.join()}`, () => names().join() === expected.join()).catch((error: Error) => {
+        throw new Error(`${error.message}; the rows are ${names().join()}`);
+      });
+    // The view is opened and in sight: the engine follows the folders, and is told what changes in them, only then.
+    await vscode.commands.executeCommand('gitardo.openRepositories');
+    await listed(['repository workspace/app *', 'repository workspace/lib']);
+    await until('what lib is on', () => row(lib)?.summary);
+    await git(app, ['worktree', 'add', '-b', 'login-page', login, 'main']);
+    try {
+      await internals.locate();
+      await vscode.commands.executeCommand('gitardo.refresh');
+      await listed(['repository workspace/app *', '  worktree app-login', 'repository workspace/lib']);
+      // What each is on: the one shown from its own read, the others from the engine's.
+      assert.deepEqual(row(app)?.summary?.head, { kind: 'branch', name: 'main' });
+      await until('what the worktree is on', () => row(login)?.summary);
+      assert.deepEqual(row(login)?.summary, { head: { kind: 'branch', name: 'login-page' }, changed: 0, ahead: null, behind: null });
+      // The menu of its row is made of what the repository shown says of its worktrees.
+      assert.ok(sent()?.shown?.worktrees.some((worktree) => samePath(worktree.folder, login)));
+
+      // A file changed in a worktree that is not shown is counted on its row.
+      fs.writeFileSync(path.join(login, 'seen.txt'), 'seen\n');
+      await until('the file counted on the row of the worktree', () => row(login)?.summary?.changed === 1, 30_000);
+
+      // A click on a row shows it in every view, and marks it.
+      await internals.onMessage(view('repositories'), { type: 'selectRepo', root: login });
+      await until('the worktree shown', () => samePath(state().root, login));
+      assert.equal(checkedOutBranch(state()), 'login-page');
+      await listed(['repository workspace/app', '  worktree app-login *', 'repository workspace/lib']);
+      assert.equal(row(login)?.summary?.changed, 1);
+      await internals.onMessage(view('repositories'), { type: 'selectRepo', root: lib });
+      await until('lib shown', () => samePath(state().root, lib));
+      await listed(['repository workspace/app', '  worktree app-login', 'repository workspace/lib *']);
+      // The one left is read by the engine again, and says what it said while it was shown.
+      await until('what the worktree left is on', () => row(login)?.summary?.changed === 1, 30_000);
+    } finally {
+      if (!samePath(state().root, app)) await controller.selectRepo(app);
+      await git(app, ['worktree', 'remove', '--force', login]).catch(() => undefined);
+      fs.rmSync(login, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await git(app, ['worktree', 'prune']);
+      await git(app, ['branch', '-D', 'login-page']).catch(() => undefined);
+      await internals.locate();
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+    await listed(['repository workspace/app *', 'repository workspace/lib']);
   });
 
   await step('opens a branch in its worktree, made for it with nothing asked, and switches between worktrees', async () => {

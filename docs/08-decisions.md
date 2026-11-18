@@ -4024,6 +4024,35 @@ is built as it says until the maintainer answers otherwise.
   Should it list only those VS Code's Source Control lists?
 - **Q723** — `repo.select`: the picker of the repository in the toolbar of the graph stays beside the view. Should it
   go once the view is there, or stay only where the view is hidden?
+- **Q724** — `repo.tabs` in the extension: the view is named **Gitardo Repositories**, and its command **Gitardo:
+  Show Repositories**, since VS Code has a **Repositories** view of its own in the same side bar, as **Gitardo Graph**
+  and **Gitardo Changes** are named beside VS Code's **Graph** and **Changes**. D70 and the roadmap call it
+  **Repositories**. Should it be named so, with two views of that name one above the other?
+- **Q725** — `repo.worktree-summary` in the extension: the engine follows the folders only once the view is opened,
+  and is told what changed in them only while the view is in sight, what changed meanwhile being said when it is seen
+  again. Each folder followed has a watcher of VS Code on all of it, the worktrees outside the workspace too, and a
+  file a build writes in a worktree that is not shown, ignored by git or not, asks for a `git status` there, at most
+  one every two seconds. Should git be asked first which paths it ignores, should the folders outside the workspace be
+  left unwatched and read only when the view is opened or refreshed, and should the folders be followed from the
+  start, so that the rows are there the moment the view is unfolded?
+- **Q726** — `repo.tabs` in the extension: the menu of a row has **Open in terminal**, **Reveal in File Explorer**,
+  **Show in Gitardo** and **Copy path**, under the names the menus of the worktrees have already, where the roadmap
+  says **Open in Integrated Terminal**. A worktree and a submodule have what their menus have in the Branches view
+  only when they are of the repository Gitardo shows, whose state those menus are made of and whose folder the engine
+  runs their operations in: the row of a worktree of another repository cannot be renamed or removed from its menu
+  until that repository is shown. Should the view read the worktrees and the submodules of every repository so that
+  each row has its whole menu, the operation run in its own repository?
+- **Q727** — `repo.group-tabs` in the extension: a folded row whose worktrees and submodules are not shown stands for
+  the folder of its repository, since there is no tab to keep the one last shown, as a tab of the desktop keeps it. Should
+  the workspace state remember the member last shown of each repository, a click on its folded row going back to it?
+- **Q728** — `repo.worktree-summary` in the extension: the folder Gitardo shows is read by the engine once when the
+  view opens and again when it is left, its row saying meanwhile what the state of the views says; and a read of a
+  folder that is under way when an operation starts is not stopped, as the desktop does not stop it either. Should
+  the folder shown be left out of what the engine follows, and should a read under way be stopped when an operation
+  starts in its repository?
+- **Q729** — `repo.tabs` in the extension: the view is there with a single repository that has neither worktrees nor
+  submodules, one row, as the desktop's section is for its **+**, which the view does not have. Should it be hidden
+  then, as the picker of the toolbar is with one repository?
 
 ### Of what shows under the pointer, from Q730
 
