@@ -647,10 +647,20 @@ and its submodules under it, the one shown marked, what each is on, and **+** to
 - **Offered when**: a workspace is open, even with a single repository, so that **+** is there.
 - **Uses**: `repo.switch-tab`, `repo.open-tab`, `repo.close-tab`, `repo.group-tabs`, `repo.name-repositories`,
   `repo.worktree-summary`.
-- **Extension**: planned for milestone M22
-  ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)): **Repositories**, a view of the
-  Source Control side bar with the same rows for the repositories of the workspace, without **+**, **×** and the keys
-  of the tabs, which are VS Code's workspace to decide (Q720 to Q723).
+- **Extension**: **Gitardo Repositories**, a view of the Source Control side bar above Gitardo's other views, or
+  **Gitardo: Show Repositories** ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)),
+  named as the views that have a namesake of VS Code's beside them are (Q724): the same rows for the repositories
+  Gitardo found in the workspace (`repo.read-repositories`), without **+**, **×** and the keys of the tabs, which are
+  VS Code's workspace to decide (Q720 to Q723). A row is 22 pixels high, as a row of a list of VS Code; the one
+  Gitardo shows has the background of a row selected and a bar on its left, a click on a row shows it
+  (`repo.select`), and nothing is chosen while an operation runs, the row of its repository showing a spinner. When
+  the name and what it is on do not both fit, each gives way in proportion, the name cut at its start and the branch
+  at its end, the counts kept whole. `Tab` moves to the rows, the arrows from one to the next and fold or unfold,
+  `Enter` or `Space` is a click; the rows are a tree for the screen reader, each said with what it is on, the one
+  shown as selected. The folders are followed by the engine only once the view is opened, and are told of changes
+  only while it is in sight: what changed while it was folded is said when it is seen again (Q725). `RepositoriesApp`
+  in `src/webview/RepositoriesApp.tsx`, `RepositoriesView` in `src/extension/repositoriesView.ts`, the rows in
+  `src/shared/repositories.ts`; tested by `test/repositories.test.ts`.
 
 The heading of the section says **Repositories**, with the chevron that folds it on its left and **+** on its right
 (`repo.open-tab`). Under it, a row for each repository open, in the order they were opened, each one line high, the
@@ -711,7 +721,7 @@ each folding by its heading, the line between them dragged
   (`graph.toggle-references`).
 - **Uses**: `repo.tabs`, `refs.tree`, `graph.resize-panes`, `graph.toggle-references`.
 - **Extension**: VS Code's Source Control side bar is the column, and Gitardo's views its sections: the Branches view
-  the branches, and the Repositories view of milestone M22 the repositories (`repo.tabs`); nothing else to build.
+  the branches, and the Repositories view the repositories (`repo.tabs`); nothing else to build.
 
 - The island goes from under the header to the status bar; the timeline, the inspector, the pages and the bottom
   panel are on its right, and the header above them all (`graph.toolbar`).
@@ -779,9 +789,14 @@ pull and to push, for the rows of **Repositories** and the rows of the worktrees
   `read/repo.worktree-summary`, `repository/folderChanged` and `repository/summaries` of
   [the protocol](../transition/02-protocol.md#what-the-repositories-are-on): `EngineClient.summaries`,
   `folderChanged` and `onSummaries` in `src/engine/client.ts`, the words of a summary in
-  `src/shared/summaries.ts`. The extension says which paths changed in a folder; the engine decides whether that
-  asks for a read, and never reads a folder more than once in two seconds, nor while an operation runs. Tested by
-  `rust/crates/server/tests/stdio/summaries.rs`, `test/engineSummaries.test.ts` and `test/summaries.test.ts`.
+  `src/shared/summaries.ts`. `RepositoriesView` (`src/extension/repositoriesView.ts`) watches the folder of each
+  repository, worktree and submodule followed, and says which paths changed in it, a change in a git folder to every
+  folder that keeps its own git folder there (`routeChange` in `src/shared/repositories.ts`); the engine decides
+  whether that asks for a read, and never reads a folder more than once in two seconds, nor while an operation runs.
+  The folder Gitardo shows is not said to the engine: its row takes its summary from the state of the views
+  (`summaryOfState`), and it is read by the engine once it is left. Tested by
+  `rust/crates/server/tests/stdio/summaries.rs`, `test/engineSummaries.test.ts`, `test/summaries.test.ts` and
+  `test/repositories.test.ts`.
 
 - The repository shown takes its summary from its own read (`repo.read-state`), and runs no other.
 - Every other repository open and every worktree of each is read once when the window opens, then again only when its
@@ -1051,9 +1066,14 @@ Which repositories share a tab: a repository, its worktrees and its submodules a
   submodules, the same choice (`graph.where`).
 - **Uses**: `repo.common-folder`, `repo.keep-open`, `repo.worktree-summary`, `worktree.show-in-gitardo`,
   `submodule.show-in-gitardo`.
-- **Extension**: no tabs and no rows of their own; the list of `repo.select` follows the first three rules, each member
-  indented under its repository, its worktrees first (`groupRepositories` in `src/shared/repositoryGroups.ts`, tested
-  by `test/repositoryGroups.test.ts`).
+- **Extension**: no tabs; the list of `repo.select` follows the first three rules, each member indented under its
+  repository, its worktrees first (`groupRepositories` in `src/shared/repositoryGroups.ts`, tested by
+  `test/repositoryGroups.test.ts`). The rows of the Repositories view (`repo.tabs`) follow the rules of the rows:
+  under a repository, the worktrees git lists for it, a folder of the workspace or not, then its submodules found in
+  the workspace, the chevron, the folds remembered for the workspace in the state of the view, and the folded row
+  that says the member shown after ` › ` (`repositoryRows` and `drawnRows` in `src/shared/repositories.ts`, tested by
+  `test/repositories.test.ts`). With no tab to keep a member, a folded row whose members are not shown stands for
+  the folder of its repository (Q727).
 
 The rules:
 

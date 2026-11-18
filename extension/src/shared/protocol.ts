@@ -1,5 +1,6 @@
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
+import type { RepositoryRow } from './repositories';
 import type { Choice, ConflictRef, ConflictReview } from './resolution';
 import type { CommitDetail, FileChange, RepositoryState } from './state';
 import type { SetupPatterns, SetupPreview, SetupTarget, WorktreeSetupInfo } from './worktreeSetup';
@@ -328,8 +329,21 @@ export interface CompareView {
  * one commit in an editor tab, with its message, its files and what it changed in them. `compare` is two branches,
  * tags or commits compared in an editor tab. `worktreeSetup` is the tab where what new worktrees get of what git
  * ignores is chosen. `conflicts` is the tab where what is proposed for the conflicts is looked at before it is written.
+ * `repositories` is the view of the side bar that lists the repositories of the workspace, with their worktrees and
+ * their submodules under them and what each is on: it is sent its rows, and no state.
  */
-export type ViewKind = 'graph' | 'changes' | 'commits' | 'sideGraph' | 'branches' | 'stashes' | 'commit' | 'compare' | 'worktreeSetup' | 'conflicts';
+export type ViewKind =
+  | 'graph'
+  | 'changes'
+  | 'commits'
+  | 'sideGraph'
+  | 'branches'
+  | 'stashes'
+  | 'commit'
+  | 'compare'
+  | 'worktreeSetup'
+  | 'conflicts'
+  | 'repositories';
 
 /** The views that show the graph, and so are sent its commits. */
 export const showsGraph = (kind: ViewKind) => kind === 'graph' || kind === 'sideGraph';
@@ -549,7 +563,13 @@ export type HostMessage =
   /** What the patterns take from the checkout. Null when git could not say. */
   | { type: 'worktreeSetupPreview'; patterns: SetupPatterns; preview: SetupPreview | null; error?: string }
   /** What the tab of the review of the conflicts shows. Null, with `error`, when the files could not be read. */
-  | { type: 'review'; review: ConflictReview | null; error?: string };
+  | { type: 'review'; review: ConflictReview | null; error?: string }
+  /**
+   * The rows of the Repositories view (`repo.tabs`), sent to it alone, once the repositories of the workspace were
+   * looked for and whenever a row says something else. Null, with `engineMissing`, when there is no engine to read
+   * them with (D49).
+   */
+  | { type: 'repositories'; rows: RepositoryRow[] | null; engineMissing?: boolean };
 
 /** Things the UI can ask for that need the extension to prompt, pick or open something. */
 export type UiCommand =

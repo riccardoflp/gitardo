@@ -56,6 +56,13 @@
       "scm": [
         {
           "type": "webview",
+          "id": "gitardo.repositories",
+          "name": "Gitardo Repositories",
+          "contextualTitle": "Gitardo",
+          "initialSize": 2
+        },
+        {
+          "type": "webview",
           "id": "gitardo.changes",
           "name": "Gitardo Changes",
           "contextualTitle": "Gitardo",
@@ -430,6 +437,11 @@
       {
         "command": "gitardo.stopCopyingIntoWorktrees",
         "title": "Stop Copying into New Worktrees",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.openRepositories",
+        "title": "Show Repositories",
         "category": "Gitardo"
       },
       {

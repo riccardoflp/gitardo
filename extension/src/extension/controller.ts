@@ -24,6 +24,7 @@ import { groupRepositories } from '../shared/repositoryGroups';
 import { pruneScope } from '../shared/scope';
 import { Activity } from './activity';
 import { type KeptRepository, KeptRepositories } from './keptRepositories';
+import { RepositoriesView } from './repositoriesView';
 import { FileIcons } from './fileIcons';
 import type {
   Action,
@@ -308,6 +309,8 @@ export class Controller implements vscode.Disposable {
   private home?: RepoInfo;
   /** The repositories left that keep what they showed, with `gitardo.repositories.keepOpen` on. */
   private readonly kept = new KeptRepositories();
+  /** The rows of the Repositories view, and what the engine follows for them while the view is open (`repo.tabs`). */
+  readonly repositoriesView: RepositoriesView;
   /** Whether this VS Code has the Agents window, which is looked up once: it comes and goes with VS Code itself. */
   private agentsWindow?: Promise<boolean>;
   private readonly views = new Map<vscode.Webview, ViewKind>();
@@ -367,10 +370,12 @@ export class Controller implements vscode.Disposable {
     this.fileIcons = new FileIcons(log);
     this.roots = this.resourceRoots();
     this.activity = new Activity(log);
+    this.repositoriesView = new RepositoriesView(log);
     this.subscriptions = [
       this.stateEmitter,
       this.chosenEmitter,
       this.activity,
+      this.repositoriesView,
       this.fileIcons,
       this.fileIcons.onDidChange(() => this.sendFileIcons()),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.locate()),
@@ -428,8 +433,11 @@ export class Controller implements vscode.Disposable {
     webview.html = this.html(webview, dist, { view: kind, session: vscode.env.sessionId, ...data });
     this.views.set(webview, kind);
     const listener = webview.onDidReceiveMessage((message: WebviewMessage) => this.onMessage(webview, message));
+    // The Repositories view is sent its rows, which the engine follows the folders of while it is open.
+    const rows = kind === 'repositories' ? this.repositoriesView.open(webview) : undefined;
     return new vscode.Disposable(() => {
       listener.dispose();
+      rows?.dispose();
       this.views.delete(webview);
       this.colored.delete(webview);
       this.iconed.delete(webview);
@@ -1903,6 +1911,7 @@ export class Controller implements vscode.Disposable {
       this.running = true;
       this.operations++;
       this.post({ type: 'busy', title: feature });
+      this.repositoriesView.ran(repo.root);
       let result: Awaited<ReturnType<typeof client.runFeature>> | undefined;
       const asker = new VscodeAsker(client, repo.root, hooks);
       let failed: unknown;
@@ -1920,6 +1929,7 @@ export class Controller implements vscode.Disposable {
         // The repository is read once the run is over: nothing is read while an operation runs.
         this.running = false;
         this.post({ type: 'busy', title: null });
+        this.repositoriesView.ran(null);
       }
       const { finished, followUps } = result ?? { finished: undefined, followUps: [] };
       if (finished?.kind === 'ran') {
@@ -2145,6 +2155,7 @@ export class Controller implements vscode.Disposable {
   private setState(state: RepoState | null): void {
     this.state = state;
     this.post({ type: 'state', state });
+    this.repositoriesView.shown(state);
     this.stateEmitter.fire(state);
     void this.checkUnsaved();
   }
@@ -2223,7 +2234,9 @@ export class Controller implements vscode.Disposable {
       : [];
     const roots = found.map((each) => each.folder);
     // Each worktree and submodule under its repository, as the list of the repositories shows them (`repo.group-tabs`).
-    this.repos = groupRepositories(found).map(({ repository, depth }) => ({ root: repository.folder, name: repositoryName(repository.folder, folders), depth }));
+    const grouped = groupRepositories(found).map(({ repository, depth }) => ({ repository: { ...repository, name: repositoryName(repository.folder, folders) }, depth }));
+    this.repos = grouped.map(({ repository, depth }) => ({ root: repository.folder, name: repository.name, depth }));
+    this.repositoriesView.found(grouped);
     // A repository that is no longer in the workspace keeps nothing.
     this.kept.forget((root) => !this.repos.some((repo) => samePath(repo.root, root)));
     // The repository chosen last time in this workspace, as long as it is still there.
@@ -2571,7 +2584,8 @@ export class Controller implements vscode.Disposable {
   }
 
   private post(message: HostMessage, to?: vscode.Webview): void {
-    const targets = to ? [to] : [...this.views.keys()];
+    // The Repositories view is sent its rows alone, by `repositoriesView`.
+    const targets = to ? [to] : [...this.views].filter(([, kind]) => kind !== 'repositories').map(([view]) => view);
     if (message.type !== 'state' || !message.state) {
       // Without a state, the views say whether it is for want of the engine.
       const said = message.type === 'state' && !reads.available ? { ...message, engineMissing: true } : message;
@@ -2620,6 +2634,11 @@ export class Controller implements vscode.Disposable {
         if (compareTab) {
           this.post({ type: 'state', state: this.state }, webview);
           return this.sendCompare(compareTab, true);
+        }
+        // The Repositories view is sent its rows as they are, and what Gitardo shows is read as for any view.
+        if (this.views.get(webview) === 'repositories') {
+          this.repositoriesView.ready(webview);
+          return this.locating ?? this.refresh();
         }
         // A view that has just loaded has nothing yet.
         this.sentRows.delete(webview);

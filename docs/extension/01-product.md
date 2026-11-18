@@ -31,15 +31,16 @@ page is the map of the product for whoever changes it.
 
 - **Graph**, in the panel: the toolbar, the references, the graph and the details. Also as an editor tab
   (**Gitardo: Open Graph in Editor**).
-- **Commits**, **Gitardo Graph**, **Branches**, **Stashes** and **Gitardo Changes**, in the Source Control side bar,
-  under VS Code's own views and folded at first. Gitardo has no icon of its own in the activity bar.
+- **Gitardo Repositories**, **Commits**, **Gitardo Graph**, **Branches**, **Stashes** and **Gitardo Changes**, in the
+  Source Control side bar, under VS Code's own views and folded at first. Gitardo has no icon of its own in the
+  activity bar.
 - **Tabs of the editor**: a commit, a comparison, the review of the resolutions of conflicts, what new worktrees get,
   the Flow Diff and the Flow Merge.
 - **The editor itself**: the blame of the line under the cursor, the blame of the whole file beside its lines, and the
   buttons on the titles of the diff and merge editors that switch to the Flow Diff and the Flow Merge.
 - **The Explorer and the Source Control view of VS Code**: entries in their context menus (history of a file or folder,
   compare with, stash this file, link into new worktrees).
-- **The Command Palette**: 79 commands, all named **Gitardo: …**, listed in `package.json` under
+- **The Command Palette**: 81 commands, all named **Gitardo: …**, listed in `package.json` under
   `contributes.commands`.
 - **The Gitardo output channel**: the log of every command run.
 - **The walkthrough** *Get started with Gitardo* (`media/walkthrough/`), which VS Code opens once after installing.

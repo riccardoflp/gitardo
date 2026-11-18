@@ -21,6 +21,7 @@ const COMMITS_VIEW = 'gitardo.commits';
 const SIDE_GRAPH_VIEW = 'gitardo.sideGraph';
 const BRANCHES_VIEW = 'gitardo.branches';
 const STASHES_VIEW = 'gitardo.stashes';
+const REPOSITORIES_VIEW = 'gitardo.repositories';
 
 /** What the extension hands to whoever activates it: the end-to-end tests drive it through this. */
 export interface GitardoApi {
@@ -80,6 +81,19 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
       view.onDidDispose(() => vscode.Disposable.from(attachment, described).dispose());
     },
   });
+
+  /**
+   * The Repositories view, above Gitardo's other views in the Source Control side bar (`repo.tabs`). What the engine
+   * follows for its rows is told of what changed only while the view is in sight.
+   */
+  const repositoriesProvider: vscode.WebviewViewProvider = {
+    resolveWebviewView(view) {
+      const attachment = controller.attach(view.webview, 'repositories');
+      controller.repositoriesView.visible(view.webview, view.visible);
+      const seen = view.onDidChangeVisibility(() => controller.repositoriesView.visible(view.webview, view.visible));
+      view.onDidDispose(() => vscode.Disposable.from(attachment, seen).dispose());
+    },
+  };
 
   const openInEditor = () => {
     const panel = vscode.window.createWebviewPanel('gitardo.graphEditor', 'Gitardo', vscode.ViewColumn.Active, {
@@ -233,6 +247,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, new GitContentProvider()),
     vscode.window.registerWebviewViewProvider(GRAPH_VIEW, graphProvider, webviewOptions),
+    vscode.window.registerWebviewViewProvider(REPOSITORIES_VIEW, repositoriesProvider, webviewOptions),
     // Hidden until it is asked for: VS Code has its own list of changes just above.
     vscode.window.registerWebviewViewProvider(CHANGES_VIEW, sideView('changes'), webviewOptions),
     vscode.window.registerWebviewViewProvider(
@@ -262,6 +277,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ),
     command('gitardo.openGraph', () => vscode.commands.executeCommand(`${GRAPH_VIEW}.focus`)),
     command('gitardo.openChanges', () => vscode.commands.executeCommand(`${CHANGES_VIEW}.focus`)),
+    command('gitardo.openRepositories', () => vscode.commands.executeCommand(`${REPOSITORIES_VIEW}.focus`)),
     command('gitardo.openCommits', () => vscode.commands.executeCommand(`${COMMITS_VIEW}.focus`)),
     command('gitardo.openSideGraph', () => vscode.commands.executeCommand(`${SIDE_GRAPH_VIEW}.focus`)),
     command('gitardo.openBranches', () => vscode.commands.executeCommand(`${BRANCHES_VIEW}.focus`)),

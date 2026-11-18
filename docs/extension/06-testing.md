@@ -76,7 +76,7 @@ and closes by itself. Pass the path of the executable as an argument, or set `VS
 place.
 
 The suite drives the extension through its commands and its controller, with VS Code's dialogs, input boxes and pickers
-answered by stubs that record what they were asked. Among other things it checks that the webviews of all five views
+answered by stubs that record what they were asked. Among other things it checks that the webviews of all the views
 load, that only the views that list commits are sent them, that the commands shown in a confirmation are the ones that
 run and the ones logged, that diffs and the merge editor open with the right content, that nothing about resolving
 conflicts automatically is offered or run until its setting is on, and that with a language model standing in for a

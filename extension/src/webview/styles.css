@@ -2106,6 +2106,112 @@ body.vscode-high-contrast-light .app.islands {
   margin: 4px 0;
 }
 
+/* The repositories of the workspace, each with its worktrees and its submodules under it and what it is on. */
+.side.repositories {
+  display: block;
+  padding: 2px 0;
+  overflow-y: auto;
+}
+
+.repository {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding-right: 8px;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.repository:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.repository:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.repository.busy {
+  cursor: default;
+}
+
+/* The one Gitardo shows: the background of a row selected, and a bar in the color of the accent on its left. */
+.repository.shown {
+  color: var(--vscode-list-inactiveSelectionForeground, var(--vscode-foreground));
+  background: var(--vscode-list-inactiveSelectionBackground);
+}
+
+.repository.shown::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--vscode-focusBorder);
+}
+
+/* The chevron that folds the rows under a repository, and its room on the rows of the repositories without one. */
+.repository .fold {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 100%;
+}
+
+/* A name too long is cut at its start, so that the name of the folder itself stays. */
+.repository .name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.repository .on {
+  flex: 0 1 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 0.9em;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* The branch gives way, the counts are kept whole. */
+.repository .on .head {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.repository .on .changed,
+.repository .on .distance {
+  flex: none;
+}
+
+.repository .on .changed {
+  color: var(--vscode-gitDecoration-modifiedResourceForeground);
+}
+
+/* What a read that failed left: the summary of the read before. */
+.repository.stale .on {
+  opacity: 0.6;
+}
+
+.repository .running {
+  flex: none;
+  display: flex;
+}
+
 /* A stash is told by its message, however long: the date gives way to it. */
 .stash .name {
   flex: 0 1 auto;

@@ -9,6 +9,7 @@ import { Reads, type Repository, repositoryName } from '../engine/reads';
 import { engineSettings } from '../engine/settings';
 import { parseGitHubRemote } from '../shared/github';
 import { samePath } from '../shared/paths';
+import { repositoryRows } from '../shared/repositories';
 import { groupRepositories } from '../shared/repositoryGroups';
 import { pruneScope } from '../shared/scope';
 import type { Conflict } from '../shared/conflicts';
@@ -121,7 +122,7 @@ const THEMES = {
   },
 };
 
-const VIEWS: ViewKind[] = ['graph', 'changes', 'commits', 'sideGraph', 'branches', 'stashes', 'commit', 'compare', 'worktreeSetup', 'conflicts'];
+const VIEWS: ViewKind[] = ['graph', 'changes', 'commits', 'sideGraph', 'branches', 'stashes', 'commit', 'compare', 'worktreeSetup', 'conflicts', 'repositories'];
 
 /** How long the language model the preview pretends to ask waits for its turn, and then writes. */
 const PRETEND_WAIT = 1500;
@@ -226,7 +227,8 @@ async function main() {
   const reads = new Reads(() => client);
   const discovered = await reads.discover(folders);
   const roots = discovered.map((found) => found.folder);
-  const repos = groupRepositories(discovered).map(({ repository, depth }) => ({ root: repository.folder, name: repositoryName(repository.folder, folders), depth }));
+  const grouped = groupRepositories(discovered).map(({ repository, depth }) => ({ repository: { ...repository, name: repositoryName(repository.folder, folders) }, depth }));
+  const repos = grouped.map(({ repository, depth }) => ({ root: repository.folder, name: repository.name, depth }));
   let repo: Repository | null = roots.length ? { root: roots[0] } : null;
   let limit = PAGE_SIZE;
   let filter: Filter | null = null;
@@ -253,6 +255,22 @@ async function main() {
   let compared: { from: string; to: string; mode: CompareMode; path: string | null } | null = null;
   /** Whether the page is the review of the conflicts, which is sent the review when it is ready. */
   let reviewing = false;
+  /** Whether the page is the Repositories view, which is sent its rows in place of the state. */
+  let listing = false;
+  /** The folders of the rows of the Repositories view, each of which a click shows. */
+  let rowFolders: string[] = [];
+
+  /**
+   * The rows of the Repositories view: what the engine says each repository found and each of its worktrees is on, read
+   * once while the server runs since nothing watches their folders here, and the one shown from its own read.
+   */
+  async function repositories(): Promise<HostMessage[]> {
+    const summaries = await client.summaries(roots);
+    const shown = repo ? await reads.parts(repo, true) : null;
+    const rows = repositoryRows({ repositories: grouped, summaries, state: shown, running: null });
+    rowFolders = rows.map((row) => row.folder);
+    return [{ type: 'repositories', rows }];
+  }
   /**
    * When each conflict was asked about, by file and fingerprint. There is no language model here: the preview pretends,
    * and answers a little more each time the page asks for the review again.
@@ -360,7 +378,7 @@ async function main() {
   async function handle(message: WebviewMessage, light: boolean): Promise<HostMessage[]> {
     switch (message.type) {
       case 'selectRepo': {
-        const root = inRoots(message.root) ?? worktrees.find((dir) => samePath(dir, message.root));
+        const root = inRoots(message.root) ?? [...worktrees, ...rowFolders].find((dir) => samePath(dir, message.root));
         if (!root) return [];
         const shown = repo && inRoots(repo.root);
         if (shown) home = repos.find((each) => each.root === shown) ?? home;
@@ -562,12 +580,16 @@ async function main() {
           let body = '';
           for await (const chunk of request) body += chunk;
           response.setHeader('Content-Type', 'application/json');
-          response.end(JSON.stringify(await handle(JSON.parse(body), url.searchParams.get('theme') === 'light')));
+          const replies = await handle(JSON.parse(body), url.searchParams.get('theme') === 'light');
+          // The Repositories view is sent its rows wherever another view is sent the state.
+          const states = replies.filter((reply) => reply.type === 'state');
+          response.end(JSON.stringify(listing && states.length ? [...replies.filter((reply) => reply.type !== 'state'), ...(await repositories())] : replies));
         } else if (url.pathname === '/') {
           response.setHeader('Content-Type', 'text/html');
           const theme = url.searchParams.get('theme') === 'light' ? 'light' : 'dark';
           const view = VIEWS.find((candidate) => candidate === url.searchParams.get('view')) ?? 'graph';
           reviewing = view === 'conflicts';
+          listing = view === 'repositories';
           // The tab of a commit: of the one asked for with `commit=`, or of the last.
           const commit = view === 'commit' && repo ? await reads.resolve(repo, url.searchParams.get('commit') ?? 'HEAD') : null;
           const files = url.searchParams.get('files') === 'list' ? 'list' : 'tree';

@@ -14,7 +14,8 @@ workspace.
   in `src/extension/controller.ts`.
 - **Entry points**: the list at the start of the toolbar of the graph and at the top of the Changes view; **Gitardo:
   Select Repository** in the Command Palette and **Select repository…** in the **…** of the toolbar (`pickRepo`), a
-  picker titled `Repository shown in Gitardo`.
+  picker titled `Repository shown in Gitardo`; a click on a row of the Repositories view (`repo.tabs`), which posts
+  the same `selectRepo`, for a repository, a worktree or a submodule, of the repository shown or of another.
 - **Offered when**: the workspace has two repositories or more; **Gitardo: Select Repository** also while the views
   show a worktree that is not in the workspace.
 - **Uses**: `worktree.show-in-gitardo`, `repo.follow-source-control`.
@@ -38,6 +39,8 @@ Acceptance:
 - [ ] The list is disabled while an operation runs.
 - [ ] The list puts a worktree of a repository and a submodule of it under it, indented, the worktree first, and
   **Gitardo: Select Repository** lists them in the same order.
+- [ ] A click on a row of the Repositories view shows its repository, worktree or submodule in every view and marks
+  the row; choosing another in the list of the toolbar marks that one.
 
 ### `repo.follow-source-control` — Follow the Repositories view of VS Code
 
