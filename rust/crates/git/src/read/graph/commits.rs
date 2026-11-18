@@ -147,6 +147,10 @@ pub fn read_commits(
         for commit in parse_commits(&records)? {
             for full in pager.push(commit) {
                 page(full);
+                // A part of what git printed can hold many pages: once one cancels the read, none follows it.
+                if git.is_cancelled() {
+                    return Ok(Taken::Enough);
+                }
             }
             if pager.has_enough() {
                 return Ok(Taken::Enough);

@@ -101,6 +101,12 @@ impl Git {
         self
     }
 
+    /// Whether its token was cancelled: a read taken as git prints it hands on nothing more.
+    #[must_use]
+    pub fn is_cancelled(&self) -> bool {
+        self.cancel.is_cancelled()
+    }
+
     /// The same git, run in another folder.
     #[must_use]
     pub fn in_directory(&self, directory: impl Into<PathBuf>) -> Self {
@@ -204,7 +210,14 @@ impl Git {
             }
             match parts.recv_timeout(CANCEL_CHECK) {
                 Ok(part) => {
-                    if take(&part)? == Taken::Enough {
+                    let taken = take(&part)?;
+                    // What was taken may have cancelled the read, as a page given to whoever wanted no more.
+                    if self.cancel.is_cancelled() {
+                        return Err(GitError::Cancelled {
+                            command: line.to_owned(),
+                        });
+                    }
+                    if taken == Taken::Enough {
                         return Ok(Taken::Enough);
                     }
                 }
