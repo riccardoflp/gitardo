@@ -1,6 +1,6 @@
 [package]
 name = "system"
-description = "The operating system without a window, as Gitardo's engine needs it: the credential store and links to folders, with the bindings of the system libraries that platform shares."
+description = "The operating system without a window, as Gitardo's engine needs it: the credential store, links to folders and the processes a task started, with the bindings of the system libraries that platform shares."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

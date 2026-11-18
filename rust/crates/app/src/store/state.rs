@@ -77,6 +77,8 @@ pub struct State {
     pub panel: super::panel::Panel,
     /// The terminals of the bottom panel, of each repository tab (`terminal.view`).
     pub terminals: super::terminals::Terminals,
+    /// The Tasks tab of the bottom panel: the tasks of each repository tab and their terminals (`tasks.view`).
+    pub tasks_tab: super::tasks_tab::TasksTab,
     /// The file the settings page writes changes in (`settings.edit`).
     pub settings_target: views::settings::SettingsTarget,
     /// Where the list of the settings page was asked to go (`settings.sections`, `settings.reveal`).
@@ -99,8 +101,6 @@ pub struct State {
     pub github: super::github::GitHub,
     /// The tabs of the repositories open, and what those not shown keep (`repo.tabs`, `repo.keep-open`).
     pub tabs: super::tabs::Tabs,
-    /// The Tasks of the Activity tab: the commands of new worktrees (`worktree-setup.command-steps`).
-    pub tasks: super::tasks::Tasks,
     /// The title bar, as the window draws it, and whether the window is maximized (`window.title-bar`).
     pub caption: views::window::CaptionState,
 }

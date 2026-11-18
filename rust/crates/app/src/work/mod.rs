@@ -3,6 +3,7 @@
 
 pub mod ai;
 pub mod blame;
+mod commands;
 pub mod compare;
 pub mod diagram;
 pub mod diff;
@@ -18,7 +19,7 @@ mod repository_watch;
 pub mod review;
 mod setting_writer;
 pub mod summaries;
-mod tasks;
+pub mod task_runs;
 mod terminals;
 mod watch;
 
@@ -39,11 +40,12 @@ use views::text::search as search_words;
 use crate::store::search::SearchJob;
 use crate::store::{Job, JobId, JobKind, Message};
 
+pub use commands::CommandsWork;
 pub use operations::Operations;
 pub use persist::PersistedWriter;
 pub use repository_watch::{RepositoryWatch, change_of, common_git_folder};
 pub use setting_writer::SettingWriter;
-pub use tasks::TaskRunners;
+pub use task_runs::TaskRuns;
 pub use terminals::Terminals;
 pub use watch::{SettingsWatcher, WATCH_INTERVAL};
 

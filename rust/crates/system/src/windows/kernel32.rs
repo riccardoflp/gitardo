@@ -1,5 +1,6 @@
 //! The functions, types and constants of `kernel32.dll` that Gitardo asks for itself, with the names the
-//! Windows documentation gives them: watching folders for changes, making junctions, and the local time.
+//! Windows documentation gives them: watching folders for changes, making junctions, the local time, and the job
+//! object that holds the processes a task started.
 
 #![allow(
     clippy::upper_case_acronyms,
@@ -90,6 +91,10 @@ unsafe extern "system" {
         lpOverlapped: *mut OVERLAPPED,
     ) -> BOOL;
     pub fn GetLastError() -> u32;
+    pub fn CreateJobObjectW(lpJobAttributes: *mut c_void, lpName: *const u16) -> HANDLE;
+    pub fn OpenProcess(dwDesiredAccess: u32, bInheritHandle: BOOL, dwProcessId: u32) -> HANDLE;
+    pub fn AssignProcessToJobObject(hJob: HANDLE, hProcess: HANDLE) -> BOOL;
+    pub fn TerminateJobObject(hJob: HANDLE, uExitCode: u32) -> BOOL;
 }
 
 pub const FILE_LIST_DIRECTORY: u32 = 0x0000_0001;
@@ -108,6 +113,8 @@ pub const FILE_NOTIFY_CHANGE_DIR_NAME: u32 = 0x0000_0002;
 pub const FILE_NOTIFY_CHANGE_SIZE: u32 = 0x0000_0008;
 pub const FILE_NOTIFY_CHANGE_LAST_WRITE: u32 = 0x0000_0010;
 pub const FILE_NOTIFY_CHANGE_CREATION: u32 = 0x0000_0040;
+pub const PROCESS_TERMINATE: u32 = 0x0001;
+pub const PROCESS_SET_QUOTA: u32 = 0x0100;
 pub const WAIT_TIMEOUT: u32 = 258;
 pub const ERROR_IO_INCOMPLETE: u32 = 996;
 pub const ERROR_NOTIFY_ENUM_DIR: u32 = 1022;

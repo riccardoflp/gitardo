@@ -110,7 +110,7 @@ pub enum TerminalMessage {
 
 /// The folder of the repository tab shown, which its terminals are kept under, and the folder its shells start in: the
 /// repository or the worktree shown in it.
-fn shown_tab(state: &State) -> Option<(PathBuf, PathBuf)> {
+pub(super) fn shown_tab(state: &State) -> Option<(PathBuf, PathBuf)> {
     let folder = state.shown_folder()?.clone();
     let tab = state
         .tabs

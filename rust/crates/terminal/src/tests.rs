@@ -48,6 +48,7 @@ impl Running {
             shell: test_shell(),
             size,
             scrollback: 1_000,
+            environment: Vec::new(),
         };
         Running {
             terminal: Terminal::start(options, tell).unwrap(),
@@ -197,4 +198,37 @@ fn a_word_selected_with_a_double_click_is_the_text_selected() {
     );
     running.terminal.select(None);
     assert_eq!(running.terminal.screen().selected_text, None);
+}
+
+#[test]
+fn what_its_start_asks_for_is_in_its_environment_and_its_last_lines_are_read_without_colors() {
+    let repository = Repository::new();
+    let (sender, told) = mpsc::channel();
+    let sender = Mutex::new(sender);
+    let tell: super::Tell = Arc::new(move |event| {
+        let _sent = sender.lock().unwrap().send(event);
+    });
+    let options = StartOptions {
+        folder: repository.path().to_path_buf(),
+        shell: test_shell(),
+        size: WIDE,
+        scrollback: 1_000,
+        environment: vec![(String::from("GITARDO_ASKED"), String::from("asked for"))],
+    };
+    let running = Running {
+        terminal: Terminal::start(options, tell).unwrap(),
+        told,
+    };
+    assert!(running.terminal.process().is_some_and(|process| process > 0));
+    if cfg!(windows) {
+        running.type_line("Write-Host -ForegroundColor Red \"it is $env:GITARDO_ASKED\"");
+    } else {
+        running.type_line(r#"printf '\033[31mit is %s\033[0m\n' "$GITARDO_ASKED""#);
+    }
+    let _screen = running.wait_for("the variable", |screen| {
+        screen.text().lines().any(|line| line.trim() == "it is asked for")
+    });
+    let lines = running.terminal.last_lines(5);
+    assert!(lines.len() <= 5);
+    assert!(lines.iter().any(|line| line.trim() == "it is asked for"), "{lines:?}");
 }

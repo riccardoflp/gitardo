@@ -30,6 +30,7 @@ pub mod search;
 pub mod settings;
 pub mod stash;
 pub mod submodule;
+pub mod tasks_tab;
 pub mod timeline;
 pub mod title_bar;
 pub mod views;

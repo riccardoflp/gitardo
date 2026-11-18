@@ -26,7 +26,7 @@ libraries of the window for most of it, and on each system for the rest. Windows
 | Credentials | Read, write and delete a secret by name in the system's credential store: in `system`, for the engine. |
 | Fonts | The fonts of the program are in `render`; `platform` gives the paths of the system's font files, for the fallback and for the settings `font.ui` and `font.code`. |
 | Theme | Whether the system is dark or light, high contrast, and a notification when it changes. |
-| Processes | Running `git` uses `std::process`, which is enough; `platform` only adds killing a whole process tree on cancel. |
+| Processes | Running `git` uses `std::process`, which is enough; `platform` only adds killing a whole process tree on cancel. `ProcessTree::of(process)` holds a task and whatever it starts, to end them together (`tasks.stop`): a job object on Windows, the process group of the task elsewhere; in `system`. |
 
 ## What the libraries do
 

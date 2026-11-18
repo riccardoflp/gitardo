@@ -1285,7 +1285,7 @@ the right, the terminal of the task selected, as the two sides of one place (`ta
 - **The commands of new worktrees.** They are tasks already, run one after the other in a column of the drawer called
   **Tasks**. In phase 7 they run in the Tasks tab, as tasks of a source of their own, **New worktrees**, each with its
   terminal, rather than in a column of Activity: one place for what runs in a terminal, the same word for the same
-  thing. Proposed by the agent; Q630 asks whether to.
+  thing.
 
 In the extension nothing changes: VS Code runs its own tasks and Run My Tasks stays an extension of its own. Every card
 of the area is *Host only* there.
@@ -3664,7 +3664,8 @@ planned.
 
 - **Q630** — `worktree-setup.command-steps`: phase 7 of M19 runs the commands of new worktrees as tasks of the source
   **New worktrees** in the Tasks tab, rather than in a column of the tab of Activity. Should they move, or stay with
-  Activity?
+  Activity? *Answered by the maintainer on 2026-11-17*: they move to the Tasks tab, and the column **Tasks** of the
+  tab of Activity goes.
 - **Q631** — `tasks.read`: Gitardo runs the scripts of `package.json` and the tasks of `tasks.json` only. Should it also
   find the tasks of other tools of the repository, as extensions of VS Code do: `cargo build`, `cargo test` and
   `cargo run` for a `Cargo.toml`, the targets of a `Makefile`, the tasks of a `justfile`?
@@ -3868,6 +3869,145 @@ built, each built with the reading given until the card says otherwise.
   what ended; the protocol still gives the extension the number, the words, the cause and the second of the start of
   what runs. Nothing changes in the extension with M18. Should its picker of **Show What Is Running** list what ran
   and count the reads as the tab does, with these in a minor version of the protocol?
+
+### Of the tasks read and their groups, from Q700
+
+Questions of milestone M19 ([D65](#d65--tasks-a-tab-of-the-bottom-panel-with-the-tasks-of-the-repository-and-their-groups)),
+asked while building what of it needs no window: the tasks read, the order they run in, their groups, and the file
+groups are exported to and imported from. Each is built as it says until the maintainer answers otherwise.
+
+- **Q700** — `tasks.import-groups`, `tasks.export-groups`: the card says the tasks of the file are taken by their source
+  and their name, while the file Run My Tasks 0.8.0 writes names a task only as VS Code names it: `build` for a task
+  of `tasks.json` and for a script of the `package.json` at the top alike, `build - extension` for a script of a
+  folder. Built: on import a name is the task of `tasks.json` with that label when the worktree shown has one, else the
+  script VS Code names so, else a task of `tasks.json` the worktree lacks; on export each task is written by that
+  name. So a script at the top and a task of `tasks.json` of the same name come back as the task, and a script the
+  worktree that imports lacks comes back as a task of `tasks.json`. Should the card say names? And should Gitardo
+  write, beside `tasks`, a member of its own with the source of each task, which Run My Tasks leaves aside, so that a
+  file exported by Gitardo and imported by Gitardo loses nothing?
+- **Q701** — `tasks.import-groups`: **Do the same for the others** is a box to tick in the card, and a question of the
+  feature contract has none. Built: for a group named as one of the repository, **Merge**, **Replace** and **Skip**,
+  and, when more of the groups chosen are named so, **Merge all**, **Replace all** and **Skip all**, which answer for
+  the others too. The answers have twelve keys: at the twelfth such group of one file only the three for all are
+  offered. Is this the dialog, or should the Tasks tab draw one with the box?
+- **Q702** — `tasks.export-groups`: **Show in folder**, beside where the file was saved, has no follow-up of the
+  feature contract that shows a file in the file manager of the system. Built: Gitardo says where the file was saved.
+  Should the phase of the tab add the follow-up, for this and for `patch.save`, which could offer the same?
+- **Q703** — `tasks.read`: the group of the scripts of a `package.json` is named by its folder (`extension`); the one
+  at the top of the worktree has no folder. Built: it is named by the folder of the worktree shown (`app`). Or **npm**
+  alone, with no group?
+- **Q704** — `tasks.read`: what is read of `tasks.json` beside what the card lists, as VS Code reads version 2.0.0: a
+  task with no `type` is a `process`; a task with no `label` is named by its `taskName`, else by its command, and one
+  of another type by `<type>: <script>` as VS Code names `npm: build`; `command` and an item of `args` may be
+  `{ "value", "quoting" }`; the `options` of the file, and those of the file for one system, hold for every task that
+  does not say otherwise, `env` added name by name; `dependsOn` takes a label, the name of a script (`npm: build`,
+  `npm: build - extension`) when no task has that label, or `{ "type": "npm", "script", "path" }`. Is all of it
+  wanted, or only what the card lists?
+- **Q705** — `tasks.read`: a variable only VS Code resolves (`${file}`, `${input:…}`, `${command:…}`, `${config:…}`,
+  `${workspaceFolder:name}`, `${defaultBuildTask}` and the others of the editor) stays as written, and the task says
+  **It cannot be run with `${input:name}`, which only VS Code resolves.**, naming each once. `${env:NAME}` of a
+  variable that is not set is empty, as in VS Code, and `${NAME}` that is no variable of VS Code, which a shell
+  resolves, is left to the shell. Are the words and the two cases right?
+- **Q706** — `tasks.read`: `.vscode/tasks.json` is read even where git ignores `.vscode`, as many repositories do,
+  while a `package.json` counts only where git tracks it or does not ignore it, as the card says. Is the difference
+  wanted?
+- **Q707** — `tasks.run`: a background task whose problem matcher is one of VS Code's own, named by a string
+  (`$tsc-watch`), has no `beginsPattern` nor `endsPattern` Gitardo can read: it is ready once it has printed nothing
+  for two seconds after its start. A pattern the regular expressions of Rust cannot take, a look-ahead or a
+  back-reference of JavaScript, counts as none too. Should Gitardo carry the patterns of the matchers VS Code ships
+  (`$tsc-watch`, `$eslint-stylish`), and say when a pattern was left out?
+- **Q708** — `tasks.run`: the card refuses a loop and a task `dependsOn` names that is not there. Built the same way,
+  with nothing run: a task among those depended on that Gitardo cannot run, of another type or with a variable only VS
+  Code resolves, saying **Nothing ran: `<task>` cannot be run here.** with why. And a task that waits for one that was
+  stopped, or could not be started, says **It did not run: `<task>` was stopped.** and **It did not run: `<task>`
+  could not be started: `<why>`.** Are these the words?
+- **Q709** — `tasks.run`: with `dependsOrder` `sequence`, the tasks the second depends on wait for the first too, so
+  that nothing of the second starts before the first ended; a task two tasks depend on runs once, and one already
+  wanted by an earlier task of the sequence does not wait again. Is this the order VS Code users expect, or should
+  only the second itself wait?
+- **Q710** — `tasks.edit-groups`: `gitardo/task-groups.json` is `{ "version": 1, "groups": [{ "name", "tasks": [{
+  "source": "Workspace", "name" } | { "source": "npm", "folder", "name" }] }] }`. A file that is not JSON, is not
+  this, or has a newer `version` lists no groups and says so, and every change of the groups is refused with **Nothing
+  was changed.** rather than written over it. Is refusing right, or should a change start again from no groups?
+- **Q711** — `tasks.edit-groups`: the state of a repository has the git folder of the worktree shown, not the common
+  one. Built: the operations read `commondir` in that folder and take the folder it names, with no git run. A query
+  that asks git (`git rev-parse --git-common-dir`) would also hold where the environment moves the common folder.
+  Should the phase of the tab add it to the state or to the queries?
+- **Q712** — `tasks.edit-groups`: the words of the refusals, none of them in the card but the first: **There is
+  already a group named `<name>`.**, **There is no group named `<name>` any more.** for a group another window deleted
+  or renamed, **`<task>` is already in the group `<name>`.**, **The group `<name>` does not have `<task>`.** and
+  **The groups are already so.** for a move that moves nothing. A name is taken without the spaces around it, and two
+  names that differ by case are two groups. Right?
+- **Q713** — `repo.watch-changes`, `tasks.read`: which changes ask for the tasks, and for the groups, to be read again
+  is derived apart from which ask for a read of the repository (`model::repo::sort_tasks_change`,
+  `model::repo::changes_task_groups`), since a lock file of `yarn` or `bun` asks for no read of the repository and
+  still names the package manager. The watcher does not call them yet: it is among the files of milestone M18, and
+  the phase of the tab calls them. Should the tasks have a read of their own, as built, or ride on the read of the
+  repository with a cause of its own?
+- **Q714** — `tasks.view`, `tasks.run`: **Trust this folder** and **Open tasks.json**, where the worktree has none, are
+  asked by `tasks.run`, since the Tasks tab runs its operations on a task, a group or one of these two. So the trust
+  is asked with words of its own, **Trust this folder?** and what its tasks would run, not with the question of
+  `trust.ask`, which is asked for an operation that was refused. Should the tab run `trust.ask`, and making the file
+  be an operation of its own with a card?
+- **Q715** — `tasks.stop`: the first line of its acceptance names `npm run watch` and the node process it starts. Its
+  test runs a task of the shell that starts a process of its own which no interrupt reaches, and looks for that
+  process once the task was stopped, since the tests cannot count on npm being there. Is that the same line, or should
+  the tests ask for node where the pipeline has it?
+- **Q716** — `tasks.stop`: **Stop them and close** stops the tasks as **Stop** does, and the tab or the window closes
+  once they ended: at once for a task that hears the interrupt, three seconds later for one that does not, with
+  nothing said meanwhile but the rows of the tasks. Should the window close at once and end them as it goes, or say
+  that it waits?
+- **Q717** — `tasks.view`: the width of the column dragged, the task selected and what is folded are each repository
+  tab's until the window closes; `state.json` keeps none of them. Should the width be remembered for the workspace, as
+  the height of the panel is?
+- **Q718** — `tasks.view`: **Run** and **Stop** on a row are words, not icons, and **Run**, **Restart**, **Collapse
+  all** and **Expand all** have no icon in their menus, since the table of the icons has none that says them
+  ([D63](#d63--the-icon-of-each-action-in-the-menus)). Which icons of Lucide should they have (`play`, `square`,
+  `rotate-cw`, `chevrons-down-up`, `chevrons-up-down`)?
+- **Q719** — `tasks.view`: in the terminal of a task that ended, `Enter` runs it again, and Gitardo says so after how
+  long it ran, **Press Enter to run it again**; the card has neither. Is the key wanted there, or only **Run** on the
+  row?
+- **Q740** — `tasks.edit-groups`: the card gives the menu of a task in a group **Rename**, **Delete**, **Move up** and
+  **Move down**, as that of a group. Built: a task of a group has **Move up**, **Move down** and **Remove from
+  group**, which takes it out of the group and leaves it under its source, since a task has no name of its own to
+  change and is not deleted. `F2` renames the group whose heading was clicked last, drawn as a row selected is until a
+  task is selected, since a heading does not take the keyboard. Are the words and the key right?
+- **Q741** — `tasks.edit-groups`: where what is dragged goes. A task dropped on the heading of a group goes last in
+  it, taken out of the group it was dragged from, and one dropped on a task of a group goes before that task; a task
+  of a group dropped on the heading of its own group stays where it is. A group dropped on another goes before it,
+  and dropped on **Groups** goes last. Nothing is drawn between two rows while a drag is over them: the row it would
+  go before is lit. Is a line between the rows wanted, and a way to drag a task out of a group?
+- **Q742** — `tasks.import-groups`, `tasks.export-groups`: **Import groups…** and **Export groups…** chosen in Quick
+  search show the bottom panel at the Tasks tab before they ask anything, so that the groups imported are seen once
+  they are listed; and an import asked before the tasks of the worktree were read waits for them, since they say what
+  the names of the file stand for. In the menu of **Groups** the two items have no icon. Is the tab to be shown for an
+  export too, which changes nothing in it, and are icons wanted for the two items?
+- **Q743** — `tasks.quick-run`: the rows of the picker. Each row is two lines tall, the name over the command; a group
+  has its tasks under its name, and each row says at its right where it is from, **Groups**, **Workspace** or **npm**
+  and the name of the package, in place of headings between the rows. What is typed leaves the rows whose name and
+  source hold every word, as the search of the Tasks tab does, rather than the fuzzy match of Quick search. A task
+  that cannot run, and any task in a folder not trusted, is listed as the others, and choosing it says why it did not
+  run. Are headings between the rows, the fuzzy match, or those tasks dimmed wanted instead?
+- **Q744** — `worktree-setup.command-steps`: the shell of the commands. As tasks of the Tasks tab they run with the
+  shell the tasks run with, that of `terminal.shellPath` or the system's own, which is PowerShell on Windows; the
+  column of the tab of Activity ran them with `cmd /S /C` on Windows and `sh -c` elsewhere. A command written for
+  `cmd`, with `copy`, `%NAME%` or, for Windows PowerShell 5, `&&`, no longer runs on Windows as it did; the extension
+  runs them with the shell of VS Code's tasks, PowerShell there too. Should the commands keep `cmd` and `sh`, whatever
+  the shell of the terminals?
+- **Q745** — `activity.describe-task`, `activity.status-bar`: a command of a new worktree was among what is running
+  while it ran, `Running <command> in <worktree>`, in the activity indicator and the tab of Activity. As a task it is
+  not, as no task of the Tasks tab is: the count beside **Tasks** says that it runs, and the row of the words of
+  `activity.describe-task` went. Should the tasks that run, or these commands alone, be listed among what is running?
+- **Q746** — `worktree-setup.command-steps`, `tasks.view`: a command of a new worktree runs once. Its row has **Stop**
+  while it runs and no **Run**, its menu **Stop** and **Copy command**, `Enter` in its terminal does not run it
+  again, no group has it and **Run Task…** does not list it. The tab lists the commands of the last five worktrees
+  made in the session, in each repository tab its own, those of a worktree made again under the same name taking the
+  place of the earlier ones, and forgets them when the window closes. Should a command that failed be run again from
+  its row, with those after it and what the plan does once they succeeded?
+- **Q747** — `worktree-setup.command-steps`: `engine::TaskRunner` still runs `Task` steps itself, through pipes, as the
+  column of the tab of Activity needed. The window now gives it only the steps a plan has after its commands, and the
+  extension runs the commands as tasks of VS Code, so only the tests of the engine run a task with it. Should that part
+  of the engine go?
 
 ### Of the Repositories view of the extension, from Q720
 

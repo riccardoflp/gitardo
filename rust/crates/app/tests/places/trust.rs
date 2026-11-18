@@ -90,6 +90,13 @@ fn written(effects: &[Effect]) -> Option<&Persisted> {
     })
 }
 
+/// The commands of new worktrees the Tasks tab lists, in order.
+fn commands(state: &State) -> Vec<String> {
+    let tabs = state.tasks_tab.tabs.values();
+    let tasks = tabs.flat_map(|tab| &tab.commands).flat_map(|commands| &commands.tasks);
+    tasks.map(model::tasks::Task::command_line).collect()
+}
+
 /// The folder of the repository as the window shows it.
 fn shown(state: &State) -> PathBuf {
     state.shown_folder().cloned().unwrap()
@@ -105,11 +112,10 @@ fn trust_ask__trusting_the_folder_runs_the_commands_in_tasks_and_the_next_worktr
     let stored = written(&first.ended).expect("the folder trusted is written at once");
     let read_back = Persisted::from_text(&stored.to_text());
     assert_eq!(read_back.trusted_folders, [folder]);
-    let tasks: Vec<String> = state.tasks.rows().into_iter().map(|row| row.command).collect();
-    assert_eq!(tasks, ["echo one"], "the command is handed to Tasks");
+    assert_eq!(commands(&state), ["echo one"], "the command is handed to the Tasks tab");
     let second = create(&mut state, "fix-again", "not-now");
     assert!(!second.asked_trust, "a trusted folder is not asked again");
-    assert_eq!(state.tasks.rows().len(), 2);
+    assert_eq!(commands(&state).len(), 2);
 }
 
 #[test]
@@ -121,7 +127,7 @@ fn trust_ask__not_now_creates_the_worktree_runs_nothing_trusts_nothing_and_asks_
     assert!(worktree.join("README.md").exists(), "the worktree is created");
     assert_eq!(state.persisted.trusted_folders, Vec::<PathBuf>::new());
     assert!(written(&first.ended).is_none());
-    assert_eq!(state.tasks.rows().len(), 0, "no command runs");
+    assert_eq!(commands(&state).len(), 0, "no command runs");
     let said = state.operations.said.clone().unwrap();
     assert!(said.text.contains("this folder is not trusted"), "{}", said.text);
     let second = create(&mut state, "fix-again", "not-now");

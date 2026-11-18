@@ -35,7 +35,7 @@ mod settings_page;
 mod stashes;
 mod state;
 pub mod tabs;
-pub mod tasks;
+pub mod tasks_tab;
 pub mod terminals;
 #[cfg(test)]
 mod tests;
@@ -110,6 +110,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
     effects.extend(terminals::follow(state));
+    effects.extend(tasks_tab::follow(state));
     effects.extend(tabs::follow_hidden(state));
     effects
 }
@@ -180,10 +181,11 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         }
         message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
         Message::GitHub(message) => github::reduce(state, message),
-        Message::Task(message) => tasks::reduce_message(state, message),
+        Message::Commands(message) => tasks_tab::reduce_commands(state, message),
         Message::Terminal(message) => terminals::reduce_message(state, message),
+        Message::TaskRun(message) => tasks_tab::reduce_message(state, message),
         Message::UrlNotOpened(said) => github::not_opened(state, said),
-        Message::CloseRequested(window) => workspace::close_requested(state, window),
+        Message::CloseRequested(window) => tasks_tab::close_requested(state, window),
     }
 }
 
@@ -386,7 +388,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         | Intent::CloseTab(_)
         | Intent::CloseOtherTabs(_)
         | Intent::CloseTabShown
-        | Intent::RevealTab(_) => pages::starting_again(state, |state| tabs::reduce(state, intent)),
+        | Intent::RevealTab(_) => tasks_tab::close_tabs(state, intent),
         Intent::ReadRepository | Intent::CheckAgain | Intent::Refresh => read_again(state, &intent),
         Intent::PickTheme
         | Intent::CloseThemePicker
@@ -421,7 +423,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Rebase(intent) => rebase::reduce(state, intent),
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
         Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
-        Intent::Tasks(intent) => tasks::reduce(state, intent),
+        Intent::TasksTab(intent) => tasks_tab::reduce(state, intent),
         Intent::Window(intent) => vec![Effect::Window(intent)],
     }
 }

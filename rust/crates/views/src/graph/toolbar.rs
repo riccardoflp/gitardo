@@ -31,6 +31,8 @@ pub struct ToolbarState<'a> {
     pub more: MoreMenuState,
     /// Quick search.
     pub quick: search::QuickSearchState<'a>,
+    /// The picker of **Run Task…**.
+    pub quick_run: crate::tasks::QuickRunState<'a>,
 }
 
 /// A repository of the workspace, as the picker lists it (`repo.name-repositories`).
@@ -98,6 +100,7 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             intents.extend(ui.clip(area.rest(), |ui| where_view(place, ui)));
         }
     });
+    intents.extend(crate::tasks::quick_run_view(&state.quick_run, ui));
     intents
 }
 

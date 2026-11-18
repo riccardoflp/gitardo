@@ -70,6 +70,7 @@ impl Terminals {
                     shell: shell_of(&shell_path, path.as_deref()),
                     size,
                     scrollback,
+                    environment: Vec::new(),
                 };
                 self.start(id, options);
             }

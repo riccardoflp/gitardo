@@ -1,9 +1,39 @@
-//! The tasks of the Activity tab, the commands a new worktree runs (`worktree-setup.command-steps`): how each
-//! stands, what it printed as the Activity tab shows it, and what Gitardo says when one did not succeed.
+//! The commands a new worktree runs (`worktree-setup.command-steps`): how one ended when it did not succeed, and what
+//! Gitardo says of it; and what a task printed, in lines, which says when a background task is ready.
+//!
+//! And the tasks of a repository (`docs/features/19-tasks.md`): those its worktree defines, the order they run in,
+//! when one that runs in the background is ready, and the groups the user makes of them.
 
 use std::path::{Path, PathBuf};
 
-/// The most lines the Activity tab keeps of what a task printed; older ones are dropped.
+mod defined;
+mod files;
+mod groups;
+mod order;
+mod ready;
+mod run;
+mod start;
+#[cfg(test)]
+mod testing;
+
+pub use defined::{
+    Background, DependsOrder, NotRunnable, PackageManager, PackageScripts, Quoting, Task, TaskCategory,
+    TaskFileProblem, TaskKind, TaskReference, TaskShell, TaskSource, Tasks, Word,
+};
+pub use files::{
+    LOCK_FILES, MODULES_FOLDER, PACKAGE_FILE, PackageFile, TASKS_FILE, TaskFiles, TaskSystem, TasksContext,
+    package_manager,
+};
+pub use groups::{
+    GROUPS_FILE, GROUPS_FOLDER, GroupEntry, GroupsAction, GroupsEdit, GroupsRefusal, GroupsTarget, Shift, TaskGroup,
+    edited_groups, group_entries,
+};
+pub use order::{OrderRefusal, RunOrder, RunStep, run_order};
+pub use ready::{QUIET, Readiness};
+pub use run::{Blocked, Run, StepState};
+pub use start::{TaskChoice, TaskStart, TaskTarget, TasksToRun, folder_said, task_start};
+
+/// The most lines kept of what a task printed; older ones are dropped.
 const KEPT_LINES: usize = 5_000;
 
 /// How a task ended when it did not succeed.
@@ -15,21 +45,6 @@ pub enum TaskEnd {
     Stopped,
     /// The shell of the system could not be started: what the system said.
     NotStarted(String),
-}
-
-/// How a task stands.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TaskStatus {
-    /// It waits for the commands before it.
-    Waiting,
-    /// It runs.
-    Running,
-    /// It exited with 0.
-    Succeeded,
-    /// It did not succeed.
-    Failed(TaskEnd),
-    /// A command before it did not succeed, so it did not run.
-    DidNotRun,
 }
 
 /// A command that did not succeed, with what it leaves undone.
@@ -68,7 +83,7 @@ fn shown(folder: &Path) -> String {
     folder.display().to_string()
 }
 
-/// What a task printed, as the Activity tab shows it: in lines, without the colors and the moves of the cursor a terminal
+/// What a task printed, as text: in lines, without the colors and the moves of the cursor a terminal
 /// would take, a line written again from its start after a carriage return, as progress bars do, and the last 5,000
 /// lines only.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

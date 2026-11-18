@@ -17,6 +17,7 @@ pub use watch::{
     Change, FOCUS_AFTER, FilesChange, FocusChange, LATER, ReadCause, ReadRequest, SOON, TreeChange, nested_worktrees,
     sort_tree_change, watch_changes,
 };
+pub use watch::{changes_task_groups, sort_tasks_change};
 
 /// A repository a window can show: one a folder of the workspace is in or holds, or a submodule of one of these.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -43,6 +43,7 @@ pub mod stash;
 pub mod submodule;
 pub mod sync;
 pub mod tag;
+pub mod tasks;
 pub mod trust;
 pub mod undo;
 pub mod worktree;
@@ -54,7 +55,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 158] = [
+pub const OPERATIONS: [(FeatureId, Operation); 164] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -251,6 +252,13 @@ pub const OPERATIONS: [(FeatureId, Operation); 158] = [
     (FeatureId("github.load-pull-requests"), github::load_pull_requests),
     // The language model.
     (FeatureId("ai.choose-model"), ai::choose_model),
+    // The tasks of the repository.
+    (FeatureId("tasks.edit-groups"), tasks::edit_groups),
+    (FeatureId("tasks.export-groups"), tasks::export_groups),
+    (FeatureId("tasks.import-groups"), tasks::import_groups),
+    (FeatureId("tasks.run"), tasks::run_task),
+    (FeatureId("tasks.run-group"), tasks::run_group),
+    (FeatureId("tasks.stop"), tasks::stop_task),
 ];
 
 /// The operation of an identifier, when it is built.

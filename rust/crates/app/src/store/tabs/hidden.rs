@@ -97,6 +97,8 @@ pub fn changed(state: &mut State, folder: &Path, changes: &[Change], at: Duratio
     if state.tabs.shown == Some(index) {
         return reads::changed(state, changes, at);
     }
+    let tab = state.tabs.open.get(index).map(|tab| tab.folder.clone());
+    super::super::tasks_tab::changed(state, tab.as_deref(), changes);
     let Some(kept) = state.tabs.open.get_mut(index).and_then(|tab| tab.kept.as_mut()) else {
         return Vec::new();
     };

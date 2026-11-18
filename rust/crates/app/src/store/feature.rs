@@ -48,7 +48,7 @@ pub enum Ended {
         /// (`FollowUp::PreparedMessage`).
         prepared_message: Option<String>,
         /// The steps handed over from the first task on, which what follows waits for (`worktree-setup.command-steps`).
-        waiting: Option<Box<super::tasks::Waiting>>,
+        waiting: Option<Box<super::tasks_tab::Waiting>>,
     },
     /// It refused to run, and said why, with what it offers to do instead.
     Refused(Text, Option<(FeatureId, Text)>),
@@ -325,9 +325,10 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     let feature = state.operations.running.take().map(|running| running.feature);
     state.is_operation_running = false;
     let log_at = said::append_log(state, log);
+    super::tasks_tab::operation_ended(state, feature);
     let mut effects = super::review::ended(state, feature, matches!(ended, Ended::Ran { .. }));
     effects.extend(super::trust::keep(state, &ended));
-    match super::tasks::hold(state, ended) {
+    match super::tasks_tab::hold(state, ended) {
         Ok(held) => effects.extend(held),
         Err(ended) => {
             effects.extend(ended_as_said(state, (*ended, feature)));
@@ -346,6 +347,7 @@ pub(super) fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<
             title, after, can_undo, ..
         } => {
             let said = remember_follow_ups(state, &after);
+            let said_nothing = said.is_none();
             let is_undo = feature == Some(FeatureId("undo.last"));
             let pushed = feature.and_then(|feature| super::github::offer_after_push(state, feature));
             state.operations.said = Some(Said {
@@ -363,6 +365,10 @@ pub(super) fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<
                     false,
                 )
             });
+            // An operation that only runs or stops tasks says nothing of its own: the Tasks tab shows them.
+            if said_nothing && after.iter().any(super::tasks_tab::is_follow_up) {
+                state.operations.said = None;
+            }
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             effects.extend(super::github::after_operation(state, &after));
             effects.extend(carry_out(state, after));
@@ -476,6 +482,9 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             }
             (blamed @ (FollowUp::ShowBlame(_) | FollowUp::HideBlame(..) | FollowUp::OpenFile(_)), _) => {
                 effects.extend(super::blame::carry_out(state, blamed));
+            }
+            (tasks @ (FollowUp::RunTasks(_) | FollowUp::StopTasks(_)), _) => {
+                effects.extend(super::tasks_tab::carry_out(state, tasks));
             }
             (other, _) => effects.extend(super::worktrees::carry_out(state, other)),
         }

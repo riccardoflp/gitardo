@@ -5,6 +5,10 @@ use std::time::Duration;
 
 use crate::state::RepositoryState;
 
+mod tasks;
+
+pub use tasks::{changes_task_groups, sort_tasks_change};
+
 /// How long a change in the git folder, a file Gitardo saved or created, the focus or a setting waits before the read.
 pub const SOON: Duration = Duration::from_millis(400);
 /// How long a change in the working tree waits before the read: builds and installs write many files at once.

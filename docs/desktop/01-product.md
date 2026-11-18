@@ -155,7 +155,7 @@ The cards of the catalog name the places of the window with these words, and onl
 | The integrated terminal of VS Code | The **Terminal** in the bottom panel (`terminal.view`). |
 | Language models of VS Code (Copilot) | A language model reached over HTTP, as the settings `ai.*` say, with its key in the credential store of the system. |
 | GitHub account of VS Code | A GitHub token from `git credential fill` for `github.com`, or one the user gives, kept in the credential store of the system. Asked for only when the user first loads the pull requests. |
-| Tasks of VS Code (setup commands of new worktrees) | **Tasks** in the **Activity** tab of the bottom panel, which runs each command with the shell of the system, in the worktree. |
+| Tasks of VS Code (setup commands of new worktrees) | The **Tasks** tab of the bottom panel, which lists them under **New worktrees** and runs each command in a terminal of its own, in the worktree. |
 | Agents window of VS Code | Not there. A worktree opens in a new window of Gitardo Desktop, in the external editor, or in a terminal. |
 | VS Code's Git extension holding worktrees | Not there; but other programs can still hold a folder on Windows, so the retries and the deletion of what is left stay. |
 | Walkthrough | The **Welcome** page, shown on the first start, with the same five steps. |

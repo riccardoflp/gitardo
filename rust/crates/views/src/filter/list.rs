@@ -326,6 +326,7 @@ fn reference_rows(body: &Body<'_, '_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Inten
         headings: &headings,
         typed: picking.typed,
         keys_from: ui.id("filter box"),
+        is_tall: false,
     };
     let response = ui.pick_list("references", rect, &list);
     let mut intents = Vec::new();

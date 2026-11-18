@@ -2,6 +2,54 @@
 
 ## Unreleased
 
+- **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of
+  `.vscode/tasks.json` of the worktree shown under **Workspace**, and the scripts of each `package.json` under **npm**,
+  by folder, read again when one of those files changes. A search field at the top keeps the tasks whose name or
+  source holds every word typed, and each source folds by its heading. **Run** on a row, or a double click, runs the
+  task in a terminal of its own, drawn at the right of the list: a shell task with the shell of the settings, a
+  process task with its arguments as given, both in the folder and with the environment the task asks for, with their
+  colors and with what they ask answered from the keyboard. The row has a spinner while the task runs, a check once it
+  ended with exit code 0 and the exit code in red otherwise, and under the last line of its terminal Gitardo says how
+  it ended and how long it ran; `Enter` there runs it again. A task that runs, run again, asks **Restart** or **Leave
+  it running**. **Stop** sends the task an interrupt and, if it still runs three seconds later, ends it with every
+  process it started. The number of tasks running is beside **Tasks**, and closing a repository tab or the window while
+  some run asks first. The menu of a task has **Open in tasks.json** and **Copy command**, the title of the list
+  **Open tasks.json**, **Collapse all** and **Expand all**. Nothing runs in a folder that is not trusted: the tab says
+  so, with **Trust this folder**.
+- A task of the Tasks tab runs after the tasks of its `dependsOn`: one after the other with `dependsOrder` `sequence`,
+  all at once otherwise, each waiting for those it depends on to end with exit code 0. A background task counts as
+  ready once it prints its `endsPattern`, or, without one, once it has printed nothing for two seconds, and goes on
+  running while the tasks that waited for it start; its row says **ready**. A task whose dependency failed does not
+  run, and says **It did not run: `<task>` ended with exit code `<n>`.**; a row that waits says **waits**. Tasks that
+  depend on each other in a loop, or on a task the worktree does not have, run nothing, and Gitardo says which.
+- Groups of tasks, listed first in the Tasks tab under **Groups**. **New group** at the right of that heading makes
+  one, and **Add to group** in the menu of a task puts the task in a group, or in a new one; a task is also dragged
+  onto a group, and to its place among the tasks of one. **Run all** on the heading of a group runs its tasks in their
+  order, each started as soon as the one before it started, leaving alone those that run already; while one runs the
+  heading has a spinner and **Stop all**. The menu of a group has **Rename**, also on `F2`, **Delete**, **Move up** and
+  **Move down**, and a group is dragged to its place; the menu of a task of a group moves it or takes it out. The
+  groups are kept in `gitardo/task-groups.json` in the common git folder of the repository, so every worktree and
+  every window lists the same without a commit taking them; a task a worktree does not have stays in its group there,
+  dimmed, and is left out and said when the group runs.
+- **Import groups…** and **Export groups…**, in the **…** menu of **Groups** in the Tasks tab and in Quick search.
+  The import reads the file that **Export Groups...** of Run My Tasks saves and lists its groups to choose from; for a
+  group named as one of the repository it asks whether to merge it, replace it or skip it; it leaves out the launch
+  configurations and says how many, and which tasks the worktree does not have. The export asks which groups and
+  where, and writes a file Run My Tasks reads, which another repository imports with the same groups in their order.
+- **Run Task…** in Quick search, and `Ctrl+Shift+T` (`Cmd+Shift+T` on macOS) wherever the window is, a terminal
+  included: a picker of the groups of the repository, then of its tasks by source, each with its command under its
+  name and a spinner while it runs. What is typed leaves the tasks whose words hold it, and `Enter` runs the task or
+  the group lit and shows it in the Tasks tab; a task that runs already is shown, not run again. **Show Tasks** in
+  Quick search shows the Tasks tab.
+- The commands of `worktrees.setupCommands` run in the Tasks tab, as tasks of a source of their own, **New
+  worktrees**, under the name of the worktree: each in a terminal of its own, in the worktree, with its colors and
+  with what it asks answered from the keyboard, one after the other, the bottom panel shown at **Tasks** with the
+  first of them selected when they start. A command that fails, or is stopped with **Stop** on its row, leaves those
+  after it **did not run**, and Gitardo says which and offers to open the worktree all the same, as before. A command
+  runs once: its row has no **Run**. They run with the shell the tasks run with, that of `terminal.shellPath` or the
+  system's own, which on Windows is PowerShell where it was `cmd`. The column **Tasks** at the right of the
+  **Activity** tab is gone, and a command of a new worktree is no longer listed among what is running: the count
+  beside **Tasks** says that it runs.
 - What is selected is tinted with the accent of the theme in the dark and in the light theme: a selected commit, a
   selected file, the selected rows of any list that has the focus stand on the amber of the buttons and of the ring of
   the focus mixed into the ground, a warm brown in the dark theme and a sand in the light one, where they stood on a
@@ -24,10 +72,9 @@
   opened over the timeline and the inspector: it has the panel's height, its gap and its **Hide the panel**, and the
   panel remembers it for the workspace. The activity indicator of the status bar and **Activity** in the bar of views
   show the panel at it, and hide the panel when it shows it; **Show What Is Running** shows it, and `Escape` closes
-  nothing there. **Show the commands Gitardo runs** is gone: the Command log is the tab beside it. **Tasks**, the
-  commands of new worktrees, are at the right of the tab, what they print beside their rows, and the panel is shown at
-  the tab when they start. **Terminal** in the bar of views is marked while the panel shows its terminals or the
-  Command log, and shows the terminals when the panel is at **Activity**.
+  nothing there. **Show the commands Gitardo runs** is gone: the Command log is the tab beside it. **Terminal** in the
+  bar of views is marked while the panel shows its terminals or the Command log, and shows the terminals when the
+  panel is at **Activity**.
 - The labels of a commit, its branches, tags and the rest, come first on its row of the timeline, right after the
   graph and before its message, so that they are found at the same place on every row. They take the room the message
   leaves them, at least two fifths of the line, and those that do not fit are one label `+N`. The pointer resting on

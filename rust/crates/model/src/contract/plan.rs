@@ -73,15 +73,15 @@ pub enum Step {
         /// The folder it runs in.
         directory: PathBuf,
     },
-    /// Runs a command of the user's through the system's shell as a task of the Activity tab
-    /// (`worktree-setup.command-steps`): what it prints is kept and shown as it comes, what it asks can be typed there,
-    /// and what the plan does once it succeeded waits for it.
+    /// Runs a command of the user's in a shell as a task of the source **New worktrees** of the Tasks tab
+    /// (`worktree-setup.command-steps`): what it prints is shown in its terminal as it comes, what it asks can be typed
+    /// there, and what the plan does once it succeeded waits for it.
     Task {
         /// The command, as the user wrote it.
         command: String,
         /// The folder it runs in.
         directory: PathBuf,
-        /// The name the Activity tab gives it: the worktree it runs in, as the views name it.
+        /// The name the Tasks tab lists it under: the worktree it runs in, as the views name it.
         name: String,
     },
     /// Makes a folder and the folders that lead to it, when they are missing.
@@ -310,6 +310,11 @@ pub enum FollowUp {
     /// Write a setting in the user's settings of the host, in place of a step that writes the user's settings file:
     /// under the extension, VS Code's (`ai.choose-model`, Q399). Never in Gitardo Desktop.
     WriteSetting(Box<SettingWritten>),
+    /// Run tasks in the Tasks tab, each in a terminal of its own, after those it depends on (`tasks.run`,
+    /// `tasks.run-group`).
+    RunTasks(Box<crate::tasks::TasksToRun>),
+    /// Stop tasks that run in the Tasks tab (`tasks.stop`).
+    StopTasks(Vec<crate::tasks::TaskReference>),
 }
 
 /// A setting the host writes in the user's settings.

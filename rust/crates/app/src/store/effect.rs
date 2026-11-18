@@ -85,10 +85,13 @@ pub enum Effect {
     },
     /// Looks for the repository on GitHub or reads its pull requests, on a thread of its own (`github.read-pull-requests`).
     GitHub(super::github::GitHubJob),
-    /// Runs, answers or stops the tasks of the Activity tab (`worktree-setup.command-steps`).
-    Tasks(super::tasks::TaskEffect),
+    /// Writes a command of a new worktree in the Command log, or runs the steps a plan has after its commands
+    /// (`worktree-setup.command-steps`).
+    Commands(super::tasks_tab::CommandsEffect),
     /// Starts, writes to, sizes or ends the terminals of the bottom panel (`terminal.view`).
     Terminal(super::terminals::TerminalEffect),
+    /// Something asked of the window's task runs, for the tasks of the Tasks tab (`tasks.view`).
+    TaskRuns(super::tasks_tab::TaskRunEffect),
     /// Opens an address in the browser of the system: a pull request on GitHub (`github.open-pull-request`).
     OpenUrl(String),
     /// Minimizes, maximizes, restores or closes the window, as a button of its title bar asked
