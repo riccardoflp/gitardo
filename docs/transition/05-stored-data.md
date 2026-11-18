@@ -64,7 +64,9 @@ name, the kinds listed, or the full names ticked), kept apart from it and for th
 is kept for a repository whose rail lists everything. Since milestone M14 the sizes of the panes of each workspace
 (`panes`) have `filesTree` too, the width of the tree of the Files page beside a file opened from it
 (`file-view.beside-files`), absent where it starts; since milestone M16, `changesColumn`, the width of the column of
-the Changes page beside a file opened from it (`changes.beside-file`), absent where it starts. The extension's
+the Changes page beside a file opened from it (`changes.beside-file`), absent where it starts; since milestone M26,
+`searchResults`, the width of the results of the Search page beside the preview (`file-search.preview`), absent where
+it starts. The extension's
 references have their own filter since phase 3 of M13, kept under `gitardo.branchesListed` in the workspace state, in
 the shape of `gitardo.scope`; the engine reads neither, since what the references list is drawn by the webviews alone.
 

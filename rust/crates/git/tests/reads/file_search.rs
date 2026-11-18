@@ -301,6 +301,21 @@ fn file_search_read_text__a_long_line_is_cut_with_its_match_marked() {
 }
 
 #[test]
+fn file_search_read_text__asked_for_whole_lines_a_long_indented_line_is_given_as_it_is() {
+    let repository = repository();
+    let long = format!("    {}needle{}\n", "x".repeat(499), "y".repeat(495));
+    write(&repository, "long.txt", &long);
+    let whole = TextRequest {
+        whole_lines: true,
+        ..request("needle")
+    };
+    let (lines, _) = found(&repository, &whole);
+    let line = lines.first().unwrap();
+    assert_eq!(line.text, long.trim_end());
+    assert_eq!(line.marks, [503..509]);
+}
+
+#[test]
 fn file_search_read_text__a_file_with_a_nul_byte_is_not_searched() {
     let repository = repository();
     write(&repository, "binary.dat", "needle\0needle\n");

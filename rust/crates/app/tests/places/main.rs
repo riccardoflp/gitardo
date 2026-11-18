@@ -38,6 +38,7 @@ mod draft;
 mod drag;
 mod file_icons;
 mod file_search;
+mod file_search_preview;
 mod file_view;
 mod file_view_tools;
 mod files_changes;

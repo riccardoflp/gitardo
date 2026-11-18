@@ -25,7 +25,7 @@ const SIZE: (u32, u32) = (1000, 700);
 /// A repository whose files say `socket` here and there: in a hook, in a folder `src/sockets`, in a document changed
 /// since the commit, in an untracked file, in a file git ignores and in one under a folder whose name starts with a
 /// dot.
-fn sockets() -> Repository {
+pub(super) fn sockets() -> Repository {
     let mut repository = Repository::new();
     let hook = "import { Socket } from \"net\";\n\nexport function useSocket(): Socket {\n  const socket = open();\n  \
                 return socket;\n}\n";
@@ -58,12 +58,12 @@ fn sockets() -> Repository {
 }
 
 /// Asks something of the Search page, and runs the reads it starts.
-fn ask(state: &mut State, intent: FileSearchIntent) {
+pub(super) fn ask(state: &mut State, intent: FileSearchIntent) {
     let _effects = support::run(state, Message::Intent(Intent::FileSearch(intent)));
 }
 
 /// A window showing the Search page of a repository in a mode, drawn once: its box has the keyboard.
-fn search_page(repository: &Repository, mode: Mode) -> (State, Window) {
+pub(super) fn search_page(repository: &Repository, mode: Mode) -> (State, Window) {
     let mut state = showing(repository.path().to_path_buf());
     ask(&mut state, FileSearchIntent::Show);
     ask(&mut state, FileSearchIntent::Mode(mode));
@@ -73,7 +73,7 @@ fn search_page(repository: &Repository, mode: Mode) -> (State, Window) {
 }
 
 /// Draws the window with some input, gives the store what the frame asks, and draws it again: the tree it says then.
-fn act(window: &mut Window, state: &mut State, events: &[InputEvent]) -> TreeUpdate {
+pub(super) fn act(window: &mut Window, state: &mut State, events: &[InputEvent]) -> TreeUpdate {
     let (intents, _) = window.draw(state, events);
     for intent in intents {
         let _effects = support::run(state, Message::Intent(intent));
@@ -82,7 +82,7 @@ fn act(window: &mut Window, state: &mut State, events: &[InputEvent]) -> TreeUpd
 }
 
 /// A key pressed with no modifier held.
-fn key(named: NamedKey) -> InputEvent {
+pub(super) fn key(named: NamedKey) -> InputEvent {
     InputEvent::KeyPressed(KeyEvent::press(Key::Named(named), Modifiers::NONE))
 }
 
@@ -114,7 +114,7 @@ fn type_in(window: &mut Window, state: &mut State, (name, text): (&str, &str)) -
 
 /// The rows of the results, as words: a heading after `#`, a folder with `/` after it, a file by its path, and a
 /// line of text as its path, its number and its text.
-fn listed(state: &State) -> Vec<String> {
+pub(super) fn listed(state: &State) -> Vec<String> {
     let page = &state.file_search;
     let found = &page.found;
     let said = |row: &ResultRow| match *row {
@@ -131,7 +131,7 @@ fn listed(state: &State) -> Vec<String> {
 }
 
 /// The lines of text listed, each as its path and its number.
-fn lines(state: &State) -> Vec<String> {
+pub(super) fn lines(state: &State) -> Vec<String> {
     let page = &state.file_search;
     let lines = page.rows.iter().filter_map(|row| match row {
         ResultRow::Line(index) => page.found.text.get(*index),

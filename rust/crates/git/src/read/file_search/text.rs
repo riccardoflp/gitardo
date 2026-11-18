@@ -72,6 +72,8 @@ pub struct TextRequest {
     pub files: Option<Vec<String>>,
     /// The most lines to hand on.
     pub most: usize,
+    /// Whether each line is handed on whole, as the preview of a file marks it, not as the results show it.
+    pub whole_lines: bool,
 }
 
 /// How a search of the text ended.
@@ -106,7 +108,7 @@ pub fn read_text(
     request: &TextRequest,
     take: &mut dyn FnMut(Vec<TextMatch>) -> Taken,
 ) -> Result<TextEnd, GitError> {
-    let mut lines = Lines::new(request.most);
+    let mut lines = Lines::new(request.most, request.whole_lines);
     if request.text.is_empty() || request.most == 0 {
         return Ok(TextEnd { more: false });
     }
@@ -168,7 +170,13 @@ pub fn text_arguments(request: &TextRequest, engine: Engine, pathspecs: &[String
 /// the color of a match around each match. A line that cannot be read is left out.
 #[must_use]
 pub fn parse_text(output: &[u8]) -> Vec<TextMatch> {
-    output.split(|byte| *byte == b'\n').filter_map(parse_line).collect()
+    parse_lines(output, false)
+}
+
+/// The lines git printed, each whole or as the results show it.
+fn parse_lines(output: &[u8], whole: bool) -> Vec<TextMatch> {
+    let lines = output.split(|byte| *byte == b'\n');
+    lines.filter_map(|record| parse_line(record, whole)).collect()
 }
 
 /// The pathspecs of each run of git: those of the request once, or the files it names one by one, as many in a run as
@@ -231,15 +239,18 @@ struct Lines {
     left: usize,
     /// Whether a line came after the last that could be handed on.
     more: bool,
+    /// Whether the lines are handed on whole.
+    whole: bool,
 }
 
 impl Lines {
     /// No line read yet, with the most to hand on.
-    fn new(most: usize) -> Self {
+    fn new(most: usize, whole: bool) -> Self {
         Lines {
             pending: Vec::new(),
             left: most,
             more: false,
+            whole,
         }
     }
 
@@ -251,13 +262,13 @@ impl Lines {
         };
         let rest = self.pending.split_off(end + 1);
         let whole = std::mem::replace(&mut self.pending, rest);
-        self.keep(parse_text(&whole))
+        self.keep(parse_lines(&whole, self.whole))
     }
 
     /// The line git did not end, once git has ended.
     fn rest(&mut self) -> Vec<TextMatch> {
         let whole = std::mem::take(&mut self.pending);
-        self.keep(parse_text(&whole))
+        self.keep(parse_lines(&whole, self.whole))
     }
 
     /// As many of some lines as can still be handed on.
@@ -271,15 +282,15 @@ impl Lines {
     }
 }
 
-/// One line of what git printed, without its end.
-fn parse_line(record: &[u8]) -> Option<TextMatch> {
+/// One line of what git printed, without its end, whole or as the results show it.
+fn parse_line(record: &[u8], whole: bool) -> Option<TextMatch> {
     let mut fields = record.splitn(3, |byte| *byte == 0);
     let path = std::str::from_utf8(fields.next()?).ok()?;
     let line: usize = std::str::from_utf8(fields.next()?).ok()?.parse().ok()?;
     let printed = fields.next()?;
     let printed = printed.strip_suffix(b"\r").unwrap_or(printed);
     let (text, marks) = marked(printed);
-    let (text, marks) = shaped(&text, marks);
+    let (text, marks) = if whole { (text, marks) } else { shaped(&text, marks) };
     Some(TextMatch {
         path: path.to_owned(),
         line,
@@ -417,13 +428,13 @@ mod tests {
 
     #[test]
     fn lines_that_come_in_parts_are_read_whole_and_no_more_than_asked() {
-        let mut lines = Lines::new(2);
+        let mut lines = Lines::new(2, false);
         assert_eq!(lines.read(b"a.txt\x001\x00one\nb.t").len(), 1);
         let second = lines.read(b"xt\x002\x00two\nc.txt\x003\x00three\n");
         assert_eq!(second.len(), 1);
         assert_eq!((second[0].path.as_str(), second[0].text.as_str()), ("b.txt", "two"));
         assert!(lines.more);
-        let mut lines = Lines::new(5);
+        let mut lines = Lines::new(5, false);
         assert_eq!(lines.read(b"a.txt\x001\x00one"), Vec::new());
         assert_eq!(lines.rest().len(), 1);
         assert!(!lines.more);

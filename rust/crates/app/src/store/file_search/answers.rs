@@ -16,6 +16,7 @@ pub fn answered(state: &mut State, job: JobId, answer: SearchAnswer) -> Vec<Effe
     let page = &mut state.file_search;
     match answer {
         SearchAnswer::Names(result) => listed(page, job, result),
+        SearchAnswer::Previewed(read) => super::preview::previewed(page, job, read),
         answer => found(page, job, answer),
     }
     Vec::new()
@@ -52,7 +53,7 @@ fn found(page: &mut FileSearchPage, job: JobId, answer: SearchAnswer) {
     };
     let mode = finding.wanted.search.mode;
     match (answer, &mut finding.kept_apart) {
-        (SearchAnswer::Names(_), _) => {}
+        (SearchAnswer::Names(_) | SearchAnswer::Previewed(_), _) => {}
         (SearchAnswer::Ranked(ranked), Some(apart)) => *apart = *ranked,
         (SearchAnswer::Text(lines), Some(apart)) => apart.text.extend(lines),
         (SearchAnswer::Ranked(ranked), None) => {

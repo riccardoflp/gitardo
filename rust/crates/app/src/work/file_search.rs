@@ -15,6 +15,10 @@ use model::file_search::{
 
 use crate::store::{JobId, Message};
 
+mod preview;
+
+pub use preview::{PreviewJob, PreviewRead, read_preview};
+
 /// The files of a worktree, as the search lists them.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Names {
@@ -33,6 +37,8 @@ pub enum SearchJob {
     Names(NamesRequest),
     /// Ranks the names and searches the text (`file-search.rank-names`, `file-search.read-text`).
     Find(Box<FindJob>),
+    /// Reads a file for the preview (`file-search.preview`).
+    Preview(Box<PreviewJob>),
 }
 
 /// A search among the files listed.
@@ -55,6 +61,8 @@ pub enum SearchAnswer {
     Ranked(Box<Found>),
     /// More lines of text found.
     Text(Vec<TextMatch>),
+    /// A file read for the preview.
+    Previewed(Arc<PreviewRead>),
     /// The search ended: whether there are more lines than those handed on, and what git said when it could not
     /// search, as of a regular expression it cannot read.
     Done {
@@ -69,7 +77,10 @@ impl SearchAnswer {
     /// Whether the job that says it has nothing more to say.
     #[must_use]
     pub fn is_last(&self) -> bool {
-        matches!(self, SearchAnswer::Names(_) | SearchAnswer::Done { .. })
+        matches!(
+            self,
+            SearchAnswer::Names(_) | SearchAnswer::Previewed(_) | SearchAnswer::Done { .. }
+        )
     }
 }
 
@@ -98,6 +109,7 @@ pub fn run(job: JobId, (folder, search): (&Path, &SearchJob), cancel: &CancelTok
             };
             say(SearchAnswer::Done { has_more, refused });
         }
+        SearchJob::Preview(preview) => say(SearchAnswer::Previewed(Arc::new(read_preview((folder, &git), preview)))),
     }
 }
 
@@ -175,6 +187,7 @@ fn text(
         pathspecs: names.pathspecs.clone(),
         files: find.changed.as_ref().map(|_| files.to_vec()),
         most: MOST_LINES,
+        whole_lines: false,
     };
     let ended = read_text(git, &request, &mut |lines| {
         hand_on(lines);

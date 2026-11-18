@@ -107,7 +107,7 @@ pub enum PageState<'a> {
     /// The page that chooses what new worktrees get, with its title.
     NewWorktrees(crate::worktree_setup::SetupPageState<'a>, &'a str),
     /// The Search page.
-    Search(crate::file_search::SearchPageState<'a>),
+    Search(Box<crate::file_search::SearchPageState<'a>>),
 }
 
 impl<'a> PageState<'a> {

@@ -10,8 +10,10 @@
   where to look, **Include** and **Exclude** take patterns such as `*.rs, src/` and `dist/`, and **.gitignore** and
   **Hidden** say whether what git ignores and the names starting with a dot are searched. Every match is marked, a
   line under the results counts them, `↑` and `↓` move from the box, and `Enter` or a double click opens the File page
-  at the line, with **Search** in its title row to come back. Git lists the files and searches them, at most 5,000
-  lines.
+  at the line, with **Search** in its title row to come back. Beside the results the preview shows the file of the
+  one under the keyboard as the File page draws it, the line found lit and every match marked, or what a folder
+  holds; a double click on one of its lines opens the File page there, and the line between the results and the
+  preview is dragged. Git lists the files and searches them, at most 5,000 lines.
 - `Alt` with a key types nothing in a box or an editor on Windows and Linux, where it typed the letter of the key as
   well as doing what the key does; with `Ctrl` too it types, as `AltGr` does.
 

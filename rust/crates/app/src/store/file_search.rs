@@ -3,6 +3,7 @@
 //! and what a search of them found, started again each time what is looked for changes, the search before stopped.
 
 mod answers;
+mod preview;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -19,6 +20,7 @@ use crate::persisted::same_folder;
 use crate::work::file_search::{FindJob, Names, SearchJob};
 
 pub(super) use answers::answered;
+pub use preview::{Preview, PreviewKey};
 
 /// The Search page.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -49,6 +51,8 @@ pub struct FileSearchPage {
     pub focus: u64,
     /// A number that changes each time the row under the keyboard is to be brought into sight.
     pub reveal: u64,
+    /// The preview of the result under the keyboard.
+    pub preview: Preview,
 }
 
 /// What a search is for: what is looked for, and the read of the repository whose files are searched.
@@ -96,6 +100,7 @@ pub fn reduce(state: &mut State, intent: FileSearchIntent) -> Vec<Effect> {
             page.reveal += 1;
         }
         FileSearchIntent::Open(row) => return open(state, row),
+        FileSearchIntent::OpenAt(path, line) => return open_file(state, path, Some(line)),
     }
     Vec::new()
 }
@@ -140,9 +145,14 @@ fn open(state: &mut State, row: usize) -> Vec<Effect> {
         }
         Some(ResultRow::Heading(_)) | None => (None, None),
     };
-    let Some(path) = path else {
-        return Vec::new();
-    };
+    match path {
+        Some(path) => open_file(state, path, line),
+        None => Vec::new(),
+    }
+}
+
+/// Opens the File page of a file of the worktree, at a line from one, the Search page before it on the way to it.
+fn open_file(state: &mut State, path: String, line: Option<usize>) -> Vec<Effect> {
     let target = FileTarget {
         path,
         revision: None,
@@ -164,10 +174,17 @@ fn show_folder(state: &mut State, folder: &str) -> Vec<Effect> {
     super::files_page::reduce(state, views::files::FilesPageIntent::Open)
 }
 
+/// Follows the repository shown and what is looked for, then shows the result under the keyboard in the preview.
+pub fn follow(state: &mut State) -> Vec<Effect> {
+    let mut effects = follow_search(state);
+    effects.extend(preview::follow(state));
+    effects
+}
+
 /// Lists the files again while the page is shown and the repository was read since they were listed, or what narrows
 /// them changed; then searches again when what is looked for is not what the results are for. A page that is open
 /// and not shown waits until it is shown; one closed stops what it runs.
-pub fn follow(state: &mut State) -> Vec<Effect> {
+fn follow_search(state: &mut State) -> Vec<Effect> {
     if !state.pages.open.contains(&Page::Search) {
         return cancel(state);
     }
@@ -301,7 +318,8 @@ fn stop(state: &mut State) -> Vec<Effect> {
 /// Stops what the page runs once it is closed, and forgets what it listed and found: it lists and searches again when
 /// it is opened again. What is looked for stays.
 fn cancel(state: &mut State) -> Vec<Effect> {
-    let effects = stop(state);
+    let mut effects = stop(state);
+    effects.extend(preview::stop(state));
     let page = &mut state.file_search;
     if page.names.is_some() || page.found_for.is_some() {
         let search = std::mem::take(&mut page.search);
@@ -326,9 +344,9 @@ fn list_rows(page: &mut FileSearchPage, mode: Mode, keeps_lit: bool) {
     }
 }
 
-/// What the page is drawn from.
+/// What the page is drawn from, with the width of its results as dragged.
 #[must_use]
-pub fn page_state(state: &State) -> SearchPageState<'_> {
+pub fn page_state(state: &State, results_width: Option<f32>) -> SearchPageState<'_> {
     let page = &state.file_search;
     let status = match (&page.failed, &page.names) {
         (Some(error), _) => Status::Failed(error),
@@ -345,5 +363,7 @@ pub fn page_state(state: &State) -> SearchPageState<'_> {
         refused: page.refused.as_deref(),
         focus: page.focus,
         reveal: page.reveal,
+        preview: preview::preview_state(state),
+        results_width: results_width.map(super::files_page::whole_pixels),
     }
 }

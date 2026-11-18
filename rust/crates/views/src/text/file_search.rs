@@ -45,6 +45,18 @@ pub const NO_RESULTS: &str = "No results";
 pub const SEARCHING: &str = "Searching\u{2026}";
 /// What the results say when git could not list the files, before what it said.
 pub const FAILED: &str = "Git could not list the files:";
+/// The name of the preview, for the screen reader.
+pub const PREVIEW: &str = "Preview";
+/// What the preview says of a file with a NUL byte.
+pub const NOT_TEXT: &str = "This file is not text.";
+/// What the preview says of a file larger than it reads.
+pub const TOO_LARGE: &str = "This file is too large to preview. Press Enter to open it.";
+
+/// What the preview says of a file that could not be read.
+#[must_use]
+pub fn preview_failed(said: &str) -> String {
+    format!("The file could not be read: {}", said.trim())
+}
 
 /// The name of a mode.
 #[must_use]
