@@ -94,6 +94,15 @@ pub fn wake(state: &mut State, at: Duration) -> Vec<Effect> {
     one_wake(state, effects, false)
 }
 
+/// Which files git ignores came back: for the files watched, when they asked, and for the Changes page otherwise.
+pub fn ignored_read(state: &mut State, job: JobId, result: Result<Vec<String>, String>) -> Vec<Effect> {
+    if state.reads.files.is_asking(job) {
+        files_checked(state, job, result)
+    } else {
+        super::changes::ignored_read(state, job, result)
+    }
+}
+
 /// Git said which of the files of a burst it ignores: each of the others asks for a read, as if it had changed when the
 /// first of the burst did, and the read starts at once, since its second is over.
 pub fn files_checked(state: &mut State, job: JobId, result: Result<Vec<String>, String>) -> Vec<Effect> {

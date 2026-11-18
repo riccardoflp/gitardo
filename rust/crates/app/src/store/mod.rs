@@ -127,15 +127,6 @@ fn feature_ended(state: &mut State, ended: feature::Ended, log: Vec<engine::LogE
     feature::ended(state, ended, log)
 }
 
-/// Which files git ignores came back: for the files watched, when they asked, and for the Changes page otherwise.
-fn ignored_read(state: &mut State, job: JobId, result: Result<Vec<String>, String>) -> Vec<Effect> {
-    if state.reads.files.is_asking(job) {
-        reads::files_checked(state, job, result)
-    } else {
-        changes::ignored_read(state, job, result)
-    }
-}
-
 /// Changes the store as a message says.
 pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
     match message {
@@ -171,7 +162,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         message @ (Message::FilesRead { .. } | Message::NewWorktreesRead { .. }) => files_page::read(state, message),
-        Message::IgnoredRead { job, result } => ignored_read(state, job, result),
+        Message::IgnoredRead { job, result } => reads::ignored_read(state, job, result),
         Message::FileSearch { job, answer } => file_search::answered(state, job, answer),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
