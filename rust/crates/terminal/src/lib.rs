@@ -17,7 +17,7 @@ use std::sync::{Arc, OnceLock};
 use alacritty_terminal::event::{Event, EventListener, WindowSize};
 use alacritty_terminal::event_loop::{EventLoop, EventLoopSender, Msg};
 use alacritty_terminal::grid::{Dimensions, Scroll};
-use alacritty_terminal::index::{Column, Point, Side};
+use alacritty_terminal::index::{Column, Line, Point, Side};
 use alacritty_terminal::selection::{Selection as GridSelection, SelectionType};
 use alacritty_terminal::sync::FairMutex;
 use alacritty_terminal::term::{Config, Term, viewport_to_point};
@@ -117,6 +117,8 @@ pub struct StartOptions {
     pub size: GridSize,
     /// How many lines it keeps above the screen.
     pub scrollback: usize,
+    /// What the shell finds in its environment over the window's own, such as the `options.env` of a task.
+    pub environment: Vec<(String, String)>,
 }
 
 /// Where a terminal tells the window what happens.
@@ -167,6 +169,8 @@ pub struct Terminal {
     size: GridSize,
     /// The shell it runs.
     shell: Shell,
+    /// The number of the process of its shell.
+    process: Option<u32>,
 }
 
 impl Terminal {
@@ -189,11 +193,15 @@ impl Terminal {
             )),
             working_directory: Some(options.folder.clone()),
             drain_on_exit: true,
-            env: shell::environment(),
+            env: shell::environment(&options.environment),
             #[cfg(windows)]
             escape_args: true,
         };
         let pty = tty::new(&pty_options, size.window_size(), 0).map_err(|error| not_started(error.to_string()))?;
+        #[cfg(windows)]
+        let process = pty.child_watcher().pid().map(std::num::NonZeroU32::get);
+        #[cfg(not(windows))]
+        let process = Some(pty.child().id());
         let is_woken = Arc::new(AtomicBool::new(false));
         let listener = Listener {
             tell,
@@ -217,7 +225,27 @@ impl Terminal {
             is_woken,
             size,
             shell: options.shell,
+            process,
         })
+    }
+
+    /// The number the system gave the process of its shell, when it said it: the process leads a group of its own on
+    /// Linux and macOS, as the pseudo-terminal starts it.
+    #[must_use]
+    pub fn process(&self) -> Option<u32> {
+        self.process
+    }
+
+    /// The last lines it printed, down to the one of the cursor, as many as a count at most, without their colors: a
+    /// line longer than the terminal is wide is one line.
+    #[must_use]
+    pub fn last_lines(&self, count: usize) -> Vec<String> {
+        let term = self.term.lock();
+        let last = term.grid().cursor.point.line;
+        let count = i32::try_from(count.saturating_sub(1)).unwrap_or(i32::MAX);
+        let first = Line(last.0.saturating_sub(count)).max(term.topmost_line());
+        let text = term.bounds_to_string(Point::new(first, Column(0)), Point::new(last, term.last_column()));
+        text.lines().map(str::to_owned).collect()
     }
 
     /// The shell it runs.

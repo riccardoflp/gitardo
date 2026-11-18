@@ -3907,6 +3907,29 @@ groups are exported to and imported from. Each is built as it says until the mai
   still names the package manager. The watcher does not call them yet: it is among the files of milestone M18, and
   the phase of the tab calls them. Should the tasks have a read of their own, as built, or ride on the read of the
   repository with a cause of its own?
+- **Q714** — `tasks.view`, `tasks.run`: **Trust this folder** and **Open tasks.json**, where the worktree has none, are
+  asked by `tasks.run`, since the Tasks tab runs its operations on a task, a group or one of these two. So the trust
+  is asked with words of its own, **Trust this folder?** and what its tasks would run, not with the question of
+  `trust.ask`, which is asked for an operation that was refused. Should the tab run `trust.ask`, and making the file
+  be an operation of its own with a card?
+- **Q715** — `tasks.stop`: the first line of its acceptance names `npm run watch` and the node process it starts. Its
+  test runs a task of the shell that starts a process of its own which no interrupt reaches, and looks for that
+  process once the task was stopped, since the tests cannot count on npm being there. Is that the same line, or should
+  the tests ask for node where the pipeline has it?
+- **Q716** — `tasks.stop`: **Stop them and close** stops the tasks as **Stop** does, and the tab or the window closes
+  once they ended: at once for a task that hears the interrupt, three seconds later for one that does not, with
+  nothing said meanwhile but the rows of the tasks. Should the window close at once and end them as it goes, or say
+  that it waits?
+- **Q717** — `tasks.view`: the width of the column dragged, the task selected and what is folded are each repository
+  tab's until the window closes; `state.json` keeps none of them. Should the width be remembered for the workspace, as
+  the height of the panel is?
+- **Q718** — `tasks.view`: **Run** and **Stop** on a row are words, not icons, and **Run**, **Restart**, **Collapse
+  all** and **Expand all** have no icon in their menus, since the table of the icons has none that says them
+  ([D63](#d63--the-icon-of-each-action-in-the-menus)). Which icons of Lucide should they have (`play`, `square`,
+  `rotate-cw`, `chevrons-down-up`, `chevrons-up-down`)?
+- **Q719** — `tasks.view`: in the terminal of a task that ended, `Enter` runs it again, and Gitardo says so after how
+  long it ran, **Press Enter to run it again**; the card has neither. Is the key wanted there, or only **Run** on the
+  row?
 
 ### Of the Repositories view of the extension, from Q720
 

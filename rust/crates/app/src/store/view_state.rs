@@ -64,6 +64,8 @@ pub struct ViewData {
     blame: super::blame::BlameData,
     /// The rows of the Tasks of the Activity tab, while it is shown.
     task_rows: Vec<views::activity::TaskRow>,
+    /// What the Tasks tab of the bottom panel lists.
+    task_list: views::tasks::TaskList,
 }
 
 impl ViewData {
@@ -124,6 +126,7 @@ impl ViewData {
             changes: super::changes::ChangesData::new(state),
             blame: super::blame::BlameData::new(state, now),
             task_rows: state.tasks.rows_while(super::panel::is_activity_shown(state)),
+            task_list: super::tasks_tab::task_list(state),
         }
     }
 
@@ -226,6 +229,10 @@ impl ViewData {
                 at: super::log_lines::log_at(state, self.log_lines.len()),
             },
             terminal: super::terminals::view_state(state),
+            tasks: views::tasks::TasksTabState {
+                list: &self.task_list,
+                terminal: super::tasks_tab::terminal_state(state),
+            },
         })
     }
 

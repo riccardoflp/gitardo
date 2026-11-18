@@ -396,8 +396,8 @@ Acceptance:
 
 ### `panel.bottom` — The bottom panel
 
-An island under the timeline and the inspector, or the page shown, with the terminals, what is running and the
-Command log, each in a tab of its own.
+An island under the timeline and the inspector, or the page shown, with the terminals, the tasks of the repository,
+what is running and the Command log, each in a tab of its own.
 
 - **Kind**: View
 - **Function**: `views::panel::bottom_view(state: &BottomPanelState, ui) -> Vec<Intent>`
@@ -405,13 +405,17 @@ Command log, each in a tab of its own.
   the focus; **Terminal** in the bar of views (`graph.view-bar`); **Show Terminal** and **Show Command Log** in Quick
   search; the activity indicator of the status bar, **Activity** in the bar of views and **Show What Is Running**,
   which show it at **Activity** (`activity.what-is-running`).
-- **Uses**: `terminal.view`, `activity.what-is-running`, `log.show`, `graph.islands`, `graph.resize-panes`.
+- **Uses**: `terminal.view`, `tasks.view`, `activity.what-is-running`, `log.show`, `graph.islands`,
+  `graph.resize-panes`.
 - **Extension**: VS Code's own panel, with its terminals and the output channel **Gitardo**: nothing to build.
 
 - The panel is an island of its own, as wide as the timeline and the inspector together, or as the page shown, above
   the status bar; the branch rail keeps its whole height beside it. Hidden, it leaves its room to the islands above.
-- At its top, on the left, its tabs: **Terminal**, **Activity** and **Command log**
-  ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)); the one shown is marked.
+- At its top, on the left, its tabs: **Terminal**, **Tasks**, **Activity** and **Command log**
+  ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still),
+  [D65](../08-decisions.md#d65--tasks-a-tab-of-the-bottom-panel-with-the-tasks-of-the-repository-and-their-groups));
+  the one shown is marked, and **Tasks** has beside its name the number of tasks running, when some are
+  (`tasks.view`).
   On the right, with **Terminal** shown: **New terminal**, the list of the terminals when there are more than one, each
   named by its shell and numbered, and **Kill the terminal**; then, always, **Hide the panel**, which hides it and
   stops nothing.
@@ -426,8 +430,8 @@ Command log, each in a tab of its own.
 Acceptance:
 
 - [ ] `` Ctrl+` `` shows the panel at the terminal, with the focus in it; pressed again there, it hides the panel.
-- [ ] The tabs are **Terminal**, **Activity** and **Command log**, from the left, and a click on **Activity** shows
-      what is running, the panel as high as before.
+- [ ] The tabs are **Terminal**, **Tasks**, **Activity** and **Command log**, from the left, and a click on
+      **Activity** shows what is running, the panel as high as before.
 - [ ] The height dragged to 300 px is there after the window is closed and opened again on the same workspace.
 - [ ] The panel shown at **Activity** is there, at that tab, after the window is closed and opened again on the same
       workspace.

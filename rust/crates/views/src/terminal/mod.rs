@@ -79,6 +79,18 @@ pub enum TerminalIntent {
 ///
 /// Feature: terminal.view
 pub fn terminal_view(state: &TerminalState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
+    let asked = terminal_area(state, (words::TERMINAL_AREA, None), ui);
+    asked.into_iter().map(terminal).collect()
+}
+
+/// A terminal over the rectangle given, under a name for the screen reader, and what was asked of it: the Terminal
+/// tab draws its shells with it, and the Tasks tab the terminal of a task, which says its own two lines once it ended
+/// in place of those of a shell (`tasks.view`).
+pub(crate) fn terminal_area(
+    state: &TerminalState<'_>,
+    (name, ended): (&str, Option<(&str, &str)>),
+    ui: &mut Ui<'_>,
+) -> Vec<TerminalIntent> {
     let rect = ui.current_clip();
     let id = ui.id("terminal");
     if state.focus > 0 {
@@ -90,11 +102,7 @@ pub fn terminal_view(state: &TerminalState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
         Sense::CLICK | Sense::DRAG | Sense::SCROLL | Sense::FOCUS | Sense::ALL_KEYS,
     );
     let text = state.screen.map(Screen::text).unwrap_or_default();
-    ui.describe(
-        id,
-        rect,
-        &Description::new(AccessRole::TextInput, words::TERMINAL_AREA).value(&text),
-    );
+    ui.describe(id, rect, &Description::new(AccessRole::TextInput, name).value(&text));
     let style = ui.text_style(TextKind::Code);
     let cells = Cells {
         origin: ui::Point::new(rect.x, rect.y),
@@ -105,13 +113,13 @@ pub fn terminal_view(state: &TerminalState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
     let size = grid_size(rect, cells);
     let mut intents = Vec::new();
     if state.size != Some(size) && state.status != TerminalStatus::NoRepository {
-        intents.push(terminal(TerminalIntent::Resize(size.0, size.1)));
+        intents.push(TerminalIntent::Resize(size.0, size.1));
     }
     intents.extend(events_of(state, ui, (response.id, events), cells));
     if let Some(screen) = state.screen {
         draw_screen(ui, screen, cells, response.has_focus);
     }
-    status_lines(state, ui, rect, cells);
+    status_lines(state, ui, (rect, cells), ended);
     intents
 }
 
@@ -142,7 +150,7 @@ fn events_of(
     ui: &mut Ui<'_>,
     (id, events): (ui::WidgetId, Vec<WidgetEvent>),
     cells: Cells,
-) -> Vec<Intent> {
+) -> Vec<TerminalIntent> {
     let screen = state.screen;
     let extent = screen.map_or((1, 1), |screen| (screen.columns.max(1), screen.rows.len().max(1)));
     let has_ended = matches!(state.status, TerminalStatus::Ended(_));
@@ -169,7 +177,7 @@ fn events_of(
             WidgetEvent::Paste(text) if !has_ended => Some(TerminalIntent::Input(paste_bytes(&text, screen))),
             _ => None,
         };
-        intents.extend(asked.map(terminal));
+        intents.extend(asked);
     }
     intents
 }
@@ -238,13 +246,15 @@ fn wheel(down: f32, row: f32, screen: Option<&Screen>) -> Option<TerminalIntent>
     Some(TerminalIntent::Scroll(-lines))
 }
 
-/// What the terminal says besides its screen: why there is none, or, under what the shell printed, that it ended.
-fn status_lines(state: &TerminalState<'_>, ui: &mut Ui<'_>, rect: Rect, cells: Cells) {
-    let (first, second) = match state.status {
-        TerminalStatus::NoRepository => (words::NO_REPOSITORY.to_owned(), None),
-        TerminalStatus::NotStarted(reason) => (format!("{}: {reason}", words::NOT_STARTED), None),
-        TerminalStatus::Ended(code) => (words::shell_ended(code), Some(words::PRESS_ENTER)),
-        TerminalStatus::Starting | TerminalStatus::Running => return,
+/// What the terminal says besides its screen: why there is none, or, under what the shell printed, that it ended, in
+/// the words given for what ended when it is not a shell.
+fn status_lines(state: &TerminalState<'_>, ui: &mut Ui<'_>, (rect, cells): (Rect, Cells), ended: Option<(&str, &str)>) {
+    let (first, second) = match (state.status, ended) {
+        (TerminalStatus::NoRepository, _) => (words::NO_REPOSITORY.to_owned(), None),
+        (TerminalStatus::NotStarted(reason), _) => (format!("{}: {reason}", words::NOT_STARTED), None),
+        (TerminalStatus::Ended(_), Some((first, second))) => (first.to_owned(), Some(second)),
+        (TerminalStatus::Ended(code), None) => (words::shell_ended(code), Some(words::PRESS_ENTER)),
+        (TerminalStatus::Starting | TerminalStatus::Running, _) => return,
     };
     let used = state.screen.map_or(0, |screen| {
         let last = screen

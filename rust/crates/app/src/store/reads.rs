@@ -56,6 +56,7 @@ pub fn changed(state: &mut State, changes: &[Change], at: Duration) -> Vec<Effec
     if state.shown_read().is_none() {
         return Vec::new();
     }
+    super::tasks_tab::changed(state, None, changes);
     let files_due = state.reads.files.due_at();
     let mut effects = Vec::new();
     for change in changes {

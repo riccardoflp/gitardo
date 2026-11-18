@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of
+  `.vscode/tasks.json` of the worktree shown under **Workspace**, and the scripts of each `package.json` under **npm**,
+  by folder, read again when one of those files changes. A search field at the top keeps the tasks whose name or
+  source holds every word typed, and each source folds by its heading. **Run** on a row, or a double click, runs the
+  task in a terminal of its own, drawn at the right of the list: a shell task with the shell of the settings, a
+  process task with its arguments as given, both in the folder and with the environment the task asks for, with their
+  colors and with what they ask answered from the keyboard. The row has a spinner while the task runs, a check once it
+  ended with exit code 0 and the exit code in red otherwise, and under the last line of its terminal Gitardo says how
+  it ended and how long it ran; `Enter` there runs it again. A task that runs, run again, asks **Restart** or **Leave
+  it running**. **Stop** sends the task an interrupt and, if it still runs three seconds later, ends it with every
+  process it started. The number of tasks running is beside **Tasks**, and closing a repository tab or the window while
+  some run asks first. The menu of a task has **Open in tasks.json** and **Copy command**, the title of the list
+  **Open tasks.json**, **Collapse all** and **Expand all**. Nothing runs in a folder that is not trusted: the tab says
+  so, with **Trust this folder**.
 - What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
   **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
   timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release

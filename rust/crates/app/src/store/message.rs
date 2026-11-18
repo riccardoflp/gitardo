@@ -263,6 +263,8 @@ pub enum Message {
     Task(super::tasks::TaskMessage),
     /// A terminal of the bottom panel started, printed or ended (`terminal.view`).
     Terminal(super::terminals::TerminalMessage),
+    /// What the window's task runs tell of the tasks of the Tasks tab (`tasks.view`).
+    TaskRun(super::tasks_tab::TaskRunMessage),
     /// The browser of the system could not open an address: what the system said.
     UrlNotOpened(String),
     /// The person asked to close the window, which was there, so large and maximized or not.

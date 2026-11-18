@@ -9,6 +9,7 @@ pub mod groups_file;
 pub mod import_groups;
 mod packages;
 mod read;
+pub mod run;
 #[cfg(test)]
 mod testing;
 mod variables;
@@ -18,3 +19,4 @@ pub use edit_groups::edit_groups;
 pub use export_groups::export_groups;
 pub use import_groups::import_groups;
 pub use read::read_tasks;
+pub use run::{run_group, run_task, stop_task};

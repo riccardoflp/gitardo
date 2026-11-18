@@ -62,10 +62,13 @@ pub fn default_shell(path: Option<&std::ffi::OsStr>) -> Shell {
     Shell { program, args }
 }
 
-/// What the shell finds in its environment besides the window's: a terminal of 256 colors that takes 24-bit colors too.
-pub(crate) fn environment() -> HashMap<String, String> {
-    HashMap::from([
+/// What the shell finds in its environment besides the window's: a terminal of 256 colors that takes 24-bit colors
+/// too, and over them what its start asks for.
+pub(crate) fn environment(asked: &[(String, String)]) -> HashMap<String, String> {
+    let mut environment = HashMap::from([
         (String::from("TERM"), String::from("xterm-256color")),
         (String::from("COLORTERM"), String::from("truecolor")),
-    ])
+    ]);
+    environment.extend(asked.iter().cloned());
+    environment
 }

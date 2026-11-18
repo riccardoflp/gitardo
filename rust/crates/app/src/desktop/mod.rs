@@ -108,6 +108,8 @@ struct DesktopWindow {
     tasks: TaskRunners,
     /// The terminals of the bottom panel (`terminal.view`).
     terminals: crate::work::Terminals,
+    /// The tasks of the Tasks tab, each in its terminal (`tasks.run`).
+    task_runs: crate::work::TaskRuns,
     /// The watcher of the settings files.
     watcher: SettingsWatcher,
     /// The writer of what is kept between runs; none when there is no configuration folder.
@@ -166,6 +168,7 @@ impl DesktopWindow {
             github: GitHubReader::new(GitHubAccess::system(), &activities, deliver),
             tasks: TaskRunners::new(&activities, deliver),
             terminals: crate::work::Terminals::new(deliver),
+            task_runs: crate::work::TaskRuns::new(deliver),
             watcher: SettingsWatcher::new(Arc::clone(deliver)),
             writer: options
                 .configuration
@@ -248,6 +251,7 @@ impl DesktopWindow {
                 self.tasks.finished(*batch);
             }
             let message = self.terminals.read_screen(message);
+            let message = self.task_runs.read(message);
             for effect in reduce(&mut self.state, message) {
                 match self.carry_out(effect)? {
                     Some(Followed::Message(next)) => waiting.push_back(*next),
@@ -309,6 +313,7 @@ impl DesktopWindow {
             Effect::GitHub(job) => self.github.start(job),
             Effect::Tasks(asked) => self.tasks_asked(asked),
             Effect::Terminal(asked) => self.terminals.take(asked),
+            Effect::TaskRuns(asked) => self.task_runs.take(asked),
             Effect::OpenUrl(url) => {
                 if let Err(error) = platform::open_url(&url) {
                     let said = views::text::github::could_not_open(&error.to_string());

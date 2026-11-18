@@ -12,6 +12,7 @@ mod groups;
 mod order;
 mod ready;
 mod run;
+mod start;
 #[cfg(test)]
 mod testing;
 
@@ -30,6 +31,7 @@ pub use groups::{
 pub use order::{OrderRefusal, RunOrder, RunStep, run_order};
 pub use ready::{QUIET, Readiness};
 pub use run::{Blocked, Run, StepState};
+pub use start::{TaskChoice, TaskStart, TaskTarget, TasksToRun, folder_said, task_start};
 
 /// The most lines the Activity tab keeps of what a task printed; older ones are dropped.
 const KEPT_LINES: usize = 5_000;

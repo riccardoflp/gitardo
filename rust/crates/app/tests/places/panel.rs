@@ -82,7 +82,7 @@ fn panel_bottom__ctrl_backtick_shows_the_panel_at_the_terminal_with_the_focus_an
 }
 
 #[test]
-fn panel_bottom__the_tabs_are_terminal_activity_and_command_log_and_a_click_on_activity_shows_what_is_running() {
+fn panel_bottom__the_tabs_are_terminal_tasks_activity_and_command_log_and_a_click_on_activity_shows_what_runs() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     reduce_all(&mut state, vec![Intent::ShowCommandLog]);
@@ -102,15 +102,11 @@ fn panel_bottom__the_tabs_are_terminal_activity_and_command_log_and_a_click_on_a
             .find(|found| rect.contains(Point::new(found.x + 1.0, found.y + 1.0)))
             .unwrap()
     };
-    let (terminal, activity, log, hide) = (
-        tab("Terminal"),
-        tab("Activity"),
-        tab("Command log"),
-        tab("Hide the panel"),
-    );
+    let (terminal, tasks, activity) = (tab("Terminal"), tab("Tasks"), tab("Activity"));
+    let (log, hide) = (tab("Command log"), tab("Hide the panel"));
     assert!(
-        terminal.x < activity.x && activity.x < log.x && log.x < hide.x,
-        "{terminal:?} {activity:?} {log:?} {hide:?}"
+        terminal.x < tasks.x && tasks.x < activity.x && activity.x < log.x && log.x < hide.x,
+        "{terminal:?} {tasks:?} {activity:?} {log:?} {hide:?}"
     );
     let center = Point::new(activity.x + activity.width * 0.5, activity.y + activity.height * 0.5);
     let intents = window.click_at(&state, center, 1);

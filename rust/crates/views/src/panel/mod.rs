@@ -1,5 +1,5 @@
-//! The bottom panel (`panel.bottom`, D53, D64): an island under the timeline and the inspector, or the page shown, above
-//! the status bar, with the terminals, what runs and the Command log each in a tab; the gap above it is dragged to
+//! The bottom panel (`panel.bottom`, D53, D64, D65): an island under the timeline and the inspector, or the page shown,
+//! above the status bar, with the terminals, the tasks, what runs and the Command log each in a tab; the gap above it is dragged to
 //! change its height.
 
 use ui::layout::{Align, Area, Insets, inset, place};
@@ -8,6 +8,7 @@ use ui::{AccessRole, Button, ButtonKind, Key, Modifiers, Rect, Split, Splitter, 
 use crate::activity::{ActivityState, what_is_running_view};
 use crate::intent::Intent;
 use crate::log::{LogState, log_view};
+use crate::tasks::{TasksTabState, tasks_view};
 use crate::terminal::{TerminalState, terminal_buttons, terminal_view};
 use crate::text::panel as words;
 
@@ -26,6 +27,8 @@ pub enum PanelTab {
     /// The terminals of the repository tab shown (`terminal.view`).
     #[default]
     Terminal,
+    /// The tasks of the repository shown, each with its terminal (`tasks.view`).
+    Tasks,
     /// What runs, and the commands of new worktrees (`activity.what-is-running`).
     Activity,
     /// The Command log (`log.show`).
@@ -67,6 +70,8 @@ pub struct BottomPanelState<'a> {
     pub log: LogState<'a>,
     /// The terminals of the repository tab shown.
     pub terminal: TerminalState<'a>,
+    /// The tasks of the repository tab shown.
+    pub tasks: TasksTabState<'a>,
 }
 
 /// The height of the panel inside a column of a height, in a window of a height: as dragged, never less than its least
@@ -117,8 +122,9 @@ pub(crate) fn resize_panel_view(
     }
 }
 
-/// The bottom panel over the rectangle its caller clipped it to: its tabs on the left of its top, **Hide the panel** on
-/// the right, and under them the terminal, what runs or the Command log.
+/// The bottom panel over the rectangle its caller clipped it to: its tabs on the left of its top, **Terminal**,
+/// **Tasks** with the number of tasks running beside it, **Activity** and **Command log**, **Hide the panel** on the
+/// right, and under them the terminal, the tasks, what runs or the Command log.
 ///
 /// Feature: panel.bottom
 pub fn bottom_view(state: &BottomPanelState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -133,6 +139,7 @@ pub fn bottom_view(state: &BottomPanelState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
         let body = inset(area.rest(), Insets::symmetric(spacing.small, spacing.small));
         match state.tab {
             PanelTab::Terminal => intents.extend(ui.clip(body, |ui| terminal_view(&state.terminal, ui))),
+            PanelTab::Tasks => intents.extend(ui.clip(body, |ui| tasks_view(&state.tasks, ui))),
             PanelTab::Activity => intents.extend(ui.clip(body, |ui| what_is_running_view(&state.activity, ui))),
             PanelTab::CommandLog => intents.extend(ui.clip(body, |ui| log_view(&state.log, ui))),
         }
@@ -151,17 +158,19 @@ fn top_bar(state: &BottomPanelState<'_>, ui: &mut Ui<'_>, bar: Rect, intents: &m
     if state.tab == PanelTab::Terminal {
         intents.extend(terminal_buttons(&state.terminal, ui, &mut parts));
     }
-    for (tab, name) in [
-        (PanelTab::Terminal, words::TERMINAL),
-        (PanelTab::Activity, words::ACTIVITY),
-        (PanelTab::CommandLog, words::COMMAND_LOG),
+    let tasks = crate::text::tasks_tab::tab_name(state.tasks.list.running);
+    for (tab, name, label) in [
+        (PanelTab::Terminal, words::TERMINAL, words::TERMINAL),
+        (PanelTab::Tasks, crate::text::tasks_tab::TASKS, tasks.as_str()),
+        (PanelTab::Activity, words::ACTIVITY, words::ACTIVITY),
+        (PanelTab::CommandLog, words::COMMAND_LOG, words::COMMAND_LOG),
     ] {
         let kind = if tab == state.tab {
             ButtonKind::Secondary
         } else {
             ButtonKind::Icon
         };
-        let button = Button::secondary(name).kind(kind);
+        let button = Button::secondary(label).kind(kind);
         let (width, height) = ui.button_size(&button);
         let cell = place(parts.left(width), (width, height), (Align::Start, Align::Center));
         if ui.button(("panel tab", name), cell, &button).clicked && tab != state.tab {

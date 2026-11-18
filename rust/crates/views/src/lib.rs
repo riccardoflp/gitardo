@@ -49,6 +49,7 @@ pub mod review;
 pub mod search;
 mod selection;
 pub mod settings;
+pub mod tasks;
 pub mod terminal;
 pub mod text;
 mod view_bar;

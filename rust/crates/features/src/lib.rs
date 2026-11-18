@@ -55,7 +55,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 158] = [
+pub const OPERATIONS: [(FeatureId, Operation); 161] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -252,6 +252,10 @@ pub const OPERATIONS: [(FeatureId, Operation); 158] = [
     (FeatureId("github.load-pull-requests"), github::load_pull_requests),
     // The language model.
     (FeatureId("ai.choose-model"), ai::choose_model),
+    // The tasks of the repository.
+    (FeatureId("tasks.run"), tasks::run_task),
+    (FeatureId("tasks.run-group"), tasks::run_group),
+    (FeatureId("tasks.stop"), tasks::stop_task),
 ];
 
 /// The operation of an identifier, when it is built.

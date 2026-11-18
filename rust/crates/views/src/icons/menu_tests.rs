@@ -17,7 +17,7 @@ use super::menu::operation_icon;
 use super::*;
 
 /// The items made without an icon, by the file that makes them and the words it gives them, and why no icon says them.
-const WITHOUT_ICON: [(&str, &str, &str); 6] = [
+const WITHOUT_ICON: [(&str, &str, &str); 10] = [
     (
         "graph/commit_menu.rs",
         "label.as_str()",
@@ -32,6 +32,22 @@ const WITHOUT_ICON: [(&str, &str, &str); 6] = [
         "the action of a step of a rebase: a value, named as git names it",
     ),
     ("file_view/edit.rs", "words::GO_TO_LINE", "a line: no icon says it"),
+    (
+        "tasks/list.rs",
+        "words::COLLAPSE_ALL",
+        "every heading of a list folded: no icon says it",
+    ),
+    (
+        "tasks/list.rs",
+        "words::EXPAND_ALL",
+        "every heading of a list unfolded: no icon says it",
+    ),
+    ("tasks/list.rs", "words::RUN", "a task run: no icon says it"),
+    (
+        "tasks/list.rs",
+        "words::RESTART",
+        "a task stopped and run again: no icon says it",
+    ),
 ];
 
 /// The operations offered in a menu that have no icon: they rewrite the history (rebase, reset, squash, split,

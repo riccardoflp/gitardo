@@ -77,6 +77,8 @@ pub struct State {
     pub panel: super::panel::Panel,
     /// The terminals of the bottom panel, of each repository tab (`terminal.view`).
     pub terminals: super::terminals::Terminals,
+    /// The Tasks tab of the bottom panel: the tasks of each repository tab and their terminals (`tasks.view`).
+    pub tasks_tab: super::tasks_tab::TasksTab,
     /// The file the settings page writes changes in (`settings.edit`).
     pub settings_target: views::settings::SettingsTarget,
     /// Where the list of the settings page was asked to go (`settings.sections`, `settings.reveal`).

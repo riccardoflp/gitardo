@@ -593,9 +593,9 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`tasks.read`](19-tasks.md#tasksread--read-the-tasks-of-a-repository) | Read the tasks of a repository | Read | Built | Host only |
-| [`tasks.view`](19-tasks.md#tasksview--the-tasks-tab) | The Tasks tab | View | Specified | Host only |
+| [`tasks.view`](19-tasks.md#tasksview--the-tasks-tab) | The Tasks tab | View | Built | Host only |
 | [`tasks.run`](19-tasks.md#tasksrun--run-a-task) | Run a task | Operation | Specified | Host only |
-| [`tasks.stop`](19-tasks.md#tasksstop--stop-a-task) | Stop a task | Operation | Specified | Host only |
+| [`tasks.stop`](19-tasks.md#tasksstop--stop-a-task) | Stop a task | Operation | Built | Host only |
 | [`tasks.edit-groups`](19-tasks.md#tasksedit-groups--make-and-change-groups-of-tasks) | Make and change groups of tasks | Operation | Specified | Host only |
 | [`tasks.run-group`](19-tasks.md#tasksrun-group--run-or-stop-a-group-of-tasks) | Run or stop a group of tasks | Operation | Specified | Host only |
 | [`tasks.import-groups`](19-tasks.md#tasksimport-groups--import-groups-of-tasks) | Import groups of tasks | Operation | Specified | Host only |

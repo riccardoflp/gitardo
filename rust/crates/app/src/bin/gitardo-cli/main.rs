@@ -197,9 +197,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
             None => writeln!(out, "Remove {}", written.key)?,
         },
         FollowUp::ForgetTrustedFolders(folders) => {
-            for folder in folders {
-                writeln!(out, "Stop trusting {}", folder.display())?;
-            }
+            let mut folders = folders.iter();
+            folders.try_for_each(|folder| writeln!(out, "Stop trusting {}", folder.display()))?;
         }
         FollowUp::SelectHead
         | FollowUp::DeleteWhenRebaseEnded(_)
@@ -212,7 +211,9 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         | FollowUp::AllowFileProtocol
         | FollowUp::OfferWhenFailed(_)
         | FollowUp::CheckBisect
-        | FollowUp::RememberInputs(_) => {}
+        | FollowUp::RememberInputs(_)
+        | FollowUp::RunTasks(_)
+        | FollowUp::StopTasks(_) => {}
     }
     Ok(())
 }

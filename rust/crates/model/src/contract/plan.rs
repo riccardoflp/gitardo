@@ -310,6 +310,11 @@ pub enum FollowUp {
     /// Write a setting in the user's settings of the host, in place of a step that writes the user's settings file:
     /// under the extension, VS Code's (`ai.choose-model`, Q399). Never in Gitardo Desktop.
     WriteSetting(Box<SettingWritten>),
+    /// Run tasks in the Tasks tab, each in a terminal of its own, after those it depends on (`tasks.run`,
+    /// `tasks.run-group`).
+    RunTasks(Box<crate::tasks::TasksToRun>),
+    /// Stop tasks that run in the Tasks tab (`tasks.stop`).
+    StopTasks(Vec<crate::tasks::TaskReference>),
 }
 
 /// A setting the host writes in the user's settings.

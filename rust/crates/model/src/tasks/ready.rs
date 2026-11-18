@@ -25,6 +25,8 @@ pub struct Readiness {
     looked_at: usize,
     /// Whether a line matched `endsPattern`.
     has_ended: bool,
+    /// The last lines its terminal showed, when it is read from them.
+    shown: Vec<String>,
     /// Since when it prints nothing, once that counts: from its start, or from its `beginsPattern` when it has one.
     quiet_since: Option<Duration>,
 }
@@ -43,6 +45,7 @@ impl Readiness {
             output: TaskOutput::default(),
             looked_at: 0,
             has_ended: false,
+            shown: Vec::new(),
             quiet_since,
         }
     }
@@ -66,6 +69,25 @@ impl Readiness {
         if has_begun || self.quiet_since.is_some() {
             self.quiet_since = Some(at);
         }
+    }
+
+    /// Takes the last lines the terminal of the task shows at a moment, without their colors, in place of what it
+    /// printed piece by piece: lines that differ from those shown before count as printed then. A line that says the
+    /// task is ready counts for as long as it is among them, so they are to be read each time the task prints.
+    pub fn shows(&mut self, lines: &[String], at: Duration) {
+        if self.shown == lines {
+            return;
+        }
+        let matches = |pattern: &Option<Regex>| {
+            pattern
+                .as_ref()
+                .is_some_and(|pattern| lines.iter().any(|line| pattern.is_match(line)))
+        };
+        self.has_ended |= matches(&self.ends);
+        if matches(&self.begins) || self.quiet_since.is_some() {
+            self.quiet_since = Some(at);
+        }
+        self.shown = lines.to_vec();
     }
 
     /// Whether the task is ready at a moment.
@@ -174,5 +196,31 @@ mod tests {
         readiness.printed("ready now\n", seconds(1));
         assert!(!readiness.is_ready(seconds(2)));
         assert!(readiness.is_ready(seconds(3)), "ready as a task without an endsPattern");
+    }
+
+    #[test]
+    fn tasks_run__the_last_lines_of_its_terminal_say_it_is_ready_as_what_it_printed_does() {
+        let lines = |lines: &[&str]| lines.iter().map(|line| (*line).to_owned()).collect::<Vec<String>>();
+        let mut readiness = Readiness::new(&background(None, Some("^ready")), seconds(0));
+        readiness.shows(&lines(&["starting", "not ready"]), seconds(1));
+        assert!(!readiness.is_ready(seconds(60)));
+        readiness.shows(&lines(&["starting", "not ready", "ready on port 3000"]), seconds(61));
+        assert!(readiness.is_ready(seconds(61)));
+        readiness.shows(&lines(&["GET /"]), seconds(62));
+        assert!(
+            readiness.is_ready(seconds(62)),
+            "it stays ready once its line scrolled away"
+        );
+        let mut quiet = Readiness::new(&background(None, None), seconds(0));
+        quiet.shows(&lines(&["installing"]), seconds(1));
+        quiet.shows(&lines(&["installing"]), seconds(2));
+        assert_eq!(
+            quiet.ready_at(),
+            Some(seconds(3)),
+            "the same lines shown again are nothing printed"
+        );
+        quiet.shows(&lines(&["installing", "done"]), seconds(2));
+        assert!(!quiet.is_ready(seconds(3)));
+        assert!(quiet.is_ready(seconds(4)));
     }
 }

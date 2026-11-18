@@ -197,8 +197,9 @@ fn listed_folders(value: &Value, name: &str) -> Option<Vec<PathBuf>> {
 }
 
 /// The names the tabs of the bottom panel are written with.
-const PANEL_TABS: [(PanelTab, &str); 3] = [
+const PANEL_TABS: [(PanelTab, &str); 4] = [
     (PanelTab::Terminal, "terminal"),
+    (PanelTab::Tasks, "tasks"),
     (PanelTab::Activity, "activity"),
     (PanelTab::CommandLog, "commandLog"),
 ];

@@ -346,6 +346,7 @@ pub(super) fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<
             title, after, can_undo, ..
         } => {
             let said = remember_follow_ups(state, &after);
+            let said_nothing = said.is_none();
             let is_undo = feature == Some(FeatureId("undo.last"));
             let pushed = feature.and_then(|feature| super::github::offer_after_push(state, feature));
             state.operations.said = Some(Said {
@@ -363,6 +364,10 @@ pub(super) fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<
                     false,
                 )
             });
+            // An operation that only runs or stops tasks says nothing of its own: the Tasks tab shows them.
+            if said_nothing && after.iter().any(super::tasks_tab::is_follow_up) {
+                state.operations.said = None;
+            }
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             effects.extend(super::github::after_operation(state, &after));
             effects.extend(carry_out(state, after));
@@ -476,6 +481,9 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             }
             (blamed @ (FollowUp::ShowBlame(_) | FollowUp::HideBlame(..) | FollowUp::OpenFile(_)), _) => {
                 effects.extend(super::blame::carry_out(state, blamed));
+            }
+            (tasks @ (FollowUp::RunTasks(_) | FollowUp::StopTasks(_)), _) => {
+                effects.extend(super::tasks_tab::carry_out(state, tasks));
             }
             (other, _) => effects.extend(super::worktrees::carry_out(state, other)),
         }
