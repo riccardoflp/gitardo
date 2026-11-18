@@ -3990,8 +3990,11 @@ until the maintainer answers otherwise.
   each message with more commits, while the pages of a read came, since the commits listed changed. Built: it is asked
   again when the commits listed are others, not when more of them come under the same ones.
 - **Q788** — `extension/test/perf/vscode.mjs` gave the throwaway VS Code no `gitardo.engine.path`, so that since stage
-  10 of the transition it found no engine in a checkout and waited for commits that never came. Built: it takes the
-  engine as the end-to-end suite does (`engineSetting`).
+  10 of the transition it found no engine in a checkout and waited for commits that never came; and it waited for a
+  next page of commits after scrolling to the end, which since D54 comes without being asked for, or not at all. Built:
+  it takes the engine as the end-to-end suite does (`engineSetting`), and waits for a next page only while the last
+  row says more are loading. Its scenarios QA1 to QA4 of [the quality page](extension/12-quality.md) were measured
+  before D54: should QA3, the next page in about 300 ms, become the time to the last commit of the large repository?
 - **Q789** — `extension/test/perf/graph-load.mjs` prints what it measured and fails nothing. Should it fail when a
   frame of the view takes longer than some time, or when the list is not where it was scrolled to after **Refresh**,
   and run in the pipeline with the window tests?

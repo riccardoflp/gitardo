@@ -105,7 +105,7 @@ so the screenshots do not depend on the screen.
 
 ## Large repositories
 
-Three scripts in `test/perf` show how Gitardo behaves when there is a lot of everything. None of them is a test: they
+Four scripts in `test/perf` show how Gitardo behaves when there is a lot of everything. None of them is a test: they
 print numbers to read. The numbers that matter are the scenarios of [12-quality.md](12-quality.md).
 
 ```bash
@@ -114,6 +114,7 @@ git -C ../big pack-refs --all
 git -C ../big commit-graph write --reachable
 node dist/perf.js ../big
 node test/perf/vscode.mjs ../big
+node test/perf/graph-load.mjs ../big --commit
 ```
 
 - `big-repo.mjs <folder> [commits on main] [changed files]` makes a repository with `git fast-import`: a long main line
@@ -129,6 +130,31 @@ node test/perf/vscode.mjs ../big
   times what a person waits for: opening the graph, a refresh, a new file showing up, the next pages of commits,
   selecting a commit, typing a commit message. It saves screenshots to `dist/perf`, and adds and removes one file in the
   repository.
+- `graph-load.mjs <repository> [--out=<folder>] [--commit] [--profile]` opens the repository in the same VS Code and
+  records how its graph loads, as the eye sees it: every 50 ms, how many commits the list has, where it is scrolled
+  to, how many rows are drawn, whether the last row says **Loading more commits…**, how wide the graph is; each message
+  with commits the view gets, and each frame that took more than 50 ms. It does so while the graph opens, after
+  **Refresh** at the top of the list, while the list is scrolled to its end, after **Refresh** from the middle of the
+  list and, with `--commit`, after an empty commit it makes on what is checked out, the only thing it changes. It
+  prints each change of what the list shows with its time, and saves screenshots to `dist/graph-load`. With
+  `--profile` it also says in which functions the view spent the first **Refresh**, by name on the development build.
+  Run it on the large repository and on one of between one and two thousand commits, where a read ends right after
+  its first page. `GITARDO_ENGINE` names the engine, the release build for numbers to compare.
+
+What `graph-load.mjs` reported on 2026-11-18 on the large repository (56,123 commits), with the minified build and the
+release build of the engine, before milestone M25:
+
+| | Before M25 |
+| --- | --- |
+| **Refresh** at the top: the last row drawn | 3.9 s |
+| the longest frame of the view meanwhile | 1.9 s |
+| **Refresh** from row 28,061: the last row drawn | 9.3 s |
+| the longest frame of the view meanwhile | 4.1 s |
+| where the list is after it | row 992 |
+| A commit made outside, at row 28,061: the last row drawn | 10.3 s |
+| where the list is after it | row 992 |
+| The width of the graph during a **Refresh** | 62, 48, 62 px |
+| On 1,250 commits, after **Refresh** | 1,000 rows and **Loading more commits…** until scrolled to the end |
 
 Measure rendering only on the minified build (`node esbuild.mjs --production`): React's development build is several
 times slower, in proportion to the rows. That build, and `npm run package`, leave `dist/` minified until the next
