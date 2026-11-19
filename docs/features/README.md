@@ -632,7 +632,7 @@ earns it.
 | [`diff.unstage-change`](17-diff-and-merge-views.md#diffunstage-change--unstage-this-change) | Unstage this change | Operation | Built | Built |
 | [`diff.revert-change`](17-diff-and-merge-views.md#diffrevert-change--revert-this-change) | Revert this change | Operation | Built | Differs (A5) |
 | [`diff.select-lines`](17-diff-and-merge-views.md#diffselect-lines--select-lines-of-a-diff) | Select lines of a diff | View | Specified | Planned |
-| [`diff.lines-patch`](17-diff-and-merge-views.md#difflines-patch--the-patch-of-the-lines-selected) | The patch of the lines selected | Derivation | Specified | Planned |
+| [`diff.lines-patch`](17-diff-and-merge-views.md#difflines-patch--the-patch-of-the-lines-selected) | The patch of the lines selected | Derivation | Built | Planned |
 | [`diff.stage-lines`](17-diff-and-merge-views.md#diffstage-lines--stage-the-lines-selected) | Stage the lines selected | Operation | Specified | Planned |
 | [`diff.unstage-lines`](17-diff-and-merge-views.md#diffunstage-lines--unstage-the-lines-selected) | Unstage the lines selected | Operation | Specified | Planned |
 | [`diff.revert-lines`](17-diff-and-merge-views.md#diffrevert-lines--revert-the-lines-selected) | Revert the lines selected | Operation | Specified | Planned |

@@ -5247,6 +5247,9 @@ while it is planned; each is built as it says until the maintainer answers other
 - **Q1076** — `diff.lines-patch`: the lines of an untracked file are staged by a patch that creates the file in the index
   with mode `100644`, or `100755` when git sees it as executable. Is `git add --intent-to-add -- <file>` before the
   patch wanted instead, so that the file is in the index, empty, first?
+- **Q1302** — `diff.lines-patch`: the rows selected in a diff of the working tree against `HEAD` are placed in the
+  index by the lines of `HEAD` that the index has unchanged, and a line of `HEAD` changed in the index by the line it
+  faces there. Should a selection that touches a line staged already be refused, rather than placed so?
 
 ### Of the signature of a commit and the options of the commit box, from Q1090
 

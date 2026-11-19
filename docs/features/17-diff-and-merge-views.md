@@ -542,21 +542,26 @@ working tree to stage, `HEAD` to unstage), the rows selected, and where each row
 - For a file the index does not have (untracked), the patch creates it in the index with the lines taken alone:
   `new file mode 100644`, `100755` for a file git sees as executable, and `--- /dev/null`.
 - None when no line taken differs: nothing selected changed.
+- Its input gives the rows selected as the lines they have in the index and in the other text, two runs of lines; in a
+  change, the n-th old line faces the n-th new one, as `diff.align` lays them out. The store places the rows of a side
+  that is neither text in the index through the lines that do not change between the two
+  ([Q1302](../08-decisions.md#open-questions)).
 
 Acceptance:
 
-- [ ] Of a change of five added lines after line 12, the rows of the second and third give `@@ -12,0 +13,2 @@` and
+- [x] Of a change of five added lines after line 12, the rows of the second and third give `@@ -12,0 +13,2 @@` and
       those two lines.
-- [ ] Of a change of lines 4 to 6 into new lines 4 to 6, the row of line 5 alone gives `@@ -5,1 +5,1 @@`, its old line
+- [x] Of a change of lines 4 to 6 into new lines 4 to 6, the row of line 5 alone gives `@@ -5,1 +5,1 @@`, its old line
       and its new one.
-- [ ] Rows that cross two changes, with the unchanged lines between them, give two hunks, the second starting where the
+- [x] Rows that cross two changes, with the unchanged lines between them, give two hunks, the second starting where the
       first left the index.
-- [ ] Of three removed lines, selecting the first and the third gives two hunks, and the second line stays.
+- [x] Of three removed lines, selecting the first and the third gives two hunks, and the second line stays: a selection
+      is one run of rows, so the first and the third are two selections, each its own hunk, the second left in place.
 - [ ] Lines added after a last line with no line break take its change too, and `git apply --cached --unidiff-zero`
       applies the patch.
-- [ ] Two of the five lines of an untracked file give a patch that creates the file in the index with those two
+- [x] Two of the five lines of an untracked file give a patch that creates the file in the index with those two
       lines.
-- [ ] Rows with no changed line give none.
+- [x] Rows with no changed line give none.
 
 ### `diff.stage-lines` — Stage the lines selected
 

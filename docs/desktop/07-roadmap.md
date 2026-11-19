@@ -1069,7 +1069,7 @@ editor already has **Stage Selected Ranges**.
    where its card says; the patch applied, or the edit made and saved for a revert; the page computed again. Cards:
    `diff.stage-lines`, `diff.unstage-lines`, `diff.revert-lines`, `diff.staged-changes`.
 
-Nothing is built yet.
+Phase 1 is built: `text::diff::lines_patch` gives the patch of the lines selected, tested as a table.
 
 Exit: in a file with a change of five added lines, the second and third selected on the right and **Stage lines**
 leave `git diff --cached` with those two lines, drawn as staged; selecting them again and `Alt+U` takes them out of
