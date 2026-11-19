@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 529 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 539 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -26,12 +26,12 @@ earns it.
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 37 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 39 |
-| [10-compare.md](10-compare.md) | Compare | 26 |
+| [10-compare.md](10-compare.md) | Compare | 27 |
 | [11-history-and-blame.md](11-history-and-blame.md) | History and blame | 30 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 45 |
 | [13-submodules.md](13-submodules.md) | Submodules | 20 |
 | [14-patches.md](14-patches.md) | Patches | 7 |
-| [15-github.md](15-github.md) | GitHub | 6 |
+| [15-github.md](15-github.md) | GitHub | 15 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 7 |
 | [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 53 |
 | [18-settings.md](18-settings.md) | Settings | 7 |
@@ -419,6 +419,7 @@ earns it.
 | [`compare.take-file`](10-compare.md#comparetake-file--take-the-version-of-the-second-side) | Take the version of the second side | Operation | Built | Built |
 | [`compare.copy-patch`](10-compare.md#comparecopy-patch--copy-a-comparison-as-a-patch) | Copy a comparison as a patch | Operation | Built | Built |
 | [`compare.open-on-github`](10-compare.md#compareopen-on-github--open-the-comparison-on-github) | Open the comparison on GitHub | Operation | Built | Differs (G5) |
+| [`compare.open-on-service`](10-compare.md#compareopen-on-service--open-the-comparison-on-another-hosting-service) | Open the comparison on another hosting service | Operation | Specified | Planned |
 | [`compare.path-with`](10-compare.md#comparepath-with--compare-a-file-or-a-folder-with-a-branch-tag-or-commit) | Compare a file or a folder with a branch, tag or commit | Operation | Built | Built |
 | [`compare.with`](10-compare.md#comparewith--compare-with) | Compare with… | Operation | Built | Built |
 | [`compare.with-current`](10-compare.md#comparewith-current--compare-with-the-current-branch) | Compare with the current branch | Operation | Built | Built |
@@ -558,6 +559,15 @@ earns it.
 | [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Built | Built |
 | [`github.open-pull-request`](15-github.md#githubopen-pull-request--open-or-create-the-pull-request-of-a-branch) | Open or create the pull request of a branch | Derivation | Built | Built |
 | [`github.offer-after-push`](15-github.md#githuboffer-after-push--offer-to-create-a-pull-request-after-the-first-push) | Offer to create a pull request after the first push | Derivation | Built | Built |
+| [`hosting.detect-remote`](15-github.md#hostingdetect-remote--the-hosting-service-of-the-main-remote) | The hosting service of the main remote | Derivation | Specified | Planned |
+| [`hosting.web-links`](15-github.md#hostingweb-links--the-pages-of-a-hosting-service) | The pages of a hosting service | Derivation | Specified | Planned |
+| [`hosting.open-pull-request`](15-github.md#hostingopen-pull-request--open-or-create-the-pull-request-of-a-branch-on-another-hosting-service) | Open or create the pull request of a branch, on another hosting service | Derivation | Specified | Planned |
+| [`hosting.offer-after-push`](15-github.md#hostingoffer-after-push--offer-to-create-a-pull-request-after-the-first-push-on-another-hosting-service) | Offer to create a pull request after the first push, on another hosting service | Derivation | Specified | Planned |
+| [`hosting.token`](15-github.md#hostingtoken--read-the-token-of-a-gitlab) | Read the token of a GitLab | Read | Specified | Planned |
+| [`hosting.load-merge-requests`](15-github.md#hostingload-merge-requests--load-merge-requests-from-gitlab) | Load merge requests from GitLab | Operation | Specified | Planned |
+| [`hosting.read-merge-requests`](15-github.md#hostingread-merge-requests--read-the-open-merge-requests-of-gitlab) | Read the open merge requests of GitLab | Read | Specified | Planned |
+| [`hosting.read-pull-request-list`](15-github.md#hostingread-pull-request-list--read-the-open-pull-requests-to-pick-from) | Read the open pull requests to pick from | Read | Specified | Planned |
+| [`hosting.checkout-pull-request`](15-github.md#hostingcheckout-pull-request--check-out-a-pull-request) | Check out a pull request | Operation | Specified | Planned |
 
 ## Undo, command preview and the log
 

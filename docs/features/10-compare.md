@@ -597,6 +597,43 @@ Acceptance:
 - [ ] A side given by its hash is named by its full hash.
 - [ ] In **Everything that differs** the URL has `..`.
 
+### `compare.open-on-service` — Open the comparison on another hosting service
+
+What `compare.open-on-github` does for GitHub, on GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo: opens the same
+comparison on the hosting service of the main remote, each side by the name it has there.
+
+- **Kind**: Operation
+- **Function**: `features::compare::open_on_service(context, answers) -> Outcome`
+- **Entry points**: **Open on `<service>`** in the comparison page, `<service>` the name of the service (**Open on
+  GitLab**, **Open on Azure DevOps**), where **Open on GitHub** is for GitHub.
+- **Extension**: **Open on `<service>`** in the Compare tab, where **Open on GitHub** is; the extension runs it on the
+  engine with the target `comparison`, as `Controller.openCompareOnGitHub` runs `compare.open-on-github`, and opens the
+  address of the follow-up `openUrl` with `vscode.env.openExternal`. When the engine's binary is missing, it says so
+  (D49).
+- **Offered when**: the main remote is on one of those services (`hosting.detect-remote`), neither side is the working tree,
+  and the two are not the same commit; on Bitbucket, Gitea and Forgejo, whose pages compare only since the two
+  diverged, only in **Since they diverged**.
+- **Reads**: the remotes with their URLs (`remote.read-remotes`), for the service of the main remote and the name of that
+  remote.
+- **Plan**: no step; it changes nothing.
+- **Danger**: None
+- **Undo**: nothing to undo: it changes nothing.
+- **After**: opens in the browser of the system the address of the comparison that `hosting.web-links` gives, each side
+  named as `compare.open-on-github` names it, with the remote of that service in place of the remote on GitHub.
+- **Refuses**: when it is not offered: *`<service>` does not have the working tree: compare two commits that are
+  pushed.*, *The two sides are the same commit.*, *`<service>` compares only since the two diverged.*, *The main remote of
+  this repository is not on a hosting service Gitardo knows.*
+- **Uses**: `hosting.detect-remote`, `hosting.web-links`, `compare.open-on-github`, `remote.read-remotes`.
+
+Acceptance:
+
+- [ ] `main ↔ feature` on GitLab, both tracking `origin`, opens `…/-/compare/main...feature`, and
+      `…/-/compare/main...feature?straight=true` in **Everything that differs**.
+- [ ] On Azure DevOps, a side given by its hash is named `GC<full hash>`.
+- [ ] On Bitbucket, the entry is not there in **Everything that differs**.
+- [ ] On GitHub, the page has **Open on GitHub** and not this entry.
+- [ ] Extension: **Open on GitLab** in the Compare tab opens the address the engine gave.
+
 ### `compare.path-with` — Compare a file or a folder with a branch, tag or commit
 
 Compares a file or a folder as it is in the working tree with the branch, tag or commit the user chooses, in a

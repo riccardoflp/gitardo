@@ -1950,6 +1950,64 @@ their patch identity and diffing their diffs in the `text` crate (a second progr
 tuning); the comparison page for it (`compare.page` compares two sides by their files and the commits only on each,
 not pairs of commits); comparing at every force push without being asked (a long line of commits takes seconds).
 
+## D82 — Pull requests on every hosting service, and checked out (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M37; the details proposed while planning.*
+
+The area of GitHub has six cards, and `github.detect-remote` gives nothing for any other service on purpose: on
+GitLab, Bitbucket, Azure DevOps, Gitea or Forgejo there is no pull request on a label, no page to create one, and no
+**Open on GitHub** in a comparison. And a pull request can only be opened on the web: trying one, from a fork above
+all, takes a terminal. So:
+
+- **A new area, `hosting.`, and `github.` stays.** The cards of GitHub keep their identifiers, their functions and
+  their tests, and stay what runs for GitHub; the new cards are for every hosting service, and leave GitHub to them
+  where one exists: `hosting.detect-remote` gives for github.com what `github.detect-remote` gives,
+  `hosting.open-pull-request` and `hosting.offer-after-push` do for the others what the GitHub ones do, and
+  `compare.open-on-service` is the comparison beside `compare.open-on-github`. Not `host.`: in the glossary the host
+  is the window or VS Code, and `host.terminal` is written already. The cards are in `15-github.md`, after those of
+  GitHub (Q1150).
+- **Which service.** From the URL of the main remote (`hosting.detect-remote`): github.com, gitlab.com, bitbucket.org,
+  dev.azure.com with ssh.dev.azure.com and `<org>.visualstudio.com`, and codeberg.org for Forgejo; a GitLab, a Gitea or
+  a Forgejo of one's own by its host name in a new setting, `hosting.selfHosted` (Q1155). GitHub Enterprise stays out,
+  as `github.detect-remote` says (Q1154).
+- **Their pages.** For each service, the address of a pull request, of the page that creates one for a branch, and of
+  a comparison (`hosting.web-links`), opened in the browser of the system; nothing is logged, as for GitHub. GitLab's
+  words are its own: **merge request**, `!12`; the others **pull request**, `#12` (Q1161).
+- **GitLab read as GitHub is.** A token found as GitHub's is, kept in the credential store of the system for the host
+  name, or given by `git credential fill` when loading (`hosting.token`); **Load merge requests from GitLab**, which
+  asks for a token with the scope `read_api` when none is found (`hosting.load-merge-requests`); one GraphQL request to
+  `https://<host name>/api/graphql` for the open merge requests and the state of their pipelines
+  (`hosting.read-merge-requests`), shown on the labels as the pull requests of GitHub are (`graph.pull-request-badge`).
+  The pull requests of Bitbucket, Azure DevOps, Gitea and Forgejo are not read in this milestone: their pages are
+  opened and created, and that is all (Q1157).
+- **A pull request checked out** (`hosting.checkout-pull-request`), from a pick of the open ones, those of forks
+  included (`hosting.read-pull-request-list`, on GitHub and GitLab), or by its number typed. One from a branch of the
+  repository is the checkout of its remote branch (`branch.checkout-remote`) after a fetch of that branch, so that the
+  local branch follows it and a push goes to the pull request. One from a fork is fetched by the reference the service
+  keeps for it, `git fetch <remote> refs/pull/<n>/head:refs/heads/<name>` on GitHub, Gitea and Forgejo,
+  `refs/merge-requests/<n>/head` on GitLab, into a local branch whose name is asked, `<owner of the fork>/<branch>` to
+  start with (Q1151), then checked out. That branch has no upstream, and what is said after warns that a push would
+  make a branch of that name on the main remote (Q1152). Bitbucket and Azure DevOps keep no reference for the head of a
+  pull request, Azure DevOps only its merge, so the entry is not offered there (Q1153).
+- **Nothing is sent before it is asked for**, and a token only to the host name it was given for.
+
+The extension does GitHub today in two halves: the token is VS Code's sign-in to GitHub (`githubToken` in
+`src/extension/github.ts`, G4), and the address of a pull request and of the page that creates one is derived in
+TypeScript (`parseGitHubRemote` and `compareUrl` in `src/shared/github.ts`, `Controller.openPullRequest`), while the
+comparison on GitHub is run on the engine (`compare.open-on-github`, G5). For the other services it takes the engine's
+derivations and opens the address of its follow-up `openUrl`. VS Code has no sign-in to GitLab, so the extension asks
+for the token in an input box and keeps it in its secret storage (Q1159). Its cards are *Planned*, brought in the last
+phase of M37.
+
+Rejected: renaming the cards of GitHub into `hosting.` (their identifiers are in the code and the tests); `host.` for
+the area (the glossary's host is another thing); every service inside the cards of GitHub (each would grow a table of
+services, and GitHub's tests would change for no change of GitHub's); GitLab's REST API (its list of merge requests
+has no state of the pipeline, which GraphQL gives in the same request, as for GitHub); the reads of Bitbucket, Azure
+DevOps and Gitea in this milestone (three more APIs and tokens; Q1157); checking out a pull request by its merge
+reference, `refs/pull/<n>/merge` (the result of a merge no one made, not the commits of the pull request); adding the
+fork as a remote at each checkout (remotes that pile up; Q1152); the programs of the services, `gh` and `glab` (the
+user may not have them, and they sign in on their own).
+
 
 ## Open questions
 
@@ -5150,4 +5208,52 @@ asked while it was planned; each is built as it says until the maintainer answer
   60. Should a setting change it?
 - **Q1144** — `range-diff.page`: the diff of diffs is shown as git prints it, its two marks side by side in one column.
   Should a changed pair open the two diffs side by side in the Diff page instead?
+
+### Of pull requests on every hosting service, from Q1150
+
+Questions of milestone M37 ([D82](#d82--pull-requests-on-every-hosting-service-and-checked-out-proposed)), asked while
+it was planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1150** — `hosting.detect-remote`: the cards of `hosting.` are in `15-github.md`, after those of GitHub, and its row
+  in the index of the catalog says **GitHub**. Should the area be named **GitHub and other hosting services** there,
+  the file keeping its name for its links, or should the cards have a file of their own?
+- **Q1151** — `hosting.checkout-pull-request`: the local branch of a pull request from a fork is named
+  `<owner of the fork>/<branch>` to start with, and `pull/<n>` (`merge-request/<n>` on GitLab) when its branch is not
+  known. Are those the names wanted?
+- **Q1152** — `hosting.checkout-pull-request`: the branch of a pull request from a fork has no upstream, and what is said
+  warns that a push would make a branch of that name on the main remote. Should Gitardo add the fork as a remote and
+  make the branch follow its branch there, so that a push goes to the pull request when its author lets maintainers
+  push to it?
+- **Q1153** — `hosting.checkout-pull-request`: on Bitbucket and Azure DevOps it is not offered, since they keep no
+  reference for the head of a pull request. Should it be offered there for the pull requests from a branch of the
+  repository itself, which are the checkout of that branch?
+- **Q1154** — `hosting.detect-remote`: GitHub Enterprise Server stays out, as `github.detect-remote` says. Should
+  `hosting.selfHosted` take `github` as a kind, its API at `https://<host name>/api/graphql`?
+- **Q1155** — `hosting.detect-remote`: `hosting.selfHosted` is an object from a host name to `gitlab` or `gitea`, or to
+  the kind and the address of the web pages when they are on another name than the remote's (as for a remote reached
+  by `ssh.git.example.com`). Is that form right, and should a repository's own `.gitardo/settings.json` be able to set
+  it?
+- **Q1156** — `hosting.web-links`: the addresses were taken from the pages of each service as they are in November 2026,
+  and none is opened by a test. Should each be opened by hand on the service in **Before a release**?
+- **Q1157** — `hosting.open-pull-request`, `hosting.read-pull-request-list`: nothing is read of the pull requests of
+  Bitbucket, Azure DevOps, Gitea and Forgejo, so their labels show none and the pick of a pull request to check out
+  lists none there. Which of them should be read, each with a token of its own?
+- **Q1158** — `hosting.web-links`: the page that creates a pull request on Azure DevOps is given the branch alone, and
+  the service chooses the target; on Gitea and Forgejo the default branch of the remote is the target. Should
+  Gitardo give the target on every service, and which?
+- **Q1159** — `hosting.token`: in the extension, VS Code has no sign-in to GitLab, so the token is asked in an input box
+  and kept in the secret storage of the extension. Should the extension use the sign-in of the GitLab extension for VS
+  Code when it is installed?
+- **Q1160** — `hosting.read-pull-request-list`: the pick reads the 100 pull requests updated last, each time it opens.
+  Should more pages be read, or what is typed be sent to the service as a search?
+- **Q1161** — `graph.pull-request-badge`: on GitLab a label shows `!12`, and the menus say **merge request**. The glossary
+  says a pull request is "a pull request of GitHub". Should it say a pull request or a merge request of a hosting
+  service, with GitLab's words on GitLab alone, as planned?
+- **Q1162** — `hosting.checkout-pull-request`: Gitardo does not remember which local branch it made from which pull
+  request, so the label of that branch shows no number and the pick does not say it is checked out. Should it keep it
+  in the configuration of the branch, a key of `.git/config` that git ignores?
+- **Q1163** — `hosting.checkout-pull-request`: the pull request is checked out in the worktree shown. Should it be offered
+  in a worktree of its own too, as `worktree.open-in-worktree` does for a branch?
+- **Q1164** — `compare.open-on-service`: Bitbucket, Gitea and Forgejo compare only since the two diverged, so the entry
+  is not there in **Everything that differs**. Should it open the comparison since they diverged there, saying so?
 

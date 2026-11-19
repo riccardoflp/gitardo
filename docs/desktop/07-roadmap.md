@@ -1192,6 +1192,49 @@ reworded and one dropped, the reworded one opens on its diff of diffs; before **
 **Compare first** opens the page of `origin/p3` against `p3` and pushes nothing; every card of the milestone passes its
 tests, in the desktop and, after phase 6, in the extension.
 
+## M37 — Pull requests: check out, and hosting services beyond GitHub
+
+A pull request checked out in a local branch, one from a fork included; and the pull requests of GitLab, Bitbucket,
+Azure DevOps, Gitea and Forgejo opened, created and compared on the web as those of GitHub are, those of GitLab read
+onto the labels
+([D82](../08-decisions.md#d82--pull-requests-on-every-hosting-service-and-checked-out-proposed)). Asked by the
+maintainer: `github.detect-remote` gives nothing for any other service, and a pull request could only be opened in the
+browser. The cards are a new area, `hosting.`, beside `github.`, whose cards keep their identifiers. Built in five
+phases, each one commit or more, each ending with its cards built and their tests passing; the first four in Gitardo
+Desktop, the last in the extension.
+
+1. **Which service, and its pages.** The service of the main remote from its URL, with the setting
+   `hosting.selfHosted` for a GitLab, a Gitea or a Forgejo of one's own, added to the list of the settings; the
+   addresses of a pull request, of the page that creates one and of a comparison on each service, tested on a table of
+   URLs. Cards: `hosting.detect-remote`, `hosting.web-links`, `settings.read`.
+2. **Opened, created and compared.** **Create merge request…**, **Create pull request…** and **Open merge request
+   !`<n>`** in the menus of a branch; the offer after a first push; **Open on `<service>`** in the comparison page.
+   Cards: `hosting.open-pull-request`, `hosting.offer-after-push`, `compare.open-on-service`.
+3. **The merge requests of GitLab.** The token kept for the host name or given by `git credential fill`; **Load merge
+   requests from GitLab**; one GraphQL request for the open merge requests and their pipelines, read again as the pull
+   requests of GitHub are, and their numbers on the labels. Cards: `hosting.token`, `hosting.load-merge-requests`,
+   `hosting.read-merge-requests`, `graph.pull-request-badge`.
+4. **A pull request checked out.** The open pull requests of GitHub and GitLab, those of forks included, to pick from or
+   a number typed; one from a branch of the repository checked out as its remote branch; one from a fork fetched by
+   the reference of the service into a local branch whose name is asked, then checked out; Undo by the reflog. Cards:
+   `hosting.read-pull-request-list`, `hosting.checkout-pull-request`.
+5. **In the extension.** The service and the addresses from the engine in place of `parseGitHubRemote` and
+   `compareUrl` for the services other than GitHub; the token of GitLab asked in an input box and kept in the secret
+   storage of the extension; **Gitardo: Check Out Pull Request…**, the entries of the menus and of the Compare tab; the
+   numbers of merge requests on the labels of the graph. Cards: every card above.
+
+Nothing is built yet.
+
+Exit: in a clone of a project on gitlab.com, **Create merge request…** on a pushed branch opens GitLab's page with the
+branch filled in, and the first push of a new branch offers it; **Load merge requests from GitLab**, given a token,
+shows `!12` on the label of the branch of an open merge request, in the color of its pipeline, and the token is asked
+no more after the window opens again; **Open on GitLab** in the comparison of two branches opens GitLab's comparison of
+them; in a clone of a project on github.com, **Check out a pull request…** lists the open ones, those of forks with
+their author, and picking one from a fork makes `<owner>/<branch>` at its commits and checks it out, a second time
+bringing it up to the fork's new commits; with a remote on bitbucket.org, **Create pull request…** opens Bitbucket's
+page and nothing offers a checkout; every address of `hosting.web-links` was opened by hand on its service; every card
+of the milestone passes its tests, in the desktop and, after phase 5, in the extension.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
