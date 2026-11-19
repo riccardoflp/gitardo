@@ -19,6 +19,7 @@ mod picks;
 mod push;
 mod rebase;
 mod remote;
+mod repo;
 mod rewrite;
 mod stash;
 mod state;

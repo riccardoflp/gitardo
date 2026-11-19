@@ -17,6 +17,7 @@ mod held;
 mod history;
 mod host;
 pub mod log;
+mod new_repository;
 mod preview;
 mod queries;
 mod readings;

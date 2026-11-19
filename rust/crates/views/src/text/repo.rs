@@ -12,6 +12,13 @@ pub const LOADING_REPOSITORY: &str = "Loading repository\u{2026}";
 pub const NOT_READ_YET: &str = "Not read yet";
 /// The button that reads the repository then.
 pub const READ_THE_REPOSITORY: &str = "Read the repository";
+/// The entry that clones a repository (`repo.clone`): on the Welcome page, in the menu of **+** and on the timeline of
+/// a workspace with no repository.
+pub const CLONE: &str = "Clone a repository\u{2026}";
+/// The entry that creates a repository in a folder chosen (`repo.init`).
+pub const CREATE: &str = "Create a repository\u{2026}";
+/// The button of the timeline of a workspace with no repository that creates one in its folder (`repo.init`).
+pub const CREATE_HERE: &str = "Create a repository here";
 /// The title of the system's folder dialog.
 pub const CHOOSE_FOLDER: &str = "Open folder";
 /// The picker of the repositories (`repo.select`).

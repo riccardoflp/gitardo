@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.10** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.11** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -80,6 +80,12 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
+Version 1.11 adds what milestone M32 needed
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)): the
+question `openFolder`, a folder chosen in the system's dialog, and the validations `cloneFolder`, the name of the folder
+of a clone, and `count`, a whole number of at least 1 ([Types](#types)). The extension clones and creates a repository
+with VS Code's own commands, so it sends none of them yet; they travel as every question and validation does.
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -138,7 +144,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.10",
+  protocol: "1.11",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -669,6 +675,7 @@ The answers given in `feature/run` are taken first: a question whose key has one
 | `confirm { accept }` | `showWarningMessage` modal, the button `accept` | `{ kind: "confirmed" }` |
 | `openFile` | `showOpenDialog` (through `host/openFile` when the engine asks outside a feature) | `{ kind: "path", path }` |
 | `saveFile` | `showSaveDialog` | `{ kind: "path", path }` |
+| `openFolder` (1.11) | `showOpenDialog` with `canSelectFolders` | `{ kind: "path", path }` |
 
 The engine checks each answer again (`check_answer` in `drive.rs`), so a wrong answer is `answerRefused`, never a plan
 run on it. The questions the extension asks today in `src/extension/actions.ts` and `src/extension/controller.ts` are
@@ -722,7 +729,8 @@ The fields are those of `model`; this section says only what the JSON adds or le
   every kind an object, those without data too, since `question/validate` sends it back: `{ kind: "anything" }`,
   `{ kind: "referenceName", taken: string[], takenMessage }`, `{ kind: "url" }`, `{ kind: "newMessage", old }`,
   `{ kind: "required", message }`, `{ kind: "optionalReferenceName" }`, `{ kind: "submoduleFolder", submodules }`,
-  `{ kind: "worktreeName", branches, emptyName, worktrees, beside, takenFolders }`, `{ kind: "pattern", pattern }`.
+  `{ kind: "worktreeName", branches, emptyName, worktrees, beside, takenFolders }`, `{ kind: "pattern", pattern }`,
+  `{ kind: "cloneFolder", parent, taken }` and `{ kind: "count" }` (1.11).
   **`FileQuestion`**: `{ folder: string | null, fileName: string | null, filters: { name, extensions }[] }`.
 - **`Answer`** (`model/src/contract/answers.rs`): only the kinds a person gives travel to the engine: `text`,
   `choice`, `choices`, `confirmed`, `path`, and `flag { value }` (1.3) in the `answers` of an `offerRun`, which the

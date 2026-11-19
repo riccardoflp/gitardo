@@ -22,6 +22,7 @@ mod changes_beside;
 mod changes_menu;
 mod changes_save;
 mod changes_section;
+mod clone;
 mod close_tabs;
 mod commit_page;
 mod compact_rows;

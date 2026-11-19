@@ -248,6 +248,8 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::OpenCommitAsPage => "Open Commit as a Page\u{2026}",
         QuickCommand::Refresh => "Refresh",
         QuickCommand::OpenFolder => "Open folder\u{2026}",
+        QuickCommand::CloneRepository => "Clone Repository\u{2026}",
+        QuickCommand::CreateRepository => "Create Repository\u{2026}",
         QuickCommand::SelectRepository => "Select Repository",
         QuickCommand::OpenWorkspaceFile => super::repo::OPEN_WORKSPACE_FILE,
         QuickCommand::OpenRepositoryInTab => "Open Repository in a Tab",

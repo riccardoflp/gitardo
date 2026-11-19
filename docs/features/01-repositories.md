@@ -323,15 +323,18 @@ What the window shows when the workspace has no repository, or the one it had ca
 - **Entry points**: the timeline and the branch rail, in place of what they list.
 
 The timeline says **No Git repository in this workspace** with a **Check again** button, which looks for the
-repositories again (`repo.read-repositories`) and reads the first one. While the repositories are looked for and the
-first one is read, it says **Loading repository…**. A read that fails, as when the folder was deleted, comes here too;
-the error goes to the Command log.
+repositories again (`repo.read-repositories`) and reads the first one, and beside it **Create a repository here**, which
+makes one in the first folder of the workspace (`repo.init`), and **Clone a repository…** (`repo.clone`). While the
+repositories are looked for and the first one is read, it says **Loading repository…**. A read that fails, as when
+the folder was deleted, comes here too; the error goes to the Command log.
 
 Acceptance:
 
 - [ ] A workspace of a folder with no repository shows **No Git repository in this workspace** and **Check again**.
 - [ ] Running `git init` in the folder and clicking **Check again** shows the new repository with no commits.
 - [ ] Deleting the folder of the repository shown brings the window to this page.
+- [ ] **Create a repository here** and **Clone a repository…** are beside **Check again**, and run `repo.init` in the
+      folder of the workspace and `repo.clone`.
 
 ### `repo.read-state` — Read the state of the repository
 
@@ -780,10 +783,11 @@ what to try first, and opens a folder.
 - **Function**: `views::welcome::page_view(state: &WelcomeState, ui) -> Vec<Intent>`
 - **Entry points**: shown by itself the first time Gitardo Desktop starts; **Welcome** in Quick search and in the
   Help menu; the window with no workspace.
-- **Uses**: `repo.open-folder`, `repo.open-recent`, `filter.show-only`, `commit-page.open`, `compare.choose`,
-  `blame.toggle-file`, `worktree.create`.
+- **Uses**: `repo.open-folder`, `repo.open-recent`, `repo.clone`, `repo.init`, `filter.show-only`,
+  `commit-page.open`, `compare.choose`, `blame.toggle-file`, `worktree.create`.
 
-Its title is **Get started with Gitardo**. At the top, **Open folder…** and the recent workspaces, the latest first,
+Its title is **Get started with Gitardo**. At the top, **Open folder…**, with **Clone a repository…**, **Create a
+repository…** and **Open workspace file…** beside it, and the recent workspaces, the latest first,
 each by its folders, opening it on a click. Then the five steps, each with a short text, a picture and a button; a step
 is ticked once it is done, in any way, and stays ticked:
 
@@ -801,6 +805,7 @@ Acceptance:
 - [ ] **Welcome** in Quick search shows it again, with the steps done ticked.
 - [ ] Opening a commit with a double click in the timeline ticks **Open a commit, compare two branches**.
 - [ ] A workspace opened from the page is listed first the next time.
+- [ ] **Clone a repository…** and **Create a repository…**, beside **Open folder…**, run `repo.clone` and `repo.init`.
 
 ## Repository tabs
 
@@ -1036,7 +1041,8 @@ Opens a repository of the workspace, or of a folder added to it, in a tab of its
 - **Function**: `app::store::tabs::open_tab(state: &mut State, folder: &Path) -> Vec<Effect>`, a function of the
   store (Q43)
 - **Entry points**: **+** in the heading of **Repositories**, whose menu lists the repositories of the workspace that
-  are not open, then **Open folder…** and **Open workspace file…**; **Open Repository in a Tab** in Quick search.
+  are not open, then **Open folder…**, **Clone a repository…** (`repo.clone`), **Create a repository…** (`repo.init`)
+  and **Open workspace file…**; **Open Repository in a Tab** in Quick search.
 - **Asks**: the repository, when it was not chosen in the menu, in Gitardo's picker titled **Open a repository in a
   tab**: the repositories of the workspace that are not open, each by its name with its folder under it.
 - **Reads**: `repo.read-state` and the first page of commits, for its first read; `repo.read-repositories` for a
@@ -1058,6 +1064,8 @@ Acceptance:
 - [ ] Opening a repository that is open already shows its tab and opens no other.
 - [ ] Opening a worktree of `api` that is a folder of the workspace shows it in the tab of `api`.
 - [ ] The tabs open are the same once the window is closed and opened again.
+- [ ] The menu of **+** has **Clone a repository…** and **Create a repository…** after **Open folder…**, which run
+      `repo.clone` and `repo.init`.
 
 ### `repo.choose-tabs` — Choose the repositories a workspace opens
 

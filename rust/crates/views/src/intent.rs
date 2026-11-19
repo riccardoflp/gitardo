@@ -19,6 +19,9 @@ pub enum Intent {
     /// The answer to the question asked when a folder is opened while the window shows a workspace
     /// (`repo.open-folder`).
     AnswerOpenFolder(FolderAnswer),
+    /// **Create a repository here**, on the timeline of a workspace with no repository: a repository made in the first
+    /// folder of the workspace (`repo.init`, Q1059).
+    CreateRepositoryHere,
     /// A recent workspace, by its place in the list of the recent ones, the latest first (`repo.open-recent`).
     OpenRecent(usize),
     /// A repository of the workspace to show, by its folder (`repo.select`).

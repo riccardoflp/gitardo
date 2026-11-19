@@ -57,6 +57,10 @@ pub enum QuickCommand {
     Refresh,
     /// **Open folder…** (`repo.open-folder`).
     OpenFolder,
+    /// **Clone Repository…** (`repo.clone`).
+    CloneRepository,
+    /// **Create Repository…** (`repo.init`).
+    CreateRepository,
     /// **Select Repository** (`repo.select`).
     SelectRepository,
     /// **Open workspace file…** (`repo.open-code-workspace`).
@@ -157,12 +161,14 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 53] = [
+    pub const ALL: [QuickCommand; 55] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
         QuickCommand::Refresh,
         QuickCommand::OpenFolder,
+        QuickCommand::CloneRepository,
+        QuickCommand::CreateRepository,
         QuickCommand::SelectRepository,
         QuickCommand::OpenWorkspaceFile,
         QuickCommand::OpenRepositoryInTab,
@@ -251,6 +257,8 @@ impl QuickCommand {
     #[must_use]
     pub fn operation(self) -> Option<&'static str> {
         match self {
+            QuickCommand::CloneRepository => Some("repo.clone"),
+            QuickCommand::CreateRepository => Some("repo.init"),
             QuickCommand::CreateBranch => Some("branch.create"),
             QuickCommand::Fetch => Some("sync.fetch"),
             QuickCommand::Push => Some("sync.push"),

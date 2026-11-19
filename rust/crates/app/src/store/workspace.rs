@@ -401,3 +401,28 @@ pub(super) fn close_requested(state: &mut State, window: crate::persisted::Windo
     effects.push(Effect::Quit);
     effects
 }
+
+/// Opens a repository the window made, a clone or a new one, in a tab and shows it: with no workspace open, its folder
+/// is the workspace; a folder of the workspace is looked at again, its repository shown; any other folder is added to
+/// the workspace, as **Add to the workspace** adds one, and shown (`repo.clone`, `repo.init`).
+pub fn open_made(state: &mut State, folder: PathBuf) -> Vec<Effect> {
+    let Some(folders) = state.workspace.as_ref().map(|workspace| workspace.folders.clone()) else {
+        let request = OpenRequest {
+            is_shown_at_once: true,
+            ..OpenRequest::default()
+        };
+        return open_workspace(state, vec![folder], request);
+    };
+    state.pages.shown = None;
+    let is_in_workspace = folders.iter().any(|known| same_folder(known, &folder));
+    let request = OpenRequest {
+        remembered: Some(folder.clone()),
+        is_added: !is_in_workspace,
+        ..OpenRequest::default()
+    };
+    let mut folders = folders;
+    if !is_in_workspace {
+        folders.push(folder);
+    }
+    open_workspace(state, folders, request)
+}

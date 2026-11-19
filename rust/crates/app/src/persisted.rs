@@ -74,6 +74,8 @@ pub struct Persisted {
     pub trusted_folders: Vec<PathBuf>,
     /// What the Search page searches, of the repositories searched last (`file-search.remember`).
     pub file_searches: Vec<file_search::RepositorySearch>,
+    /// The folder the last clone went in, where the dialog of the next clone starts (`repo.clone`).
+    pub clone_folder: Option<PathBuf>,
 }
 
 /// Where a window was, how large and whether it was maximized (`window.title-bar`).
@@ -149,6 +151,7 @@ impl Persisted {
             branch_inputs: list(&document, "branchInputs", inputs::workspace_inputs),
             trusted_folders: trust::trusted_folders(&document),
             file_searches: list(&document, "fileSearches", file_search::repository_search),
+            clone_folder: document.get("cloneFolder").and_then(Value::as_str).map(PathBuf::from),
         }
     }
 
@@ -209,6 +212,11 @@ impl Persisted {
         if !self.trusted_folders.is_empty() {
             members.push(member("trustedFolders", trust::folders_value(&self.trusted_folders)));
         }
+        members.extend(
+            self.clone_folder
+                .as_deref()
+                .map(|folder| member("cloneFolder", folder_value(folder))),
+        );
         json::to_pretty_text(&Value::Object(members))
     }
 
@@ -268,6 +276,11 @@ fn list<T>(document: &Value, name: &str, read: fn(&Value) -> Option<T>) -> Vec<T
         .filter_map(read)
         .take(MOST_RECENT)
         .collect()
+}
+
+/// A folder, as `state.json` keeps it.
+fn folder_value(folder: &Path) -> Value {
+    Value::String(folder.to_string_lossy().into_owned())
 }
 
 /// A member of an object.
@@ -412,6 +425,7 @@ mod tests {
                 is_maximized: true,
             },
             rail_width: Some(250.5),
+            clone_folder: Some(PathBuf::from("/work/clones")),
             file_layouts: super::FileLayouts {
                 inspector: views::details::FileLayout::Tree,
                 page: views::details::FileLayout::List,

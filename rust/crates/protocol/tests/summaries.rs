@@ -41,7 +41,7 @@ fn summaries() -> Vec<WorktreeSummary> {
 
 #[test]
 fn version_1_10_is_spoken_by_an_engine_of_version_1_and_is_not_read_as_1_1() {
-    assert_eq!(VERSION, "1.10");
+    assert_eq!(VERSION, "1.11");
     assert!(is_compatible("1.9"));
     assert!(is_compatible(VERSION));
 }

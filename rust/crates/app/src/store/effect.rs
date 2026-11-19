@@ -80,8 +80,8 @@ pub enum Effect {
         title: String,
         /// Where it starts and which files it shows.
         question: model::contract::FileQuestion,
-        /// Whether it chooses where to save, rather than a file to open.
-        is_saving: bool,
+        /// Whether it chooses a file to open, where to save one, or a folder.
+        choosing: Choosing,
     },
     /// Looks for the repository on GitHub or reads its pull requests, on a thread of its own (`github.read-pull-requests`).
     GitHub(super::github::GitHubJob),
@@ -99,4 +99,30 @@ pub enum Effect {
     Window(views::window::WindowIntent),
     /// Closes the window and ends the program.
     Quit,
+}
+
+/// What the system's dialog of a question chooses.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Choosing {
+    /// A file to open.
+    FileToOpen,
+    /// Where to save a file.
+    WhereToSave,
+    /// A folder (`repo.clone`, `repo.init`).
+    Folder,
+}
+
+impl Choosing {
+    /// The file the system's dialog of a question starts from, and what it chooses; none for a question asked in a
+    /// dialog of the window.
+    #[must_use]
+    pub fn of(kind: &model::contract::QuestionKind) -> Option<(&model::contract::FileQuestion, Choosing)> {
+        use model::contract::QuestionKind;
+        match kind {
+            QuestionKind::OpenFile(file) => Some((file, Choosing::FileToOpen)),
+            QuestionKind::SaveFile(file) => Some((file, Choosing::WhereToSave)),
+            QuestionKind::OpenFolder(file) => Some((file, Choosing::Folder)),
+            _ => None, // The others are asked in a dialog of the window.
+        }
+    }
 }

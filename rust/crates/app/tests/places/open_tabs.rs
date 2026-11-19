@@ -71,6 +71,20 @@ fn repo_choose_tabs__the_picker_has_every_repository_checked_and_enter_opens_the
 }
 
 #[test]
+fn repo_open_tab__plus_offers_clone_and_create_a_repository_after_open_folder() {
+    let (_kept, _clones, mut state) = asking();
+    ask(&mut state, Intent::TabsChosen(Some(vec![0])));
+    for (entry, feature) in [(words::CLONE, "repo.clone"), (words::CREATE, "repo.init")] {
+        let mut window = Window::new(ThemeName::Dark, WIDE);
+        let _ = window.click(&state, Role::Button, words::OPEN_ANOTHER);
+        let intents = window.click(&state, Role::MenuItem, entry);
+        let run =
+            views::feature::FeatureIntent::Run(model::contract::FeatureId(feature), model::contract::Target::Head);
+        assert_eq!(intents, [Intent::Feature(run)], "{entry}");
+    }
+}
+
+#[test]
 fn repo_choose_tabs__escape_in_the_picker_opens_nothing() {
     let (_kept, _clones, state) = asking();
     let mut window = Window::new(ThemeName::Dark, WIDE);
@@ -98,6 +112,8 @@ fn repo_open_tab__plus_lists_web_and_docs_when_api_alone_is_open_and_web_chosen_
             "web",
             "docs",
             views::text::header::OPEN_FOLDER,
+            words::CLONE,
+            words::CREATE,
             words::OPEN_WORKSPACE_FILE
         ]
     );

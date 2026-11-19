@@ -61,7 +61,8 @@ fn history_icon(feature: &str) -> Option<Icon> {
     Some(icon)
 }
 
-/// The icon of an operation on a worktree or a submodule, as a place on the disk: opened, revealed, copied, removed.
+/// The icon of an operation on a worktree, a submodule or a repository, as a place on the disk: made, opened,
+/// revealed, copied, removed; a clone fetches its repository.
 fn place_icon(feature: &str) -> Option<Icon> {
     let icon = match feature {
         "worktree.create"
@@ -79,7 +80,8 @@ fn place_icon(feature: &str) -> Option<Icon> {
         "worktree.remove" | "worktree.prune" | "submodule.remove" => super::DELETE,
         "submodule.initialize" => super::SUBMODULE,
         "submodule.deinitialize" => super::NOT_INITIALIZED,
-        "submodule.add" | "submodule.stage-recorded" => super::ADD,
+        "submodule.add" | "submodule.stage-recorded" | "repo.init" => super::ADD,
+        "repo.clone" => super::FETCH,
         _ => return None,
     };
     Some(icon)

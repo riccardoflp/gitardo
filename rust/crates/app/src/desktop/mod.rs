@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use engine::Activities;
+use model::contract::{Answers, FeatureId};
 use platform::{Context, Event, EventLoop, FileDialog, LogicalSize, TimerId, Visibility};
 
 use crate::error::AppError;
@@ -293,20 +294,16 @@ impl DesktopWindow {
                 folder,
                 feature,
                 preset,
-                mut context,
-            } => {
-                context.settings.worktrees.home = settings::home_folder().unwrap_or_default();
-                self.operations
-                    .run(folder, (feature, preset), *context, self.state.settings.log_level);
-            }
+                context,
+            } => self.run_feature(folder, (feature, preset), *context),
             Effect::ReplyToFeature(reply) => self.operations.reply(reply),
             Effect::CopyText(text) => self.surface.copy(&text),
             Effect::OpenWindow(folder) => open_window(&folder),
             Effect::ChooseFile {
                 title,
                 question,
-                is_saving,
-            } => return Ok(Some(self.choose_file(title, question, is_saving))),
+                choosing,
+            } => return Ok(Some(self.choose_file(title, question, choosing))),
             Effect::GitHub(job) => self.github.start(job),
             Effect::Commands(asked) => self.commands.take(asked, self.state.settings.log_level),
             Effect::Terminal(asked) => self.terminals.take(asked),
@@ -364,9 +361,28 @@ impl DesktopWindow {
         Followed::Message(Box::new(Message::WorkspaceFileChosen(chosen)))
     }
 
+    /// Runs an operation on the thread of the operations; one that makes a repository with no workspace open runs from
+    /// the user's home folder.
+    fn run_feature(&mut self, folder: PathBuf, started: (FeatureId, Answers), mut context: model::contract::Context) {
+        let home = settings::home_folder().unwrap_or_default();
+        let folder = if folder.as_os_str().is_empty() {
+            home.clone()
+        } else {
+            folder
+        };
+        context.settings.worktrees.home = home;
+        self.operations
+            .run(folder, started, context, self.state.settings.log_level);
+    }
+
     /// Opens the system's dialog to choose a file to open or a path to save to, for the question of an operation, and
     /// answers it with what was chosen, or with nothing when it was cancelled.
-    fn choose_file(&self, title: String, question: model::contract::FileQuestion, is_saving: bool) -> Followed {
+    fn choose_file(
+        &self,
+        title: String,
+        question: model::contract::FileQuestion,
+        choosing: crate::store::Choosing,
+    ) -> Followed {
         let dialog = FileDialog {
             title,
             folder: Some(question.folder),
@@ -380,10 +396,11 @@ impl DesktopWindow {
                 })
                 .collect(),
         };
-        let chosen = if is_saving {
-            dialog.choose_save_path(self.surface.window())
-        } else {
-            dialog.choose_file(self.surface.window())
+        let window = self.surface.window();
+        let chosen = match choosing {
+            crate::store::Choosing::FileToOpen => dialog.choose_file(window),
+            crate::store::Choosing::WhereToSave => dialog.choose_save_path(window),
+            crate::store::Choosing::Folder => dialog.choose_folder(window),
         };
         let answer = chosen.map(model::contract::Answer::Path);
         Followed::Message(Box::new(Message::Intent(views::Intent::Feature(

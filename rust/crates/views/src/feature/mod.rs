@@ -113,7 +113,7 @@ pub fn question_view(state: &QuestionState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
         | QuestionKind::Search { .. }
         | QuestionKind::PickMany { .. } => answer_dialog(state, ui),
         // The dialog of the system answers these, which the window opens in place of one of its own.
-        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Vec::new(),
+        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) | QuestionKind::OpenFolder(_) => Vec::new(),
     }
 }
 
@@ -219,7 +219,10 @@ fn answer_body(
             let found = choices.iter().filter(|choice| choice.matches(state.typed));
             intents.extend(choice_rows(ui, &mut area, found, (&is_on, false)));
         }
-        QuestionKind::Confirm { .. } | QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => {}
+        QuestionKind::Confirm { .. }
+        | QuestionKind::OpenFile(_)
+        | QuestionKind::SaveFile(_)
+        | QuestionKind::OpenFolder(_) => {}
     }
     intents
 }
@@ -314,7 +317,10 @@ fn answer_height(state: &QuestionState<'_>, ui: &Ui<'_>) -> f32 {
         QuestionKind::Search { choices } => {
             sizes.control_height + sizes.spacing.medium + rows_height(choices, sizes.row_height)
         }
-        QuestionKind::Confirm { .. } | QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => 0.0,
+        QuestionKind::Confirm { .. }
+        | QuestionKind::OpenFile(_)
+        | QuestionKind::SaveFile(_)
+        | QuestionKind::OpenFolder(_) => 0.0,
     }
 }
 
@@ -353,7 +359,8 @@ fn can_answer(state: &QuestionState<'_>, problem: Option<&str>) -> bool {
         QuestionKind::PickMany { .. }
         | QuestionKind::Confirm { .. }
         | QuestionKind::OpenFile(_)
-        | QuestionKind::SaveFile(_) => true,
+        | QuestionKind::SaveFile(_)
+        | QuestionKind::OpenFolder(_) => true,
     }
 }
 
@@ -365,7 +372,9 @@ fn answer_of(state: &QuestionState<'_>) -> Answer {
         QuestionKind::Search { .. } => Answer::Choice(chosen_of(state).unwrap_or_default().to_owned()),
         QuestionKind::PickMany { .. } => Answer::Choices(state.picked.to_vec()),
         QuestionKind::Confirm { .. } => Answer::Confirmed,
-        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Answer::Path(std::path::PathBuf::from(state.typed)),
+        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) | QuestionKind::OpenFolder(_) => {
+            Answer::Path(std::path::PathBuf::from(state.typed))
+        }
     }
 }
 

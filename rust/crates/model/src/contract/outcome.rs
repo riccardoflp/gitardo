@@ -270,6 +270,24 @@ pub enum Query {
         /// The key just typed, when one was.
         key: Option<crate::ai::Key>,
     },
+    /// The names of what is in a folder and is not an empty folder, a file or a folder with something in it, which the
+    /// folder of a clone cannot be (`repo.clone`). The answer is [`super::Answer::Names`], sorted.
+    TakenNames {
+        /// The folder.
+        folder: std::path::PathBuf,
+    },
+    /// The top folder of the repository a folder is in (`git rev-parse --show-toplevel`, run in it), for `repo.init`.
+    /// The answer is [`super::Answer::Paths`]: that folder, or none when the folder is in no repository.
+    RepositoryAround {
+        /// The folder.
+        folder: std::path::PathBuf,
+    },
+    /// The first branch a new repository gets from git's configuration (`git config --get init.defaultBranch`, run in
+    /// a folder), for `repo.init`. The answer is [`super::Answer::Names`]: that name, or none when nothing sets it.
+    DefaultBranch {
+        /// The folder.
+        folder: std::path::PathBuf,
+    },
     /// The links in worktrees to folders outside them, which git on Windows would empty when it removes a worktree
     /// (`worktree.read-folder-links`), for every worktree named. The answer is [`super::Answer::Paths`].
     FolderLinks {

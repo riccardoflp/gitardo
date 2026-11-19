@@ -89,6 +89,10 @@ enum OpenCommand {
     Repository(usize),
     /// **Open folder…**.
     Folder,
+    /// **Clone a repository…**.
+    Clone,
+    /// **Create a repository…**.
+    Create,
     /// **Open workspace file…**.
     WorkspaceFile,
 }
@@ -210,7 +214,7 @@ pub fn cut_at_start(ui: &Ui<'_>, name: &str, (room, kind): (f32, TextKind)) -> S
 }
 
 /// **+** in the heading of **Repositories**, over a rectangle, with its menu: the repositories of the workspace with
-/// no row, then **Open folder…** and **Open workspace file…**.
+/// no row, then **Open folder…**, **Clone a repository…**, **Create a repository…** and **Open workspace file…**.
 pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: Rect) -> Option<Intent> {
     let side = rect.height;
     let rect = ui::layout::place(
@@ -238,6 +242,16 @@ pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: R
         header::OPEN_FOLDER,
         OpenCommand::Folder,
     )));
+    entries.push(MenuEntry::Item(icons::operation_item(
+        words::CLONE,
+        "repo.clone",
+        OpenCommand::Clone,
+    )));
+    entries.push(MenuEntry::Item(icons::operation_item(
+        words::CREATE,
+        "repo.init",
+        OpenCommand::Create,
+    )));
     entries.push(MenuEntry::Item(icons::action(
         icons::OPEN_FILE,
         words::OPEN_WORKSPACE_FILE,
@@ -246,8 +260,18 @@ pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: R
     match ui.menu_button(OPEN_MENU, rect, &button, &entries)? {
         OpenCommand::Repository(index) => not_open.get(index).map(|entry| Intent::OpenTab(entry.folder.clone())),
         OpenCommand::Folder => Some(Intent::OpenFolder),
+        OpenCommand::Clone => Some(new_repository("repo.clone")),
+        OpenCommand::Create => Some(new_repository("repo.init")),
         OpenCommand::WorkspaceFile => Some(Intent::OpenWorkspaceFile),
     }
+}
+
+/// The intent that runs an operation that makes a repository (`repo.clone`, `repo.init`).
+pub(crate) fn new_repository(feature: &'static str) -> Intent {
+    Intent::Feature(crate::feature::FeatureIntent::Run(
+        model::contract::FeatureId(feature),
+        model::contract::Target::Head,
+    ))
 }
 
 /// The keys of the rows, when nothing else took them: `Ctrl` with a digit, `PageDown` or `PageUp`; on macOS `Cmd` with

@@ -4,6 +4,17 @@
 
 - An operation that asks git for its progress has the last line of progress git printed under its title in the
   **Activity** tab, changing as git prints: `Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s`.
+- **Clone a repository…**, on the Welcome page, in the menu of **+** of **Repositories**, on the timeline of a
+  workspace with no repository and as **Clone Repository…** in Quick search, clones a repository from its URL or its
+  folder on disk: the URL starts as the one on the clipboard, the folder that holds the clone is chosen in the system's
+  dialog, which starts where the last clone went, and the name of its folder is the name of the repository, refused
+  while typed when that folder is not empty. **Check out another branch than the remote's default one**, **Only the
+  last commits, a shallow clone** and **The submodules too, and theirs**, ticked, are the options. The clone shows in
+  the **Activity** tab with git's progress under it, then opens in a tab, or as the workspace when none is open.
+- **Create a repository…**, beside **Clone a repository…** and as **Create Repository…** in Quick search, runs
+  `git init` in a folder chosen, with the first branch of `init.defaultBranch`, or the one asked, `main` by default; a
+  folder that is a repository already is refused, and one inside a repository asks first. **Create a repository here**,
+  on the timeline of a workspace with no repository, makes it in the folder of the workspace.
 
 ## 1.2.0 - 2026-11-18
 

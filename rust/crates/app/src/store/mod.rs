@@ -59,7 +59,7 @@ pub use changes::{Changes, ChangesData};
 pub use code_workspace::code_workspace_folders;
 pub use commit_page::{CommitPage, CommitPages, PageReadState};
 pub use diff_page::{DiffPage, DiffPages};
-pub use effect::Effect;
+pub use effect::{Choosing, Effect};
 pub use file_page::{FileContent, FilePage, FilePages};
 pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use merge_page::{MergePage, MergePages};
@@ -379,6 +379,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         | Intent::SelectRepository(_)
         | Intent::OpenWorkspaceFile
         | Intent::PickRepository => reduce_workspace_intent(state, intent),
+        Intent::CreateRepositoryHere => feature::made::create_repository_here(state),
         Intent::SwitchTab(_)
         | Intent::ShowInTab(..)
         | Intent::FoldTab(_)

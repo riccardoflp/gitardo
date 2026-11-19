@@ -31,6 +31,7 @@ pub mod patch;
 pub mod rebase;
 pub mod reflog;
 pub mod remote;
+pub mod repo;
 pub mod reset;
 pub mod revert;
 pub mod review;
@@ -55,7 +56,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 164] = [
+pub const OPERATIONS: [(FeatureId, Operation); 166] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -103,6 +104,9 @@ pub const OPERATIONS: [(FeatureId, Operation); 164] = [
     (FeatureId("remote.remove"), remote::remove),
     (FeatureId("remote.rename"), remote::rename),
     (FeatureId("remote.set-url"), remote::set_url),
+    // Repositories cloned and created.
+    (FeatureId("repo.clone"), repo::clone),
+    (FeatureId("repo.init"), repo::init),
     (FeatureId("stash.apply"), stash::apply),
     (FeatureId("stash.branch"), stash::branch),
     (FeatureId("stash.drop"), stash::drop),

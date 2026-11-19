@@ -96,6 +96,28 @@ fn welcome_page__the_window_with_no_workspace_shows_it_and_opens_a_folder_or_a_r
     assert_eq!(window.click(&state, Role::Button, &recent), [Intent::OpenRecent(0)]);
 }
 
+/// The intent of a click on an entry that runs an operation that makes a repository.
+fn makes(feature: &'static str) -> Intent {
+    Intent::Feature(views::feature::FeatureIntent::Run(
+        model::contract::FeatureId(feature),
+        model::contract::Target::Head,
+    ))
+}
+
+#[test]
+fn welcome_page__clone_and_create_a_repository_sit_beside_open_folder_and_run_their_operations() {
+    let state = window();
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    assert_eq!(
+        window.click(&state, Role::Button, views::text::repo::CLONE),
+        [makes("repo.clone")]
+    );
+    assert_eq!(
+        window.click(&state, Role::Button, views::text::repo::CREATE),
+        [makes("repo.init")]
+    );
+}
+
 #[test]
 fn welcome_page__show_the_timeline_comes_back_from_the_page() {
     let (repository, _remote) = repository_with_history();
@@ -127,6 +149,23 @@ fn repo_no_repository__a_folder_with_no_repository_says_so_with_check_again() {
     );
     window.assert_snapshot("no-repository-dark");
     assert_eq!(window.click(&state, Role::Button, "Check again"), [Intent::CheckAgain]);
+}
+
+#[test]
+fn repo_no_repository__create_a_repository_here_and_clone_a_repository_sit_beside_check_again() {
+    let folder = testkit::Repository::new();
+    let empty = folder.path().parent().unwrap().join("empty");
+    std::fs::create_dir_all(&empty).unwrap();
+    let state = showing(empty);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    assert_eq!(
+        window.click(&state, Role::Button, views::text::repo::CREATE_HERE),
+        [Intent::CreateRepositoryHere]
+    );
+    assert_eq!(
+        window.click(&state, Role::Button, views::text::repo::CLONE),
+        [makes("repo.clone")]
+    );
 }
 
 #[test]

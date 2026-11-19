@@ -47,9 +47,9 @@ earns it.
 | [`repo.name-repositories`](01-repositories.md#reponame-repositories--name-the-repositories-in-lists) | Name the repositories in lists | Derivation | Built | Built |
 | [`repo.open-folder`](01-repositories.md#repoopen-folder--open-a-folder) | Open a folder | Operation | Built | Host only |
 | [`repo.open-recent`](01-repositories.md#repoopen-recent--open-a-recent-workspace) | Open a recent workspace | Operation | Built | Host only |
-| [`repo.clone`](01-repositories.md#repoclone--clone-a-repository) | Clone a repository | Operation | Specified | Host only |
-| [`repo.folder-from-url`](01-repositories.md#repofolder-from-url--the-name-of-a-clones-folder) | The name of a clone's folder | Derivation | Specified | Host only |
-| [`repo.init`](01-repositories.md#repoinit--create-a-repository) | Create a repository | Operation | Specified | Host only |
+| [`repo.clone`](01-repositories.md#repoclone--clone-a-repository) | Clone a repository | Operation | Built | Host only |
+| [`repo.folder-from-url`](01-repositories.md#repofolder-from-url--the-name-of-a-clones-folder) | The name of a clone's folder | Derivation | Built | Host only |
+| [`repo.init`](01-repositories.md#repoinit--create-a-repository) | Create a repository | Operation | Built | Host only |
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | Operation | Built | Built |
 | [`repo.owner-of-file`](01-repositories.md#repoowner-of-file--the-repository-a-file-is-in) | The repository a file is in | Derivation | Built | Built |
 | [`repo.no-repository`](01-repositories.md#repono-repository--no-repository-in-the-workspace) | No repository in the workspace | View | Built | Built |

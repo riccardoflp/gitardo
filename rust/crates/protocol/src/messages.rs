@@ -64,8 +64,10 @@ pub mod methods {
 /// milestone M17 needs: `read/file-view.mermaid`, a diagram of Mermaid as an SVG for VS Code's preview of Markdown
 /// ([`crate::mermaid`]); 1.10 what milestone M22 needs: `read/repo.worktree-summary`, what each repository of the
 /// workspace, each of its worktrees and each of its submodules is on, with `repository/summaries` for those read again
-/// and `repository/folderChanged` for what the extension's watchers saw ([`crate::summaries`]).
-pub const VERSION: &str = "1.10";
+/// and `repository/folderChanged` for what the extension's watchers saw ([`crate::summaries`]); 1.11 what milestone
+/// M32 needs: the question `openFolder`, a folder chosen in the system's dialog, and the validations `cloneFolder` and
+/// `count` ([`crate::feature`]).
+pub const VERSION: &str = "1.11";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]
