@@ -477,6 +477,10 @@ export type Action =
   | { kind: 'reset'; hash: string }
   | { kind: 'createTag'; at: string }
   | { kind: 'deleteTag'; name: string }
+  | { kind: 'deleteTagOnRemote'; name: string; here: boolean }
+  | { kind: 'setUpstream'; name: string }
+  | { kind: 'unsetUpstream'; name: string }
+  | { kind: 'createBranchWithNoHistory' }
   | { kind: 'pushTag'; name: string }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }

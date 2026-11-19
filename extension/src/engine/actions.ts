@@ -47,6 +47,13 @@ export function engineRuns(
     // Branches.
     case 'createBranch':
       return [{ feature: 'branch.create', target: targetOf(action.at, state) }];
+    case 'createBranchWithNoHistory':
+      return [{ feature: 'branch.create-orphan', target: { kind: 'head' } }];
+    case 'setUpstream':
+      // On the branch checked out, from the Command Palette, the target is `HEAD`, which the engine takes as that branch.
+      return [{ feature: 'branch.set-upstream', target: action.name ? { kind: 'branch', name: action.name } : { kind: 'head' } }];
+    case 'unsetUpstream':
+      return [{ feature: 'branch.unset-upstream', target: { kind: 'branch', name: action.name } }];
 
     // Undo.
     case 'undo':
@@ -104,6 +111,8 @@ export function engineRuns(
       return [{ feature: 'tag.delete', target: { kind: 'tag', name: action.name } }];
     case 'pushTag':
       return [{ feature: 'tag.push', target: { kind: 'tag', name: action.name } }];
+    case 'deleteTagOnRemote':
+      return [{ feature: 'tag.delete-remote', target: { kind: 'tag', name: action.name }, answers: action.here ? { here: { kind: 'flag', value: true } } : {} }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
     case 'merge':
       if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];

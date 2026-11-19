@@ -1154,6 +1154,12 @@ pick, which needs a query of the engine that reaches the network, and the marks 
 Phase 4 is built: **Create branch with no history…** in Quick search and in **…** after **Branch**, the question of what
 the working tree keeps, Undo from the journal back to what was checked out before, and the header that names the branch
 with **no commits yet** (`branch.create-orphan`, `undo.journal`, `graph.where`).
+Phase 5 is built for what the desktop has: **Set upstream…**, **Change upstream…** and **Stop tracking `<upstream>`** in
+the menu of a local branch (`trackingEntries` in `src/webview/menus.ts`), **Delete from `<remote>`** and **Delete here
+and from `<remote>`** in the menu of a tag (`deleteOnRemoteEntries`), **Gitardo: Set Upstream of the Current Branch…**
+and **Gitardo: Create Branch with No History…** in the Command Palette, the second also in the **…** of the Branches
+view, each run on the engine. **Check tags on `<remote>`**, **Push tags…** and the marks in `RefsTree` wait for their
+cards in the desktop. No version of the protocol changed: the extension sends `feature/run` as before.
 
 Exit: in a repository whose `feature` follows nothing and whose `origin` has `feature` and `release`, **Set upstream…**
 on `feature` lists `origin/feature` first, and once picked the branch rail says how far `feature` is from it;

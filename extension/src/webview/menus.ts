@@ -333,6 +333,8 @@ export function branchMenu(branch: Branch, state: RepoState, onCompare: (compari
     pullEntry(pushedName(branch, state), state, true),
     favoriteEntry(`refs/heads/${name}`, state),
     'separator',
+    ...trackingEntries(branch, state),
+    'separator',
     { label: 'Create branch here…', run: () => act({ kind: 'createBranch', at: refArg('branch', name, state) }) },
     !checkedOut && { label: 'Create worktree…', run: () => act({ kind: 'worktreeAdd', ref: name, isBranch: true }) },
     { label: worktree ? 'Rename branch…' : 'Rename…', run: () => act({ kind: 'renameBranch', name }) },
@@ -446,8 +448,40 @@ export function tagMenu(tag: Tag, state: RepoState, onCompare: (comparing: Compa
     'separator',
     state.remotes.length > 0 && { label: 'Push tag', run: () => act({ kind: 'pushTag', name }) },
     { label: 'Delete', danger: true, run: () => act({ kind: 'deleteTag', name }) },
+    ...deleteOnRemoteEntries(name, state),
     'separator',
     { label: 'Copy name', run: () => copy(name) },
+  ];
+}
+
+/**
+ * **Delete from origin** and **Delete here and from origin** with one remote, or **Delete from a remote…** and **Delete
+ * here and from a remote…** with several, which the engine asks which; none without a remote (`tag.delete-remote`).
+ */
+export function deleteOnRemoteEntries(name: string, state: Pick<RepoState, 'remotes'>): MenuEntry[] {
+  if (state.remotes.length === 0) return [];
+  const remote = state.remotes.length === 1 ? state.remotes[0] : null;
+  return [
+    { label: remote ? `Delete from ${remote}` : 'Delete from a remote…', danger: true, run: () => act({ kind: 'deleteTagOnRemote', name, here: false }) },
+    {
+      label: remote ? `Delete here and from ${remote}` : 'Delete here and from a remote…',
+      danger: true,
+      run: () => act({ kind: 'deleteTagOnRemote', name, here: true }),
+    },
+  ];
+}
+
+/**
+ * **Set upstream…** on a local branch that follows nothing, or **Change upstream…** and **Stop tracking `<upstream>`**
+ * on one that follows a remote branch, gone or not, when the repository has a remote (`branch.set-upstream`,
+ * `branch.unset-upstream`).
+ */
+export function trackingEntries(branch: Branch, state: Pick<RepoState, 'remotes'>): MenuEntry[] {
+  const { name, upstream } = branch;
+  if (!upstream) return state.remotes.length > 0 ? [{ label: 'Set upstream…', run: () => act({ kind: 'setUpstream', name }) }] : [];
+  return [
+    { label: 'Change upstream…', run: () => act({ kind: 'setUpstream', name }) },
+    { label: `Stop tracking ${upstreamName(upstream)}`, run: () => act({ kind: 'unsetUpstream', name }) },
   ];
 }
 

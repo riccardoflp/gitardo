@@ -2,6 +2,14 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- The context menu of a local branch, in the graph, the references and the Branches view, has **Set upstream…** for a branch that follows nothing, or **Change upstream…** and **Stop tracking `origin/work`** for one that follows a remote branch; **Gitardo: Set Upstream of the Current Branch…** is in the Command Palette.
+- The context menu of a tag has **Delete from origin** and **Delete here and from origin**, or **Delete from a remote…** and **Delete here and from a remote…** with several remotes. They warn first, and delete the tag here only once the remote took it away.
+- **Gitardo: Create Branch with No History…**, in the Command Palette and in the **…** of the Branches view, starts a branch whose first commit has no parent, with no files or with the files kept and staged; Undo right after checks out again what was checked out before.
+
 ## 1.2.0 - 2026-11-18
 
 ### Added

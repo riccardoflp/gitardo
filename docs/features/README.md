@@ -267,7 +267,7 @@ earns it.
 | [`branch.checkout-remote-and-rebase`](06-branches-tags-remotes.md#branchcheckout-remote-and-rebase--check-out-a-branch-and-rebase-it-onto-its-remote-branch) | Check out a branch and rebase it onto its remote branch | Operation | Built | Built |
 | [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit) | Check out a commit | Operation | Built | Built |
 | [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Built | Built |
-| [`branch.create-orphan`](06-branches-tags-remotes.md#branchcreate-orphan--create-a-branch-with-no-history) | Create a branch with no history | Operation | Built | Planned |
+| [`branch.create-orphan`](06-branches-tags-remotes.md#branchcreate-orphan--create-a-branch-with-no-history) | Create a branch with no history | Operation | Built | Built |
 | [`branch.format-name`](06-branches-tags-remotes.md#branchformat-name--expand-the-format-of-branch-names) | Expand the format of branch names | Derivation | Built | Built |
 | [`branch.name-from-format`](06-branches-tags-remotes.md#branchname-from-format--ask-for-the-parts-of-the-format) | Ask for the parts of the format | Derivation | Built | Built |
 | [`branch.validate-name`](06-branches-tags-remotes.md#branchvalidate-name--what-git-does-not-take-as-a-name) | What git does not take as a name | Derivation | Built | Built |
@@ -276,8 +276,8 @@ earns it.
 | [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Built | Built |
 | [`branch.clean-up`](06-branches-tags-remotes.md#branchclean-up--clean-up-branches) | Clean up branches | Operation | Built | Built |
 | [`branch.fast-forward`](06-branches-tags-remotes.md#branchfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Built | Built |
-| [`branch.set-upstream`](06-branches-tags-remotes.md#branchset-upstream--set-or-change-the-upstream-of-a-branch) | Set or change the upstream of a branch | Operation | Built | Planned |
-| [`branch.unset-upstream`](06-branches-tags-remotes.md#branchunset-upstream--stop-tracking-the-upstream) | Stop tracking the upstream | Operation | Built | Planned |
+| [`branch.set-upstream`](06-branches-tags-remotes.md#branchset-upstream--set-or-change-the-upstream-of-a-branch) | Set or change the upstream of a branch | Operation | Built | Built |
+| [`branch.unset-upstream`](06-branches-tags-remotes.md#branchunset-upstream--stop-tracking-the-upstream) | Stop tracking the upstream | Operation | Built | Built |
 | [`branch.pane`](06-branches-tags-remotes.md#branchpane--the-branch-rail-its-buttons-and-its-comparison) | The branch rail, its buttons and its comparison | View | Built | Built |
 | [`branch.read-log`](06-branches-tags-remotes.md#branchread-log--read-the-commits-of-what-is-checked-out) | Read the commits of what is checked out | Read | Built | Built |
 | [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Built | Built |
@@ -287,7 +287,7 @@ earns it.
 | [`tag.remote-marks`](06-branches-tags-remotes.md#tagremote-marks--the-tags-a-remote-lacks-marked) | The tags a remote lacks, marked | View | Specified | Planned |
 | [`tag.push-all`](06-branches-tags-remotes.md#tagpush-all--push-the-tags-a-remote-lacks) | Push the tags a remote lacks | Operation | Specified | Planned |
 | [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Built | Built |
-| [`tag.delete-remote`](06-branches-tags-remotes.md#tagdelete-remote--delete-a-tag-from-a-remote) | Delete a tag from a remote | Operation | Built | Planned |
+| [`tag.delete-remote`](06-branches-tags-remotes.md#tagdelete-remote--delete-a-tag-from-a-remote) | Delete a tag from a remote | Operation | Built | Built |
 | [`tag.checkout`](06-branches-tags-remotes.md#tagcheckout--check-out-a-tag) | Check out a tag | Operation | Built | Built |
 | [`remote.read-remotes`](06-branches-tags-remotes.md#remoteread-remotes--read-the-remotes) | Read the remotes | Read | Built | Built |
 | [`remote.default`](06-branches-tags-remotes.md#remotedefault--the-remote-a-new-upstream-or-a-tag-goes-to) | The remote a new upstream or a tag goes to | Derivation | Built | Built |
