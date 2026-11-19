@@ -9,6 +9,16 @@ use super::{Image, MOST_PIXELS};
 pub enum ImageFormat {
     /// Portable Network Graphics.
     Png,
+    /// JPEG, which photos are.
+    Jpeg,
+    /// Graphics Interchange Format, of which the first frame is drawn.
+    Gif,
+    /// WebP, of which the first frame is drawn.
+    WebP,
+    /// The bitmaps of Windows.
+    Bmp,
+    /// The icons of Windows, of which the largest image is drawn.
+    Ico,
     /// Scalable Vector Graphics, which is text.
     Svg,
 }
@@ -45,8 +55,19 @@ pub enum NotRead {
 /// case. None for a file that is not an image.
 #[must_use]
 pub fn image_format(bytes: &[u8], path: &str) -> Option<ImageFormat> {
-    if bytes.starts_with(PNG_SIGNATURE) {
-        return Some(ImageFormat::Png);
+    let signatures: [(&[u8], ImageFormat); 6] = [
+        (PNG_SIGNATURE, ImageFormat::Png),
+        (b"\xff\xd8\xff", ImageFormat::Jpeg),
+        (b"GIF87a", ImageFormat::Gif),
+        (b"GIF89a", ImageFormat::Gif),
+        (b"BM", ImageFormat::Bmp),
+        (b"\x00\x00\x01\x00", ImageFormat::Ico),
+    ];
+    if let Some((_, format)) = signatures.iter().find(|(signature, _)| bytes.starts_with(signature)) {
+        return Some(*format);
+    }
+    if bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(&b"WEBP"[..]) {
+        return Some(ImageFormat::WebP);
     }
     let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
     let is_svg = name
@@ -55,8 +76,10 @@ pub fn image_format(bytes: &[u8], path: &str) -> Option<ImageFormat> {
     is_svg.then_some(ImageFormat::Svg)
 }
 
-/// The pixels of the bytes of a file, its size, its format and its weight; or why it is not read. An SVG is drawn at the
-/// scale of the screen, so that it stays sharp, with the fonts of the program, and nothing outside the file read.
+/// The pixels of the bytes of a file, its size, its format and its weight; or why it is not read. PNG is read by the
+/// library `tiny-skia` reads it with, and JPEG, GIF, WebP, BMP and ICO by `image`: the first frame of an animation, the
+/// largest image of an ICO. An SVG is drawn at the scale of the screen, so that it stays sharp, with the fonts of the
+/// program, and nothing outside the file read.
 ///
 /// Feature: file-view.read-image
 ///
@@ -77,6 +100,16 @@ pub fn read_image(bytes: &[u8], path: &str, scale: f32) -> Result<ImageRead, Not
                 image: Image::of_pixmap(&pixmap),
                 width: pixmap.width(),
                 height: pixmap.height(),
+                format,
+                weight,
+            })
+        }
+        ImageFormat::Jpeg | ImageFormat::Gif | ImageFormat::WebP | ImageFormat::Bmp | ImageFormat::Ico => {
+            let image = super::raster::read_raster(bytes, format)?;
+            Ok(ImageRead {
+                width: image.width(),
+                height: image.height(),
+                image,
                 format,
                 weight,
             })

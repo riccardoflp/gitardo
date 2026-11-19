@@ -172,7 +172,7 @@ fn commit_page_images__an_svg_shows_its_lines_and_show_the_images_shows_its_two_
 
 #[test]
 fn commit_page_images__a_comparison_of_two_branches_that_differ_in_a_png_shows_its_two_versions() {
-    let mut repository = Repository::new();
+    let repository = Repository::new();
     let _ = commit_bytes(&repository, "logo.png", &png_of(10, 10, [1, 2, 3, 255]), "Add the logo");
     repository.branch("feature");
     repository.checkout("feature");

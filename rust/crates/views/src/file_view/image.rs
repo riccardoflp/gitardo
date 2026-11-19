@@ -82,6 +82,11 @@ pub fn not_read_words(not_read: &NotRead) -> String {
 pub fn format_name(format: ImageFormat) -> &'static str {
     match format {
         ImageFormat::Png => "PNG",
+        ImageFormat::Jpeg => "JPEG",
+        ImageFormat::Gif => "GIF",
+        ImageFormat::WebP => "WebP",
+        ImageFormat::Bmp => "BMP",
+        ImageFormat::Ico => "ICO",
         ImageFormat::Svg => "SVG",
     }
 }

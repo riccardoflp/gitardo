@@ -1452,8 +1452,8 @@ Rules:
 - PNG is read by the library `tiny-skia` reads it with, SVG drawn by `resvg` as `file-view.mermaid` draws a diagram:
   at the scale of the screen so that it stays sharp, with the fonts of the program, nothing outside the file read,
   neither an image it names nor a font of the system. JPEG, GIF, WebP, BMP and ICO are read by one library chosen as
-  D22 says. A GIF, and an animated PNG or WebP, gives its first frame ([Q841](../08-decisions.md#open-questions)); an
-  ICO its largest image.
+  D22 says: `image`, with only those five formats. A GIF, and an animated PNG or WebP, gives its first frame
+  ([Q841](../08-decisions.md#open-questions)); an ICO its largest image.
 - An image with more than 64 million pixels is not read: *This image is too large to draw.* Bytes the format cannot
   read: *This image could not be read.* An SVG with an error: *This SVG could not be drawn: \<what the library
   says\>*.
@@ -1468,7 +1468,7 @@ Acceptance:
 - [x] An SVG with `width="10" height="20"` at a scale of 2 gives 20 × 40 pixels and a size of 10 × 20.
 - [x] An SVG that names `<image href="secret.png">` and a font not of the program is drawn without either, and reads no
       file.
-- [ ] A JPEG, a GIF, a WebP, a BMP and an ICO of the tests are each read with their size; an animated GIF gives its
+- [x] A JPEG, a GIF, a WebP, a BMP and an ICO of the tests are each read with their size; an animated GIF gives its
       first frame.
 - [x] A PNG cut short gives *This image could not be read.*; a PNG of 10,000 × 10,000 gives *This image is too large
       to draw.*

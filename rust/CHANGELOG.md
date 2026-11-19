@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- JPEG, GIF, WebP, BMP and ICO are drawn wherever a PNG is: in the File page, the Diff page, the page of a commit and
+  the preview of Markdown. A GIF or an animated WebP shows its first frame, an ICO its largest image.
 - The page of a commit shows, with its changes, the two versions of an image it changed side by side under the header
   of its diff, in place of *Binary file.*: each at most 240 pixels high and half the width of the page, **Empty** on a
   side with none, with its size and weight under it. They are read once the diff is shown unfolded, and a click on

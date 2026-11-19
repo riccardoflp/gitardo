@@ -74,7 +74,7 @@ app ──► views ──► ui ──► render ──► platform ──► s
  ├──► settings ──► json, model (the files read, the settings of the features)
  ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)
  ├──► terminal ──► model (the screen it reads), alacritty_terminal (D53), system (the side of a pseudo-terminal)
- │   render ──► tiny-skia, cosmic-text (D16), svgtypes (D53), resvg (D60)
+ │   render ──► tiny-skia, cosmic-text (D16), svgtypes (D53), resvg (D60), image (D74)
  │   text ──► merman (D60)
  │   platform ──► winit, softbuffer, arboard, rfd, accesskit_winit (D16)
  └──► every other crate below it: platform, system, ui, render, model, git, text (D15)

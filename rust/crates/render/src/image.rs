@@ -1,6 +1,7 @@
 //! Images read from files, drawn scaled into a rectangle: the images of a repository wherever their files are shown
 //! (`file-view.read-image`), and the diagrams of Mermaid, drawn from their SVG (`file-view.mermaid`).
 
+mod raster;
 mod read;
 mod svg;
 
@@ -56,6 +57,19 @@ impl Image {
         Image {
             width: pixmap.width(),
             height: pixmap.height(),
+            pixels: pixels.into(),
+            key: hasher.finish(),
+        }
+    }
+
+    /// The image of pixels of four bytes each, red, green, blue and opacity, not multiplied by the opacity.
+    fn of_rgba(width: u32, height: u32, pixels: Vec<u8>) -> Image {
+        let mut hasher = DefaultHasher::new();
+        pixels.hash(&mut hasher);
+        (width, height).hash(&mut hasher);
+        Image {
+            width,
+            height,
             pixels: pixels.into(),
             key: hasher.finish(),
         }

@@ -23,3 +23,7 @@ svgtypes = { version = "=0.16.2", default-features = false, features = ["std"] }
 # fonts of the program. 0.47.0, the release that shares fontdb with cosmic-text, svgtypes with this crate and tiny-skia
 # with the window; only its feature `text`: no fonts of the system, no image decoders, no compressed SVG.
 resvg = { version = "=0.47.0", default-features = false, features = ["text"] }
+# JPEG, GIF, WebP, BMP and ICO, wherever an image file is shown (`file-view.read-image`, D74): one library for the five,
+# weighed as D22 says, against five decoders kept apart and BMP and ICO written here. Only those five formats, no
+# threads of its own; it brings the decoders of zune-jpeg, gif and image-webp, and the png tiny-skia already uses.
+image = { version = "=0.25.10", default-features = false, features = ["jpeg", "gif", "webp", "bmp", "ico"] }
