@@ -245,7 +245,9 @@ Gitardo open over the window covers the header bar, which is then not the captio
 window under a dialog of its own does not move it.
 
 On Linux the window is opened without decorations, and a press on the caption or on an edge asks the compositor to
-move it, to maximize or restore it on a double click, to resize it or to open its menu, as `winit` lets a window ask; on
+move it, to maximize or restore it on a double click, to resize it or to open its menu, as `winit` lets a window ask;
+a right click on the caption opens the compositor's menu of the window, asked with `xdg_toplevel.show_window_menu` on
+Wayland and with the message `_GTK_SHOW_WINDOW_MENU` to the window manager on X11, at the place of the pointer; on
 macOS the system's title bar is transparent over the header bar, which starts after the system's three buttons, and
 the system resizes the window from its edges. On Windows the window is opened without decorations, keeping the styles of a window with a frame, so that the system
 still gives it its shadow, its rounded corners, Aero Snap and its keys; its inside covers the frame, within the work
@@ -285,6 +287,8 @@ Acceptance:
 - [ ] A place kept is used on a screen, and not when it is off every screen.
 - [ ] On Linux and macOS a press on the caption or an edge asks the system to move, maximize or restore, or resize
       the window, or to open its menu.
+- [ ] On Linux a right click on the caption opens the compositor's menu of the window where the pointer is:
+      `xdg_toplevel.show_window_menu` on Wayland, `_GTK_SHOW_WINDOW_MENU` to the window manager on X11.
 
 ### `window.caption-buttons` — Minimize, maximize and close
 

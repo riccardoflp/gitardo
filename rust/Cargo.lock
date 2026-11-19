@@ -2543,6 +2543,7 @@ dependencies = [
  "softbuffer",
  "system",
  "winit",
+ "x11-dl",
 ]
 
 [[package]]

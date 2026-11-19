@@ -26,8 +26,8 @@ impl FrameAction {
         matches!(self, FrameAction::Move | FrameAction::Resize(_))
     }
 
-    /// Asks the system for it, at a place of the window in physical pixels. A system that cannot do it, such as one
-    /// whose compositor has no menu of the window for `winit` to open, leaves the window as it is.
+    /// Asks the system for it, at a place of the window in physical pixels. A system that cannot do it, such as a
+    /// window manager or a compositor with no menu of the window, leaves the window as it is.
     #[cfg(not(windows))]
     pub(crate) fn ask(self, window: &winit::window::Window, place: winit::dpi::PhysicalPosition<f64>) {
         match self {
@@ -35,12 +35,24 @@ impl FrameAction {
                 let _ = window.drag_window();
             }
             FrameAction::ToggleMaximized => window.set_maximized(!window.is_maximized()),
-            FrameAction::WindowMenu => window.show_window_menu(place),
+            FrameAction::WindowMenu => show_window_menu(window, place),
             FrameAction::Resize(edge) => {
                 let _ = window.drag_resize_window(resize_direction(edge));
             }
         }
     }
+}
+
+/// Asks for the menu of the window: of the window manager on X11, by `platform` itself; through `winit` elsewhere,
+/// which asks the compositor on Wayland (`xdg_toplevel.show_window_menu`) and opens nothing on macOS.
+#[cfg(not(windows))]
+fn show_window_menu(window: &winit::window::Window, place: winit::dpi::PhysicalPosition<f64>) {
+    #[cfg(target_os = "linux")]
+    if let Some(x11) = crate::linux::X11Window::of(window) {
+        x11.show_window_menu(place);
+        return;
+    }
+    window.show_window_menu(place);
 }
 
 /// What a press of a button on a place of the window asks: on the caption the main button moves the window, twice it

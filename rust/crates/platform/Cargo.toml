@@ -40,5 +40,10 @@ softbuffer = { version = "=0.4.8", default-features = false, features = ["x11", 
 #   frame is drawn instead.
 winit = { version = "=0.30.13", default-features = false, features = ["rwh_06", "x11", "wayland", "wayland-dlopen"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# The bindings of Xlib, loaded when the program runs, which winit uses already: the menu of the window on X11, asked of
+# the window manager on winit's own connection, since winit 0.30 opens it on Wayland and Windows only.
+x11-dl = "=2.21.0"
+
 [lints]
 workspace = true

@@ -14,6 +14,8 @@
 - On Linux under Wayland, copy and paste speak to the compositor's own clipboard, with no XWayland, on the
   compositors that offer the protocol `ext-data-control` or `wlr-data-control` (KDE Plasma, Sway, Hyprland and the
   others of wlroots); on GNOME, whose compositor offers neither, and on X11, the clipboard of X11 as before.
+- On Linux a right click on the title bar opens the menu of the window of the desktop, where the pointer is: the
+  compositor's on Wayland, and the window manager's on X11 (`_GTK_SHOW_WINDOW_MENU`, which GNOME and Xfce read).
 
 ## 1.2.0 - 2026-11-18
 

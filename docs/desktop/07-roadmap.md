@@ -928,7 +928,11 @@ tests of `platform` under Weston and passes; every card of the milestone passes 
 
 Built: phase 1, the feature `wayland-data-control` of `arboard` (`wl-clipboard-rs`): on Wayland the compositor's own
 clipboard, through `ext-data-control` or `wlr-data-control`, and X11 as before where there is no Wayland or the
-compositor offers neither, as GNOME's and Weston's, through XWayland then (Q1380); Q355 is answered.
+compositor offers neither, as GNOME's and Weston's, through XWayland then (Q1380); Q355 is answered. Phase 2: on
+Wayland `winit` 0.30.13 asks `xdg_toplevel.show_window_menu` already; on X11, where it asks nothing,
+`crates/platform/src/linux/window_menu.rs` sends `_GTK_SHOW_WINDOW_MENU` to the window manager on `winit`'s connection
+of Xlib, through `x11-dl`, which `winit` uses too (Q1381); Q570 is answered, and `window.title-bar` has its line of the
+menu on Linux.
 
 ## M30 — GitHub Copilot, an AI provider (done)
 

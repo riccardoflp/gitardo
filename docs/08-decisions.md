@@ -4331,7 +4331,10 @@ the reading given until the card says otherwise.
 - **Q570** — `window.title-bar`: the menu of the window on Linux. Built: a right click on the caption asks for it
   through `winit`, whose version 0.30 opens it only on Windows, so nothing opens on X11 or Wayland until `winit` does;
   the three buttons and the keys of the desktop remain. Asking the compositor directly (`xdg_toplevel.show_window_menu`
-  on Wayland, `_GTK_SHOW_WINDOW_MENU` on X11) would be code of our own, proposed apart.
+  on Wayland, `_GTK_SHOW_WINDOW_MENU` on X11) would be code of our own, proposed apart. *Answered in milestone M29*:
+  `winit` 0.30.13 asks `xdg_toplevel.show_window_menu` on Wayland already, and does nothing on X11, where `platform`
+  sends `_GTK_SHOW_WINDOW_MENU` to the window manager itself, on `winit`'s connection of Xlib (`x11-dl`). The window
+  managers that read the message, as GNOME's and Xfce's, open their menu; one that does not opens nothing (Q1381).
 - **Q571** — `window.caption-buttons`: where the logo goes on macOS, whose three buttons take the top left. Built: the
   header bar starts 78 logical pixels from the left edge, after the buttons, and the bar of views starts below the
   header bar; the square above it is left empty under the buttons, and the logo of `window.brand` starts the header bar
@@ -5145,6 +5148,11 @@ built; each is built as it says until the maintainer answers otherwise.
   need the window where it is made (`app` makes one on the thread of an operation, which has none, to read what an
   operation is given from the clipboard). Should it come, for
   GNOME without XWayland?
+- **Q1381** — `window.title-bar` (M29): on X11 the menu of the window is asked with `_GTK_SHOW_WINDOW_MENU`, which
+  the window managers GTK's own windows rely on read, as Mutter and Xfwm; a window manager that does not read it
+  leaves the right click with nothing, and no one has tried it on each. GTK reads `_NET_SUPPORTED` first and draws a menu
+  of its own when the message is not listed. Should Gitardo do so too, with **Minimize**, **Maximize** and **Close**
+  in a menu of its own where the window manager has none?
 
 ### Of Ask Gitardo, from Q866
 
