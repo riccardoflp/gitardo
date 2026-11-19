@@ -6,6 +6,7 @@ mod beside;
 mod edit;
 mod find;
 mod go_to_line;
+mod image;
 mod markdown;
 mod question;
 
@@ -25,6 +26,10 @@ pub use beside::{BesideFilesState, beside_files_view};
 pub use edit::edit_view;
 pub use find::find_view;
 pub use go_to_line::{GoToLineState, go_to_line_view, parse_line};
+pub use image::{
+    ImageIntent, ImagePlace, ImageShown, ImageState, ZOOM_STEPS, caption, fit_zoom, format_name, image_view,
+    not_read_words, step_in, step_out,
+};
 pub use markdown::{
     DiagramFailure, DiagramShown, DrawnDiagram, MarkdownContent, MarkdownIntent, MarkdownState, markdown_view,
 };
@@ -68,6 +73,8 @@ pub enum FileShown<'a> {
     Failed(&'a str),
     /// The text of the file in the editor.
     Text(FileText<'a>),
+    /// The picture of an image file, and where it is drawn (`file-view.image`).
+    Image(ImageShown<'a>, ImagePlace),
 }
 
 /// The text of a File page, as its editor draws it.
@@ -140,6 +147,8 @@ pub struct FilePageState<'a> {
     pub blame: crate::blame::PageBlame<'a>,
     /// Whether the file is Markdown, and whether it shows its text or its preview (`file-view.markdown-preview`).
     pub markdown: Option<MarkdownShown<'a>>,
+    /// Whether the file is an SVG, and whether it shows its picture, **Preview**, rather than its text (`file-view.image`).
+    pub svg_preview: Option<bool>,
 }
 
 /// What the page of a Markdown file shows.
@@ -197,6 +206,8 @@ pub enum FilePageIntent {
     CloseGoToLine,
     /// Something asked of the preview of a Markdown file.
     Markdown(MarkdownIntent),
+    /// Something asked of the picture of an image file.
+    Image(ImageIntent),
 }
 
 /// The answers to **Save changes to app.rs?**
@@ -227,8 +238,18 @@ pub fn page_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             intents.extend(ui.clip(find, |ui| find_view(state, ui)));
         }
         let body = area.rest();
+        if let FileShown::Image(shown, place) = state.shown {
+            let image = ImageState {
+                id: state.id,
+                name: state.title,
+                shown,
+                place,
+            };
+            intents.extend(ui.clip(body, |ui| image_view(&image, ui)));
+            return;
+        }
         let said = match state.shown {
-            FileShown::Text(_) => None,
+            FileShown::Text(_) | FileShown::Image(..) => None,
             FileShown::Reading => Some(words::READING),
             FileShown::NotText => Some(words::NOT_TEXT),
             FileShown::Failed(error) => Some(error),
@@ -284,25 +305,27 @@ fn bar_view(state: &FilePageState<'_>, ui: &mut Ui<'_>, rect: ui::Rect, intents:
 }
 
 /// **Preview** and **Source** at the right of the title of a Markdown file, the one shown filled.
+/// An SVG has them too, **Preview** being its picture (`file-view.image`).
 fn markdown_buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -> Vec<Intent> {
-    let Some(shown) = state.markdown else {
-        return Vec::new();
+    let (is_preview, source, preview, preview_tooltip) = match (state.markdown, state.svg_preview) {
+        (Some(shown), _) => (
+            matches!(shown, MarkdownShown::Preview(_)),
+            FilePageIntent::Markdown(MarkdownIntent::ShowSource),
+            FilePageIntent::Markdown(MarkdownIntent::ShowPreview),
+            words::PREVIEW_TOOLTIP,
+        ),
+        (None, Some(is_preview)) => (
+            is_preview,
+            FilePageIntent::Image(ImageIntent::ShowSource),
+            FilePageIntent::Image(ImageIntent::ShowPreview),
+            words::IMAGE_PREVIEW_TOOLTIP,
+        ),
+        (None, None) => return Vec::new(),
     };
-    let is_preview = matches!(shown, MarkdownShown::Preview(_));
     let mut intents = Vec::new();
     for (said, tooltip, is_on, asked) in [
-        (
-            words::SOURCE,
-            words::SOURCE_TOOLTIP,
-            !is_preview,
-            MarkdownIntent::ShowSource,
-        ),
-        (
-            words::PREVIEW,
-            words::PREVIEW_TOOLTIP,
-            is_preview,
-            MarkdownIntent::ShowPreview,
-        ),
+        (words::SOURCE, words::SOURCE_TOOLTIP, !is_preview, source),
+        (words::PREVIEW, preview_tooltip, is_preview, preview),
     ] {
         let button = Button::secondary(said).with_tooltip(tooltip);
         let button = if is_on {
@@ -313,7 +336,7 @@ fn markdown_buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area
         let (width, height) = ui.button_size(&button);
         let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
         if ui.button(("markdown switch", state.id, said), cell, &button).clicked {
-            intents.push(page_intent(state, FilePageIntent::Markdown(asked)));
+            intents.push(page_intent(state, asked));
         }
     }
     intents

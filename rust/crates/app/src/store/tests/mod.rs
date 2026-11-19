@@ -72,6 +72,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadMerge { .. }
             | JobKind::ReadFile { .. }
             | JobKind::ReadImage { .. }
+            | JobKind::DrawImage { .. }
             | JobKind::DrawDiagram { .. }
             | JobKind::ReadComparison { .. }
             | JobKind::ReadInPlace { .. }
@@ -174,6 +175,12 @@ fn not_listed(job: JobId, kind: &JobKind) -> Message {
             result: Err(String::from("not read in these tests")),
         };
     }
+    if let JobKind::DrawImage { .. } = kind {
+        return Message::ImageDrawn {
+            job,
+            result: Err(render::image::NotRead::NotImage),
+        };
+    }
     if let JobKind::ReadImage { .. } = kind {
         return Message::ImageRead { job, image: None };
     }
@@ -264,6 +271,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
         | JobKind::ReadNewWorktrees { .. }
         | JobKind::ReadIgnored { .. }
         | JobKind::ReadImage { .. }
+        | JobKind::DrawImage { .. }
         | JobKind::ReadBlame { .. }
         | JobKind::DrawDiagram { .. } => not_listed(job, kind),
     }

@@ -21,6 +21,15 @@ pub fn page_state(state: &State, id: FilePageId) -> Option<FilePageState<'_>> {
             focus: page.focus,
         }),
     };
+    let shown = match &page.image {
+        Some(image) if image.is_picture_shown() => FileShown::Image(image.shown(), image.place),
+        _ => shown,
+    };
+    let svg_preview = page
+        .image
+        .as_ref()
+        .filter(|image| image.format == render::image::ImageFormat::Svg)
+        .map(|image| image.is_preview);
     let line_count = page.document().map_or(1, |document| document.buffer().line_count());
     Some(FilePageState {
         id,
@@ -45,6 +54,7 @@ pub fn page_state(state: &State, id: FilePageId) -> Option<FilePageState<'_>> {
         wrap: state.settings.word_wrap,
         blame: views::blame::PageBlame::default(),
         markdown: super::markdown::shown(page),
+        svg_preview,
     })
 }
 

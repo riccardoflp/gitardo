@@ -187,7 +187,9 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadDetails { folder, .. } => (folder, activity::SHOWING_DETAILS),
         JobKind::ReadCommitPage { folder, .. } => (folder, activity::OPENING_COMMIT_PAGE),
         JobKind::ReadDiff { folder, .. } => (folder, activity::COMPUTING_DIFF),
-        JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } => (folder, activity::OPENING_FILE),
+        JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } | JobKind::DrawImage { folder, .. } => {
+            (folder, activity::OPENING_FILE)
+        }
         JobKind::DrawDiagram { folder, .. } => (folder, activity::DRAWING_DIAGRAM),
         JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (folder, activity::COMPARING),
         JobKind::CountConflicts { folder } => (folder, activity::COUNTING_CONFLICTS),

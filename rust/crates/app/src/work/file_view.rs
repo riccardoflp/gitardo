@@ -8,6 +8,10 @@ use git::{CancelToken, Git};
 use model::CommitId;
 use views::file_view::FilePageId;
 
+/// How many pixels the picture of an SVG has for each logical pixel: two, so that it stays sharp on a screen that has
+/// as many, and is drawn smoothly scaled down on one that has fewer, as a diagram of Mermaid is.
+pub const DRAW_SCALE: f32 = 2.0;
+
 /// What a read of a file is given.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FileJob {

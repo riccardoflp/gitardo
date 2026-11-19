@@ -129,6 +129,13 @@ pub enum Message {
         /// The image, none when it is not there or could not be read as an image.
         image: Option<render::Image>,
     },
+    /// A job that drew the picture of an image file of a File page is done (`file-view.image`).
+    ImageDrawn {
+        /// The job.
+        job: JobId,
+        /// The image read, or why it is not.
+        result: Result<render::image::ImageRead, render::image::NotRead>,
+    },
     /// A job that drew a diagram of Mermaid of the preview of a Markdown file is done (`file-view.mermaid`).
     DiagramDrawn {
         /// The job.
@@ -380,6 +387,15 @@ pub enum JobKind {
         folder: PathBuf,
         /// The image read.
         job: crate::work::file_view::FileJob,
+    },
+    /// Draws the picture of the bytes of an image file of a File page (`file-view.image`).
+    DrawImage {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// The path of the file, which tells an SVG.
+        path: String,
+        /// Its bytes.
+        bytes: Vec<u8>,
     },
     /// Draws a diagram of Mermaid of the preview of a Markdown file in a theme (`file-view.mermaid`).
     DrawDiagram {

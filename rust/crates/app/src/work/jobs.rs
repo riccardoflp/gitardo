@@ -91,6 +91,10 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             image: super::file_view::read_image(folder, file, cancel),
         },
+        JobKind::DrawImage { path, bytes, .. } => Message::ImageDrawn {
+            job: job.id,
+            result: render::image::read_image(bytes, path, super::file_view::DRAW_SCALE),
+        },
         JobKind::DrawDiagram { job: diagram, .. } => Message::DiagramDrawn {
             job: job.id,
             diagram: super::diagram::draw_diagram(diagram),

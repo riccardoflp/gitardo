@@ -1498,7 +1498,8 @@ Rules:
   `1280 × 720 · PNG · 84 KB · 200%`.
 - `Ctrl` with the wheel, `Ctrl+=` and `Ctrl+-` zoom in steps (25%, 50%, 100%, 200%, 400%, 800%) about the pointer,
   and `Ctrl+0` goes back to the fit (`Cmd` on macOS). Larger than the page, it is moved by dragging and by the
-  scroll bars. Above 100% its pixels stay square and sharp, not smoothed, so that a small icon can be looked at.
+  wheel, across with `Shift` ([Q1300](../08-decisions.md#open-questions)). Above 100% its pixels stay square and
+  sharp, not smoothed, so that a small icon can be looked at.
 - An SVG has the title buttons **Preview** and **Source**, the one shown filled, as a Markdown file has: **Preview**
   is the picture, **Source** its text in the editor, which can be edited and saved; **Preview** draws the text as it
   is now. It opens in **Preview** ([Q840](../08-decisions.md#open-questions)), and the switch is kept for the page
@@ -1516,15 +1517,15 @@ Rules:
 
 Acceptance:
 
-- [ ] Clicking `media/logo.png` in the Files page opens a page **logo.png** with the picture and
+- [x] Clicking `media/logo.png` in the Files page opens a page **logo.png** with the picture and
       `512 × 512 · PNG · 18 KB` under it.
-- [ ] A picture of 4000 × 3000 in a page of 800 pixels is drawn 800 wide; one of 16 × 16 is drawn 16 wide.
-- [ ] `Ctrl+=` twice from 100% draws it at 400%, its pixels square; `Ctrl+0` brings back the fit.
-- [ ] `icons/check.svg` opens in **Preview** as its picture; **Source** shows its text, and an edit of its `fill` shows
+- [x] A picture of 4000 × 3000 in a page of 800 pixels is drawn 800 wide; one of 16 × 16 is drawn 16 wide.
+- [x] `Ctrl+=` twice from 100% draws it at 400%, its pixels square; `Ctrl+0` brings back the fit.
+- [x] `icons/check.svg` opens in **Preview** as its picture; **Source** shows its text, and an edit of its `fill` shows
       in **Preview**.
-- [ ] Saving the PNG from another program draws the new picture.
-- [ ] A PNG cut short says *This image could not be read.* and nothing else.
-- [ ] `media/logo.png` at `3f2a1c9` opens a read-only page **logo.png (3f2a1c9)** with the picture of that commit.
+- [x] Saving the PNG from another program draws the new picture.
+- [x] A PNG cut short says *This image could not be read.* and nothing else.
+- [x] `media/logo.png` at `3f2a1c9` opens a read-only page **logo.png (3f2a1c9)** with the picture of that commit.
 - [ ] Extension: **Open the file at this revision** on a PNG opens VS Code's preview of images with the picture of
       the commit.
 

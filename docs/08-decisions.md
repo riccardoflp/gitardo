@@ -5106,6 +5106,9 @@ built; each is built as it says until the maintainer answers otherwise.
   images** on its header. Should its pictures show instead, or above its lines?
 - **Q847** — `diff.image`: in the extension a diff of an image opens VS Code's diff editor with its preview of images,
   also when the Flow Diff is on, since the Flow Diff draws lines. Should the Flow Diff draw the two images itself?
+- **Q1300** — `file-view.image`: a picture larger than the page is moved by dragging and by the wheel, across with
+  `Shift`, with no scroll bars: the scroll bars of the toolkit belong to its scroll areas, which take the wheel that
+  `Ctrl` with the wheel zooms with. Should the page have scroll bars of its own around the picture?
 
 ### Of the name, Wayland and GitHub Copilot, from Q860
 

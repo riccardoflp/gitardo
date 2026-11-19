@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- An image opens in the File page as its picture, in place of *This file is not text.*: centered, fit to the page,
+  on a ground of squares that shows what is transparent, with its size in pixels, its format and its weight under it.
+  `Ctrl` with the wheel, `Ctrl+=` and `Ctrl+-` zoom it in steps up to 800%, its pixels square, and `Ctrl+0` fits it
+  again; dragging or the wheel moves it once it is larger than the page. An SVG opens as its picture, with **Source**
+  for its text and **Preview** drawing the text as it is edited. A picture changed on disk is drawn again, and an
+  image at a revision is drawn the same way.
 - The preview of a Markdown file draws an SVG of the repository it names, as it draws a PNG, with the fonts of
   the program and without reading anything the SVG names.
 

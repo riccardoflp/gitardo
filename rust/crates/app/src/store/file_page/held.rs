@@ -65,6 +65,7 @@ pub fn hold(state: &mut State, file: HeldFile, (path, bytes): (&str, &[u8])) -> 
         go_to_line: None,
         is_hidden: true,
         markdown: super::markdown::preview_of(path, state.settings.markdown_open_as_preview),
+        image: None,
     });
     Some(id)
 }

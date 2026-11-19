@@ -7,6 +7,7 @@ mod diagrams;
 mod edit;
 mod given;
 mod held;
+mod image;
 mod markdown;
 mod save_all;
 mod shown;
@@ -30,6 +31,7 @@ pub(crate) use edit::save;
 pub use edit::{Edited, edit_with, ended, reduce_page};
 pub use given::open_with_text;
 pub use held::{HeldFile, document_of, hold};
+pub use image::{ImagePage, image_drawn};
 pub use markdown::{Preview, image_read, preview_read};
 pub use shown::{close_question, page_state};
 
@@ -145,6 +147,8 @@ pub struct FilePage {
     pub is_hidden: bool,
     /// The preview of a Markdown file, none for another file (`file-view.markdown-preview`).
     pub markdown: Option<Preview>,
+    /// The picture of an image file, none for another file (`file-view.image`).
+    pub image: Option<ImagePage>,
 }
 
 impl FilePage {
@@ -210,6 +214,7 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
         go_to_line: None,
         is_hidden: false,
         markdown: preview,
+        image: None,
     });
     super::pages::show_page(state, Page::File(id));
     start_read(state, id).into_iter().collect()
@@ -320,7 +325,9 @@ pub fn file_read(state: &mut State, job: JobId, result: Result<Option<Vec<u8>>, 
         let line = page.pending_line.take().unwrap_or(1);
         go_to(page, line, serial);
     }
-    let mut effects = markdown::refresh(state, id);
+    let read = page.read.clone();
+    let mut effects = image::take_bytes(state, id, &read);
+    effects.extend(markdown::refresh(state, id));
     effects.extend(given::take_pending(state, id));
     effects
 }
@@ -386,7 +393,12 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
     state.file_pages.pages = kept;
     closed
         .into_iter()
-        .flat_map(|page| page.job.into_iter().chain(markdown::image_jobs(&page)))
+        .flat_map(|page| {
+            page.job
+                .into_iter()
+                .chain(markdown::image_jobs(&page))
+                .chain(image::job(&page))
+        })
         .map(|job| {
             let _cancelled = state.jobs.remove(&job);
             Effect::Cancel(job)

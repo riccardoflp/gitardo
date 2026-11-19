@@ -661,7 +661,7 @@ earns it.
 | [`file-view.markdown-preview`](17-diff-and-merge-views.md#file-viewmarkdown-preview--a-markdown-file-as-it-reads) | A Markdown file as it reads | View | Built | Built |
 | [`file-view.mermaid`](17-diff-and-merge-views.md#file-viewmermaid--a-mermaid-diagram-as-it-is-drawn) | A Mermaid diagram as it is drawn | Derivation | Built | Built |
 | [`file-view.read-image`](17-diff-and-merge-views.md#file-viewread-image--the-pixels-of-an-image-file) | The pixels of an image file | Derivation | Specified | Host only |
-| [`file-view.image`](17-diff-and-merge-views.md#file-viewimage--an-image-as-it-is-drawn) | An image as it is drawn | View | Specified | Planned |
+| [`file-view.image`](17-diff-and-merge-views.md#file-viewimage--an-image-as-it-is-drawn) | An image as it is drawn | View | Built | Planned |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built | Host only |
 | [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built | Host only |
