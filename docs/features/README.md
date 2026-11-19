@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 486 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 493 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -36,6 +36,7 @@ earns it.
 | [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 48 |
 | [18-settings.md](18-settings.md) | Settings | 7 |
 | [19-tasks.md](19-tasks.md) | Tasks | 9 |
+| [20-help.md](20-help.md) | Ask Gitardo | 7 |
 
 ## Repositories
 
@@ -617,6 +618,18 @@ earns it.
 | [`tasks.import-groups`](19-tasks.md#tasksimport-groups--import-groups-of-tasks) | Import groups of tasks | Operation | Built | Host only |
 | [`tasks.export-groups`](19-tasks.md#tasksexport-groups--export-groups-of-tasks) | Export groups of tasks | Operation | Built | Host only |
 | [`tasks.quick-run`](19-tasks.md#tasksquick-run--run-a-task-from-anywhere) | Run a task from anywhere | View | Built | Host only |
+
+## Ask Gitardo
+
+| Feature | Title | Kind | Desktop | Extension |
+| --- | --- | --- | --- | --- |
+| [`help.guide`](20-help.md#helpguide--the-guide-of-the-features) | The guide of the features | Derivation | Specified | Planned |
+| [`help.choose-cards`](20-help.md#helpchoose-cards--which-cards-answer-a-question) | Which cards answer a question | Derivation | Specified | Planned |
+| [`help.question`](20-help.md#helpquestion--what-is-sent-to-answer-a-question) | What is sent to answer a question | Derivation | Specified | Planned |
+| [`help.ask`](20-help.md#helpask--ask-a-question) | Ask a question | Read | Specified | Planned |
+| [`help.read-answer`](20-help.md#helpread-answer--the-answer-read) | The answer, read | Derivation | Specified | Planned |
+| [`help.page`](20-help.md#helppage--the-ask-gitardo-page) | The Ask Gitardo page | View | Specified | Planned |
+| [`help.show-me`](20-help.md#helpshow-me--show-me) | Show me | Derivation | Specified | Planned |
 
 ## The extension's identifiers
 

@@ -952,6 +952,52 @@ leaves the CLI running and the next one is answered; with the CLI signed out, **
 `copilot login`, and once it ends the question is answered; without the CLI, the refusal offers **How to install**;
 every card of the milestone passes its tests, against the fake CLI.
 
+## M31 — Ask Gitardo how to do something
+
+A question in the user's own words, in any language, about how to do something with Gitardo, answered by the AI
+provider from the cards of the catalog, with the words of the controls as they are on screen and a button that does
+what the answer names: a page in the window, the participant `@gitardo` of VS Code's Chat in the extension
+([D76](../08-decisions.md#d76--ask-gitardo-how-to-do-something-answered-from-the-catalog)). Asked by the maintainer,
+who wants a small window where the user asks the AI how to do something with Gitardo's interface. Built in five
+phases, each one commit or more, each ending with the cards it names built where it says and their tests passing: the
+window first, the extension last.
+
+1. **The guide.** `cargo xtask guide` makes `crates/model/src/help/guide.txt` from the cards of `docs/features/`: for
+   each app, the cards Built or Seen there, each with its title, its first paragraph, its entry points and what it
+   refuses, or its **Extension** line, and its place; the names of the places of each app; the index of the guide.
+   `cargo xtask check` fails when the file is not what the catalog makes. `model::help::guide` reads it once.
+   Card: `help.guide`.
+2. **The two requests and the answer.** The first request, which chooses at most 12 cards from the index, and its
+   answer read; the second, with the cards chosen, the places and the conversation, whose answer is streamed; the
+   answer read, `[[id]]` made the title of its card and the features it names listed; both asked of the AI provider
+   with `ai.model` and `ai.effort`, cancelled together, nothing of the repository in them, tried against a recorded
+   provider. Cards: `help.choose-cards`, `help.question`, `help.ask`, `help.read-answer`.
+3. **The Ask Gitardo page.** The page, empty with its three examples, the conversation drawn as the preview of
+   Markdown draws, the box that grows, **Ask** and **Stop**, *Looking for the features…*, **New conversation**, an
+   error with **Try again**, the page with no provider and **Open the settings**; **Ask Gitardo…** in Quick search and
+   the Help menu, and **Ask Gitardo: "…"** as the last entry of Quick search when what is typed finds no command;
+   the activity of the status bar, **asking Gitardo**. Card: `help.page`.
+4. **Show me.** Under an answer, at most 4 buttons: an operation Quick search runs, run as Quick search runs it; a
+   page, opened; a feature done on a commit, a branch, a file or a stash, its place shown with what to choose there
+   said in the status bar. Card: `help.show-me`.
+5. **The extension.** `read/help.ask` in version 1.11 of the protocol, which asks both requests with
+   `host/languageModel`, `purpose` `help`, of the model the Chat chose, with the guide of the extension; the
+   participant `@gitardo` of VS Code's Chat (`chatParticipants` in `package.json`), which writes the answer as it
+   comes and a button for each feature named that has a command, from a table the tests check against `package.json`;
+   **Gitardo: Ask How To…**, which opens the Chat with `@gitardo ` typed, and warns when VS Code has no model.
+   The README of each app and its CHANGELOG say what is new. Cards: `help.guide`, `help.choose-cards`,
+   `help.question`, `help.ask`, `help.read-answer`, `help.page`, `help.show-me`, Built in the extension.
+
+Exit: with an AI provider set, typing *how do I put my changes aside* in Quick search offers **Ask Gitardo: "how do I
+put my changes aside"**, whose page answers with **Stash changes…** in the context menu of the draft and a button
+**Stash Changes** that asks what Quick search's asks; *how do I squash my last three commits?*, asked in Italian, is
+answered in Italian with the selection bar and **Squash commits**, and **Show where** shows the timeline; a question
+about something Gitardo does not do is answered that it does not, with no control made up; **Stop** keeps what came; no
+request recorded has the path, a branch or a commit of the repository; with no provider, the page says how to set one
+up; in VS Code, `@gitardo how do I put my changes aside` in the Chat answers with a button that runs **Gitardo: Stash
+Changes**; every card of the milestone is Built in both apps, and the snapshots of the page match in the dark and in the
+light theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

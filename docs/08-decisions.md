@@ -1620,6 +1620,82 @@ limits, which `openai-compatible` with a token reaches already); keeping the jou
 outlives what it knew of the repository); renaming the folder of the settings with the name (every user's settings and
 secrets left behind, or a move of them to write and test, for a name only Gitardo reads).
 
+## D76 — Ask Gitardo: how to do something, answered from the catalog
+
+*Asked by the maintainer for milestone M31, who wants a place where the user asks the AI how to do something with
+Gitardo's interface; the details proposed by the agent, and the choices it recommended taken: a page in the window,
+the Chat of VS Code in the extension, **Show me** in the milestone, nothing of the repository sent.*
+
+Gitardo has more than four hundred features, and a user who knows what they want of git does not always know where
+Gitardo keeps it: squashing is in the selection bar and the menu of a commit, a fast-forward of a branch checked out in
+another worktree is in the menu of its label, a file's history is in the Files page. Quick search finds a command by
+its name, not by what the user means. Now the user can ask, in their own words and in their own language, and the
+answer says where to click, with the words on screen:
+
+- **The Ask page.** In Gitardo Desktop, a page like the others (D53), titled **Ask Gitardo**: the questions and the
+  answers of the conversation above, the box to type the next one at its foot, **Ask** and `Enter` to send, **Stop**
+  while an answer comes, **New conversation** in its header (`help.page`). It is opened by **Ask Gitardo…** in Quick
+  search and in the Help menu; and when what is typed in Quick search finds no command, the last entry of the picker is
+  **Ask Gitardo: "\<what was typed\>"**, which opens the page with that question asked.
+- **The answer** is short Markdown, drawn as the preview of Markdown draws it: the steps in order, each control named
+  in bold with its words as they are on screen and the place it is in, with the names of the places of
+  [the product](desktop/01-product.md#the-names-of-the-places). Each feature it names becomes a link with the title of
+  its card; when nothing Gitardo has does what was asked, it says so, and may say how git does it (`help.read-answer`).
+- **Show me.** Under an answer, a button for each feature it named that can be done from there (`help.show-me`): an
+  operation Quick search runs is run as Quick search runs it, with its questions, its preview and its confirmation; a
+  page is opened; a feature that needs something chosen first, as a branch or a commit, opens the place where it is
+  (the timeline, the branch rail, the Files page) and says what to choose. The model itself runs nothing.
+
+**The answer comes from the catalog, not from what the model knows.** A model knows git, not Gitardo: asked alone, it
+would invent menus. The cards of [features/](features/README.md) say where each feature is, in the words on screen
+(**Entry points**, **Offered when**, **Refuses**, and the **Extension** line for VS Code); they are the guide the model
+is given (`help.guide`). Only the cards **Built** or **Seen** in the app that asks are in it: a card Specified is a
+feature the user does not have yet. A card *Host only* in the extension is in the extension's guide by its title, as
+something VS Code does.
+
+The guide is made by `cargo xtask guide` from the catalog into `crates/model/src/help/guide.txt`, which the engine holds
+with `include_str!`; `cargo xtask check` fails when the file differs from what the catalog makes now, as it fails when a
+card has no function. Rule R1.2 allows no `build.rs`, and R1.1 nothing read from outside the workspace, so the file is
+made and committed, not made at each build. A card that changes its entry points changes the guide in the same commit.
+
+**Two requests, so that a question in any language finds its cards.** The guide is tens of thousands of words, too
+much to send with each question; ranking the cards by the words of the question would find them only for a question in
+English. So the first request sends the index of the guide, the identifier and the title of each card, one a line,
+with the conversation so far and the question, and asks for the identifiers of at most 12 cards that answer it
+(`help.choose-cards`). The second sends those cards whole, the names of the places of the app that asks, the
+conversation and the question, and asks for the answer (`help.question`). The answer shows as it is written; the
+first request's does not. Both are asked of the provider of `ai.provider`, GitHub Copilot among them once M30 is
+built (D75), with the model and the effort of `ai.model` and `ai.effort` (D10).
+
+**What is sent is the question, the conversation of the page and the guide: nothing of the repository.** No path, no
+name of a branch, no message of a commit, no diff. Nothing is sent until the user asks. With no `ai.provider` set, the
+page says *Set up an AI provider to ask how to do something.* with **Open the settings**, at `ai.provider`. Since an
+answer changes nothing and runs nothing, Ask Gitardo is not behind a setting, as resolving conflicts with AI is (D29).
+The conversation lives while the page is open, and is not written anywhere: closing the page, or **New conversation**,
+forgets it. Only the last 6 questions and answers are sent again with a new question.
+
+**The extension asks in the Chat of VS Code.** VS Code has a Chat view, with its models, its history and a box that
+knows participants: the extension adds the participant `@gitardo`, described as *Ask how to do something with
+Gitardo*, and the command **Gitardo: Ask How To…**, which opens the Chat with `@gitardo ` typed. The engine writes the
+two requests and reads the answer with the guide of the extension (`read/help.ask`, version 1.11 of the protocol); it
+asks them with `host/languageModel`, `purpose` `help`, of the model chosen in the Chat for that question, whose text
+the extension writes in the Chat as it comes (`stream.markdown`), with a button for each feature named that has a
+command of the extension (`stream.button`). The justification VS Code shows is *Gitardo sends your question and a guide
+to its features to the model, nothing of your repository.* The conversation is the Chat's: its history is sent as the
+earlier questions and answers.
+
+What is left for later, each a question: a key that opens the page (Q866); a button in the header (Q867); sending what
+the repository is in, on request, so that an answer can say "your rebase stopped at…" (Q868); keeping conversations
+(Q869); a model of its own for these questions (Q870); lighting the control itself in the window (Q871).
+
+Rejected: answering from what the model knows (it does not know Gitardo, and would invent where things are); sending
+the whole catalog with each question (too long and too slow, and the acceptance lists and the functions are of no use
+to a user); ranking the cards by the words of the question in the window (it finds them only for questions in
+English); a model that runs features itself, through tools (an operation is asked for by the user, who sees its
+questions and its preview); a small window over the timeline (what Gitardo shows is in pages, D53, and a window apart
+is one more thing to lose behind the others); a webview of Gitardo's own for the conversation in the extension (VS
+Code's Chat has the models, the history and the box, and users know it).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -4581,3 +4657,33 @@ built; each is built as it says until the maintainer answers otherwise.
   VS Code. Should the settings page or the review say so before the first question?
 - **Q865** — The archives of a release are named `gitardo-<version>-windows-x64.zip`, `gitardo-<version>-linux-x64.tar.gz`
   and `gitardo-<version>-macos-arm64.tar.gz`, no longer `gitardo-desktop-…`. Is that the name?
+
+### Of Ask Gitardo, from Q866
+
+Questions of milestone M31 ([D76](#d76--ask-gitardo-how-to-do-something-answered-from-the-catalog)), asked while it is
+planned and built; each is built as it says until the maintainer answers otherwise.
+
+- **Q866** — `help.page`: the page has no key of its own; it is opened from Quick search and the Help menu. Should
+  `F1` open it, as many programs open their help?
+- **Q867** — `help.page`: the header has no button for it. Should a **?** beside the button of Quick search open it?
+- **Q868** — `help.question`: nothing of the repository is sent, so an answer cannot say "your rebase stopped at the
+  third commit". Should the page have **Include what the repository is in**, off for each question, that sends the
+  branch checked out, the operation in progress and the counts of changed and conflicted files, never a path or a diff?
+- **Q869** — `help.page`: the conversation is forgotten when the page closes. Should the last conversations be kept,
+  per window, as the Chat of VS Code keeps its own?
+- **Q870** — `help.ask`: the questions are asked of the model and with the effort of `ai.model` and `ai.effort`, which
+  are set for resolving conflicts and drafting messages; a high effort makes an answer slow. Should Ask Gitardo have
+  `help.model` and `help.effort`, empty for those of `ai.*`?
+- **Q871** — `help.show-me`: a feature that needs something chosen first opens its place and says what to choose.
+  Should the control itself be lit for a moment, a menu opened at its entry, which needs each control to know the card
+  it belongs to?
+- **Q872** — `help.choose-cards`: at most 12 cards are given to the second request. Is that enough for a question
+  that goes across areas, as "how do I move my last three commits to a new branch and push it"?
+- **Q873** — `help.page`: in the extension, the Chat needs a model of VS Code, which most users have through GitHub
+  Copilot. With none, **Gitardo: Ask How To…** says so, as the draft of a message does. Should the extension then ask
+  in a box of its own, with an AI provider as the desktop does?
+- **Q874** — `help.guide`: a card Specified is left out of the guide, so a feature planned is answered as one Gitardo
+  does not have. Should the answer say it is planned, with its milestone?
+- **Q875** — `help.ask`: each question is two requests to the model, and with GitHub Copilot each request counts
+  against the user's subscription (Q864). Should the first request be skipped when the question names a feature by its
+  title, or be asked of a smaller model?
