@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 500 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 505 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -33,7 +33,7 @@ earns it.
 | [14-patches.md](14-patches.md) | Patches | 7 |
 | [15-github.md](15-github.md) | GitHub | 6 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
-| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 48 |
+| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 53 |
 | [18-settings.md](18-settings.md) | Settings | 7 |
 | [19-tasks.md](19-tasks.md) | Tasks | 9 |
 | [20-help.md](20-help.md) | Ask Gitardo | 7 |
@@ -566,6 +566,11 @@ earns it.
 | [`diff.stage-change`](17-diff-and-merge-views.md#diffstage-change--stage-this-change) | Stage this change | Operation | Built | Built |
 | [`diff.unstage-change`](17-diff-and-merge-views.md#diffunstage-change--unstage-this-change) | Unstage this change | Operation | Built | Built |
 | [`diff.revert-change`](17-diff-and-merge-views.md#diffrevert-change--revert-this-change) | Revert this change | Operation | Built | Differs (A5) |
+| [`diff.select-lines`](17-diff-and-merge-views.md#diffselect-lines--select-lines-of-a-diff) | Select lines of a diff | View | Specified | Planned |
+| [`diff.lines-patch`](17-diff-and-merge-views.md#difflines-patch--the-patch-of-the-lines-selected) | The patch of the lines selected | Derivation | Specified | Planned |
+| [`diff.stage-lines`](17-diff-and-merge-views.md#diffstage-lines--stage-the-lines-selected) | Stage the lines selected | Operation | Specified | Planned |
+| [`diff.unstage-lines`](17-diff-and-merge-views.md#diffunstage-lines--unstage-the-lines-selected) | Unstage the lines selected | Operation | Specified | Planned |
+| [`diff.revert-lines`](17-diff-and-merge-views.md#diffrevert-lines--revert-the-lines-selected) | Revert the lines selected | Operation | Specified | Planned |
 | [`diff.edit`](17-diff-and-merge-views.md#diffedit--editing-the-working-tree-side) | Editing the working tree side | View | Built | Built |
 | [`diff.open-at-line`](17-diff-and-merge-views.md#diffopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Built | Built |
 | [`diff.open-file`](17-diff-and-merge-views.md#diffopen-file--open-file) | Open file | View | Built | Built |

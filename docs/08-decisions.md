@@ -1745,6 +1745,51 @@ already do it); the shallow commits read from `%d` of `git log`, which decorates
 timeline would pay for a decoration that a handful of repositories need, where one file, read with the state, says
 it); `--shallow-since` and `--shallow-exclude` (asked, Q1064).
 
+## D78 — Stage, unstage and revert the lines selected in a diff (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M33; the details proposed while planning.*
+
+The Diff page stages, unstages and reverts one change at a time, from the buttons of its gutter (`diff.stage-change`,
+`diff.unstage-change`, `diff.revert-change`): a change that mixes a fix and a debug line is staged whole, or not at
+all, or by `git add -p` in a terminal.
+
+- **A selection of rows.** Lines are selected on either side, by dragging over them or over their numbers, by `Shift`
+  with a click or the arrows from the line chosen, and by text selected in the side that is edited
+  (`diff.select-lines`). What is selected is the rows `diff.align` lays out, from the first to the last, filler rows
+  included, so that a line changed into another, which faces it on its row, is taken whole from either side.
+- **Stage lines**, **Unstage lines**, **Revert lines**, in the context menu of either side, and on `Alt+S`, `Alt+U`
+  and `Alt+R` (`Ctrl+Option` with them on macOS, as the keys of the blame).
+- **The patch of the lines** (`diff.lines-patch`) is built as the patch of a change is (`diff.change-patch`): the
+  differences between the index and the other text, the lines whose rows are selected taken, an added line not
+  selected left out, a removed line not selected left in place, no line of context, so that a line left splits a run
+  into two hunks, and the header of each hunk counted from what it keeps; a line added after a last line with no line
+  break takes the change of that line with it; added lines take the line endings of the index; an untracked file is
+  created in the index with the lines taken alone.
+- **Staged and unstaged by `git apply --cached --unidiff-zero`**, as a change is: to stage, the patch goes from the
+  index towards the working tree; to unstage, from the index towards `HEAD`, forward from the index as it is, so that
+  the line numbers are those of the index whatever else of the file is staged.
+- **Reverted in the editor**, as a change is: the lines of the rows selected replaced in the side of the working tree
+  by those the left side has, one edit that `Ctrl+Z` takes back, then saved. It works against `HEAD`, the index or a
+  commit alike.
+- **Where it is not offered**, as for a change: a renamed file (Q1073), a diff between two commits; a binary file is
+  not shown by the Diff page.
+
+The extension: diffs open in VS Code's diff editor, whose Git already has **Stage Selected Ranges**, **Unstage
+Selected Ranges** and **Revert Selected Ranges**, and in the Flow Diff, which is Gitardo's own and stages a change
+through the engine (`diff.stage-change`). The cards are *Planned* there for the Flow Diff, the patch made by the
+engine as for a change, the revert by VS Code's document as
+[A5](transition/04-differences.md#a5-revert-one-change-in-a-diff) says, in a later milestone.
+
+Rejected: `git apply --cached --reverse` of a patch from `HEAD` to unstage, and `git apply --reverse` on the working
+tree to revert, as first asked (the index may have more of the file staged than the lines selected, so a patch made
+against another text than the one it applies to has line numbers that are not those of the file; going forward from
+the index, as `diff.unstage-change` does, has none of that, and the revert of the editor keeps what is typed and not
+saved, and its `Ctrl+Z`); lines of context in the patch (the patch of a change has none, and `--unidiff-zero` applies
+both alike); a selection on one side alone, which takes the new line of a change without its old one (the index would
+have both lines, which nobody wants from a line changed); staging the whole changes the selection touches, as a first
+step (it is what the buttons do already); an interactive `git add -p` in a terminal of the bottom panel (it is there
+already, and is not a selection).
+
 
 ## Open questions
 
@@ -4790,4 +4835,32 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1065** — `graph.shallow-end`: in a shallow clone, the comparison of two branches, the blame and the history of a
   file stop at the commits fetched, and say nothing of it. Should those pages say that the history is shallow, with
   **Load the whole history**?
+
+### Of staging the lines selected, from Q1070
+
+Questions of milestone M33 ([D78](#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)), asked
+while it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1070** — `diff.select-lines`: on a side that is not edited a click chooses a line, and `Shift` with a click or an
+  arrow selects rows without selecting text, so that nothing can be copied from that side. Should the side that is
+  not edited select text as the other does, its rows taken from the text selected?
+- **Q1071** — `diff.select-lines`: the keys are `Alt+S`, `Alt+U` and `Alt+R` on Windows and Linux, and `Ctrl+Option`
+  with them on macOS. VS Code has `Ctrl+K Ctrl+Alt+S` for **Stage Selected Ranges** and no default for the other two.
+  Are these the keys wanted, and should the three be buttons on the band of a change too while lines of it are
+  selected?
+- **Q1072** — `diff.lines-patch`: in a diff of the working tree against `HEAD` with part of the file staged, the rows
+  selected are placed in the index by the lines of the working tree to stage, and by those of `HEAD` to unstage, as a
+  change is. A line staged and then changed again in the working tree is staged as it is now when its row is
+  selected. Is that what is expected?
+- **Q1073** — `diff.stage-lines`: as for a change, the lines of a renamed file are not staged. Should they be, the patch
+  made against the new name in the index once the rename is staged?
+- **Q1074** — `diff.revert-lines`: the lines are reverted by an edit of the side of the working tree, then saved, as a
+  change is; the maintainer asked for `git apply --reverse` on the working tree. The edit keeps `Ctrl+Z` and what is
+  typed and not saved, and works against a commit or the index alike. Is the edit acceptable, or should the plan be a
+  git command, so that the command preview and the log show it?
+- **Q1075** — `diff.stage-lines`: after the lines are staged the selection is cleared. Should it stay, so that
+  **Unstage lines** takes them back at once?
+- **Q1076** — `diff.lines-patch`: the lines of an untracked file are staged by a patch that creates the file in the index
+  with mode `100644`, or `100755` when git sees it as executable. Is `git add --intent-to-add -- <file>` before the
+  patch wanted instead, so that the file is in the index, empty, first?
 

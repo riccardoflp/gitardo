@@ -477,6 +477,195 @@ Acceptance:
       line.
 - [x] `Ctrl+Z` right after brings the change back, and the page shows the file unsaved.
 
+### `diff.select-lines` — Select lines of a diff
+
+Selects some lines of a Diff page, on either side, so that only those are staged, unstaged or reverted
+([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)).
+
+- **Kind**: View
+- **Function**: `views::diff::select_lines_view(state: &LineSelectionState, ui) -> Vec<Intent>`
+- **Entry points**: dragging over the lines or over their numbers on either side of the Diff page; `Shift` with a
+  click, or with `↑`, `↓`, `Page Up` and `Page Down`, from the line chosen; text selected in the side that is edited.
+- **Uses**: `diff.align`, `diff.edit`, `diff.stage-lines`, `diff.unstage-lines`, `diff.revert-lines`.
+- **Extension**: Planned: the lines selected in either side of the Flow Diff, which is Monaco and has its own
+  selection. In VS Code's diff editor, the selection is VS Code's own, for its **Stage Selected Ranges**.
+
+- The selection is of rows, the rows `diff.align` lays out: from the row of the line where it starts to the row of the
+  line where it ends, on whichever side it was made, the filler rows between them included. A line changed into
+  another faces it on its row, so that selecting one of the two selects the change of that line whole.
+- On the side that is edited, the rows are those of the text selected, a selection inside one line taking its row.
+  On a side that is not edited, a click chooses a line, as it does now, and `Shift` with a click or an arrow selects
+  the rows from it, without selecting text (Q1070).
+- The rows selected are drawn with the background of a selection on both sides and in the gutter, over the colors of
+  the changes. A click elsewhere, `Escape`, or a change of the diff that takes away a row of the selection, clears it.
+- With some changed line among the rows selected, the context menu of either side has **Stage lines**, **Unstage
+  lines** and **Revert lines**, each where its card offers it, and the keys of the page do them: `Alt+S`, `Alt+U` and
+  `Alt+R` on Windows and Linux, `Ctrl+Option+S`, `Ctrl+Option+U` and `Ctrl+Option+R` on macOS (Q1071). With no changed
+  line among them, the menu has the three items greyed out, and the keys do nothing.
+
+Acceptance:
+
+- [ ] Dragging over the numbers of lines 10 to 14 on the left side selects rows 10 to 14 on both sides, and the
+      context menu has **Stage lines**.
+- [ ] `Shift+↓` three times from line 20 of the side of `HEAD` selects four rows, and no text.
+- [ ] Selecting the new text of a line changed into another selects the row where the two face each other.
+- [ ] `Escape` clears the selection, and an edit that takes away a selected line clears it too.
+- [ ] Rows selected with no changed line among them give the three items greyed out.
+
+### `diff.lines-patch` — The patch of the lines selected
+
+The patch that takes into a version of a file only the lines selected of the differences between it and another, for
+`git apply --cached` on standard input
+([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)).
+
+- **Kind**: Derivation
+- **Function**: `text::diff::lines_patch(input: &LinesPatchInput) -> Option<String>`
+- **Uses**: `diff.line-diff`, `diff.align`, `diff.change-patch`.
+- **Extension**: Planned, as `diff.stage-lines`.
+
+Its input is the text the patch applies to (the index, to stage or to unstage), the text it takes lines from (the
+working tree to stage, `HEAD` to unstage), the rows selected, and where each row is in each of the two texts.
+
+- The differences between the two texts are found as `diff.change-patch` finds them. A line the other text adds is
+  taken when its row is selected, and left out otherwise. A line the other text removes is removed when its row is
+  selected, and stays otherwise, as a line that does not change.
+- The patch has no line of context, as the patch of a change: each run of lines taken is a hunk of its own, so that a
+  line that stays splits a run in two. The header of each hunk counts the lines it removes and adds, and its new start
+  counts what the hunks before it added and removed.
+- The rows of a page whose sides are not the two texts are placed in them as `diff.change-patch` places a change: to
+  stage from a diff of the working tree against `HEAD`, by the lines of the working tree, against the index; to
+  unstage from it, by the lines of `HEAD`, against the index (Q1072).
+- The last line of a text with no line break after it is followed by `\ No newline at end of file`. A line taken after
+  that last line needs a line break on it: the change of the last line is taken too, though its row was not selected.
+- Lines added when staging take the line endings of the index, as `diff.change-patch` says; lines put back when
+  unstaging keep theirs.
+- For a file the index does not have (untracked), the patch creates it in the index with the lines taken alone:
+  `new file mode 100644`, `100755` for a file git sees as executable, and `--- /dev/null`.
+- None when no line taken differs: nothing selected changed.
+
+Acceptance:
+
+- [ ] Of a change of five added lines after line 12, the rows of the second and third give `@@ -12,0 +13,2 @@` and
+      those two lines.
+- [ ] Of a change of lines 4 to 6 into new lines 4 to 6, the row of line 5 alone gives `@@ -5,1 +5,1 @@`, its old line
+      and its new one.
+- [ ] Rows that cross two changes, with the unchanged lines between them, give two hunks, the second starting where the
+      first left the index.
+- [ ] Of three removed lines, selecting the first and the third gives two hunks, and the second line stays.
+- [ ] Lines added after a last line with no line break take its change too, and `git apply --cached --unidiff-zero`
+      applies the patch.
+- [ ] Two of the five lines of an untracked file give a patch that creates the file in the index with those two
+      lines.
+- [ ] Rows with no changed line give none.
+
+### `diff.stage-lines` — Stage the lines selected
+
+Puts into the index only the lines selected of the changes of the working tree
+([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::diff::stage_lines(context, answers) -> Outcome`
+- **Entry points**: **Stage lines** in the context menu of either side of the Diff page while lines are selected;
+  `Alt+S` (`Ctrl+Option+S` on macOS) (`diff.select-lines`).
+- **Extension**: Planned: **Stage lines** in the context menu of the Flow Diff, sending `diff.stage-lines` to the engine
+  with the rows selected, as the stage button of a change sends `diff.stage-change`. In VS Code's diff editor, **Stage
+  Selected Ranges** of VS Code's Git does it.
+- **Offered when**: the right side is the working tree and the left is `HEAD` or the index, the file is not renamed
+  (Q1073), and some line selected differs between the index and the working tree.
+- **Reads**: the index and the working tree again, to check the lines are where the page says (`diff.read-sides`).
+- **Plan**: `git apply --cached --unidiff-zero --whitespace=nowarn -` with the patch of `diff.lines-patch` on standard
+  input. Titled **Stage `<n>` lines in `<file>`**; its detail, shown with the command in the preview, is *The patch on
+  standard input changes these lines of `<file>` in the index:* and the `@@` line of each hunk.
+- **Danger**: None.
+- **Undo**: Impossible with **Undo**, since the index has no reflog; **Unstage lines** on the same lines takes it back.
+- **After**: the page is computed again; the lines staged are drawn as `diff.staged-changes` draws what is staged, and
+  the selection is cleared.
+- **Refuses**: as `diff.stage-change`: when the file changed since the page was computed, *The file changed since the
+  diff was shown. Try again.*; for a file that is not UTF-8 with a character above 127 in the patch, *Staging lines
+  needs UTF-8 text: stage the whole file.*; for the first line of a file with a byte order mark, *The first line of a
+  file with a byte order mark cannot be staged alone: stage the whole file.* When no line selected differs between the
+  index and the working tree: *These lines are staged already.*
+- **Settings**: `commandPreview`.
+- **Uses**: `diff.select-lines`, `diff.lines-patch`, `diff.staged-changes`, `diff.read-sides`.
+
+Acceptance:
+
+- [ ] Of a change of five added lines, staging the second and the third leaves `git diff --cached` with those two
+      lines alone, and the log has the `git apply` line exactly.
+- [ ] Selecting rows across three changes, with the second staged already, stages what is selected of the first and
+      the third.
+- [ ] Of a line changed into another, staging its row puts the new line in the index in place of the old.
+- [ ] Staging two lines of an untracked file adds the file to the index with those two lines; `git status` says it is
+      added and changed.
+- [ ] In a file with CRLF in the index, the lines staged have CRLF there.
+- [ ] Editing the file in another program between the selection and **Stage lines** refuses, and stages nothing.
+- [ ] With `commandPreview` set to `all`, the question shows the command and the patch before it runs.
+
+### `diff.unstage-lines` — Unstage the lines selected
+
+Takes only the lines selected back out of the index, the working tree unchanged
+([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::diff::unstage_lines(context, answers) -> Outcome`
+- **Entry points**: **Unstage lines** in the context menu of either side of the Diff page while lines are selected;
+  `Alt+U` (`Ctrl+Option+U` on macOS) (`diff.select-lines`).
+- **Extension**: Planned: **Unstage lines** in the context menu of the Flow Diff, as `diff.stage-lines`. In VS Code's
+  diff editor, **Unstage Selected Ranges** of VS Code's Git does it.
+- **Offered when**: the page shows the index against `HEAD`, or the working tree against `HEAD`; the file is not
+  renamed; and some line selected differs between `HEAD` and the index.
+- **Reads**: the index and `HEAD` again, to check the lines are where the page says.
+- **Plan**: `git apply --cached --unidiff-zero --whitespace=nowarn -` with the patch of `diff.lines-patch` from the
+  index towards `HEAD` on standard input, titled **Unstage `<n>` lines in `<file>`**. A file `HEAD` does not have, all
+  of whose lines are selected, is unstaged whole, as `diff.unstage-change` does: `git restore --staged -- <file>`, or
+  `git rm --cached -r -- <file>` before the first commit.
+- **Danger**: None.
+- **Undo**: Impossible with **Undo**; **Stage lines** on the same lines takes it back.
+- **After**: the page is computed again, and the selection is cleared.
+- **Refuses**: as `diff.stage-lines`; when no line selected differs between `HEAD` and the index: *Nothing of these
+  lines is staged.*
+- **Uses**: `diff.select-lines`, `diff.lines-patch`, `diff.unstage-change`.
+
+Acceptance:
+
+- [ ] Of five lines staged, unstaging the first two leaves the other three staged, and the working tree unchanged.
+- [ ] In the diff of the working tree against `HEAD`, unstaging the rows of a staged change drawn dimmed takes them out
+      of the index, and they are drawn as not staged.
+- [ ] All the lines of a file added to the index and not in `HEAD` unstage with `git restore --staged -- <file>`.
+
+### `diff.revert-lines` — Revert the lines selected
+
+Puts back in the working tree what the left side has in place of the lines selected
+([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::diff::revert_lines(context, answers) -> Outcome`
+- **Entry points**: **Revert lines** in the context menu of either side of the Diff page while lines are selected;
+  `Alt+R` (`Ctrl+Option+R` on macOS) (`diff.select-lines`).
+- **Extension**: Planned: **Revert lines** in the context menu of the Flow Diff, which edits VS Code's document and
+  saves it, as its button that reverts a change does ([A5](../transition/04-differences.md#a5-revert-one-change-in-a-diff)).
+  In VS Code's diff editor, **Revert Selected Ranges** of VS Code's Git does it.
+- **Offered when**: the right side is the working tree (against `HEAD`, the index or a commit), and some line selected
+  differs between the two sides.
+- **Reads**: the text of the side of the working tree, to check the lines are still there.
+- **Plan**: in the side of the working tree, the lines of the rows selected are replaced by the lines the left side has
+  on those rows, as one edit of that side, and the file is saved: `write <file>` (`file-view.save`), as
+  `diff.revert-change` does with a change (Q1074).
+- **Danger**: None.
+- **Undo**: `Ctrl+Z` in the side of the working tree takes the edit back, not saved until `Ctrl+S`; **Undo** does not.
+- **After**: the page is computed again; the lines reverted are no longer changed, and the selection is cleared.
+- **Refuses**: *The file changed since the diff was shown. Try again.*
+- **Uses**: `diff.select-lines`, `diff.align`, `diff.edit`, `file-view.save`, `diff.revert-change`.
+
+Acceptance:
+
+- [ ] Of a change of three lines changed into three others, reverting the row of the second gives the file its old
+      second line, the other two left as they were.
+- [ ] Reverting rows that cross two changes reverts what is selected of both, in one edit that one `Ctrl+Z` takes
+      back.
+- [ ] Reverting the rows of lines removed puts them back after the line before them.
+- [ ] Against a commit, the lines reverted are those of the commit.
+
 ### `diff.edit` — Editing the working tree side
 
 The file can be edited where it is shown, when the right side is the working tree.

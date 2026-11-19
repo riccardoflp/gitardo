@@ -1038,6 +1038,36 @@ clone.**; **Load more history** with `3` lists five, and **Load the whole histor
 away; the cards of the milestone are Built in the desktop, and the snapshots of the end of a shallow history match in
 each theme.
 
+## M33 — Stage the lines selected
+
+The Diff page stages, unstages and reverts the lines selected, where it could only take a whole change
+([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)). Asked by the
+maintainer on 2026-11-19. Built in three phases, each one commit or more, each ending with its cards built and their
+tests passing. Desktop first: the extension gets the same in its Flow Diff in a later milestone, where VS Code's diff
+editor already has **Stage Selected Ranges**.
+
+1. **The patch of the lines.** From the two texts and the rows selected, the patch of the lines taken: added lines not
+   selected left out, removed lines not selected left in place, a hunk for each run, the counts of the headers and the
+   starts made from what is kept, the line with no line break at the end, the line endings of the index, an untracked
+   file created in the index. Tested as a table, and each patch applied by `git apply --cached --unidiff-zero` to a
+   repository of the tests. Cards: `diff.lines-patch`.
+2. **The selection.** Rows selected on either side, by dragging over the lines or their numbers, by `Shift` with a
+   click or the arrows, and by the text selected in the side that is edited; drawn on both sides and in the gutter;
+   cleared by `Escape`, a click elsewhere, or an edit that takes away a row of it. Cards: `diff.select-lines`,
+   `diff.align`, `diff.edit`.
+3. **Stage, unstage and revert.** The three items of the context menu of either side and their keys, each offered
+   where its card says; the patch applied, or the edit made and saved for a revert; the page computed again. Cards:
+   `diff.stage-lines`, `diff.unstage-lines`, `diff.revert-lines`, `diff.staged-changes`.
+
+Nothing is built yet.
+
+Exit: in a file with a change of five added lines, the second and third selected on the right and **Stage lines**
+leave `git diff --cached` with those two lines, drawn as staged; selecting them again and `Alt+U` takes them out of
+the index; the row of one line changed into another, selected on the left with `Shift+↓` from it, and **Revert lines**
+gives the file its old line, which `Ctrl+Z` takes back; a selection across two changes stages what is selected of
+both in one `git apply`, which the Command log shows with its patch; staging two lines of an untracked file adds it to
+the index with those two lines; the cards of the milestone are Built in the desktop.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
