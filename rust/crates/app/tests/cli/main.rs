@@ -14,6 +14,7 @@ mod compare;
 mod conflicts;
 mod hidden;
 mod ignore;
+mod locked;
 mod merge;
 mod message;
 mod patch;

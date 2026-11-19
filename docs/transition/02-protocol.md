@@ -88,7 +88,8 @@ history of a shallow clone ends. The extension clones and creates a repository
 with VS Code's own commands, so it sends none of them yet; they travel as every question and validation does. The same
 version adds what milestone M38 needs
 ([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)):
-`skipped` in `RepositoryState`, the tracked files git is told not to look at.
+`skipped` in `RepositoryState`, the tracked files git is told not to look at, and `locked` in `Worktree`, the reason
+a worktree is locked.
 
 ## Transport
 
@@ -701,7 +702,8 @@ The fields are those of `model`; this section says only what the JSON adds or le
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,
-  `isCurrent`, `isMissing`, `uncommitted: number | null`.
+  `isCurrent`, `isMissing`, `locked: string | null` (1.11), the reason it is locked, empty when none was given,
+  `uncommitted: number | null`.
 - **`WorkingTree`**: `staged: FileChange[]`, `unstaged: FileChange[]`, `untracked: string[]`, `conflicted:
   ConflictedFile[]`. **`FileChange`**: `path`, `originalPath: string | null`, `kind: "added" | "modified" | "deleted" |
   "renamed" | "copied" | …`.

@@ -6,6 +6,7 @@ mod copy_path;
 mod create;
 mod create_at_commit;
 mod create_from_branch;
+mod lock;
 mod names;
 mod open;
 mod open_in_editor;
@@ -28,6 +29,7 @@ pub use copy_path::copy_path;
 pub use create::{NAME, START, WAY, create};
 pub use create_at_commit::{BASE, create_at_commit};
 pub use create_from_branch::{FOLDER, create_from_branch};
+pub use lock::{REASON, UNLOCK, UNLOCK_CHOICE, lock, unlock};
 pub use open::open;
 pub use open_in_editor::open_in_editor;
 pub use open_in_new_window::open_in_new_window;
@@ -76,9 +78,14 @@ fn target_worktree(context: &Context) -> Result<&Worktree, Box<Outcome>> {
 
 /// The refusal on a worktree whose folder is gone.
 fn refuse_missing(worktree: &Worktree) -> Option<Outcome> {
+    let forget = if worktree.locked.is_some() {
+        "unlock it, then prune the worktrees to forget it"
+    } else {
+        "prune the worktrees to forget it"
+    };
     worktree.is_missing.then(|| {
         Outcome::Refuse(Refusal::saying(&format!(
-            "The folder of this worktree is missing from `{}`: prune the worktrees to forget it.",
+            "The folder of this worktree is missing from `{}`: {forget}.",
             worktree.folder.display()
         )))
     })

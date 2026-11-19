@@ -52,6 +52,7 @@
       "isMain": true,
       "isCurrent": true,
       "isMissing": false,
+      "locked": null,
       "uncommitted": 3
     }
   ],

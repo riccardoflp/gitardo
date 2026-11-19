@@ -134,6 +134,7 @@ fn worktree() -> Worktree {
         is_main: true,
         is_current: true,
         is_missing: false,
+        locked: None,
         uncommitted: Some(3),
     }
 }

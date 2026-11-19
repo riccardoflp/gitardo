@@ -5466,6 +5466,10 @@ asked while it is planned; each is built as it says until the maintainer answers
   **Open `<file>`**: the messages after an operation have no button that opens a file at a line, only the operations
   offered after it (`FollowUp::OfferRun`). Should a follow-up that says something with a button that opens a file be
   added, for this and for the other operations that write a file?
+- **Q1452** — `worktree.lock`: the rows of the worktrees in **Repositories** have no context menu, so **Lock…** and
+  **Unlock** are only in the Worktrees list. Should those rows get the menu of a worktree, as the Worktrees list has it?
+- **Q1453** — `worktree.unlock`: **Lock…** after **Unlock** does not propose the reason the worktree had, since git
+  forgets it. Should the window keep the reason of each worktree it unlocked, while it is open, to propose it again?
 - **Q1451** — `changes.skipped-list`: a click on a file hidden from git opens its diff between the last commit and the
   disk even when the two are the same, since the list knows only how the file is hidden, not whether it differs. Should
   the read of the hidden files compare each with the last commit, so that one as committed opens its File page?

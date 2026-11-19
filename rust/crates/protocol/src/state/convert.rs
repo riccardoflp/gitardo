@@ -138,6 +138,7 @@ impl From<&Worktree> for WorktreeJson {
             is_main: worktree.is_main,
             is_current: worktree.is_current,
             is_missing: worktree.is_missing,
+            locked: worktree.locked.clone(),
             uncommitted: worktree.uncommitted,
         }
     }

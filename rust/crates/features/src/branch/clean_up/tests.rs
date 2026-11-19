@@ -31,6 +31,7 @@ fn worktree(folder: &str, branch: &str, uncommitted: usize) -> Worktree {
         is_main: false,
         is_current: false,
         is_missing: false,
+        locked: None,
         uncommitted: Some(uncommitted),
     }
 }
@@ -210,4 +211,36 @@ fn branch_clean_up__refuses_when_there_is_nothing_to_clean_up() {
         clean_up(&context, &ticked(merged(&["a"]), &[])),
         Outcome::Refuse(refusal) if refusal.message.as_str() == "No branches selected."
     ));
+}
+
+#[test]
+fn worktree_locked__clean_up_lists_the_branch_of_a_locked_worktree_unticked_and_unlocks_it_before_removing() {
+    let mut state = repository();
+    state.worktrees.push(Worktree {
+        locked: Some(String::from("On the USB drive")),
+        ..worktree("/code/app.worktrees/a", "a", 0)
+    });
+    let context = context_of(state);
+    let (choices, ticked_first) = listed(&context, &merged(&["main", "a"]));
+    assert!(
+        choices.contains(&(
+            String::from("a"),
+            String::from("merged into main, with its locked worktree a")
+        )),
+        "{choices:?}"
+    );
+    assert!(ticked_first.is_empty(), "{ticked_first:?}");
+    let plan = plan(clean_up(&context, &ticked(merged(&["main", "a"]), &["a"])));
+    let git: Vec<String> = lines(&plan)
+        .into_iter()
+        .filter(|line| line.starts_with("git "))
+        .collect();
+    assert_eq!(
+        git,
+        [
+            "git worktree unlock /code/app.worktrees/a",
+            "git worktree remove /code/app.worktrees/a",
+            "git branch -d a"
+        ]
+    );
 }

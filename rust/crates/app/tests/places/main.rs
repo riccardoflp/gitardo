@@ -66,6 +66,7 @@ mod label_overflow;
 mod lanes;
 mod large_diffs;
 mod load_more;
+mod locked;
 mod log_secrets;
 mod markdown;
 mod menu_icons;

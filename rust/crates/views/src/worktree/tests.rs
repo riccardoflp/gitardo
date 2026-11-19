@@ -49,6 +49,7 @@ fn worktree(folder: &str, branch: &str, (is_main, is_current): (bool, bool), unc
         is_main,
         is_current,
         is_missing: false,
+        locked: None,
         uncommitted: Some(uncommitted),
     }
 }
@@ -73,6 +74,7 @@ fn repository() -> RepositoryState {
             worktree(LOGIN, "feature/login", (false, false), 3),
             Worktree {
                 is_missing: true,
+                locked: None,
                 uncommitted: None,
                 ..worktree(GONE, "gone", (false, false), 0)
             },
@@ -287,4 +289,69 @@ fn worktree_branch_in_another_worktree__from_another_worktree_the_menu_of_main_h
             .iter()
             .any(|entry| entry.starts_with("Remove worktree") || entry.starts_with("Rename worktree"))
     );
+}
+
+/// The repository of the tests, with the worktree of `folder` locked for `reason`.
+fn locked(folder: &str, reason: &str) -> RepositoryState {
+    let mut repository = repository();
+    for worktree in &mut repository.worktrees {
+        if worktree.folder == Path::new(folder) {
+            worktree.locked = Some(reason.to_owned());
+        }
+    }
+    repository
+}
+
+#[test]
+fn worktree_lock__the_entry_is_not_in_the_menu_of_the_main_worktree_nor_of_one_locked_already() {
+    let repository = repository();
+    let lock = words::LOCK.to_owned();
+    assert!(!of_worktree(&repository, WorktreeWindow::default(), MAIN).contains(&lock));
+    assert!(of_worktree(&repository, WorktreeWindow::default(), LOGIN).contains(&lock));
+    assert!(
+        of_worktree(&repository, WorktreeWindow::default(), GONE).contains(&lock),
+        "a missing one may be locked"
+    );
+    let repository = locked(LOGIN, "On the USB drive");
+    let login = of_worktree(&repository, WorktreeWindow::default(), LOGIN);
+    assert!(
+        !login.contains(&lock) && login.contains(&words::UNLOCK.to_owned()),
+        "{login:?}"
+    );
+}
+
+#[test]
+fn worktree_locked__a_locked_worktree_says_its_reason_in_its_tooltip() {
+    let repository = locked(LOGIN, "On the USB drive");
+    let said = tooltip(&repository, repository.worktrees.get(1).unwrap());
+    assert!(said.contains("Locked: On the USB drive"), "{said}");
+    let repository = locked(LOGIN, "");
+    let said = tooltip(&repository, repository.worktrees.get(1).unwrap());
+    assert!(said.lines().any(|line| line == "Locked"), "{said}");
+}
+
+#[test]
+fn worktree_locked__the_only_missing_worktree_locked_shows_missing_locked_and_no_prune() {
+    let repository = locked(GONE, "On the USB drive");
+    assert_eq!(
+        standing(&repository, repository.worktrees.get(2).unwrap()),
+        "missing, locked"
+    );
+    let list = labels(&list_entries(menus(&repository, WorktreeWindow::default())));
+    assert!(!list.contains(&words::PRUNE.to_owned()), "{list:?}");
+    let gone = of_worktree(&repository, WorktreeWindow::default(), GONE);
+    assert!(
+        gone.contains(&words::UNLOCK.to_owned()) && !gone.contains(&words::PRUNE.to_owned()),
+        "{gone:?}"
+    );
+}
+
+#[test]
+fn worktree_unlock__after_unlocking_the_missing_worktree_prune_is_offered() {
+    let mut repository = locked(GONE, "On the USB drive");
+    if let Some(gone) = repository.worktrees.get_mut(2) {
+        gone.locked = None;
+    }
+    let list = labels(&list_entries(menus(&repository, WorktreeWindow::default())));
+    assert!(list.contains(&words::PRUNE.to_owned()), "{list:?}");
 }

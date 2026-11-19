@@ -113,6 +113,8 @@ export interface Worktree {
   isCurrent: boolean;
   /** Its folder is gone, so `git worktree prune` would forget it. */
   isMissing: boolean;
+  /** The reason it is locked, empty when none was given; null or absent when it is not locked (protocol 1.11). */
+  locked?: string | null;
   /**
    * How many of its files are not committed: staged, not staged, untracked or in conflict, each once. Null when they
    * could not be read.

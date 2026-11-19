@@ -35,6 +35,12 @@
   each marked **skip-worktree** or **assumed unchanged**, where a click shows its diff between the last commit and the
   disk and **Show its changes to git again** brings it back, one file or all of them; the Files page marks them with a
   struck eye. The files a sparse checkout leaves out are not listed.
+- **Lock…** in the menu of a worktree has git keep it whatever happens to its folder, with the reason typed, such as a
+  worktree on a drive that is not always plugged in; **Unlock** takes the lock away. A locked worktree has a lock after
+  its label in the Worktrees list and on its row in **Repositories**, whose tooltip says the reason, and one whose
+  folder is gone says `missing, locked`. **Remove…** and **Rename…** on a locked worktree say its reason first, then
+  unlock it, **Rename…** locking it again in its new folder; **Prune missing worktrees** is not offered while the only
+  missing worktree is locked; **Clean up branches…** lists the branch of a locked worktree unticked.
 
 ## 1.2.0 - 2026-11-18
 

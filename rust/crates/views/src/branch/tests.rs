@@ -76,6 +76,7 @@ fn repository() -> RepositoryState {
             is_main: false,
             is_current: false,
             is_missing: false,
+            locked: None,
             uncommitted: Some(0),
         }],
         remotes: vec![String::from("origin")],

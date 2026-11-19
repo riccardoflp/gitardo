@@ -109,6 +109,7 @@ mod tests {
             is_main: false,
             is_current: false,
             is_missing: false,
+            locked: None,
             uncommitted: Some(0),
         });
         let context = context(state, Target::Commit(commit('b')));
@@ -126,6 +127,7 @@ mod tests {
             is_main: false,
             is_current: false,
             is_missing: false,
+            locked: None,
             uncommitted: Some(0),
         });
         let context = context(state, Target::Commit(commit('b')));

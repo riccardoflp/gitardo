@@ -1,9 +1,10 @@
 //! Worktrees: where a new one goes, how the views name one, what a name typed for one must be, what is done when
-//! Windows holds its folder, the folders left empty after it, and a branch another worktree has.
+//! Windows holds its folder, the folders left empty after it, a branch another worktree has, and what a lock changes.
 
 mod branch_of;
 mod empty_folders;
 mod held;
+mod locked;
 mod name;
 
 use std::path::{Path, PathBuf};
@@ -14,6 +15,7 @@ pub use held::{
     DELETE_TRIES, DELETING_LEFT, HeldInput, MOVE_TRIES, MOVE_WAIT, Recovery, TRIED_AGAIN, delete_wait,
     recover_held_folder,
 };
+pub use locked::{LOCKED, LockedInput, LockedRules, MISSING_LOCKED, has_prunable, locked};
 pub use name::{FolderBase, WorktreeNameRule, is_listed};
 
 /// The answer of `worktree.remove` that says whether the branch goes too: [`KEEP_BRANCH`] or [`DELETE_BRANCH`]. The

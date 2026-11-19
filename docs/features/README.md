@@ -511,9 +511,9 @@ earns it.
 | [`worktree.copy-path`](12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree) | Copy the path of a worktree | Operation | Built | Built |
 | [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Built | Built |
 | [`worktree.prune`](12-worktrees.md#worktreeprune--prune-missing-worktrees) | Prune missing worktrees | Operation | Built | Built |
-| [`worktree.lock`](12-worktrees.md#worktreelock--lock-a-worktree) | Lock a worktree | Operation | Specified | Planned |
-| [`worktree.unlock`](12-worktrees.md#worktreeunlock--unlock-a-worktree) | Unlock a worktree | Operation | Specified | Planned |
-| [`worktree.locked`](12-worktrees.md#worktreelocked--what-a-locked-worktree-shows-and-what-it-changes) | What a locked worktree shows, and what it changes | Derivation | Specified | Planned |
+| [`worktree.lock`](12-worktrees.md#worktreelock--lock-a-worktree) | Lock a worktree | Operation | Built | Planned |
+| [`worktree.unlock`](12-worktrees.md#worktreeunlock--unlock-a-worktree) | Unlock a worktree | Operation | Built | Planned |
+| [`worktree.locked`](12-worktrees.md#worktreelocked--what-a-locked-worktree-shows-and-what-it-changes) | What a locked worktree shows, and what it changes | Derivation | Built | Planned |
 | [`worktree.read-folder-links`](12-worktrees.md#worktreeread-folder-links--read-the-links-to-folders-outside-a-worktree) | Read the links to folders outside a worktree | Read | Built | Built |
 | [`worktree.recover-held-folder`](12-worktrees.md#worktreerecover-held-folder--get-past-a-folder-that-windows-holds) | Get past a folder that Windows holds | Derivation | Built | Built |
 | [`worktree.remove-empty-folders`](12-worktrees.md#worktreeremove-empty-folders--leave-no-empty-folders-behind) | Leave no empty folders behind | Derivation | Built | Built |

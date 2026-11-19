@@ -198,3 +198,28 @@ fn worktree_read_folder_links__tracked_files_are_not_looked_into() {
         assert_eq!(folder_links(repository.path()), ["src/modules"]);
     }
 }
+
+#[test]
+fn worktree_locked__locked_with_a_reason_gives_the_reason_and_locked_alone_an_empty_one() {
+    let output = b"worktree /r\0HEAD 1111111111111111111111111111111111111111\0branch refs/heads/main\0\0\
+worktree /usb\0HEAD 1111111111111111111111111111111111111111\0branch refs/heads/a\0locked On the USB drive\0\0\
+worktree /bare-lock\0HEAD 1111111111111111111111111111111111111111\0detached\0locked\0\0";
+    let worktrees = parse_worktrees(output).unwrap();
+    let locks: Vec<Option<&str>> = worktrees.iter().map(|worktree| worktree.locked.as_deref()).collect();
+    assert_eq!(locks, [None, Some("On the USB drive"), Some("")]);
+}
+
+#[test]
+fn worktree_locked__a_locked_worktree_whose_folder_was_deleted_is_missing() {
+    let repository = with_worktrees(&["usb"]);
+    let _ = repository.git(&["worktree", "lock", "--reason", "On the USB drive", "../usb"]);
+    fs::remove_dir_all(beside(&repository).join("usb")).unwrap();
+    let worktrees = read(&repository);
+    let usb = named(&worktrees, "usb");
+    assert!(
+        usb.is_missing,
+        "git does not say it is prunable, so the folder is looked for"
+    );
+    assert_eq!(usb.locked.as_deref(), Some("On the USB drive"));
+    assert_eq!(usb.uncommitted, None);
+}

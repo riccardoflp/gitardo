@@ -62,7 +62,10 @@ impl<'a> TabShows<'a> {
                 shows.shown_label = Some(branch.map_or_else(|| folder_name(&worktree.folder), str::to_owned));
             }
             let names = (worktree_entry(&worktree), folder_name(&worktree.folder));
-            members.push(member(names, (worktree.folder, 0), is_shown));
+            let lock = views::worktree::lock_rules(&worktree).tooltip;
+            let mut entry = member(names, (worktree.folder, 0), is_shown);
+            entry.lock = lock;
+            members.push(entry);
         }
         for submodule in group.members.iter().filter(|member| member.superproject.is_some()) {
             let label = path_from(&tab.folder, &submodule.folder);
@@ -119,6 +122,7 @@ impl<'a> TabShows<'a> {
                     is_main: false,
                     is_current: false,
                     is_missing: false,
+                    locked: None,
                     uncommitted: None,
                 })
                 .collect(),
@@ -141,6 +145,7 @@ fn member((label, name): (String, String), (folder, depth): (PathBuf, usize), is
         depth,
         is_shown,
         summary: None,
+        lock: None,
     }
 }
 

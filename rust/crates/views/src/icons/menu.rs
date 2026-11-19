@@ -79,6 +79,7 @@ fn place_icon(feature: &str) -> Option<Icon> {
         "worktree.reveal" | "submodule.reveal" => super::REVEAL,
         "worktree.show-in-gitardo" | "submodule.show-in-gitardo" => super::SHOW,
         "worktree.copy-path" | "submodule.copy-path" | "submodule.copy-url" => super::COPY,
+        "worktree.lock" => super::LOCK,
         "worktree.remove" | "worktree.prune" | "submodule.remove" => super::DELETE,
         "submodule.initialize" => super::SUBMODULE,
         "submodule.deinitialize" => super::NOT_INITIALIZED,

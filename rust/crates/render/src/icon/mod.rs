@@ -210,6 +210,8 @@ pub enum Icon {
     /// Three sliders on their rails: how the timeline is shown, the menu of the view of the header. Lucide's
     /// `sliders-horizontal`.
     Sliders,
+    /// A padlock: a worktree git keeps whatever happens to its folder (`worktree.locked`). Lucide's `lock`.
+    Lock,
     /// The logo of Gitardo: a branch leaving a line of two commits, as the extension draws it (`window.brand`). Not one
     /// of Lucide's, so not in [`Icon::ALL`].
     Logo,

@@ -28,6 +28,7 @@ fn showing() -> (State, PathBuf) {
             is_main: true,
             is_current: true,
             is_missing: false,
+            locked: None,
             uncommitted: Some(0),
         },
         Worktree {
@@ -37,6 +38,7 @@ fn showing() -> (State, PathBuf) {
             is_main: false,
             is_current: false,
             is_missing: false,
+            locked: None,
             uncommitted: Some(0),
         },
     ];

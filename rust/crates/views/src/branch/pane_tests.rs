@@ -21,6 +21,7 @@ fn labels_with(is_missing: bool) -> Vec<String> {
             is_main: false,
             is_current: false,
             is_missing,
+            locked: None,
             uncommitted: None,
         }],
         ..RepositoryState::default()

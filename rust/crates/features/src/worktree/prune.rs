@@ -8,7 +8,8 @@ use model::contract::{Answers, Context, Danger, Outcome, Plan, Refusal, Step, Te
 /// Feature: worktree.prune
 #[must_use]
 pub fn prune(context: &Context, _answers: &Answers) -> Outcome {
-    if !context.repository.worktrees.iter().any(|worktree| worktree.is_missing) {
+    // Git never prunes a locked worktree, so one missing and locked leaves nothing to prune (`worktree.locked`).
+    if !model::worktree::has_prunable(&context.repository.worktrees) {
         return Outcome::Refuse(Refusal::saying("No worktree is missing: there is nothing to prune."));
     }
     Outcome::Run(Plan {

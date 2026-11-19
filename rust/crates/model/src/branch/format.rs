@@ -226,6 +226,7 @@ mod tests {
             is_main,
             is_current,
             is_missing: false,
+            locked: None,
             uncommitted: None,
         };
         let state = RepositoryState {

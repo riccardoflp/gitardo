@@ -1269,7 +1269,7 @@ fourth brings the milestone to the extension.
    the Worktrees section, the group **Hidden from git** at the end of the **Gitardo Changes** view, and the lock on the
    rows of the worktrees, all run by the engine. Cards: the cards of the first three phases, in the extension.
 
-Built so far: the first two phases. **Ignore…** in the menu of a file of the changes and of a file or a folder of the
+Built so far: the first three phases. **Ignore…** in the menu of a file of the changes and of a file or a folder of the
 Files page offers the patterns of `changes.ignore-patterns` and the places each can be written in, asks git with
 `git check-ignore` whether the path is ignored already, and writes the line as one `write` step; on a tracked path it
 offers to stop tracking it, which **Stop tracking, keep on disk…** does alone too, with **Stop tracking anyway** when
@@ -1277,7 +1277,11 @@ git refuses. The message after has no **Open `<file>`** yet (Q1450). The files h
 state, `git ls-files -v` running again only when the index changed, and travel to the extension as `skipped` (protocol
 1.11); **Hide its changes from git…** and **Show its changes to git again** are in the menus of the changes and of the
 Files page, which marks a hidden file with a struck eye, and the group **Hidden from git** is under the changes, in the
-page and in the section.
+page and in the section. The lock of a worktree and its reason are read with the list, and travel to the extension as
+`locked` (protocol 1.11); **Lock…** and **Unlock** are in the menu of a worktree of the Worktrees list, not yet on the
+rows of **Repositories**, which have no menu (Q1452); the lock is drawn in both; **Remove…** and **Rename…** ask
+first and unlock, **Rename…** locking the new folder again; **Prune** is offered only while a missing worktree is not
+locked, and **Clean up branches…** lists the branch of a locked worktree unticked and unlocks it before removing it.
 
 Exit: in a repository with `debug.log` untracked, **Ignore…** with **All `.log` files** writes `*.log` at the end of
 the `.gitignore`, `debug.log` leaves the changes and the `.gitignore` comes in; **Ignore…** on the tracked

@@ -115,6 +115,7 @@ fn worktrees() -> Vec<Worktree> {
             is_main: true,
             is_current: true,
             is_missing: false,
+            locked: None,
             uncommitted: None,
         },
         Worktree {
@@ -124,6 +125,7 @@ fn worktrees() -> Vec<Worktree> {
             is_main: false,
             is_current: false,
             is_missing: true,
+            locked: Some(String::from("On the USB drive")),
             uncommitted: Some(3),
         },
     ]

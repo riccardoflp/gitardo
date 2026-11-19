@@ -152,6 +152,9 @@ pub struct WorktreeJson {
     pub is_current: bool,
     /// Whether its folder is gone.
     pub is_missing: bool,
+    /// The reason it is locked, empty when none was given; none when it is not locked (since 1.11).
+    #[serde(default)]
+    pub locked: Option<String>,
     /// How many files are not committed in it, when that was read.
     pub uncommitted: Option<usize>,
 }

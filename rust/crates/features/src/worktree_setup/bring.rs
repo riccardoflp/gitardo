@@ -167,6 +167,7 @@ mod tests {
             is_main: false,
             is_current: false,
             is_missing,
+            locked: None,
             uncommitted: None,
         }
     }

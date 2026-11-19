@@ -76,6 +76,7 @@ fn the_folders_followed_their_summaries_and_a_change_seen_in_one_are_read_back_a
         is_main: false,
         is_current: false,
         is_missing: false,
+        locked: None,
         uncommitted: None,
     };
     let result = SummariesResult {

@@ -80,6 +80,8 @@ pub struct TabMemberEntry {
     pub is_shown: bool,
     /// What it is on, once it is known (`repo.worktree-summary`).
     pub summary: Option<TabSummary>,
+    /// The tooltip of its lock, **Locked: `<reason>`**, while it is a locked worktree (`worktree.locked`).
+    pub lock: Option<String>,
 }
 
 /// What an entry of the menu of **+** does.

@@ -86,8 +86,11 @@ pub struct Worktree {
     pub is_main: bool,
     /// Whether it is the worktree that was read.
     pub is_current: bool,
-    /// Whether its folder is gone: git would prune it.
+    /// Whether its folder is gone: git would prune it, unless it is locked.
     pub is_missing: bool,
+    /// Whether git keeps it whatever happens to its folder, with the reason given, empty when none was
+    /// (`worktree.locked`).
+    pub locked: Option<String>,
     /// How many files are not committed there; none when it is missing.
     pub uncommitted: Option<usize>,
 }

@@ -79,7 +79,10 @@ pub fn read_list_counting(
     request: &WorktreeListRequest,
     before: &CountedWorktrees,
 ) -> Result<(Vec<Worktree>, CountedWorktrees), GitError> {
-    let listed = parse_worktrees(&git.in_directory(&request.folder).run_read(&worktrees_arguments())?)?;
+    let listed: Vec<Worktree> = parse_worktrees(&git.in_directory(&request.folder).run_read(&worktrees_arguments())?)?
+        .into_iter()
+        .map(looked_for)
+        .collect();
     let counts: Vec<Option<(Option<usize>, GitFolderStamp)>> = thread::scope(|scope| {
         let readers: Vec<_> = listed
             .iter()
@@ -118,6 +121,13 @@ pub fn read_list_counting(
         })
         .collect();
     Ok((worktrees, counted))
+}
+
+/// A worktree with its folder looked for on disk when it is locked, since git never marks a locked worktree prunable
+/// though its folder is gone (`worktree.locked`).
+fn looked_for(worktree: Worktree) -> Worktree {
+    let is_missing = worktree.is_missing || (worktree.locked.is_some() && !worktree.folder.exists());
+    Worktree { is_missing, ..worktree }
 }
 
 /// The count of another worktree: the one kept from the read before when nothing changed in its git folder, else read
@@ -159,6 +169,7 @@ pub fn parse_worktrees(output: &[u8]) -> Result<Vec<Worktree>, GitError> {
             is_main: position == 0,
             is_current: false,
             is_missing: entry.is_missing,
+            locked: entry.locked,
             uncommitted: None,
         })
         .collect())
@@ -179,6 +190,7 @@ struct Entry {
     branch: Option<String>,
     is_bare: bool,
     is_missing: bool,
+    locked: Option<String>,
 }
 
 /// One worktree, from its attributes: one per field, a name and a value.
@@ -190,6 +202,7 @@ fn entry(record: &str) -> Result<Entry, GitError> {
         branch: None,
         is_bare: false,
         is_missing: false,
+        locked: None,
     };
     for field in record.split('\0') {
         let (name, value) = field.split_once(' ').unwrap_or((field, ""));
@@ -199,7 +212,8 @@ fn entry(record: &str) -> Result<Entry, GitError> {
             "branch" => entry.branch = Some(value.to_owned()),
             "bare" => entry.is_bare = true,
             "prunable" => entry.is_missing = true,
-            // `detached`, `locked` and what a later git adds say nothing the list keeps.
+            "locked" => entry.locked = Some(value.to_owned()),
+            // `detached` and what a later git adds say nothing the list keeps.
             _ => {}
         }
     }
