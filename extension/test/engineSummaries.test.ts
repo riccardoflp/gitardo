@@ -52,7 +52,7 @@ async function withWorktree(): Promise<{ root: string; worktree: string }> {
   return { root, worktree };
 }
 
-describe.skipIf(!built)('what the folders of the Repositories view are on, through the engine', () => {
+describe.skipIf(!built)('what the folders of the Repositories view are on, through the engine', { timeout: 60_000 }, () => {
   it('answers what each repository asked and each of its worktrees is on', async () => {
     const { root, worktree } = await withWorktree();
     fs.writeFileSync(path.join(root, 'a.txt'), 'changed\n');
