@@ -72,9 +72,9 @@ pub fn edit(context: &Context, answers: &Answers) -> Outcome {
     if is_head {
         return Outcome::Run(amend_plan(context, &edited, note));
     }
-    match rebase_plan(context, &edited, &line, note) {
+    match rebase_plan((context, answers), &edited, &line, note) {
         Ok(plan) => Outcome::Run(plan),
-        Err(message) => Outcome::Refuse(Refusal { message, offer: None }),
+        Err(outcome) => *outcome,
     }
 }
 
@@ -184,8 +184,14 @@ fn amend_plan(context: &Context, edited: &Edited<'_>, note: Option<Text>) -> Pla
 
 /// The interactive rebase that rewords an older commit and picks the commits after it, oldest first, with
 /// `--autostash`: the new message and the todo list written to the folder of the files of the rebase, which is deleted
-/// once the rebase ended, also when it stopped first on a commit picked after it; or why git could not read the list.
-fn rebase_plan(context: &Context, edited: &Edited<'_>, line: &Line, note: Option<Text>) -> Result<Plan, Text> {
+/// once the rebase ended, also when it stopped first on a commit picked after it; or the read to make first, or why git
+/// could not read the list.
+fn rebase_plan(
+    (context, answers): (&Context, &Answers),
+    edited: &Edited<'_>,
+    line: &Line,
+    note: Option<Text>,
+) -> Result<Plan, Box<Outcome>> {
     let commit = edited.commit.to_string();
     let mut todo = vec![TodoStep {
         action: TodoAction::Reword,
@@ -204,6 +210,7 @@ fn rebase_plan(context: &Context, edited: &Edited<'_>, line: &Line, note: Option
     }));
     rewrite_plan(
         context,
+        answers,
         Rewrite {
             steps: &todo,
             base: line.base.as_ref(),

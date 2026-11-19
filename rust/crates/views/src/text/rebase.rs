@@ -68,6 +68,18 @@ pub fn page_header(branch: &str, count: usize) -> String {
 pub const NEWEST_FIRST: &str = "Newest first. Drag to reorder.";
 /// The label of the box of a reworded commit.
 pub const NEW_SUBJECT: &str = "New subject";
+/// The tooltip of a branch on a commit of the page that moves with the rebase.
+#[must_use]
+pub fn moves_with_it(branch: &str) -> String {
+    format!("{branch} moves with the rebase")
+}
+
+/// The tooltip of a branch on a commit of the page that another worktree has checked out.
+#[must_use]
+pub fn stays_in_another_worktree(branch: &str) -> String {
+    format!("{branch} is checked out in another worktree and stays on the old commit")
+}
+
 /// **Move up** on a row.
 pub const MOVE_UP: &str = "Move up";
 /// **Move down** on a row.

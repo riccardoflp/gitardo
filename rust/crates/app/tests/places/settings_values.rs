@@ -266,3 +266,29 @@ fn settings_edit__page_size_500_in_the_repository_2000_in_the_user_file_user_sho
     let _shown = field_with(&tree, "2000");
     assert!(says_in(&tree, "Set by the repository: 500"));
 }
+
+#[test]
+fn settings_read__move_the_branches_of_a_stack_is_a_choice_of_three_and_as_git_says_takes_it_out_of_the_file() {
+    let (state, _repository, _file) = settings_page("{}\n", "rebase.updateRefs");
+    let mut window = Window::new(ThemeName::Dark, SIZE);
+    let _ = settled(&mut window, &state);
+    let _opened = window.click(&state, Role::Button, "As git says");
+    let chosen = window.click(&state, Role::MenuItem, "Leave them");
+    assert_eq!(
+        written(&chosen),
+        vec![user_change("rebase.updateRefs", SettingValue::Toggle(false))]
+    );
+    let (state, _repository, _file) = settings_page("{\n  \"rebase.updateRefs\": true\n}\n", "rebase.updateRefs");
+    let mut window = Window::new(ThemeName::Dark, SIZE);
+    let _ = settled(&mut window, &state);
+    let _opened = window.click(&state, Role::Button, "Move them");
+    let chosen = window.click(&state, Role::MenuItem, "As git says");
+    assert!(written(&chosen).is_empty(), "{chosen:?}");
+    assert!(
+        chosen.iter().any(|intent| matches!(
+            intent,
+            Intent::Feature(views::feature::FeatureIntent::RunWith(feature, _, _)) if feature.0 == "settings.reset"
+        )),
+        "{chosen:?}"
+    );
+}

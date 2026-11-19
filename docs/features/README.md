@@ -330,7 +330,7 @@ earns it.
 | [`rebase.find-line-before-head`](07-history-rewriting.md#rebasefind-line-before-head--the-line-of-commits-an-interactive-rebase-can-rewrite) | The line of commits an interactive rebase can rewrite | Derivation | Built | Built |
 | [`rebase.read-pushed`](07-history-rewriting.md#rebaseread-pushed--where-a-commit-was-pushed) | Where a commit was pushed | Read | Built | Built |
 | [`rebase.read-stacked-branches`](07-history-rewriting.md#rebaseread-stacked-branches--the-other-branches-on-the-commits-a-rewrite-makes-again) | The other branches on the commits a rewrite makes again | Read | Built | Planned |
-| [`rebase.update-refs`](07-history-rewriting.md#rebaseupdate-refs--which-branches-move-with-a-rewrite) | Which branches move with a rewrite | Derivation | Specified | Planned |
+| [`rebase.update-refs`](07-history-rewriting.md#rebaseupdate-refs--which-branches-move-with-a-rewrite) | Which branches move with a rewrite | Derivation | Built | Planned |
 | [`rebase.todo-page`](07-history-rewriting.md#rebasetodo-page--the-interactive-rebase-page) | The interactive rebase page | View | Built | Built |
 | [`rebase.build-todo-list`](07-history-rewriting.md#rebasebuild-todo-list--the-todo-list-of-an-interactive-rebase) | The todo list of an interactive rebase | Derivation | Built | Built |
 | [`rebase.interactive`](07-history-rewriting.md#rebaseinteractive--run-an-interactive-rebase) | Run an interactive rebase | Operation | Built | Built |

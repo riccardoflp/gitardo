@@ -23,9 +23,9 @@ pub fn line_of(parents: &str, commits: &[(char, &str)]) -> LineToHead {
     }
 }
 
-/// The answers with the line read.
+/// The answers with the line read, a recent git and no other branch on the commits made again.
 pub fn with_line(answers: Answers, line: LineToHead) -> Answers {
-    answers.with(super::LINE, Answer::Line(line))
+    super::stack::no_stack(answers.with(super::LINE, Answer::Line(line)))
 }
 
 /// The answers with the remote branches that have the commit read.

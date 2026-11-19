@@ -4,7 +4,7 @@ use model::CommitId;
 use model::contract::{AnswerKey, Answers, Context, Outcome, Question, QuestionKind, Text, Validation};
 use model::rebase::{LineCommit, LineToHead, Reword, TodoAction, TodoRow, TodoStep, build_todo_list, read_todo_rows};
 
-use super::{Rewrite, current_name, files_folder, line_holding, refuse, refuse_under_way, rewrite_plan};
+use super::{Rewrite, current_name, files_folder, line_holding, refuse, refuse_under_way, rewrite_plan, stack};
 
 /// The rows of the interactive rebase page, oldest first, as `model::rebase::write_todo_rows` writes them.
 pub const TODO: AnswerKey = AnswerKey("todo");
@@ -38,13 +38,13 @@ pub fn interactive(context: &Context, answers: &Answers) -> Outcome {
     };
     let named: Vec<CommitId> = rows.iter().map(|row| row.commit.clone()).collect();
     match line_holding(answers, &named) {
-        Ok(line) => rebase_rows(context, &rows, line),
+        Ok(line) => rebase_rows(context, answers, &rows, line),
         Err(read) => *read,
     }
 }
 
 /// The plan of the rows, once the line from the oldest of their commits up to `HEAD` is read.
-fn rebase_rows(context: &Context, rows: &[TodoRow], line: &LineToHead) -> Outcome {
+fn rebase_rows(context: &Context, answers: &Answers, rows: &[TodoRow], line: &LineToHead) -> Outcome {
     let (Some(commits), Some(oldest)) = (&line.commits, line.commits.as_ref().and_then(|commits| commits.first()))
     else {
         return refuse(
@@ -69,8 +69,12 @@ fn rebase_rows(context: &Context, rows: &[TodoRow], line: &LineToHead) -> Outcom
         return refuse("Enter a message for each reworded commit.");
     }
     let steps: Vec<TodoStep<'_>> = rows.iter().map(|row| step(row, commits)).collect();
+    let moving = match stack::decide_todo(context, answers, line.base()) {
+        Ok((_, moving)) => moving,
+        Err(read) => return *read,
+    };
     let written = files_folder(context).to_string_lossy().replace('\\', "/");
-    let todo = match build_todo_list(&steps, &written) {
+    let todo = match build_todo_list(&steps, &written, &moving) {
         Ok(list) => list.text,
         Err(refusal) => return refuse(refusal.as_str()),
     };
@@ -85,9 +89,9 @@ fn rebase_rows(context: &Context, rows: &[TodoRow], line: &LineToHead) -> Outcom
         note: format!("This rewrites the commits after {after} with this todo list:\n\n{todo}"),
         after: Vec::new(),
     };
-    match rewrite_plan(context, rewrite) {
+    match rewrite_plan(context, answers, rewrite) {
         Ok(plan) => Outcome::Run(plan),
-        Err(refusal) => refuse(refusal.as_str()),
+        Err(outcome) => *outcome,
     }
 }
 

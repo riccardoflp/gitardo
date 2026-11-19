@@ -51,21 +51,21 @@ pub fn commit(context: &Context, answers: &Answers) -> Outcome {
     if after.is_empty() {
         return Outcome::Run(split_last(context, split, pushed, filled));
     }
-    match split_older(context, read.base(), (split, after), pushed, filled) {
+    match split_older((context, answers), read.base(), (split, after), pushed, filled) {
         Ok(plan) => Outcome::Run(plan),
-        Err(refusal) => refuse(refusal.as_str()),
+        Err(outcome) => *outcome,
     }
 }
 
 /// The split of an older commit: an interactive rebase that stops at it, marked **Edit**, then `git reset --mixed
 /// HEAD~` and `gitardo-split` written in `rebase-merge`.
 fn split_older(
-    context: &Context,
+    (context, answers): (&Context, &Answers),
     base: Option<&CommitId>,
     (split, after): (&LineCommit, &[LineCommit]),
     pushed: Option<Text>,
     filled: FollowUp,
-) -> Result<Plan, Text> {
+) -> Result<Plan, Box<Outcome>> {
     let mut steps = vec![TodoStep {
         action: TodoAction::Edit,
         commit: split.id.as_str(),
@@ -95,7 +95,7 @@ fn split_older(
         ),
         after: vec![filled],
     };
-    let mut plan = rewrite_plan(context, rewrite)?;
+    let mut plan = rewrite_plan(context, answers, rewrite)?;
     let folder = context.repository.folder.clone();
     plan.steps.push(Step::git(folder, ["reset", "--mixed", "HEAD~"]));
     plan.steps.push(Step::Write {

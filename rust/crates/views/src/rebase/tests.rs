@@ -11,7 +11,7 @@ use model::state::{ChangeKind, FileChange, Head, RepositoryState};
 use model::{CommitId, Timestamp};
 
 use super::edit_stop::banner_words;
-use super::{RebaseIntent, TodoPage, can_squash, rewrite_menu};
+use super::{RebaseIntent, TodoPage, TodoPageBranch, can_squash, rewrite_menu};
 use crate::branch::ReferenceMenus;
 use crate::text::rebase as words;
 
@@ -261,4 +261,36 @@ fn rebase_todo_page__start_rebase_hands_the_rows_oldest_first_to_rebase_interact
     assert_eq!(page.todo_rows(), expected);
     let read = model::rebase::read_todo_rows(&page.todo_rows()).unwrap_or_default();
     assert_eq!(read.len(), 3);
+}
+
+#[test]
+fn rebase_todo_page__the_row_of_a_commit_shows_the_other_branches_on_it_and_which_stay() {
+    let page = page().with_branches(|commit| {
+        if *commit == id('d') {
+            vec![
+                TodoPageBranch {
+                    name: String::from("p1"),
+                    is_elsewhere: false,
+                },
+                TodoPageBranch {
+                    name: String::from("p2"),
+                    is_elsewhere: true,
+                },
+            ]
+        } else {
+            Vec::new()
+        }
+    });
+    let names = |index: usize| {
+        page.rows[index]
+            .branches
+            .iter()
+            .map(|branch| branch.name.clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(names(1), ["p1", "p2"]);
+    assert!(names(0).is_empty() && names(2).is_empty());
+    assert!(page.rows[1].branches[1].is_elsewhere);
+    assert_eq!(words::moves_with_it("p1"), "p1 moves with the rebase");
+    assert!(!page.is_changed(), "the branches change nothing of the rebase");
 }

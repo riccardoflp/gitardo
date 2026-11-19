@@ -4,7 +4,9 @@
 use model::CommitId;
 use model::rebase::{TodoAction, TodoRow, write_todo_rows};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, InputBox, Label, MenuAnchor, MenuEntry, Rect, TextKind, Tone, Ui};
+use ui::{
+    Badge, BadgeFill, Button, ButtonKind, InputBox, Label, MenuAnchor, MenuEntry, Rect, Sense, TextKind, Tone, Ui,
+};
 
 use super::RebaseIntent;
 use crate::icons;
@@ -35,6 +37,17 @@ pub struct TodoPageRow {
     pub action: TodoAction,
     /// What the box of a reworded commit holds; it starts with the subject.
     pub new_subject: String,
+    /// The other local branches on the commit, which move with the rebase (`rebase.update-refs`).
+    pub branches: Vec<TodoPageBranch>,
+}
+
+/// A local branch on a commit of the page.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TodoPageBranch {
+    /// Its name.
+    pub name: String,
+    /// Whether another worktree has it checked out, so that it stays on the old commit.
+    pub is_elsewhere: bool,
 }
 
 /// The page while it is open: the branch and the rows, newest first, as the timeline lists them.
@@ -60,9 +73,19 @@ impl TodoPage {
                 new_subject: subject.clone(),
                 subject,
                 action: TodoAction::Pick,
+                branches: Vec::new(),
             })
             .collect();
         TodoPage { branch, rows, started }
+    }
+
+    /// The page with the other local branches on each commit, as `branches_on` gives them.
+    #[must_use]
+    pub fn with_branches(mut self, branches_on: impl Fn(&CommitId) -> Vec<TodoPageBranch>) -> TodoPage {
+        for row in &mut self.rows {
+            row.branches = branches_on(&row.commit);
+        }
+        self
     }
 
     /// The page after an action, a move or a subject typed; opening, **Cancel** and **Start rebase** are the store's.
@@ -219,6 +242,7 @@ fn todo_row(page: &TodoPage, (index, row): (usize, &TodoPageRow), ui: &mut Ui<'_
     }
     let short = Label::new(row.commit.short()).kind(TextKind::Code).tone(Tone::Muted);
     let _ = ui.label(parts.left(70.0), &short);
+    branch_badges(ui, row, &mut parts);
     let subject = parts.rest();
     if row.action == TodoAction::Reword {
         let input = InputBox::new(&row.new_subject, words::NEW_SUBJECT);
@@ -229,6 +253,32 @@ fn todo_row(page: &TodoPage, (index, row): (usize, &TodoPageRow), ui: &mut Ui<'_
         let _ = ui.label(subject, &Label::new(&row.subject));
     }
     intents
+}
+
+/// The other branches on the commit of a row, after its short hash: each a badge with the icon of a branch, in the
+/// color of the accent when it moves with the rebase, muted with what says why when it stays.
+fn branch_badges(ui: &mut Ui<'_>, row: &TodoPageRow, parts: &mut Area) {
+    for branch in &row.branches {
+        let (tone, said) = if branch.is_elsewhere {
+            (Tone::Muted, words::stays_in_another_worktree(&branch.name))
+        } else {
+            (Tone::Accent, words::moves_with_it(&branch.name))
+        };
+        let badge = Badge {
+            text: &branch.name,
+            icons: &[icons::BRANCH],
+            tone,
+            fill: BadgeFill::Tint,
+        };
+        let width = ui.badge_width(&badge).min(parts.rest().width / 2.0);
+        let cell = parts.left(width);
+        let height = ui.badge_height();
+        let place = Rect::new(cell.x, cell.y + (cell.height - height) / 2.0, cell.width, height);
+        let drawn = ui.badge(place, &badge);
+        let id = ui.id(("todo branch", row.commit.as_str(), branch.name.as_str()));
+        let response = ui.interact(id, drawn, Sense::HOVER);
+        ui.tooltip(&response, &said);
+    }
 }
 
 /// The action of a row, with its help as tooltip, and the menu of the actions it opens.

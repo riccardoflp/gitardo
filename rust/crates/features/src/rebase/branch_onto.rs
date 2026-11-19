@@ -60,7 +60,7 @@ pub fn branch_onto(context: &Context, answers: &Answers) -> Outcome {
     if other_worktree(state, name).is_some() {
         return refuse(&format!("{name} is checked out in another worktree: rebase it there."));
     }
-    let decided = match stack::decide(context, answers, (onto.as_str(), name)) {
+    let decided = match stack::decide(context, answers, (Some(onto.as_str()), name)) {
         Ok(decided) => decided,
         Err(read) => return *read,
     };

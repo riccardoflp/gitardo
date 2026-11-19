@@ -45,11 +45,8 @@ pub fn onto(context: &Context, answers: &Answers) -> Outcome {
         | Target::TaskGroups(_)
         | Target::Task(_) => return refuse("Choose a commit or a branch to rebase onto."),
     };
-    let tip = match (context.repository.checked_out_branch(), &context.repository.head.commit) {
-        (Some(branch), _) => branch.to_owned(),
-        (None, commit) => commit.as_ref().map(ToString::to_string).unwrap_or_default(),
-    };
-    let decided = match stack::decide(context, answers, (&argument, &tip)) {
+    let tip = stack::checked_out_tip(context);
+    let decided = match stack::decide(context, answers, (Some(&argument), &tip)) {
         Ok(decided) => decided,
         Err(read) => return *read,
     };
