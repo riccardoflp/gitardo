@@ -1341,7 +1341,7 @@ and met again by the same merge is said **Resolved as before**, **Show what git 
 git wrote, and **Forget this resolution…** marks the conflict again; every card of the milestone passes its tests, and
 the snapshots of the page and of a file not downloaded match in each theme.
 
-## M40 — Notes, archives and upkeep
+## M40 — Notes, archives and upkeep (done)
 
 The notes of commits shown under their messages, written, removed, fetched and pushed; a commit, a branch or a tag saved
 as a zip or a tar.gz; and the upkeep of a repository from the menu of its row: the room it takes, **Clean up…**, and
@@ -1369,7 +1369,7 @@ extension.
    the **Gitardo Repositories** view, all run by the engine. Cards: the cards of the first five phases, in the
    extension.
 
-Built so far: the fifth phase, before the others. The menu of the row of the repository shown in **Repositories** has
+Done: the six phases are built, the fifth before the others. The menu of the row of the repository shown in **Repositories** has
 **Clean up…**, whose question says the room the repository takes as `git count-objects -v` reads it, then runs
 `git gc`; its message says the room before, not after (Q1455). **Look after it in the background…** is ticked while
 `maintenance.repo` in the user's configuration lists the repository, read with the state again only when that
