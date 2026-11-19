@@ -19,7 +19,8 @@ pub const MOST_TOKENS: u64 = 32_000;
 fn default_endpoint(kind: AiProvider) -> &'static str {
     match kind {
         AiProvider::Anthropic => "https://api.anthropic.com",
-        AiProvider::OpenAiCompatible => "https://api.openai.com/v1",
+        // GitHub Copilot is asked through its CLI, never over HTTP: `ai::http_kind` refuses it before a request.
+        AiProvider::OpenAiCompatible | AiProvider::Copilot => "https://api.openai.com/v1",
     }
 }
 
@@ -41,7 +42,7 @@ fn with_headers(kind: AiProvider, provider: &Provider, request: Request) -> Resu
         (AiProvider::Anthropic, Some(key)) => Ok(request
             .header("anthropic-version", ANTHROPIC_VERSION)
             .secret_header("x-api-key", &key.0)),
-        (AiProvider::OpenAiCompatible, Some(key)) => {
+        (AiProvider::OpenAiCompatible | AiProvider::Copilot, Some(key)) => {
             Ok(request.secret_header("Authorization", &format!("Bearer {}", key.0)))
         }
         (kind, None) if needs_key(kind) => Err(AiError::NoKey),
@@ -53,7 +54,7 @@ fn with_headers(kind: AiProvider, provider: &Provider, request: Request) -> Resu
 pub(super) fn models_request(kind: AiProvider, provider: &Provider) -> Result<Request, AiError> {
     let path = match kind {
         AiProvider::Anthropic => "/v1/models?limit=1000",
-        AiProvider::OpenAiCompatible => "/models",
+        AiProvider::OpenAiCompatible | AiProvider::Copilot => "/models",
     };
     with_headers(kind, provider, Request::get(address(kind, provider, path)?))
 }
@@ -71,7 +72,7 @@ pub(super) fn parse_models(kind: AiProvider, body: &[u8]) -> Result<Vec<AiModel>
             let id = entry.get("id").and_then(Value::as_str)?.to_owned();
             let name = match kind {
                 AiProvider::Anthropic => entry.get("display_name").and_then(Value::as_str),
-                AiProvider::OpenAiCompatible => None,
+                AiProvider::OpenAiCompatible | AiProvider::Copilot => None,
             };
             Some(AiModel {
                 name: name.map_or_else(|| id.clone(), str::to_owned),
@@ -90,7 +91,7 @@ fn member(name: &str, value: Value) -> Member {
 }
 
 /// The value `reasoning_effort` of the chat completions takes for an effort: those above `high` are `xhigh`.
-fn chat_effort(effort: Effort) -> &'static str {
+pub(super) fn chat_effort(effort: Effort) -> &'static str {
     match effort {
         Effort::Low => "low",
         Effort::Medium => "medium",
@@ -124,7 +125,7 @@ pub(super) fn ask_request(
             }
             "/v1/messages"
         }
-        AiProvider::OpenAiCompatible => {
+        AiProvider::OpenAiCompatible | AiProvider::Copilot => {
             if let Some(effort) = provider.settings.effort {
                 body.push(member(
                     "reasoning_effort",
@@ -157,7 +158,7 @@ pub(super) enum Read {
 pub(super) fn read_event(kind: AiProvider, event: &Event) -> Result<Read, AiError> {
     match kind {
         AiProvider::Anthropic => read_anthropic_event(event),
-        AiProvider::OpenAiCompatible => read_chat_event(event),
+        AiProvider::OpenAiCompatible | AiProvider::Copilot => read_chat_event(event),
     }
 }
 

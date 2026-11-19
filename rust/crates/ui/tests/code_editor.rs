@@ -47,6 +47,7 @@ impl Page {
             focus: None,
             tab_width: 4,
             wrap: self.wrap,
+            has_line_numbers: true,
         };
         let (answer, output) = self.window.frame(events, |ui| {
             ui.code_editor("editor", Rect::new(0.0, 0.0, 500.0, 300.0), &editor)

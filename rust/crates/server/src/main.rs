@@ -12,6 +12,7 @@ mod asker;
 mod discover;
 mod feature;
 mod framing;
+mod help;
 mod host;
 mod journal;
 mod mermaid;

@@ -39,6 +39,7 @@ cargo test                  # unit, golden and integration tests; needs git on t
 cargo xtask check           # rustfmt, clippy, tests, and the checks of the catalog and of the rules
 cargo xtask snapshots       # the view snapshots; --accept takes the new pixels as the reference
 cargo xtask golden --record # records git's output for the golden tests again
+cargo xtask guide           # makes the guide of Ask Gitardo again, after a card or the index changes
 cargo run -p app            # the application
 cargo run -p app --bin gitardo-cli -- <feature> <answers>…   # a feature without a window
 cargo build -p server       # gitardo-engine, which the extension starts: gitardo-engine --stdio

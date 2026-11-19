@@ -654,6 +654,12 @@ What the rules leave, a language model can propose. **Resolve with AI** in the b
 
 In the Changes view a file in conflict also has **Take the current side** and **Take the incoming side**, for when one side is simply right: `git checkout --ours` or `--theirs` followed by `git add`, or `git rm` when that side deleted the file. Gitardo asks first and says what each side is in the operation that stopped, with a warning when the file has lines neither side has, typed in it since git stopped, which would be lost too. Undo marks the conflicts again, except in a file one side deleted, which git cannot mark again.
 
+### Ask Gitardo
+
+Ask `@gitardo` in VS Code's Chat how to do something with Gitardo, in your own words and in any language: *how do I put my changes aside*, *how do I squash my last three commits?* It answers in a few steps, with the names of the controls as they are on screen and where they are, as the answer comes, and under it a button for each feature it names that has a command, such as **Stash Changes**. **Gitardo: Ask How To…** opens the Chat with `@gitardo ` typed.
+
+The answer comes from a guide to Gitardo's features, made from their descriptions, not from what the model knows of git: when Gitardo does not do something, it says so. It is asked of the model chosen in the Chat, with the question, the earlier questions of the Chat and that guide; nothing of your repository is sent, no path, branch, message or diff. It needs a language model in VS Code, such as GitHub Copilot's.
+
 ## Command preview
 
 Gitardo runs the `git` executable found on your `PATH`, and every command that changes the repository or a remote is written to the **Gitardo** output channel (**Gitardo: Show Command Log**).

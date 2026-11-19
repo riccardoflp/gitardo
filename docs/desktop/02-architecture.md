@@ -28,6 +28,9 @@ state lives. The rules for writing the code are in [03-code-rules.md](03-code-ru
   change.
 - One program is run as an external process: `git`, found on the `PATH`, which is what the application is about. It
   does its own networking for fetch, pull, push and clone, over HTTPS or SSH.
+- When `ai.provider` is `copilot`, `engine::ai` starts one more: the GitHub Copilot CLI, `copilot`, found on the
+  `PATH`, once for the window, in its server mode, spoken to over its standard input and output
+  ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)).
 - `rustfmt` and `clippy` come with the toolchain and are used.
 
 ## Crates

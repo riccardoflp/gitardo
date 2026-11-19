@@ -81,6 +81,7 @@ impl GitHubPlace {
                 (OsString::from("GIT_CONFIG_GLOBAL"), global.into_os_string()),
                 (OsString::from("GITARDO_TEST_MARKER"), marker.clone().into_os_string()),
             ],
+            copilot: engine::ai::CopilotCli::system(),
         };
         GitHubPlace {
             repository,

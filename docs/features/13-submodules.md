@@ -139,7 +139,7 @@ Acceptance:
 
 ### `submodule.open-in-new-window` — Open a submodule in a new window
 
-Opens the submodule's folder in a new window of Gitardo Desktop, as a repository of its own.
+Opens the submodule's folder in a new window of Gitardo, as a repository of its own.
 
 - **Kind**: Operation
 - **Function**: `features::submodule::open_in_new_window(context, answers) -> Outcome`
@@ -153,7 +153,7 @@ Opens the submodule's folder in a new window of Gitardo Desktop, as a repository
 - **Plan**: no steps.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
-- **After**: a new window of Gitardo Desktop shows the submodule's folder.
+- **After**: a new window of Gitardo shows the submodule's folder.
 - **Refuses**: on one that is not initialized, **`<folder>` is not initialized: update it first.**
 
 Acceptance:

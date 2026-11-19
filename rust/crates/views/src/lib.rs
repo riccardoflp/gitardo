@@ -33,6 +33,7 @@ pub mod files;
 pub mod filter;
 pub mod github;
 pub mod graph;
+pub mod help;
 mod icons;
 mod intent;
 mod islands;

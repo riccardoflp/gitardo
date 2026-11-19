@@ -26,7 +26,8 @@ pub use edit::edit_view;
 pub use find::find_view;
 pub use go_to_line::{GoToLineState, go_to_line_view, parse_line};
 pub use markdown::{
-    DiagramFailure, DiagramShown, DrawnDiagram, MarkdownContent, MarkdownIntent, MarkdownState, markdown_view,
+    DiagramFailure, DiagramShown, DrawnDiagram, LaidMarkdown, MarkdownContent, MarkdownIntent, MarkdownState,
+    draw_markdown, lay_out_markdown, markdown_view,
 };
 pub use question::{CloseQuestion, close_question_view};
 

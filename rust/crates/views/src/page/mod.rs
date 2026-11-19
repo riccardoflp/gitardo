@@ -47,6 +47,8 @@ pub enum Page {
     NewWorktrees,
     /// The Search page (`file-search.page`).
     Search,
+    /// The Ask Gitardo page (`help.page`).
+    Help,
 }
 
 impl Page {
@@ -67,6 +69,7 @@ impl Page {
             Page::Files => crate::text::files::PAGE,
             Page::NewWorktrees => crate::text::worktree_setup::PAGE,
             Page::Search => crate::text::file_search::PAGE,
+            Page::Help => crate::text::help::PAGE,
         }
     }
 }
@@ -108,6 +111,8 @@ pub enum PageState<'a> {
     NewWorktrees(crate::worktree_setup::SetupPageState<'a>, &'a str),
     /// The Search page.
     Search(Box<crate::file_search::SearchPageState<'a>>),
+    /// The Ask Gitardo page.
+    Help(crate::help::HelpState<'a>),
 }
 
 impl<'a> PageState<'a> {
@@ -129,6 +134,7 @@ impl<'a> PageState<'a> {
             PageState::Files(_) | PageState::FilesBeside(_) => Page::Files,
             PageState::NewWorktrees(..) => Page::NewWorktrees,
             PageState::Search(_) => Page::Search,
+            PageState::Help(_) => Page::Help,
         }
     }
 
@@ -142,7 +148,8 @@ impl<'a> PageState<'a> {
             | PageState::Changes(_)
             | PageState::Rebase(_)
             | PageState::Files(_)
-            | PageState::Search(_) => self.page().title(),
+            | PageState::Search(_)
+            | PageState::Help(_) => self.page().title(),
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
             PageState::CompareBeside(beside) => beside.diff.title,
@@ -252,6 +259,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::FilesBeside(beside) => crate::file_view::beside_files_view(beside, ui),
         PageState::NewWorktrees(setup, _) => crate::worktree_setup::page(setup, ui),
         PageState::Search(search) => crate::file_search::page_view(search, ui),
+        PageState::Help(help) => crate::help::page_view(help, ui),
     }));
     // `Alt+Left` is read after the page, which may use it in a field.
     if state.has_trail && trail::is_back_pressed(ui) {

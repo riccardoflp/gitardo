@@ -64,8 +64,10 @@ pub mod methods {
 /// milestone M17 needs: `read/file-view.mermaid`, a diagram of Mermaid as an SVG for VS Code's preview of Markdown
 /// ([`crate::mermaid`]); 1.10 what milestone M22 needs: `read/repo.worktree-summary`, what each repository of the
 /// workspace, each of its worktrees and each of its submodules is on, with `repository/summaries` for those read again
-/// and `repository/folderChanged` for what the extension's watchers saw ([`crate::summaries`]); 1.11 what milestone M37
-/// needs: the validation of the number of a pull request, and the host question of the token of a GitLab.
+/// and `repository/folderChanged` for what the extension's watchers saw ([`crate::summaries`]); 1.11 what milestones
+/// M31 and M37 need: `read/help.ask`, a question of VS Code's Chat to Ask Gitardo, and the titles of the features its
+/// answer may name in `host/languageModel` ([`crate::help`]); the validation of the number of a pull request, and the
+/// host question of the token of a GitLab.
 pub const VERSION: &str = "1.11";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.

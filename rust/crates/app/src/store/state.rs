@@ -105,6 +105,8 @@ pub struct State {
     pub tabs: super::tabs::Tabs,
     /// The title bar, as the window draws it, and whether the window is maximized (`window.title-bar`).
     pub caption: views::window::CaptionState,
+    /// The conversation of the Ask Gitardo page, of the window rather than of a tab (`help.page`).
+    pub help: super::help::Help,
 }
 
 /// The folders of a window and the repositories found in them.

@@ -40,8 +40,10 @@ page is the map of the product for whoever changes it.
   buttons on the titles of the diff and merge editors that switch to the Flow Diff and the Flow Merge.
 - **The Explorer and the Source Control view of VS Code**: entries in their context menus (history of a file or folder,
   compare with, stash this file, link into new worktrees).
-- **The Command Palette**: 81 commands, all named **Gitardo: …**, listed in `package.json` under
+- **The Command Palette**: 82 commands, all named **Gitardo: …**, listed in `package.json` under
   `contributes.commands`.
+- **The Chat of VS Code**: the participant `@gitardo`, which answers how to do something with Gitardo, with a button
+  under the answer for each feature it names that has a command (**Gitardo: Ask How To…** opens it).
 - **The Gitardo output channel**: the log of every command run.
 - **The walkthrough** *Get started with Gitardo* (`media/walkthrough/`), which VS Code opens once after installing.
 

@@ -1,8 +1,9 @@
-# Gitardo Desktop
+# Gitardo
 
 A desktop application for Git: the commit graph, the history and the everyday operations of Git, in a window of its own.
-It does everything the Gitardo extension for VS Code does, and is written from scratch in Rust, with the standard
-library and libraries where they serve: for TLS, and for the window, the text and the pixels.
+It is the desktop app of Gitardo, beside the extension for VS Code, and does everything the extension does. It is
+written from scratch in Rust, with the standard library and libraries where they serve: for TLS, and for the window,
+the text and the pixels.
 
 Its documents say what every feature does, as a function, and the rules the code follows; it was written from them in a
 clean room until its engine became the extension's too. The code has milestone M0 of the
@@ -55,6 +56,20 @@ themes; the window follows the scale of its monitor.
 ```bash
 cargo run --release --bin gitardo-demo
 ```
+
+Conflicts can be resolved and commit messages drafted by a language model, once `ai.provider` names one: `anthropic`
+or `openai-compatible` over HTTP, or `copilot` for GitHub Copilot, which Gitardo asks through the GitHub Copilot CLI
+with the user's own sign-in and subscription; the CLI is installed and signed in to by the user (`copilot login`).
+The same provider answers **Ask Gitardo**, a page where a question about how to do something with Gitardo, in the
+user's own words, is answered from the cards of the catalog, with the words of the controls as they are on screen; it is
+opened from Quick search, where a question that finds no command is asked by the last entry, and from the **…** menu.
+Under an answer, a button for each feature it named runs the operation as Quick search would, opens the page, or shows
+where the feature is and says what to choose there. Nothing of the repository is sent with a question.
+
+Gitardo runs on Windows, on macOS and on Linux; on Linux both on X11 and on Wayland, where the window, its title bar
+and its menu, and the clipboard speak to the compositor itself, with no XWayland, wherever the compositor offers a
+clipboard to programs (`ext-data-control` or `wlr-data-control`, as KDE Plasma and Sway do; on GNOME, through
+XWayland).
 
 The only program needed besides the Rust toolchain is `git`, 2.40 or later for the previews of conflicts. Building
 needs the C compiler the Rust toolchain uses on the system, for the cryptography of the TLS library.

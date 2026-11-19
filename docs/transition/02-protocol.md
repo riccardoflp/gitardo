@@ -80,7 +80,13 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
-Version 1.11 adds what milestone M37 needed: the kinds `pullRequestNumber` of the validation of a question, the number
+Version 1.11 adds what milestones M31 and M37 needed. For M31
+([D76](../08-decisions.md#d76--ask-gitardo-how-to-do-something-answered-from-the-catalog)): `read/help.ask`, a question
+of VS Code's Chat to Ask Gitardo, a read that takes no repository and asks the model chosen in the Chat
+([Ask Gitardo](#ask-gitardo)); the purpose `help` of `host/languageModel`; and `features` in its parameters, the
+features an answer may name with their titles, so that the Chat writes each as its title while the answer comes
+(Q1366). An older extension leaves out the field, which the engine sends only with a question to Ask Gitardo.
+For M37: the kinds `pullRequestNumber` of the validation of a question, the number
 of a pull request typed as `12`, `#12` or `!12`, and `pullRequestBranch`, the name of the local branch it is checked out
 in, one of `branches` taken too (`hosting.checkout-pull-request`); the host question of the token of a GitLab
 (`hosting.token`); the reads `read/hosting.detect-remote`, the hosting service of the main remote, and
@@ -466,6 +472,30 @@ measured as a browser measures it, since the preview draws the SVG as an image w
 and `height` are those of its `viewBox`, in pixels; `title` and `description` its `accTitle` and `accDescr`. It is not
 logged, having no repository to log it in.
 
+### Ask Gitardo
+
+`read/help.ask` (1.11, `help.ask`) takes no `repository`, reads nothing of one and runs no git: it asks the two
+requests of a question, `help.choose-cards` then `help.question` with the guide of the extension, each with
+`host/languageModel`, and reads the answer (`help.read-answer`).
+
+```ts
+params: {
+  question: string,
+  earlier: { question: string, answer: string }[],   // the Chat's history with @gitardo, oldest first
+  model: string | null                               // the id of the model chosen in the Chat
+}
+result:
+  | { kind: "answered", markdown: string, named: string[], model: string }   // each feature in bold by its title
+  | { kind: "failed", message: string }                                      // in the host's words
+```
+
+Both requests have `purpose` `help`, `model` the id given and `effort` null. The first has `read` null, since the
+Chat shows nothing of the cards it chooses; the second has `read` the id of `read/help.ask`, so that the extension
+writes its text in the Chat as it comes, and `features` the cards the first answer chose. `named` are the identifiers
+of the features the answer names, each once, in the order first named; the extension puts a button under the answer
+for each that has a command. Cancelled while the first request runs, no second one is sent and the read answers
+`cancelled`. It is not logged, having no repository to log it in.
+
 ## Features
 
 ### `feature/run`
@@ -633,9 +663,10 @@ Each answers `null` when the user backs out or the host cannot.
 | `host/secret` | `{ name }` | `{ value: string \| null }` | `system::read_secret` |
 | `host/storeSecret` | `{ name, value: string \| null }` | `null` | `system::write_secret`, `delete_secret` |
 
-`LanguageModelRequest = { purpose: "commitMessage" | "conflict", model: string | null, effort: "low" | "medium" |
-"high" | "xhigh" | "max" | null, messages: { role: "user" | "assistant", text: string }[], read: id | null }`
-(1.6). `model` is the id of the model, null for VS Code's first; `effort` goes as `configuration.reasoningEffort` of
+`LanguageModelRequest = { purpose: "commitMessage" | "conflict" | "help", model: string | null, effort: "low" |
+"medium" | "high" | "xhigh" | "max" | null, messages: { role: "user" | "assistant", text: string }[], read: id | null,
+features?: { id: string, title: string }[] }` (1.6; `help` and `features` 1.11, `features` sent only for the answer of
+a question to Ask Gitardo, whose `[[id]]` the extension writes as the title in bold as it comes). `model` is the id of the model, null for VS Code's first; `effort` goes as `configuration.reasoningEffort` of
 the request, null for as the model is set up; `purpose` chooses the justification VS Code shows. `read` is the id of
 the extension's read the question is asked for, null when a feature asks: the extension shows the text as it comes
 where that read was asked, and answers with the whole text and the name of the model. `refused` is why it could not

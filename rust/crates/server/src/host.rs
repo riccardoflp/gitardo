@@ -13,6 +13,7 @@ use model::github::Token;
 use protocol::ai::{
     LanguageModelParams, LanguageModelResult, LanguageModelsResult, ModelMessageJson, RoleJson, methods as ai_methods,
 };
+use protocol::help::FeatureTitleJson;
 use protocol::reads::{GitHubTokenParams, GitHubTokenResult, methods};
 use protocol::rpc::RequestId;
 use serde::Serialize;
@@ -36,6 +37,8 @@ pub struct HostQuestions {
     read: Option<RequestId>,
     /// The model and the effort asked, from `ai.model` and `ai.effort`; the provider is the host's.
     ai: AiSettings,
+    /// The features an answer may name, with their titles, which the extension writes in their place as it comes.
+    features: Vec<FeatureTitleJson>,
 }
 
 impl HostQuestions {
@@ -46,7 +49,13 @@ impl HostQuestions {
             cancel,
             read,
             ai,
+            features: Vec::new(),
         }
+    }
+
+    /// Sends with each question the features its answer may name, with their titles.
+    pub fn naming(&mut self, features: Vec<FeatureTitleJson>) {
+        self.features = features;
     }
 
     /// Sends a question to the extension and waits for its answer.
@@ -102,6 +111,7 @@ impl LanguageModel for HostQuestions {
                 text: request.prompt.clone(),
             }],
             read: self.read.clone(),
+            features: self.features.clone(),
         };
         let answer = self
             .request(ai_methods::HOST_LANGUAGE_MODEL, &params)

@@ -27,6 +27,28 @@
   is fetched by the reference the service keeps it under into a local branch named `<owner>/<branch>`, then checked
   out, and checking it out again brings that branch up to the new commits. The menu of a remote branch whose label
   shows a pull request has **Check out pull request #12**.
+- **Ask Gitardo**: a page where a question about how to do something with Gitardo, in your own words and in any
+  language, is answered by the AI provider from the documents of Gitardo's features, with the words of the controls as
+  they are on screen. **Ask Gitardo…** in Quick search and in the **…** menu opens it; a question typed in Quick search
+  that finds no command is asked by its last entry, **Ask Gitardo: "…"**. The answer comes as it is written, **Stop**
+  keeps what came, **New conversation** starts again, and closing the page forgets it. Under an answer, up to four
+  buttons do the features it named: **Stash Changes** runs the stash as Quick search runs it, **Open Search** opens the
+  page, **Show where** shows the place and says in the status bar what to choose there. Nothing of the repository is
+  sent: no path, no branch, no commit.
+- The window, the taskbar and a release say **Gitardo**: the title of the window is *\<repository\> — Gitardo*, the
+  archives of a release are named `gitardo-<version>-<system>`, and the settings page says *a new window of Gitardo*.
+  The settings and the secrets are kept where they were.
+- **GitHub Copilot** as the AI provider: `ai.provider` set to `copilot` asks GitHub Copilot, with the sign-in and the
+  subscription of the GitHub Copilot CLI, to resolve conflicts and to draft commit messages. Gitardo starts `copilot`
+  once for the window, in its server mode, and allows it no tool, so it reads and runs nothing; **Choose the model that
+  resolves conflicts** lists the models of the subscription, and `ai.endpoint` is left off the settings page. Without
+  the CLI, Gitardo says so with **How to install**; signed out, with **Sign in**, which runs `copilot login` in a
+  terminal of the bottom panel.
+- On Linux under Wayland, copy and paste speak to the compositor's own clipboard, with no XWayland, on the
+  compositors that offer the protocol `ext-data-control` or `wlr-data-control` (KDE Plasma, Sway, Hyprland and the
+  others of wlroots); on GNOME, whose compositor offers neither, and on X11, the clipboard of X11 as before.
+- On Linux a right click on the title bar opens the menu of the window of the desktop, where the pointer is: the
+  compositor's on Wayland, and the window manager's on X11 (`_GTK_SHOW_WINDOW_MENU`, which GNOME and Xfce read).
 
 ## 1.2.0 - 2026-11-18
 

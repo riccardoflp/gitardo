@@ -330,7 +330,7 @@ has, does, and what `worktree.open-in-worktree` and `worktree.switch` do once th
 - **Plan**: no steps.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
-- **After**: `window` (the default) opens a new window of Gitardo Desktop on its folder, as
+- **After**: `window` (the default) opens a new window of Gitardo on its folder, as
   `worktree.open-in-new-window`; `editor` opens it in the external editor, as `worktree.open-in-editor`; `terminal`
   opens a terminal in it, as `worktree.open-in-terminal`. When `editor` is set but `editor.external` is not, or the
   editor does not start, it opens in a new window instead and says why.
@@ -347,7 +347,7 @@ has, does, and what `worktree.open-in-worktree` and `worktree.switch` do once th
 
 Acceptance:
 
-- [ ] With `worktrees.openIn` unset, a double click on a worktree opens a new window of Gitardo Desktop on it.
+- [ ] With `worktrees.openIn` unset, a double click on a worktree opens a new window of Gitardo on it.
 - [ ] With `worktrees.openIn` set to `terminal`, the same double click opens a terminal in its folder.
 - [ ] With `editor` and `editor.external` unset, it opens a new window and says that no external editor is set.
 - [ ] Extension: **Open in Agents Window** runs `workbench.action.openAgentsWindow` with `{ folderUri }`; when that
@@ -359,7 +359,7 @@ Acceptance:
 
 ### `worktree.open-in-new-window` — Open a worktree in a new window
 
-Opens the worktree as the folder of a new window of Gitardo Desktop.
+Opens the worktree as the folder of a new window of Gitardo.
 
 - **Kind**: Operation
 - **Function**: `features::worktree::open_in_new_window(context, answers) -> Outcome`
@@ -369,7 +369,7 @@ Opens the worktree as the folder of a new window of Gitardo Desktop.
 - **Plan**: no steps.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
-- **After**: a new window of Gitardo Desktop shows the worktree's folder.
+- **After**: a new window of Gitardo shows the worktree's folder.
 - **Extension**: **Open in new window** in the context menu of a worktree, beside the graph and in the Branches view;
   **Open worktree in new window** in that of a branch or a remote branch another worktree has (`worktreeOpenEntries` in
   `src/webview/menus.ts`); **Open in New Window** in the message after a worktree is created. Done by the extension

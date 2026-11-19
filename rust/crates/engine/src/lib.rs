@@ -14,6 +14,7 @@ mod drive;
 mod error;
 pub mod github;
 mod held;
+pub mod help;
 mod history;
 mod host;
 pub mod hosting;

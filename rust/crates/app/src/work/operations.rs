@@ -142,6 +142,7 @@ fn serve(
                 Box::new(SystemClock),
             );
             engine.keep_secrets_in((access.secrets)());
+            engine.ask_copilot_with(access.copilot.clone());
             engine.share_activities(activities.clone());
             engine.find_operations_with(features::operation);
             // The commands of a new worktree run in the Tasks tab, which other operations do not wait for.

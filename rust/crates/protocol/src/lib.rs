@@ -10,6 +10,7 @@
 
 pub mod ai;
 pub mod feature;
+pub mod help;
 pub mod journal;
 pub mod mermaid;
 pub mod messages;

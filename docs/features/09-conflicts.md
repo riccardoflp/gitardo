@@ -1502,10 +1502,12 @@ Sends the AI provider the question about one conflict and returns its answer as 
 
 - **Kind**: Read
 - **Function**: `engine::ai::ask_conflict(model: &mut dyn LanguageModel, &request, pieces) -> Result<ConflictReply, AiError>`,
-  the model the AI provider over HTTP in the desktop (`engine::ai::ProviderModel`)
+  the model the AI provider over HTTP in the desktop (`engine::ai::ProviderModel`), or GitHub Copilot through its CLI
+  when `ai.provider` is `copilot` (`ai.copilot`)
 - **Reads**: an HTTP request to the AI provider of `ai.provider` at `ai.endpoint`, with the model of `ai.model` (or the
   first model the provider lists when it is empty) and the effort of `ai.effort` when it is set, the key taken from the
-  credential store of the system; the answer is streamed, and each piece is passed on as it comes.
+  credential store of the system; the answer is streamed, and each piece is passed on as it comes. With `copilot`, a
+  session of the GitHub Copilot CLI in place of the request, with the same model and effort (`ai.copilot`).
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`.
 - **Extension**: `read/ai.ask-conflict` of the engine, asked by the review with the file's lines and the conflict
@@ -1523,6 +1525,8 @@ Acceptance:
       of a streamed answer arrive in order before the whole answer.
 - [ ] With `ai.effort` set to `high`, the request carries the provider's setting for high effort; with it empty, none.
 - [ ] Cancelling the question closes the request and returns no answer.
+- [ ] With `ai.provider` set to `copilot`, the question is asked of GitHub Copilot, and its proposal names the Copilot
+      model asked.
 - [ ] Extension: the model chosen in `gitardo.conflicts.aiModel` is asked, not the first one, with `reasoningEffort`
       set to the value of `gitardo.conflicts.aiEffort` when it is set.
 
@@ -1650,7 +1654,8 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
 - **Entry points**: **Choose the model that resolves conflicts** in Quick search; the button with the model's name in
   the head of `review.page` (*Choose the language model that resolves the conflicts, and how much it thinks*), which
   reads **No language model** when the provider has none.
-- **Reads**: the models the provider lists at `ai.endpoint`.
+- **Reads**: the models the provider lists at `ai.endpoint`; with `ai.provider` set to `copilot`, the models of the
+  user's GitHub Copilot subscription, listed by its CLI, and no key is asked (`ai.copilot`).
 - **Asks**: **The model that resolves conflicts** (*Gitardo asks it about the conflicts the rules leave*): **The first
   model of the provider** (with its name) or one of the models listed, the current choice ticked; then **How much the
   model thinks before it answers** (*More is slower, and often better on hard conflicts. A model without such a setting
@@ -1663,7 +1668,8 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
 - **Danger**: None.
 - **Undo**: Impossible with **Undo**: choosing again sets them back.
 - **Refuses**: when the provider lists no model: *No language model is available from the AI provider. Set one up in the
-  settings.*
+  settings.*; with GitHub Copilot signed out, *GitHub Copilot is not signed in.* with **Sign in**; without
+  its CLI, *The GitHub Copilot CLI is not installed. Install it, then try again.* with **How to install**.
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Extension**: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the
   model's name at the top of the review, while `gitardo.conflicts.ai` is on. `Controller.chooseConflictModel()` runs
@@ -1681,6 +1687,8 @@ Acceptance:
 - [ ] Choosing **The first model of the provider** and **As the model is set up** removes both settings.
 - [ ] Cancelling either question writes nothing.
 - [ ] Each AI proposal written after the change names the new model.
+- [ ] With `ai.provider` set to `copilot`, the models listed are those of the GitHub Copilot subscription, no key is
+      asked or kept, and signed out or without the CLI it refuses with **Sign in** or **How to install**.
 - [ ] Extension: with two models, the first pick offers **The first model of the provider**, **First model**,
       **Chosen model**; the second **As the model is set up**, **Low**, **Medium**, **High**, **Extra high**, **Max**.
       Without the engine's binary, it says **Gitardo's engine is not available on this system.** with **Show the log**,
@@ -1699,8 +1707,9 @@ conflicts the rules leave, and the draft of a commit message
 ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)).
 
 - **Kind**: Read
-- **Function**: `engine::ai::CopilotModel`, the `LanguageModel` that `ai.ask-conflict`, `commit.draft-message` and
-  `ai.choose-model` are given when `ai.provider` is `copilot`, in place of `engine::ai::ProviderModel`.
+- **Function**: `engine::ai::copilot_model(cli: &CopilotCli, settings: &AiSettings, cancel: &Cancel) -> CopilotModel`,
+  the `LanguageModel` that `ai.ask-conflict`, `commit.draft-message` and `ai.choose-model` are given when
+  `ai.provider` is `copilot`, in place of `engine::ai::ProviderModel`.
 - **Reads**: the GitHub Copilot CLI, the program `copilot` found on the `PATH`
   ([Q862](../08-decisions.md#open-questions)), started once for the window in its server mode and spoken to over its
   standard input and output in JSON-RPC, as the Copilot SDK speaks to it: the models the subscription offers, for
@@ -1711,12 +1720,36 @@ conflicts the rules leave, and the draft of a commit message
   Gitardo keeps no key for it and sends none.
 - **Tools**: none. Every permission the CLI asks (to read a file, run a command, fetch an address) is refused, so it
   reads nothing of the repository but what the question carries, and runs nothing.
-- **Settings**: `ai.provider` (`copilot`), `ai.model`, `ai.effort`; `ai.endpoint` is not used.
+- **Settings**: `ai.provider` (`copilot`, which its description on the settings page names **GitHub Copilot**),
+  `ai.model`, `ai.effort`; `ai.endpoint` is not used, and the settings page does not list it while `ai.provider` is
+  `copilot`.
 - **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`, as the other providers.
+- **Protocol**: read from the Copilot SDK's client for Rust, `github-copilot-sdk` 0.1.0, of protocol version 2, which
+  speaks to the CLI of its time; the CLI itself could not be run where it was built, so its answers are those of the
+  fake ([Q1350](../08-decisions.md#open-questions)).
+  - `copilot --server --stdio --no-auto-update --log-level error`, found on the `PATH` (`copilot.cmd`, which npm
+    installs, on Windows, from `PATHEXT`), started the first time a question needs it and kept for the window; it
+    leads a process group of its own (a job object on Windows), ended with what it started when the window closes.
+  - JSON-RPC 2.0, each message framed with `Content-Length: <bytes>` and an empty line, as the Language Server
+    Protocol frames them.
+  - `auth.getStatus` before each question: `isAuthenticated` false is *not signed in*.
+  - `models.list`: `{"models": [{"id", "name"}, …]}`, for `ai.choose-model` and for the first model when `ai.model`
+    is empty.
+  - `session.create` with `model`, `reasoningEffort` (`low`, `medium`, `high`, or `xhigh` for **Extra high** and
+    **Max**) when `ai.effort` is set, `streaming` true, `availableTools` empty and `requestPermission` true; it answers
+    `sessionId`. Then `session.send` with `sessionId` and `prompt`.
+  - The notifications `session.event`, with `sessionId` and `event` (`type`, `data`): `assistant.message_delta` with
+    `deltaContent`, each piece passed on; `assistant.message` with `content`, the answer when no piece came;
+    `session.idle`, the end; `session.error` with `message`, Copilot's refusal.
+  - Cancelled: `session.abort`. Answered, failed or cancelled: `session.destroy`; the CLI keeps running.
+  - What the CLI asks of Gitardo: `permission.request` is answered `{"result": {"kind": "reject"}}`, `tool.call`
+    `{"result": {"resultType": "rejected", …}}`, and any other request with the error `-32601`.
 - **Refuses**: without `copilot` on the `PATH`: *The GitHub Copilot CLI is not installed. Install it, then try again.*
   with **How to install**, which opens GitHub's page on installing it; when it is not signed in: *GitHub Copilot is not
-  signed in.* with **Sign in**, which runs `copilot login` in a terminal of the bottom panel; when Copilot refuses the
-  question (no subscription, no requests left, a model not offered): *GitHub Copilot refused: \<its words\>*.
+  signed in.* with **Sign in**, which opens a new terminal of the bottom panel and types `copilot login` in it; when
+  Copilot refuses the question (no subscription, no requests left, a model not offered): *GitHub Copilot refused: \<its
+  words\>*. A draft or a conflict refused so says it in the status bar with its button; the refusal of
+  `ai.choose-model` offers it as its button.
 - **Extension**: Host only: the language models of VS Code are those of GitHub Copilot when its extension is
   installed, and `ai.ask-conflict`, `commit.draft-message` and `ai.choose-model` ask them already through
   `host/languageModel` and `host/languageModels`.

@@ -129,7 +129,7 @@ jobs:
       # An artifact keeps no mode, so the binaries of Linux and macOS are made executable again before they are packed.
       - name: The desktop of each system, in an archive with the license
         run: |
-          archive="$GITHUB_WORKSPACE/release/gitardo-desktop-$VERSION"
+          archive="$GITHUB_WORKSPACE/release/gitardo-$VERSION"
           for system in Windows Linux macOS; do cp LICENSE "desktop/desktop-$system/"; done
           chmod +x desktop/desktop-Linux/gitardo desktop/desktop-Linux/gitardo-cli
           chmod +x desktop/desktop-macOS/gitardo desktop/desktop-macOS/gitardo-cli
@@ -152,7 +152,7 @@ jobs:
             echo "On the Marketplace once approved; the vsix of each target are below too."
             section extension/CHANGELOG.md
             echo
-            echo "## Gitardo Desktop"
+            echo "## Gitardo"
             echo
             echo "For Windows x64, Linux x64 and macOS on Apple silicon. The binaries are not signed:"
             echo "Windows may warn before running them, and on macOS"

@@ -10,11 +10,13 @@ this catalog, with the words of the controls as they are on screen and a button 
 What the model is told of Gitardo: for each feature the app that asks has, where it is and what it says, from its card.
 
 - **Kind**: Derivation
-- **Function**: `model::help::guide(app: App) -> &'static Guide`
+- **Function**: `model::help::guide(app: App) -> Guide`
 - **Extension**: the engine's, with `App::Extension`: the guide of the extension, through `help.ask`.
 
 The guide is the file `crates/model/src/help/guide.txt`, made by `cargo xtask guide` from the cards of
-`docs/features/` and held in the engine with `include_str!`; `guide` reads it once into a `Guide` and keeps it. Each
+`docs/features/` and held in the engine with `include_str!`; `guide` reads it into a `Guide` whose parts are slices of the file, and the
+one who asks keeps it. It is not read once and kept for the program: rule R3.3 has no lazily initialized singleton,
+and reading it is a scan of its lines that copies none of them. Each
 card of the catalog is in the guide of an app when its status in that app, in the index of the catalog, is **Built**
 or **Seen**; the cards of this file are left out. For each, the guide has:
 
@@ -126,11 +128,14 @@ Sends the two requests of a question to the AI provider, and gives the answer as
   question, the earlier questions and answers of the Chat's history, and the id of the model chosen in the Chat. The
   engine asks both requests with `host/languageModel`, `purpose` `help`, `model` that id and `effort` null, and `read`
   the id of the read for the second, so that the extension writes its text in the Chat as it comes; then it reads the
-  answer with the guide of the extension. VS Code shows the justification *Gitardo sends your question and a guide to
+  answer with the guide of the extension. The second request carries `features`, the identifiers and titles of the
+  cards chosen, so that the extension writes each `[[id]]` as the bold title of its card while the answer comes, as
+  the engine reads it after (Q1366). VS Code shows the justification *Gitardo sends your question and a guide to
   its features to the model, nothing of your repository.* When the engine's binary is missing, it says so (D49).
 
-Nothing of the repository is read or sent: no path, no name of a branch, no message, no diff. The status bar says
-**asking Gitardo** while the requests run, and cancelling there, or **Stop** in the page, closes them.
+Nothing of the repository is read or sent: no path, no name of a branch, no message, no diff. With no `ai.provider`,
+the provider's model fails with no request sent, and `engine::help::said` gives the message of **Refuses**. The status bar says
+**asking Gitardo** while the requests run, and **Stop** in the page closes them; the status bar cancels nothing (Q1352).
 
 Acceptance:
 
@@ -157,6 +162,7 @@ the features it named.
 - `[[id]]` of a card of the guide becomes the title of its card, as a link that **Show me** of that card follows, and
   the card is added to the features named, each once, in the order first named.
 - `[[id]]` of no card of the guide is taken out, the words around it kept.
+- The link goes to `show-me:` and the identifier, `show-me:squash.commits`, which the page follows itself.
 - A code fence the model put around the whole answer is taken off, as `commit.draft-message` takes it off.
 - While the answer comes, what is written so far is read the same, without a `[[` cut in half: a `[[` with no `]]`
   after it yet is not shown.
@@ -174,8 +180,9 @@ Where the user asks how to do something, and reads the answers.
 
 - **Kind**: View
 - **Function**: `views::help::page_view(state: &HelpState, ui) -> Vec<Intent>`
-- **Entry points**: **Ask Gitardo…** in Quick search and in the Help menu; **Ask Gitardo: "\<what was typed\>"**, the
-  last entry of Quick search when what is typed finds no command, which opens the page with that question asked.
+- **Entry points**: **Ask Gitardo…** in Quick search and at the end of the **…** menu of the header, which holds what
+  a Help menu would, since the window has no menu bar (Q1351); **Ask Gitardo: "\<what was typed\>"**, the last entry
+  of Quick search when what is typed finds no command, which opens the page with that question asked.
 - **Refuses**: with no `ai.provider`, the page says *Set up an AI provider to ask how to do something.* with **Open the
   settings**, which opens the settings page at `ai.provider` (`settings.reveal`), and its box is disabled.
 - **Settings**: `ai.provider`.
@@ -195,6 +202,11 @@ the answer. The box at the foot has *Ask how to do something…* as its placehol
 becomes **Stop**, and *Looking for the features…* shows until the answer's first words. **New conversation** in the
 header of the page forgets the questions and the answers. A failure shows under its question, in the colors of an
 error, with **Try again**. Closing the page forgets the conversation.
+
+The conversation is the window's, not a tab's: the page shows the same questions from every tab. The box is an editor
+of the font of code without the numbers of its lines, since an input box of the window has one line (Q1353). While an
+answer comes, the status bar says **asking Gitardo**, as it says **drafting commit message**; its activity indicator
+cancels nothing, whatever runs, so **Stop** on the page is what cancels the question (Q1352).
 
 Acceptance:
 
@@ -219,7 +231,8 @@ Under an answer, a button for each feature it named, that does it or shows where
 - **Uses**: `help.guide`, `help.read-answer`, Quick search.
 - **Extension**: a button of the Chat (`stream.button`) for each feature named that has a command of the extension,
   with the title of the command; a table of the extension gives the command of each feature, and a test checks that
-  each command of it is in `package.json`. A feature with no command has no button.
+  each command of it is in `package.json`. A feature with no command has no button, and a command two features named
+  have has one.
 
 What the button of a feature does, from its place in the guide:
 
@@ -231,6 +244,12 @@ What the button of a feature does, from its place in the guide:
 | Anything else | none | |
 
 At most 4 buttons, in the order the features were named. Nothing runs until a button is pressed.
+
+An operation's button has the words of its entry in Quick search, as **Stash Changes**, and the title of its card when
+Quick search does not list it. A page's button has the name of the page, as **Open Search** and **Open Compare**, which
+asks what to compare as the bar of views does. A page that opens only on something chosen, as the Diff page on a file,
+or the steps of a rebase while one is under way, has **Show where** in its place, since there is nothing to open it on
+(Q1354). A link of the answer to a feature does what its button does.
 
 Acceptance:
 

@@ -203,6 +203,7 @@ impl Session {
             methods::DISCOVER => crate::discover::discover(&parameters(params)?, cancel),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
             protocol::mermaid::methods::FILE_VIEW_MERMAID => crate::mermaid::draw(&parameters(params)?),
+            protocol::help::methods::ASK => crate::help::ask(self, id, &parameters(params)?, cancel),
             protocol::summaries::methods::WORKTREE_SUMMARY => summaries::follow(self, &parameters(params)?, cancel),
             read if crate::reads::is_read(read) => crate::reads::answer(self, id, read, params, cancel),
             // Area 6 of stage 4: the reads that ask a language model of VS Code.

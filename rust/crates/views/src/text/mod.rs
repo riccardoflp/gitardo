@@ -18,6 +18,7 @@ pub mod files;
 pub mod filter;
 pub mod github;
 pub mod header;
+pub mod help;
 pub mod history;
 pub mod merge_view;
 pub mod pages;
@@ -40,7 +41,7 @@ pub mod worktree;
 pub mod worktree_setup;
 
 /// The name of the program, in the title bar of its window.
-pub const PROGRAM: &str = "Gitardo Desktop";
+pub const PROGRAM: &str = "Gitardo";
 
 /// The title of the window: the repository shown, then the program.
 #[must_use]

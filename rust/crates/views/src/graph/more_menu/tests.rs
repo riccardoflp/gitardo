@@ -19,7 +19,7 @@ fn words(state: &MoreMenuState) -> Vec<&'static str> {
 }
 
 /// The words of the whole menu, in the groups and the order of the card.
-const IN_ORDER: [&str; 22] = [
+const IN_ORDER: [&str; 24] = [
     "Refresh",
     "Branch",
     "Stash",
@@ -42,6 +42,8 @@ const IN_ORDER: [&str; 22] = [
     "-",
     "Settings",
     "Theme\u{2026}",
+    "-",
+    "Ask Gitardo\u{2026}",
 ];
 
 /// A repository on GitHub with no submodule, in a workspace of several, and nothing running.

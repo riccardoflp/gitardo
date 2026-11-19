@@ -48,7 +48,7 @@ fn run_until(event_loop: &mut Loop, mut is_done: impl FnMut(&Context<'_>, Event<
 /// Opens a window of 320 by 200 logical pixels that never shows.
 fn hidden_window(event_loop: &mut Loop) -> Window {
     let options = WindowOptions {
-        title: String::from("Gitardo Desktop test"),
+        title: String::from("Gitardo test"),
         size: LogicalSize {
             width: 320.0,
             height: 200.0,
@@ -354,7 +354,7 @@ fn knows_and_changes_its_scale_size_and_place(event_loop: &mut Loop, window: &Wi
 fn hands_the_requests_of_a_screen_reader_over_and_takes_a_tree(event_loop: &mut Loop, window: &Window) {
     let root = NodeId(1);
     let mut node = Node::new(Role::Window);
-    node.set_label("Gitardo Desktop test");
+    node.set_label("Gitardo test");
     // No screen reader listens while the tests run: the tree is taken and kept aside.
     window.update_accessibility(TreeUpdate {
         nodes: vec![(root, node)],

@@ -59,6 +59,7 @@ impl ViewData {
                 state,
                 self.panes.search_results,
             )))),
+            Page::Help => Some(PageState::Help(crate::store::help::page_state(state))),
             Page::NewWorktrees => Some(PageState::NewWorktrees(
                 crate::store::new_worktrees::page_state(state),
                 &state.new_worktrees.title,

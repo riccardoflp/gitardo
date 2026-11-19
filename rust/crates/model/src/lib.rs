@@ -23,6 +23,7 @@ pub mod file_view;
 pub mod filter;
 pub mod github;
 pub mod graph;
+pub mod help;
 pub mod hosting;
 mod identifier;
 pub mod markdown;

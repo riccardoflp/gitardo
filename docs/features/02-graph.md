@@ -245,7 +245,9 @@ Gitardo open over the window covers the header bar, which is then not the captio
 window under a dialog of its own does not move it.
 
 On Linux the window is opened without decorations, and a press on the caption or on an edge asks the compositor to
-move it, to maximize or restore it on a double click, to resize it or to open its menu, as `winit` lets a window ask; on
+move it, to maximize or restore it on a double click, to resize it or to open its menu, as `winit` lets a window ask;
+a right click on the caption opens the compositor's menu of the window, asked with `xdg_toplevel.show_window_menu` on
+Wayland and with the message `_GTK_SHOW_WINDOW_MENU` to the window manager on X11, at the place of the pointer; on
 macOS the system's title bar is transparent over the header bar, which starts after the system's three buttons, and
 the system resizes the window from its edges. On Windows the window is opened without decorations, keeping the styles of a window with a frame, so that the system
 still gives it its shadow, its rounded corners, Aero Snap and its keys; its inside covers the frame, within the work
@@ -254,7 +256,8 @@ moves the window from, maximizes and restores with a double click and opens its 
 and corners, which it resizes the window from with their cursors, and the maximize button, which shows Snap Layouts on
 Windows 11; the pointer on **Maximize** is then the system's, and `platform` hands it to Gitardo as input. `Alt+Space`
 opens the system's menu of the window. The title of the window is set as before, though not drawn, since the taskbar,
-`Alt+Tab` and the screen reader say it.
+`Alt+Tab` and the screen reader say it: *\<repository\> — Gitardo*, or **Gitardo** with no repository open
+([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)).
 
 The header bar is drawn dimmed while the window has not the focus, as the system dims the title bar of a window behind
 another; **Close** under the pointer is still red. When the window starts to be moved or resized (`WM_ENTERSIZEMOVE`
@@ -269,6 +272,7 @@ any screen is not used, and the system places the window.
 Acceptance:
 
 - [ ] The window opens with no title bar of the system, and keeps the title it is given, which the taskbar says.
+- [ ] The title of the window is the repository shown, then **Gitardo**, and **Gitardo** alone with no repository.
 - [ ] `hit` says Caption for a free place of the header bar, the logo and the name; Client for **Search**, **Sync**
       and the repository in the header.
 - [ ] `hit` says Edge for a place 3 pixels from the left edge, Corner for one 3 pixels from the bottom right corner,
@@ -283,6 +287,8 @@ Acceptance:
 - [ ] A place kept is used on a screen, and not when it is off every screen.
 - [ ] On Linux and macOS a press on the caption or an edge asks the system to move, maximize or restore, or resize
       the window, or to open its menu.
+- [ ] On Linux a right click on the caption opens the compositor's menu of the window where the pointer is:
+      `xdg_toplevel.show_window_menu` on Wayland, `_GTK_SHOW_WINDOW_MENU` to the window manager on X11.
 
 ### `window.caption-buttons` — Minimize, maximize and close
 
@@ -654,6 +660,7 @@ In this order, separated in groups:
    requests from GitLab** (`hosting.load-merge-requests`) on a GitLab; then **Check out a pull request…** (**Check out
    a merge request…** on GitLab, `hosting.checkout-pull-request`) on GitHub, GitLab, Gitea and Forgejo.
 5. **Settings** (`settings.edit`), **Theme…** (`settings.theme`).
+6. **Ask Gitardo…** (`help.page`), which a Help menu would hold: the window has no menu bar (Q1351).
 
 **Theme…** stays here, though it changes how the window looks: it opens a picker rather than switching something on
 or off, and it is about the whole window, not the timeline (Q662).

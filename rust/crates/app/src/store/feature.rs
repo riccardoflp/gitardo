@@ -163,6 +163,9 @@ fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answer
     if feature == FeatureId("worktree-setup.page") {
         return super::new_worktrees::open(state);
     }
+    if let Some(effects) = super::draft::copilot_button(state, feature) {
+        return effects;
+    }
     if let Some(effects) = switch_first(state, feature, &target) {
         return effects;
     }

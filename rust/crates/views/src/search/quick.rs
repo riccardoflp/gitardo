@@ -42,6 +42,9 @@ pub enum QuickChoice {
     /// **Open Settings: <section>** or **Open Settings: <title>**: the settings page at a section or a setting
     /// (`settings.reveal`).
     Settings(crate::settings::SettingsAnchor),
+    /// **Ask Gitardo: "<what was typed>"**, the last entry when what is typed finds no command: the Ask Gitardo page,
+    /// with that question asked (`help.page`).
+    Ask(String),
 }
 
 /// A command of the catalog whose card names Quick search among its entry points.
@@ -89,6 +92,8 @@ pub enum QuickCommand {
     OpenSettings,
     /// **Welcome** (`welcome.page`).
     Welcome,
+    /// **Ask Gitardo…** (`help.page`).
+    AskGitardo,
     /// **Show changes** (`changes.page`).
     ShowChanges,
     /// **Create branch…** (`branch.create`).
@@ -161,7 +166,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 55] = [
+    pub const ALL: [QuickCommand; 56] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -183,6 +188,7 @@ impl QuickCommand {
         QuickCommand::ExportGroups,
         QuickCommand::OpenSettings,
         QuickCommand::Welcome,
+        QuickCommand::AskGitardo,
         QuickCommand::ShowChanges,
         QuickCommand::ShowFiles,
         QuickCommand::SearchInFiles,
@@ -281,6 +287,42 @@ impl QuickCommand {
     }
 }
 
+impl QuickCommand {
+    /// The card of the catalog the command does, for those Ask Gitardo may name (`help.show-me`): the operation it
+    /// runs, or the feature of the window it shows.
+    #[must_use]
+    pub fn feature(self) -> Option<&'static str> {
+        let window = match self {
+            QuickCommand::GoToCommit => "search.go-to-commit",
+            QuickCommand::OpenCommitAsPage => "commit-page.open",
+            QuickCommand::OpenFolder => "repo.open-folder",
+            QuickCommand::SelectRepository => "repo.select",
+            QuickCommand::OpenWorkspaceFile => "repo.open-code-workspace",
+            QuickCommand::OpenRepositoryInTab => "repo.open-tab",
+            QuickCommand::CloseTab => "repo.close-tab",
+            QuickCommand::ImportGroups => "tasks.import-groups",
+            QuickCommand::ExportGroups => "tasks.export-groups",
+            QuickCommand::RunTask => "tasks.quick-run",
+            QuickCommand::Welcome => "welcome.page",
+            QuickCommand::OpenSettings => "settings.edit",
+            QuickCommand::ShowStashes => "stash.pane",
+            QuickCommand::ReviewConflicts => "review.page",
+            QuickCommand::SearchInFiles => "file-search.open",
+            QuickCommand::ChooseWhatNewWorktreesGet => "worktree-setup.page",
+            _ => return self.operation(),
+        };
+        Some(window)
+    }
+
+    /// The command of Quick search that does a card of the catalog, when there is one.
+    #[must_use]
+    pub fn of_feature(feature: &str) -> Option<QuickCommand> {
+        QuickCommand::ALL
+            .into_iter()
+            .find(|command| command.feature() == Some(feature))
+    }
+}
+
 /// **Search**: its icon and its word, with the keys `Ctrl K` after it, or its icon alone in a narrow window.
 fn search_button(ui: &Ui<'_>) -> Button<'static> {
     if crate::line::is_narrow(ui) {
@@ -320,8 +362,33 @@ pub fn quick_search_view(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<I
     intents
 }
 
-/// The picker of Quick search, and what was chosen in it.
+/// The entry **Ask Gitardo: "<what is typed>"**, when something is typed and it finds no command (`help.page`).
+fn ask_entry(state: &QuickSearchState<'_>, typed: &str) -> Option<QuickEntry> {
+    if typed.trim().is_empty() {
+        return None;
+    }
+    let commands = state
+        .entries
+        .iter()
+        .filter(|entry| matches!(entry.choice, QuickChoice::Command(_)))
+        .map(|entry| entry.label.as_str());
+    if !ui::fuzzy::rank(typed, commands).is_empty() {
+        return None;
+    }
+    Some(QuickEntry {
+        label: crate::text::help::ask_about(typed),
+        detail: crate::text::help::QUESTION.to_owned(),
+        choice: QuickChoice::Ask(typed.trim().to_owned()),
+    })
+}
+
+/// The picker of Quick search, and what was chosen in it; **Ask Gitardo: "…"** last when what is typed finds no
+/// command.
 fn picker(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
+    let typed = ui
+        .picker_query("quick search picker")
+        .unwrap_or_else(|| state.typed.to_owned());
+    let ask = ask_entry(state, &typed);
     let items: Vec<PickerItem<'_>> = state
         .entries
         .iter()
@@ -337,10 +404,18 @@ fn picker(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         query: state.typed,
         checked: &[],
     };
-    let intent = match ui.picker("quick search picker", &picker) {
-        Some(PickerAnswer::Chose(index)) => state.entries.get(index).map_or(SearchIntent::CloseQuick, |entry| {
-            SearchIntent::ChooseQuick(entry.choice.clone())
-        }),
+    let last = ask.as_ref().map(|entry| PickerItem {
+        label: &entry.label,
+        description: &entry.detail,
+    });
+    let intent = match ui.picker_ending_with("quick search picker", &picker, last) {
+        Some(PickerAnswer::Chose(index)) => state
+            .entries
+            .get(index)
+            .or_else(|| ask.as_ref().filter(|_| index == state.entries.len()))
+            .map_or(SearchIntent::CloseQuick, |entry| {
+                SearchIntent::ChooseQuick(entry.choice.clone())
+            }),
         Some(PickerAnswer::Cancelled) => SearchIntent::CloseQuick,
         // A picker of one item never answers with several.
         Some(PickerAnswer::ChoseMany(_)) | None => return Vec::new(),

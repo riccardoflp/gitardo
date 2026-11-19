@@ -220,9 +220,12 @@ fn pump(state: &mut State) -> Vec<Effect> {
     effects
 }
 
-/// What a question to the AI provider says: the text of its answer so far, or what it came to, for a conflict or for
-/// the draft of a commit message.
+/// What a question to the AI provider says: the text of its answer so far, or what it came to, for a conflict, for
+/// the draft of a commit message or for Ask Gitardo.
 pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
+    if super::super::help::is_answering(state, &message) {
+        return super::super::help::reply(state, message);
+    }
     match message {
         Message::AiPiece { ask, text } => piece(state, ask, text),
         Message::AiAnswered { ask, result } if state.reviews.questions.asked.contains_key(&ask) => {
@@ -263,8 +266,15 @@ pub fn answered(state: &mut State, ask: AskId, result: AiResult) -> Vec<Effect> 
             };
             questions.answers.push((folder, path, answer));
         }
-        Ok(AiReply::Draft(_)) => {}
-        Err(AiFailed { text, stops_the_rest }) => {
+        Ok(AiReply::Draft(_) | AiReply::Help { .. }) => {}
+        Err(AiFailed {
+            text,
+            stops_the_rest,
+            need,
+        }) => {
+            if let Some(need) = need {
+                state.operations.said = Some(crate::store::draft::copilot_said(need));
+            }
             questions.failed.push((folder, (path, fingerprint), text));
             if stops_the_rest {
                 for waiting in questions.waiting.drain(..) {

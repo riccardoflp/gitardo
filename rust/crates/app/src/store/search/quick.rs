@@ -56,16 +56,28 @@ fn of_tasks(command: QuickCommand) -> Vec<Intent> {
     vec![Intent::TasksTab(asked)]
 }
 
-/// What an entry chosen does.
-fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
-    let command = match choice {
+/// What an entry that is not a command does: a commit gone to, a setting shown, a question asked of Ask Gitardo.
+fn choose_other(state: &mut State, choice: QuickChoice) -> Result<QuickCommand, Vec<Effect>> {
+    match choice {
         QuickChoice::Commit(commit) => {
             let mut effects = pages::show_timeline(state);
             effects.extend(go_to(state, commit));
-            return effects;
+            Err(effects)
         }
-        QuickChoice::Settings(anchor) => return reveal_setting(state, anchor),
-        QuickChoice::Command(command) => command,
+        QuickChoice::Settings(anchor) => Err(reveal_setting(state, anchor)),
+        QuickChoice::Ask(question) => {
+            let ask = Intent::Help(views::help::HelpIntent::AskAbout(question));
+            Err(super::super::reduce(state, Message::Intent(ask)))
+        }
+        QuickChoice::Command(command) => Ok(command),
+    }
+}
+
+/// What an entry chosen does.
+fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
+    let command = match choose_other(state, choice) {
+        Ok(command) => command,
+        Err(effects) => return effects,
     };
     if let (Some(feature), Some(id)) = (command.file_page_operation(), state.file_in_front()) {
         let run = views::blame::BlameIntent::Run(id, model::contract::FeatureId(feature), None);
@@ -102,6 +114,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         }
         QuickCommand::OpenSettings => vec![Intent::ShowPage(views::page::Page::Settings)],
         QuickCommand::Welcome => vec![Intent::ShowPage(views::page::Page::Welcome)],
+        QuickCommand::AskGitardo => vec![Intent::Help(views::help::HelpIntent::Open)],
         QuickCommand::ShowChanges => vec![Intent::Changes(views::changes::ChangesIntent::Open)],
         QuickCommand::ShowStashes => vec![Intent::Rail(views::RailIntent::ShowStashes)],
         QuickCommand::ReviewConflicts => return super::super::review::open(state, None),

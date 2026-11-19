@@ -36,6 +36,7 @@ fn a_question_to_a_language_model_is_written_with_its_purpose_model_effort_messa
             text: String::from("Resolve one merge conflict"),
         }],
         read: Some(RequestId::Number(12)),
+        features: Vec::new(),
     };
     assert_eq!(
         serde_json::to_value(&params).unwrap(),

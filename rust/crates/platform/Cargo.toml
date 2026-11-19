@@ -19,9 +19,11 @@ accesskit = "=0.25.2"
 #   the other). It is the largest part of the Linux build; without it Linux has no screen reader.
 accesskit_winit = { version = "=0.34.2", default-features = false, features = ["rwh_06", "accesskit_unix", "async-io"] }
 # The clipboard, text only.
-# - Not image-data, which brings an image library; not wayland-data-control, so that on Wayland the clipboard goes
-#   through XWayland, as it does on X11.
-arboard = { version = "=3.7.0", default-features = false }
+# - wayland-data-control: on Wayland, the compositor's own clipboard, through the protocol ext-data-control or
+#   wlr-data-control (`wl-clipboard-rs`), with no XWayland; X11 as before when there is no Wayland, or when the
+#   compositor offers neither protocol (GNOME's and Weston's), through XWayland then. Not image-data, which brings an
+#   image library.
+arboard = { version = "=3.7.0", default-features = false, features = ["wayland-data-control"] }
 # The system's dialogs to choose a folder or a file.
 # - xdg-portal: on Linux, the dialogs of the desktop through its portal, which brings only a small executor; gtk3
 #   would link the GTK libraries of the system at build time. Not wayland, which only attaches a dialog to its window
@@ -37,6 +39,11 @@ softbuffer = { version = "=0.4.8", default-features = false, features = ["x11", 
 #   wayland-csd-adwaita, which draws the title bar on GNOME's Wayland with a font library of its own: winit's plain
 #   frame is drawn instead.
 winit = { version = "=0.30.13", default-features = false, features = ["rwh_06", "x11", "wayland", "wayland-dlopen"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# The bindings of Xlib, loaded when the program runs, which winit uses already: the menu of the window on X11, asked of
+# the window manager on winit's own connection, since winit 0.30 opens it on Wayland and Windows only.
+x11-dl = "=2.21.0"
 
 [lints]
 workspace = true

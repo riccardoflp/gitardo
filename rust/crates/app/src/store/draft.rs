@@ -101,10 +101,42 @@ pub fn drafted(state: &mut State, ask: AskId, result: AiResult) -> Vec<Effect> {
             keep_message(&mut state.persisted.commit_messages, &drafting.folder, &message);
             vec![Effect::WritePersisted(state.persisted.clone())]
         }
-        Ok(AiReply::Conflict(_)) => Vec::new(),
+        Ok(AiReply::Conflict(_) | AiReply::Help { .. }) => Vec::new(),
         Err(failed) => {
-            state.operations.said = Some(Said::error(failed.text));
+            state.operations.said = Some(match failed.need {
+                Some(need) => copilot_said(need),
+                None => Said::error(failed.text),
+            });
             Vec::new()
         }
     }
+}
+
+/// What GitHub Copilot needs first, said with the button that does it: **How to install**, which opens GitHub's page
+/// on installing its CLI, or **Sign in**, which runs `copilot login` in a terminal of the bottom panel (`ai.copilot`).
+#[must_use]
+pub fn copilot_said(need: model::ai::CopilotNeed) -> Said {
+    let mut said = Said::error(need.sentence().to_owned());
+    match need {
+        model::ai::CopilotNeed::Install => {
+            said.link = Some((need.button().to_owned(), model::ai::COPILOT_INSTALL_PAGE.to_owned()));
+        }
+        model::ai::CopilotNeed::SignIn => {
+            said.offer = Some((features::ai::COPILOT_SIGN_IN, need.button().to_owned()));
+        }
+    }
+    said
+}
+
+/// **Sign in** and **How to install** of GitHub Copilot: a new terminal of the bottom panel running `copilot login`,
+/// or GitHub's page on installing its CLI; none for another feature.
+pub(super) fn copilot_button(state: &mut State, feature: model::contract::FeatureId) -> Option<Vec<Effect>> {
+    if feature == features::ai::COPILOT_SIGN_IN {
+        state.operations.said = None;
+        return Some(super::terminals::run_command(state, model::ai::COPILOT_SIGN_IN));
+    }
+    (feature == features::ai::COPILOT_INSTALL).then(|| {
+        state.operations.said = None;
+        vec![Effect::OpenUrl(model::ai::COPILOT_INSTALL_PAGE.to_owned())]
+    })
 }

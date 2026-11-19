@@ -85,6 +85,7 @@ pub fn prepare_scene(memory: &mut UiMemory, theme: &Theme, scene: Scene) -> Gall
                 first_shown: 0,
                 checked: [1, 2].into_iter().collect(),
                 query: String::from("fe"),
+                has_last: false,
             };
             let _ = memory.pickers.insert(id, picker);
             open_overlay(memory, id, vec![input, id], input);

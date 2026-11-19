@@ -413,7 +413,7 @@ earns it.
 | [`ai.read-answer`](09-conflicts.md#airead-answer--the-answer-read) | The answer, read | Derivation | Built | Built |
 | [`ai.trim-answer`](09-conflicts.md#aitrim-answer--the-lines-around-the-conflict-written-again) | The lines around the conflict, written again | Derivation | Built | Built |
 | [`ai.choose-model`](09-conflicts.md#aichoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Built | Differs (G2, G6) |
-| [`ai.copilot`](09-conflicts.md#aicopilot--github-copilot-as-the-ai-provider) | GitHub Copilot as the AI provider | Read | Specified | Host only |
+| [`ai.copilot`](09-conflicts.md#aicopilot--github-copilot-as-the-ai-provider) | GitHub Copilot as the AI provider | Read | Built | Host only |
 | [`rerere.read-state`](09-conflicts.md#rerereread-state--whether-git-remembers-resolutions) | Whether git remembers resolutions | Read | Specified | Planned |
 | [`rerere.turn-on`](09-conflicts.md#rerereturn-on--remember-how-conflicts-are-resolved) | Remember how conflicts are resolved | Operation | Specified | Planned |
 | [`rerere.turn-off`](09-conflicts.md#rerereturn-off--stop-remembering-how-conflicts-are-resolved) | Stop remembering how conflicts are resolved | Operation | Specified | Planned |
@@ -700,13 +700,13 @@ earns it.
 
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
-| [`help.guide`](20-help.md#helpguide--the-guide-of-the-features) | The guide of the features | Derivation | Specified | Planned |
-| [`help.choose-cards`](20-help.md#helpchoose-cards--which-cards-answer-a-question) | Which cards answer a question | Derivation | Specified | Planned |
-| [`help.question`](20-help.md#helpquestion--what-is-sent-to-answer-a-question) | What is sent to answer a question | Derivation | Specified | Planned |
-| [`help.ask`](20-help.md#helpask--ask-a-question) | Ask a question | Read | Specified | Planned |
-| [`help.read-answer`](20-help.md#helpread-answer--the-answer-read) | The answer, read | Derivation | Specified | Planned |
-| [`help.page`](20-help.md#helppage--the-ask-gitardo-page) | The Ask Gitardo page | View | Specified | Planned |
-| [`help.show-me`](20-help.md#helpshow-me--show-me) | Show me | Derivation | Specified | Planned |
+| [`help.guide`](20-help.md#helpguide--the-guide-of-the-features) | The guide of the features | Derivation | Built | Built |
+| [`help.choose-cards`](20-help.md#helpchoose-cards--which-cards-answer-a-question) | Which cards answer a question | Derivation | Built | Built |
+| [`help.question`](20-help.md#helpquestion--what-is-sent-to-answer-a-question) | What is sent to answer a question | Derivation | Built | Built |
+| [`help.ask`](20-help.md#helpask--ask-a-question) | Ask a question | Read | Built | Built |
+| [`help.read-answer`](20-help.md#helpread-answer--the-answer-read) | The answer, read | Derivation | Built | Built |
+| [`help.page`](20-help.md#helppage--the-ask-gitardo-page) | The Ask Gitardo page | View | Built | Built |
+| [`help.show-me`](20-help.md#helpshow-me--show-me) | Show me | Derivation | Built | Built |
 
 ## Large files
 

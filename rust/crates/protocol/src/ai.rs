@@ -6,6 +6,7 @@ use engine::ai::{AiError, ConflictReply, Purpose};
 use model::ai::{AiModel, Confidence};
 use serde::{Deserialize, Serialize};
 
+use crate::help::FeatureTitleJson;
 use crate::rpc::RequestId;
 
 /// The names of the methods of the area.
@@ -28,6 +29,8 @@ pub enum PurposeJson {
     CommitMessage,
     /// How to resolve one conflict.
     Conflict,
+    /// How to do something with Gitardo (`help.ask`, version 1.11).
+    Help,
 }
 
 impl From<Purpose> for PurposeJson {
@@ -35,6 +38,7 @@ impl From<Purpose> for PurposeJson {
         match purpose {
             Purpose::CommitMessage => PurposeJson::CommitMessage,
             Purpose::Conflict => PurposeJson::Conflict,
+            Purpose::Help => PurposeJson::Help,
         }
     }
 }
@@ -74,6 +78,10 @@ pub struct LanguageModelParams {
     /// The id of the extension's read it is asked for, so that the extension shows the answer as it comes where that
     /// read was asked; none when a feature asks.
     pub read: Option<RequestId>,
+    /// The features the answer may name as `[[` their identifier `]]`, with their titles, which the extension writes in
+    /// their place as the answer comes; empty, and left out, but for the answer of a `help` question (version 1.11).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub features: Vec<FeatureTitleJson>,
 }
 
 /// The answer of `host/languageModel`: the whole answer and the name of the model that wrote it, or why the host could

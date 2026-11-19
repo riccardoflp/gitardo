@@ -168,6 +168,24 @@ fn start(state: &mut State, at: Option<usize>) -> Vec<Effect> {
     effects
 }
 
+/// Opens a new terminal in the bottom panel and types a command in it, as **Sign in** of GitHub Copilot runs
+/// `copilot login` (`ai.copilot`).
+pub fn run_command(state: &mut State, command: &str) -> Vec<Effect> {
+    let mut effects = reduce(state, TerminalIntent::New);
+    let started = effects.iter().find_map(|effect| match effect {
+        Effect::Terminal(TerminalEffect::Start { id, .. }) => Some(*id),
+        _ => None,
+    });
+    if let Some(id) = started {
+        // The shell reads what was typed once it starts, as a terminal of the system does.
+        effects.push(Effect::Terminal(TerminalEffect::Write(
+            id,
+            format!("{command}\r").into_bytes(),
+        )));
+    }
+    effects
+}
+
 /// What was asked of the terminals.
 pub fn reduce(state: &mut State, intent: TerminalIntent) -> Vec<Effect> {
     let shown = shown_entry(state).map(|entry| entry.id);

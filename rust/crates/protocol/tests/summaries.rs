@@ -43,7 +43,7 @@ fn summaries() -> Vec<WorktreeSummary> {
 fn version_1_10_is_spoken_by_an_engine_of_version_1_and_is_not_read_as_1_1() {
     assert_eq!(
         VERSION, "1.11",
-        "1.11 added the number of a pull request (milestone M37)"
+        "1.11 added Ask Gitardo (milestone M31) and the number of a pull request (milestone M37)"
     );
     assert!(is_compatible("1.10"));
     assert!(is_compatible("1.9"));

@@ -874,7 +874,7 @@ in VS Code, the diff of the PNG opened from the Gitardo Changes view shows the t
 commit shows its two versions; every card of the milestone is Built in both apps, or Host only in the extension, and
 the snapshots of the File page and the Diff page with an image match in the dark and in the light theme.
 
-## M28 — Gitardo, by its name
+## M28 — Gitardo, by its name (done)
 
 The window, the taskbar and a release say **Gitardo**, no longer *Gitardo Desktop*
 ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider), Q1). One phase,
@@ -894,7 +894,12 @@ Exit: the title of the window in the taskbar of Windows is *\<repository\> — G
 the texts of `features` finds none); the settings and the secrets of a window of before are read as they were; a
 release made by the pipeline on a test tag holds three archives named `gitardo-<version>-…`.
 
-## M29 — Wayland of its own
+Built on 2026-11-19: `PROGRAM` is **Gitardo**, and `window_title_bar__the_title_of_the_window_is_the_repository_then_gitardo`
+reads it in the title; `gitardo-demo`, the setting `worktrees.openIn` and the cards of the new windows say the name;
+`release.yml` names the archives `gitardo-<version>-…` and the part of the notes **Gitardo**; the folder of the
+settings and the names of the secrets are as they were. The release on a test tag is left to the pipeline's next run.
+
+## M29 — Wayland of its own (done)
 
 Gitardo on Wayland as much as on X11, with nothing it needs taken through XWayland
 ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider), Q2). Built in
@@ -921,7 +926,22 @@ resized from its title bar, opens the compositor's menu of the window with a rig
 hash that a terminal of the system pastes and pastes a text copied there; on X11 the same holds; the pipeline runs the
 tests of `platform` under Weston and passes; every card of the milestone passes its tests.
 
-## M30 — GitHub Copilot, an AI provider
+Built: phase 1, the feature `wayland-data-control` of `arboard` (`wl-clipboard-rs`): on Wayland the compositor's own
+clipboard, through `ext-data-control` or `wlr-data-control`, and X11 as before where there is no Wayland or the
+compositor offers neither, as GNOME's and Weston's, through XWayland then (Q1380); Q355 is answered. Phase 2: on
+Wayland `winit` 0.30.13 asks `xdg_toplevel.show_window_menu` already; on X11, where it asks nothing,
+`crates/platform/src/linux/window_menu.rs` sends `_GTK_SHOW_WINDOW_MENU` to the window manager on `winit`'s connection
+of Xlib, through `x11-dl`, which `winit` uses too (Q1381); Q570 is answered, and `window.title-bar` has its line of the
+menu on Linux. Phase 3: the Linux job of `check.yml` runs the tests of `platform` again under Xvfb, and under Weston
+with its headless backend, `WAYLAND_DISPLAY` set and `DISPLAY` not; **Before a release** has the pass on GNOME and KDE
+Plasma on Wayland, and the README says Linux runs on both. Tried in WSL before the pipeline: the tests of `platform`
+pass with no display, under WSLg's X server, and under a Weston 14 of its own with the headless backend (extracted
+from Ubuntu's packages, without root); WSLg's own compositor, which serves its windows over RDP, drops a connection
+now and then while no window of it is shown, so its runs fail at random as they open a window, with or without M29. Weston offers no protocol of data control, so the test of
+the clipboard returns there once the clipboard is refused (Q1380); the menu of the window is asked of a compositor
+nothing answers in a test, and is left to **Before a release**.
+
+## M30 — GitHub Copilot, an AI provider (done)
 
 `ai.provider` set to `copilot` asks GitHub Copilot, with the user's sign-in and subscription, what the other providers
 are asked: the conflicts and the draft of a commit message
@@ -952,7 +972,16 @@ leaves the CLI running and the next one is answered; with the CLI signed out, **
 `copilot login`, and once it ends the question is answered; without the CLI, the refusal offers **How to install**;
 every card of the milestone passes its tests, against the fake CLI.
 
-## M31 — Ask Gitardo how to do something
+Built: phase 1, `engine::ai::CopilotCli` and `copilot_model`, with the fake CLI of `testkit` (`FakeCopilot`);
+the parts of the protocol are in the card, read from the Copilot SDK (Q1350). Phase 2: `copilot` taken by
+`ai.provider`, one CLI for the window shared by the questions and by `ai.choose-model`, the endpoint left out of the
+settings page, and the refusals with **How to install** and **Sign in**. The settings page has no labels for the
+values of a text setting, so the description of `ai.provider` names **GitHub Copilot** beside `copilot`.
+Phase 3: the README and the CHANGELOG of the desktop, the stored data and **Before a release** say so, and
+`ai.copilot` is Built. The exit's checks with a real CLI signed in are those of **Before a release**: the tests run
+against the fake.
+
+## M31 — Ask Gitardo how to do something (done)
 
 A question in the user's own words, in any language, about how to do something with Gitardo, answered by the AI
 provider from the cards of the catalog, with the words of the controls as they are on screen and a button that does
@@ -987,6 +1016,17 @@ window first, the extension last.
    **Gitardo: Ask How To…**, which opens the Chat with `@gitardo ` typed, and warns when VS Code has no model.
    The README of each app and its CHANGELOG say what is new. Cards: `help.guide`, `help.choose-cards`,
    `help.question`, `help.ask`, `help.read-answer`, `help.page`, `help.show-me`, Built in the extension.
+
+Built: all five phases, every card Built in both apps. The guide is about 430 KB for the two apps, about 480 cards in the desktop's and 470 in the
+extension's; its index is one line a card. `model::help::guide` reads it at each call into slices of the file rather
+than once for the program, which rule R3.3 forbids, and its tests are in `xtask`, where it is made, which the check
+of the catalog now counts. Where the plan could not be followed, the questions say what was built instead: the
+entry is in the **…** menu, the window having no Help menu (Q1351); **Stop** on the page cancels, the activity of
+the status bar cancelling nothing (Q1352); the box is the code editor without line numbers (Q1353); a page opened
+only on something chosen gets **Show where** (Q1354); in VS Code, the features are written in bold as the answer
+comes, from a field `features` of `host/languageModel` (Q1366), and the Chat has no limit of 4 buttons (Q1367).
+The exit was not walked against a real provider or in a real VS Code: the tests use fakes, and the e2e and UI
+suites are left to the pipeline.
 
 Exit: with an AI provider set, typing *how do I put my changes aside* in Quick search offers **Ask Gitardo: "how do I
 put my changes aside"**, whose page answers with **Stash changes…** in the context menu of the draft and a button
@@ -1405,7 +1445,15 @@ By hand, on each system, with a real account and a real model:
 
 - [ ] Sign in to GitHub with a real token, load the pull requests, open one.
 - [ ] Draft a commit message and resolve a conflict with the AI provider configured.
+- [ ] With the GitHub Copilot CLI installed and signed in, and `ai.provider` set to `copilot`: choose the model, resolve
+      a conflict and draft a message with GitHub Copilot; sign out with `copilot logout` and sign in again from
+      **Sign in** (`ai.copilot`, Q1350).
 - [ ] Choose a folder, a file to open and a file to save with the system's dialogs.
+- [ ] On Linux, on GNOME and on KDE Plasma, both on Wayland: move the window by its title bar, maximize it with a
+      double click and resize it from an edge; open the menu of the window with a right click on the caption; type a
+      text with an input method; copy a hash and paste it in another program, and paste in Gitardo a text copied
+      there; choose a file with the dialogs, through the portal; look at the window at a scale of 125% and of 200%;
+      run a command in the terminal of the bottom panel (M29).
 - [ ] Open a worktree in a new window, in the external editor and in a terminal.
 - [ ] Remove a worktree with a linked `node_modules` on Windows, and check that the original `node_modules` is intact.
 - [ ] Look at every snapshot that changed since the last release.

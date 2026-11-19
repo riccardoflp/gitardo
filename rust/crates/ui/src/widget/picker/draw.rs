@@ -69,7 +69,7 @@ impl Ui<'_> {
     /// The rows that match, the lit one lit, moved by the wheel and the pointer, and what a click on one answered.
     fn picker_rows(&mut self, rect: Rect, picker: &Picker<'_>, state: &mut PickerState) -> Option<PickerAnswer> {
         let row_height = self.theme().sizes.row_height;
-        let matches = ranked(picker.items, &state.query);
+        let matches = ranked(picker.items, &state.query, state.has_last);
         if matches.is_empty() {
             let label = Label::new("No matching items").tone(Tone::Muted);
             let _ = self.label(Rect::new(rect.x, rect.y, rect.width, row_height), &label);

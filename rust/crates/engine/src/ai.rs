@@ -5,6 +5,7 @@
 //! Nothing here is sent unless a person asked for it: the window calls these functions only from a button, and the
 //! tests send them to a server of their own on 127.0.0.1.
 
+mod copilot;
 mod wire;
 
 use std::fmt;
@@ -16,6 +17,9 @@ use model::ai::{
 };
 use model::commit::{DraftInput, clean_draft, draft_message};
 
+pub use copilot::{
+    ARGUMENTS, CopilotCli, CopilotError, CopilotModel, CopilotStreams, copilot_model, find_copilot, program_extensions,
+};
 pub use wire::{ANTHROPIC_VERSION, MOST_TOKENS};
 
 /// The provider asked, with its key.
@@ -43,10 +47,13 @@ pub enum Purpose {
     CommitMessage,
     /// How to resolve one conflict (`ai.ask-conflict`).
     Conflict,
+    /// How to do something with Gitardo (`help.ask`).
+    Help,
 }
 
 /// Who answers the questions to a language model: the AI provider over HTTP in Gitardo Desktop
-/// ([`ProviderModel`]), or the models of the host the engine runs under, which the server asks of the extension.
+/// ([`ProviderModel`]), GitHub Copilot through its CLI ([`CopilotModel`]), or the models of the host the engine runs
+/// under, which the server asks of the extension.
 pub trait LanguageModel {
     /// The models it has, in its order.
     ///
@@ -84,6 +91,15 @@ impl LanguageModel for ProviderModel<'_> {
     }
 }
 
+/// What listing the models came to when it failed: what GitHub Copilot needs first, or why, in words.
+#[must_use]
+pub fn failed_models(error: AiError) -> AiModels {
+    match error {
+        AiError::Copilot(CopilotError::Needs(need)) => AiModels::CopilotNeeds(need),
+        error => AiModels::Failed(error.to_string()),
+    }
+}
+
 /// What went wrong asking the AI provider.
 #[derive(Debug)]
 pub enum AiError {
@@ -116,6 +132,8 @@ pub enum AiError {
     Cancelled,
     /// The host the engine runs under could not ask its model, and said why in its own words.
     Host(String),
+    /// GitHub Copilot could not be asked (`ai.copilot`).
+    Copilot(CopilotError),
 }
 
 impl From<http::Error> for AiError {
@@ -155,6 +173,7 @@ impl fmt::Display for AiError {
             AiError::Answer(error) => formatter.write_str(error.0.as_str()),
             AiError::Cancelled => formatter.write_str("The question was cancelled."),
             AiError::Host(said) => formatter.write_str(said),
+            AiError::Copilot(error) => error.fmt(formatter),
         }
     }
 }
@@ -167,7 +186,7 @@ impl std::error::Error for AiError {}
 ///
 /// When no provider is set up, it wants a key that is not kept or refuses it, or the request fails.
 pub fn list_models(sending: Sending<'_>, provider: &Provider) -> Result<Vec<AiModel>, AiError> {
-    let kind = provider.settings.provider.ok_or(AiError::NotSetUp)?;
+    let kind = http_kind(provider)?;
     let request = wire::models_request(kind, provider)?;
     let response = sending.http.send(&request, sending.cancel)?;
     if !response.head.is_success() {
@@ -176,13 +195,22 @@ pub fn list_models(sending: Sending<'_>, provider: &Provider) -> Result<Vec<AiMo
     wire::parse_models(kind, &response.body)
 }
 
+/// The kind of provider asked over HTTP; GitHub Copilot is asked through its CLI ([`CopilotModel`]) instead.
+fn http_kind(provider: &Provider) -> Result<AiProvider, AiError> {
+    match provider.settings.provider {
+        None => Err(AiError::NotSetUp),
+        Some(AiProvider::Copilot) => Err(AiError::Copilot(CopilotError::NotOverHttp)),
+        Some(kind) => Ok(kind),
+    }
+}
+
 /// What listing the models came to, as `ai.choose-model` reads it.
 #[must_use]
 pub fn models_answer(sending: Sending<'_>, provider: &Provider) -> AiModels {
     match list_models(sending, provider) {
         Ok(models) => AiModels::Listed(models),
         Err(AiError::NoKey | AiError::KeyRefused) => AiModels::KeyNeeded,
-        Err(error) => AiModels::Failed(error.to_string()),
+        Err(error) => failed_models(error),
     }
 }
 
@@ -207,7 +235,7 @@ pub fn ask(
     request: &AiRequest,
     pieces: &mut dyn FnMut(&str),
 ) -> Result<Asked, AiError> {
-    let kind = provider.settings.provider.ok_or(AiError::NotSetUp)?;
+    let kind = http_kind(provider)?;
     let model = if provider.settings.model.is_empty() {
         let models = list_models(sending, provider)?;
         models.into_iter().next().ok_or(AiError::NoModels)?.id
@@ -343,8 +371,9 @@ pub fn draft(
 pub fn needs_key(provider: AiProvider) -> bool {
     match provider {
         AiProvider::Anthropic => true,
-        // A server of the chat completions on the user's own machine often wants none.
-        AiProvider::OpenAiCompatible => false,
+        // A server of the chat completions on the user's own machine often wants none, and GitHub Copilot is signed
+        // in to with its CLI, which Gitardo sends no key.
+        AiProvider::OpenAiCompatible | AiProvider::Copilot => false,
     }
 }
 

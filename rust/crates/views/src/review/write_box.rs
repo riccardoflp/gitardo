@@ -70,6 +70,7 @@ pub(super) fn write_box_view(state: &CardState<'_>, writing: &WritingBox<'_>, ui
         gutter: 0,
         tab_width: 4,
         wrap: LineWrap::Cut,
+        has_line_numbers: true,
     };
     let answer = ui.code_editor(("review lines", writing.key), editor_rect, &editor);
     let mut intents = Vec::new();

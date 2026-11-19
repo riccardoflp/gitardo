@@ -39,7 +39,9 @@ Only in the extension, and what becomes of each:
 
 Only in the desktop, never sent: `theme`, `font.ui`, `font.code`, `font.size`, `editor.external`, `editor.wordWrap`,
 `terminal.external`, `log.level` (the extension's is `logLevel` of `initialize`), `ai.endpoint`, `ai.provider` (sent as
-`"vscode"`).
+`"vscode"`). `ai.provider` takes `copilot` since milestone M30, besides `anthropic` and `openai-compatible`: GitHub
+Copilot through its CLI, with no key kept by Gitardo (`ai.copilot`); a window of before, which knew no such value,
+reads it as no provider.
 
 ## The extension's workspace state
 

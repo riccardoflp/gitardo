@@ -3,4 +3,4 @@
 
 mod choose_model;
 
-pub use choose_model::choose_model;
+pub use choose_model::{COPILOT_INSTALL, COPILOT_SIGN_IN, choose_model, copilot_refusal};

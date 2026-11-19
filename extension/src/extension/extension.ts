@@ -11,6 +11,7 @@ import { GitContentProvider, SCHEME } from './content';
 import { Controller } from './controller';
 import { FileBlame } from './fileBlame';
 import { hostingTokenKey, tokenOfHost } from './github';
+import { registerAskGitardo } from './help';
 import { mermaidPreview } from './mermaid';
 import { SourceControlSelection } from './sourceControlSelection';
 import { showSetupInMenus } from './worktreeSettings';
@@ -186,6 +187,9 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     'sync',
   ];
   const webviewOptions = { webviewOptions: { retainContextWhenHidden: true } };
+
+  // Ask Gitardo: the participant `@gitardo` of VS Code's Chat, and **Gitardo: Ask How To…**, which opens it (D76).
+  context.subscriptions.push(...registerAskGitardo(context));
 
   context.subscriptions.push(
     log,
