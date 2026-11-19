@@ -372,7 +372,7 @@ async function main() {
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false } }];
+    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false, signOff: false } }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */

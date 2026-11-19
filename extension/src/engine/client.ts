@@ -9,7 +9,7 @@ import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import type { JournalEntry } from './journal';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
 import type { FolderSummary } from '../shared/summaries';
-import type { FileChange, RepositoryState } from '../shared/state';
+import type { Author, CommitSignature, FileChange, RepositoryState } from '../shared/state';
 import {
   AiMethod,
   type AskedConflict,
@@ -393,6 +393,16 @@ export class EngineClient {
   /** The remotes, with their URLs (`remote.read-remotes`). */
   remotes(repository: string, signal?: AbortSignal): Promise<Array<{ name: string; url: string }>> {
     return this.read(ReadMethod.remotes, repository, {}, signal);
+  }
+
+  /** What git says of the signature of a commit by its full id, checked with the program git's configuration names (`details.read-signature`, 1.13). */
+  signature(repository: string, commit: string, signal?: AbortSignal): Promise<CommitSignature> {
+    return this.read(ReadMethod.signature, repository, { commit }, signal);
+  }
+
+  /** The people who made commits in the repository, the one with the most first (`commit.read-authors`, 1.13). */
+  authors(repository: string, signal?: AbortSignal): Promise<{ authors: Author[] }> {
+    return this.read(ReadMethod.authors, repository, {}, signal);
   }
 
   /** The identity commits are made with, and the keys of it the repository sets (`identity.read`). */

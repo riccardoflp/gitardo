@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { workingChanges, type WorkingChange } from '../shared/changes';
+import { type CommitOptions, optionsArguments, optionsSaid, startingOptions } from '../shared/commitOptions';
 import type { FileChange, FilesLayout, RepoState } from '../shared/protocol';
 import { checkedOutBranch } from '../shared/state';
 import { fileTree } from '../shared/tree';
@@ -7,6 +8,8 @@ import { BisectBanner } from './BisectBanner';
 import { FILES_LIMIT, useCapped } from './Capped';
 import { ActionButtons, Check, FileRow, type FileAction } from './FileRow';
 import { FileTree, toggled } from './FileTree';
+import { commitOptionsMenu } from './commitOptions';
+import { useMenu } from './ContextMenu';
 import { Icon } from './Icon';
 import { OperationBanner, resolvableConflicts } from './OperationBanner';
 import { RepoSelect } from './RepoSelect';
@@ -77,6 +80,14 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
   // The repository the box is of, and what was typed in it, as the view last showed them.
   const shown = useRef(state.root);
   const typed = useRef(message);
+  // The options ticked for the next commit, null while they are where they start; each repository keeps its own.
+  const [changed, setChanged] = useState<CommitOptions | null>(null);
+  const kept = useRef(new Map<string, CommitOptions>());
+  const start = useMemo(() => startingOptions(state.signing, state.signOff), [state.signing, state.signOff]);
+  const options = changed ?? start;
+  const openMenu = useMenu();
+  // Where the options start, for the co-authors that come back from the quick pick of the extension.
+  const startRef = useRef(start);
 
   useEffect(
     () =>
@@ -84,6 +95,10 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
         if (incoming.type === 'committed') {
           setMessage('');
           setAmend(false);
+          // A tick held for that commit alone: the next starts again as git's configuration and the settings say.
+          setChanged(null);
+        } else if (incoming.type === 'coAuthors') {
+          setChanged((current) => ({ ...(current ?? startRef.current), coAuthors: incoming.coAuthors }));
         } else if (incoming.type === 'drafting') {
           setDrafting(incoming.active);
           if (incoming.message) setMessage(incoming.message);
@@ -106,16 +121,33 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
   useLayoutEffect(() => {
     if (shown.current !== state.root) {
       if (state.keepOpen) post({ type: 'keepMessage', root: shown.current, message: typed.current, shown: state.root });
+      if (changed) kept.current.set(shown.current, changed);
+      else kept.current.delete(shown.current);
+      setChanged(kept.current.get(state.root) ?? null);
       shown.current = state.root;
     }
     typed.current = message;
+    startRef.current = start;
   });
 
   const { identity } = state;
   const { staged, unstaged, untracked } = state.workingTree;
   const changes = staged.length + unstaged.length + untracked.length;
   const canCommit = !busy && (amend || (message.trim() !== '' && changes > 0));
-  const commit = () => canCommit && act({ kind: 'commit', message, amend });
+  const commit = () => canCommit && act({ kind: 'commit', message, amend, options, start });
+  const said = optionsSaid(options, start);
+  const showOptions = (event: MouseEvent) =>
+    openMenu(
+      event,
+      commitOptionsMenu({
+        options,
+        signing: state.signing,
+        identity,
+        change: setChanged,
+        pickCoAuthors: () => post({ type: 'pickCoAuthors', chosen: options.coAuthors }),
+        switchIdentity: () => post({ type: 'command', command: 'switchIdentity' }),
+      }),
+    );
 
   return (
     <div className="commit-box">
@@ -132,6 +164,9 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
           <Icon name="check" />
           {amend ? 'Amend' : 'Commit'}
         </button>
+        <button className="button icon" title="Sign, sign off, add co-authors or skip the hooks, for the next commit" aria-label="Commit options" onClick={showOptions}>
+          <Icon name="settings" />
+        </button>
         <button
           className="button icon"
           disabled={drafting || changes === 0}
@@ -146,6 +181,11 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
           Amend last commit
         </label>
       </div>
+      {said && (
+        <button className="link commit-options-said" title={optionsArguments(options, state.signing, message)} onClick={showOptions}>
+          <span className="grow">{said}</span>
+        </button>
+      )}
       <button
         className="link identity"
         title="Who commits in this repository are made as. Click to switch identity."

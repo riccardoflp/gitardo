@@ -4379,3 +4379,36 @@ body.vscode-high-contrast-light .app.islands {
     animation: pulse 1.6s ease-in-out infinite alternate;
   }
 }
+
+/* The line of the signature of a commit, in the color of what git said of it (`details.signature`). */
+dd.signature {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+dd.signature.good {
+  color: var(--vscode-gitDecoration-addedResourceForeground);
+}
+
+dd.signature.doubted {
+  color: var(--vscode-editorWarning-foreground, var(--vscode-gitDecoration-modifiedResourceForeground));
+}
+
+dd.signature.bad {
+  color: var(--vscode-gitDecoration-deletedResourceForeground);
+}
+
+dd.signature.muted {
+  color: var(--vscode-descriptionForeground);
+}
+
+/* The line under the commit box that says the options changed for the next commit (`commit.options`). */
+.commit-options-said {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  white-space: nowrap;
+  color: var(--vscode-descriptionForeground);
+}

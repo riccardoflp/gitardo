@@ -4,6 +4,7 @@
  * is VS Code's own (`hostAction` of `src/extension/actions.ts`), or one there is nothing to run for.
  */
 
+import type { CommitOptions } from '../shared/commitOptions';
 import type { Action, MergeMode, PullAction, RebaseStep, RepoState, SyncAction } from '../shared/protocol';
 import { isHome } from '../shared/refs';
 import { worktreeBranch } from '../shared/state';
@@ -30,6 +31,21 @@ function files(paths: string[]): Target {
 
 /** The text of an answer. */
 const text = (value: string): Answer => ({ kind: 'text', text: value });
+
+/**
+ * The options of the commit box as the answers of `commit.create` and `commit.amend` (`commit.options`), which the
+ * engine turns into the arguments of `git commit` (`commit.option-arguments`): **Sign this commit** only while it
+ * differs from where it started, which is how git's configuration signs; the others only when ticked.
+ */
+export function optionAnswers(options: CommitOptions | undefined, start: CommitOptions | undefined): Record<string, Answer> {
+  if (!options) return {};
+  const answers: Record<string, Answer> = {};
+  if (start && options.sign !== start.sign) answers.sign = { kind: 'flag', value: options.sign };
+  if (options.signOff) answers['sign-off'] = { kind: 'flag', value: true };
+  if (options.skipHooks) answers['skip-hooks'] = { kind: 'flag', value: true };
+  if (options.coAuthors.length) answers['co-authors'] = { kind: 'choices', identifiers: options.coAuthors };
+  return answers;
+}
 
 /**
  * The runs of the engine that take the place of an action, in order, each ended before the next starts; none when the
@@ -78,7 +94,13 @@ export function engineRuns(
         ? [{ feature: 'changes.discard', target: files(action.paths) }]
         : [{ feature: 'changes.discard-all', target: { kind: 'head' } }];
     case 'commit':
-      return [{ feature: action.amend ? 'commit.amend' : 'commit.create', target: { kind: 'head' }, answers: { message: text(action.message) } }];
+      return [
+        {
+          feature: action.amend ? 'commit.amend' : 'commit.create',
+          target: { kind: 'head' },
+          answers: { message: text(action.message), ...optionAnswers(action.options, action.start) },
+        },
+      ];
 
     // Stashes.
     case 'stashPush':

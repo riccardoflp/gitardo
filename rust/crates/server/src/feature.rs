@@ -109,15 +109,19 @@ fn host_questions(session: &Arc<Session>, cancel: &CancelToken, context: &Contex
     (host.github_token || host.language_model).then(|| Box::new(questions) as Box<dyn engine::Host>)
 }
 
-/// The answers given in `feature/run` split in two: the yes or no an operation offered was told (`flag`), known from
-/// the first call as the window of the desktop knows it, since no question asks it; and the answers of questions,
-/// which answer them when they are asked and are checked then.
+/// The answers given in `feature/run` split in two: the yes or no an operation offered was told (`flag`), and the
+/// co-authors of the commit box (`commit.options`, 1.13), known from the first call as the window of the desktop knows
+/// them, since no question asks them; and the answers of questions, which answer them when they are asked and are
+/// checked then.
 fn known_before(given: BTreeMap<String, AnswerJson>) -> (Answers, BTreeMap<String, AnswerJson>) {
     let mut known = Answers::new();
     let mut asked = BTreeMap::new();
     for (key, answer) in given {
         match answer {
             AnswerJson::Flag { value } => known.insert(AnswerKey(static_key(&key)), Answer::Flag(value)),
+            AnswerJson::Choices { identifiers } if key == features::commit::CO_AUTHORS.0 => {
+                known.insert(features::commit::CO_AUTHORS, Answer::Choices(identifiers));
+            }
             answer => {
                 let _replaced = asked.insert(key, answer);
             }

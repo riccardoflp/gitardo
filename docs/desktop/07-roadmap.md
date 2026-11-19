@@ -1068,7 +1068,7 @@ gives the file its old line, which `Ctrl+Z` takes back; a selection across two c
 both in one `git apply`, which the Command log shows with its patch; staging two lines of an untracked file adds it to
 the index with those two lines; the cards of the milestone are Built in the desktop.
 
-## M34 — The signature of a commit, and the options of the commit box
+## M34 — The signature of a commit, and the options of the commit box (done)
 
 The inspector and the tab of a commit say whether it is signed and whether the signature holds; the commit box signs
 or does not sign a commit, adds `Signed-off-by` and co-authors, and skips the hooks, for one commit
@@ -1091,7 +1091,14 @@ their tests passing. Desktop first: the extension gets the line of the signature
    a `--trailer` for each co-author chosen, and none for one the message names already. Cards:
    `commit.read-authors`, `commit.co-authors`, `commit.option-arguments`.
 
-Built: the three phases, in Gitardo Desktop; the extension is unchanged.
+Done: the three phases in Gitardo Desktop, then in the extension
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)): the line
+**Signature** in the details beside the graph and in the tab of a commit, read with `read/details.read-signature`
+after the details and the read before cancelled; **Commit options** beside **Commit** in the commit box of **Gitardo
+Changes**, with the line under the box and the setting `gitardo.commit.signOff`; the co-authors in a quick pick of many,
+the authors read with `read/commit.read-authors`. How git signs comes with the state (`signing`). The protocol is 1.13
+for these, and the co-authors given in `feature/run` are known from its first call, as a flag is. The extension's icons
+are Codicons: `shield` for the signature, `settings` for **Commit options**.
 Phase 1 is built: the line **Signature** of the inspector and of the page of a commit, read once the details are
 drawn, the read before cancelled when another commit is selected, and tested with commits signed by an SSH key made
 for each test. The object of the commit is read first, where the plan read it only after `N` (the card says why).

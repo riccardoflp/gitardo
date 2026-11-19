@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.10** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.13** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -80,6 +80,14 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
+Version 1.13 adds what milestone M34 needed
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)):
+`signing` in `RepositoryState`, how git's configuration signs commits; `read/details.read-signature`, what git says of
+the signature of a commit; and `read/commit.read-authors`, the people who made commits, for the co-authors of the
+commit box. The co-authors given to `commit.create` and `commit.amend` in `feature/run` (`co-authors`, `choices`) are known
+from the first call, as a `flag` is, since no question asks them. An older extension leaves the field out and asks
+none of the reads.
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -138,7 +146,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.10",
+  protocol: "1.13",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -334,6 +342,8 @@ change the repository and run at the same time as each other and as an operation
 | `read/reflog.read` | `{ reference: string, count: number }` | `ReflogPosition[]` | `reflog.read` |
 | `read/remote.read-remotes` | — | `{ name, url }[]` | `remote.read-remotes` |
 | `read/identity.read` | — | `{ identity: { name, email }, localKeys: string[] }` | `identity.read` |
+| `read/details.read-signature` | `{ commit }` | `{ verdict: "good" \| "goodUnknownValidity" \| "goodExpired" \| "goodExpiredKey" \| "goodRevokedKey" \| "bad" \| "cannotCheck" \| "signedNotChecked" \| "notSigned", kind: "openpgp" \| "x509" \| "ssh" \| null, signer, key, fingerprint, trust }` | `details.read-signature` (1.13) |
+| `read/commit.read-authors` | — | `{ authors: { name, email, commits }[] }` | `commit.read-authors` (1.13) |
 | `read/submodule.read-list` | — | `Submodule[]` | `submodule.read-list` |
 | `read/worktree.read-folder-links` | `{ worktree }` | `{ paths: string[] }` | `worktree.read-folder-links` |
 | `read/worktree-setup.read-ignored` | `{ worktree }` | `IgnoredEntry[]` | `worktree-setup.read-ignored` |
@@ -682,7 +692,7 @@ The fields are those of `model`; this section says only what the JSON adds or le
 - **`RepositoryState`** (`model/src/state.rs`): `folder`, `gitFolder`, `head: { commit: CommitId | null, branch:
   string | null }` (the full name, `refs/heads/main`), `branches: Branch[]`, `remoteBranches: RemoteBranch[]`,
   `tags: Tag[]`, `stashes: Stash[]`, `worktrees: Worktree[]`, `remotes: string[]`, `identity: { name, email }`,
-  `branchSort: string | null`, `reflogSubjects: string[]`, `workingTree: WorkingTree`, `operation: "merge" |
+  `signing: { signsEveryCommit: boolean, kind: "openpgp" | "x509" | "ssh", key: string | null }` (1.13), `branchSort: string | null`, `reflogSubjects: string[]`, `workingTree: WorkingTree`, `operation: "merge" |
   "rebase" | "cherryPick" | "revert" | "patch" | … | null`, `rebaseStop: RebaseStop | null`, `bisect: Bisect | null`,
   `submodules: Submodule[]`.
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,

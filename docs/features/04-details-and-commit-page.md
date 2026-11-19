@@ -56,8 +56,8 @@ check, and by whom ([D79](../08-decisions.md#d79--the-signature-of-a-commit-show
   The object is read first, where the plan read it only after `N`, so that the kind of every signature is known for
   the tooltip of `details.signature` with one process more for a signed commit and one less for the others.
 - **Uses**: by `details.signature`.
-- **Extension**: Planned: `read/details.read-signature` of the engine, for the details of the graph and the tab of a
-  commit.
+- **Extension**: `read/details.read-signature` of the engine (protocol 1.13), asked by the details of the graph and
+  the tab of a commit (`Reads.signature` in `src/engine/reads.ts`).
 
 What it gives, from git's letter: **Good** (`G`); **Good, from a key whose validity is not known** (`U`); **Good,
 expired** (`X`); **Good, made by an expired key** (`Y`); **Good, made by a revoked key** (`R`); **Bad** (`B`);
@@ -73,6 +73,8 @@ Acceptance:
 - [ ] The same commit, with `gpg.ssh.allowedSignersFile` not set, is **Signed, not checked**, of the kind SSH.
 - [ ] A signed commit whose message was changed in its object afterwards is **Bad**.
 - [ ] A commit signed with OpenPGP by a key not in the keyring is **Cannot be checked**, with the key's identifier.
+- [ ] Extension: `read/details.read-signature` of a commit made without `-S` answers `notSigned`, and one signed with an
+      allowed SSH key `good` with the fingerprint of the key.
 
 ### `details.show` — Details of the selected commit
 
@@ -140,8 +142,10 @@ Says, in the inspector and in the tab of a commit, whether the commit is signed 
 - **Entry points**: selecting a commit in the timeline; opening a commit as a page (`commit-page.view`).
 - **Reads**: `details.read-signature`, once the details of the commit are shown, so that they never wait for it.
 - **Uses**: `details.read-signature`, `details.show`, `commit-page.view`.
-- **Extension**: Planned: the same line in the details beside the graph and in the tab of a commit, read with
-  `read/details.read-signature`.
+- **Extension**: the same line in the details beside the graph (`Detail.tsx`) and in the tab of a commit
+  (`CommitApp.tsx`), drawn by `SignatureLine` of `src/webview/Signature.tsx` with the words of
+  `src/shared/commitOptions.ts`, its icon the Codicon `shield`. Each view asks with `getSignature` once the details
+  are drawn, and the extension cancels the read it asked before for that view.
 
 - Under **Commit**, a line **Signature**, with a shield icon in the color of what git said, and its words: **Good**,
   in the color of an addition, with the signer, `Good, Ada <ada@example.com>`; the three kinds of good signature that
@@ -162,6 +166,8 @@ Acceptance:
 - [ ] Selecting a commit shows its message and files before its signature is read.
 - [ ] Going through ten commits with `↓` reads the signature of the one selected last, the reads before it cancelled.
 - [ ] The tab of a commit signed shows the same line.
+- [ ] Extension: a good signature is said `Good, Ada <ada@example.com>` in the color of an addition, with the
+      fingerprint in its tooltip; a commit not signed has no line, a bad one says **Bad**.
 
 ### `details.message-title` — The title of a message
 

@@ -4,6 +4,7 @@
 //! its git is given the token that `$/cancel` cancels, and it is logged as a read with how long it took. Nothing here
 //! changes the repository.
 
+mod commit_box;
 mod commits;
 mod conflicts;
 mod files;
@@ -115,6 +116,8 @@ fn read(reading: &Reading<'_>, method: &str, params: Value) -> Result<Value, Res
         methods::SETUP_PATHS => repository::path_statuses(reading, &parameters(params)?),
         methods::PULL_REQUESTS => repository::pull_requests(reading, &parameters(params)?),
         methods::WATCH_CHANGES => files::changes_to_read(reading, parameters(params)?),
+        methods::DETAILS_SIGNATURE => commit_box::signature(reading, &parameters(params)?),
+        methods::COMMIT_AUTHORS => commit_box::authors(reading),
         _ => Err(ResponseError::new(
             codes::METHOD_NOT_FOUND,
             format!("Gitardo's engine has no method named {method}."),

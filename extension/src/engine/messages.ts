@@ -15,9 +15,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15); 1.9 has `read/file-view.mermaid`, a diagram of
  * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17); 1.10 has `read/repo.worktree-summary`, what the
  * folders of the rows of the Repositories view are on, with `repository/summaries` and `repository/folderChanged`
- * (milestone M22).
+ * (milestone M22); 1.13 has how git signs commits in the state, `read/details.read-signature` and
+ * `read/commit.read-authors` (milestone M34).
  */
-export const PROTOCOL = '1.10';
+export const PROTOCOL = '1.13';
 
 /** The names of the methods. */
 export const Method = {
@@ -270,6 +271,9 @@ export const ReadMethod = {
   searchMatches: 'read/search.read-matches',
   // Version 1.8, milestone M15.
   watchChanges: 'read/repo.watch-changes',
+  // Version 1.13, milestone M34.
+  signature: 'read/details.read-signature',
+  authors: 'read/commit.read-authors',
 } as const;
 
 /** The notification of a page of `read/graph.read-commits` asked with `stream`, as it is read (1.8). */

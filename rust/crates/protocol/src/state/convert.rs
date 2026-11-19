@@ -4,6 +4,7 @@ use std::path::Path;
 
 use model::CommitId;
 use model::bisect::Bisect;
+use model::commit::{SigningConfig, SigningKind};
 use model::rebase::{RebaseStop, StopKind};
 use model::state::{
     Branch, ChangeKind, ConflictKind, ConflictedFile, FileChange, Operation, RemoteBranch, RepositoryState, Stash, Tag,
@@ -13,8 +14,9 @@ use model::submodule::{Checkout, Distance, Submodule};
 
 use super::{
     BisectJson, BranchJson, ChangeKindJson, CheckoutJson, ConflictKindJson, ConflictedFileJson, DistanceJson,
-    FileChangeJson, HeadJson, IdentityJson, OperationJson, RebaseStopJson, RemoteBranchJson, StashJson, StateJson,
-    StopKindJson, SubmoduleJson, TagJson, UpstreamJson, WorkingTreeJson, WorktreeJson,
+    FileChangeJson, HeadJson, IdentityJson, OperationJson, RebaseStopJson, RemoteBranchJson, SigningJson,
+    SigningKindJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson, UpstreamJson, WorkingTreeJson,
+    WorktreeJson,
 };
 
 /// A path as the system gives it, as a string.
@@ -51,6 +53,7 @@ impl From<&RepositoryState> for StateJson {
                 name: state.identity.name.clone(),
                 email: state.identity.email.clone(),
             },
+            signing: SigningJson::from(&state.signing),
             branch_sort: state.branch_sort.clone(),
             reflog_subjects: state.reflog_subjects.clone(),
             working_tree: WorkingTreeJson::from(&state.working_tree),
@@ -58,6 +61,20 @@ impl From<&RepositoryState> for StateJson {
             rebase_stop: state.rebase_stop.as_ref().map(RebaseStopJson::from),
             bisect: state.bisect.as_ref().map(BisectJson::from),
             submodules: state.submodules.iter().map(SubmoduleJson::from).collect(),
+        }
+    }
+}
+
+impl From<&SigningConfig> for SigningJson {
+    fn from(signing: &SigningConfig) -> SigningJson {
+        SigningJson {
+            signs_every_commit: signing.signs_every_commit,
+            kind: match signing.kind {
+                SigningKind::OpenPgp => SigningKindJson::Openpgp,
+                SigningKind::X509 => SigningKindJson::X509,
+                SigningKind::Ssh => SigningKindJson::Ssh,
+            },
+            key: signing.key.clone(),
         }
     }
 }

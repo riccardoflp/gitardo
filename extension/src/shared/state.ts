@@ -126,6 +126,49 @@ export interface Identity {
   email: string | null;
 }
 
+/** The kind of signature git makes, from `gpg.format`. */
+export type SigningKind = 'openpgp' | 'x509' | 'ssh';
+
+/** How git's configuration signs commits: `commit.gpgSign`, `gpg.format` and `user.signingKey`. */
+export interface Signing {
+  signsEveryCommit: boolean;
+  kind: SigningKind;
+  /** Null when `user.signingKey` is not set. */
+  key: string | null;
+}
+
+/** What git says of the signature of a commit (`details.read-signature`), from the letter of `%G?`. */
+export type SignatureVerdict =
+  | 'good'
+  | 'goodUnknownValidity'
+  | 'goodExpired'
+  | 'goodExpiredKey'
+  | 'goodRevokedKey'
+  | 'bad'
+  | 'cannotCheck'
+  | 'signedNotChecked'
+  | 'notSigned';
+
+/** The signature of a commit, as git says of it; each text empty when git cannot say it. */
+export interface CommitSignature {
+  verdict: SignatureVerdict;
+  /** Null for a commit that carries none. */
+  kind: SigningKind | null;
+  /** Who signed, as git names them: `Ada <ada@example.com>`. */
+  signer: string;
+  key: string;
+  fingerprint: string;
+  trust: string;
+}
+
+/** Someone who made commits in the repository (`commit.read-authors`). */
+export interface Author {
+  name: string;
+  email: string;
+  /** How many commits they made, among those read. */
+  commits: number;
+}
+
 /** A multi-step git operation that stopped and waits for the user; `patch` is `git am`. */
 export type Operation = 'merge' | 'rebase' | 'cherryPick' | 'revert' | 'patch';
 
@@ -211,6 +254,8 @@ export interface RepositoryState {
   /** The names of the remotes. */
   remotes: string[];
   identity: Identity;
+  /** How git's configuration signs commits (`commit.read-signing`, 1.13). */
+  signing: Signing;
   /** Git's `branch.sort`, when it is set. */
   branchSort: string | null;
   /** The subjects of the last entries of the reflog of `HEAD`, newest first, for the branches checked out last. */

@@ -81,7 +81,11 @@ fn repository() -> RepositoryState {
             name: Some(String::from("Ada Lovelace")),
             email: Some(String::from("ada@example.com")),
         },
-        signing: model::commit::SigningConfig::default(),
+        signing: model::commit::SigningConfig {
+            signs_every_commit: true,
+            kind: model::commit::SigningKind::Ssh,
+            key: Some(String::from("~/.ssh/id_ed25519.pub")),
+        },
         branch_sort: Some(String::from("-committerdate")),
         reflog_subjects: vec![String::from("checkout: moving from feature to main")],
         working_tree: working_tree(),

@@ -71,6 +71,11 @@
     "name": "Ada Lovelace",
     "email": "ada@example.com"
   },
+  "signing": {
+    "signsEveryCommit": false,
+    "kind": "openpgp",
+    "key": null
+  },
   "branchSort": "-committerdate",
   "reflogSubjects": [
     "merge feature: Merge made by the 'ort' strategy."

@@ -9,6 +9,7 @@ import { FileRow } from './FileRow';
 import { Icon } from './Icon';
 import { fileMenu } from './menus';
 import { fullDate, shortHash } from './util';
+import { SignatureLine, useSignature } from './Signature';
 import { onMessage, post } from './vscode';
 
 interface Props {
@@ -41,6 +42,8 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
     post({ type: 'getPatch', hash });
     return stop;
   }, [hash]);
+  // Asked once the details are drawn, so that they never wait for it (`details.signature`).
+  const signature = useSignature(hash, Boolean(detail));
 
   if (detail === undefined) return <div className="empty">Loading the commit…</div>;
   if (!detail) return <div className="empty">This commit is not in the repository any more.</div>;
@@ -101,6 +104,7 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
                 {id} <Icon name="copy" />
               </button>
             </dd>
+            <SignatureLine signature={signature} />
             {detail.parents.length > 0 && (
               <>
                 <dt>{detail.parents.length > 1 ? 'Parents' : 'Parent'}</dt>

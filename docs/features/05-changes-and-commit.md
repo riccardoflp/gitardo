@@ -868,10 +868,13 @@ from a menu beside **Commit**
   commit**, for the projects that ask for it on each commit.
 - **Uses**: `commit.read-signing`, `commit.co-authors`, `commit.option-arguments`, `commit.create`, `commit.amend`,
   `identity.switch`, `ui.menu-icons`.
-- **Extension**: Planned: the same button beside **Commit** in the commit box of the **Gitardo Changes** view, its menu
-  drawn by the view; the options go to the engine in the answers of `feature/run` of `commit.create` and
-  `commit.amend`, and the setting is `gitardo.commit.signOff`. VS Code's own **Commit (Signed Off)** and **Commit (No
-  Verify)** are of its Source Control, not of Gitardo's box.
+- **Extension**: the same button, **Commit options** with the Codicon `settings`, beside **Commit** in the commit box of
+  the **Gitardo Changes** view, its menu drawn by the view (`commitOptionsMenu` in `src/webview/commitOptions.ts`), the
+  line under the box too; the options go to the engine in the answers of `feature/run` of `commit.create` and
+  `commit.amend` (`optionAnswers` in `src/engine/actions.ts`), and the setting is `gitardo.commit.signOff`. As in the
+  window, what an entry signs with or adds is its tooltip. The options of each repository are kept by the view while
+  another is shown. VS Code's own **Commit (Signed Off)** and **Commit (No Verify)** are of its Source Control, not of
+  Gitardo's box.
 
 The menu has, each with a box ticked or not and its icon:
 
@@ -909,6 +912,9 @@ Acceptance:
 - [ ] Two co-authors chosen are listed in the menu and under the box, and are gone after the commit.
 - [ ] The repository shown changed and back, the options ticked are as they were left.
 - [ ] The menu open matches its snapshots in the dark and in the light theme.
+- [ ] Extension: with `commit.gpgSign` on, **Sign this commit** starts ticked, unticked says **Not signed** under
+      the box and sends `--no-gpg-sign`; with `gpg.format` `ssh` and no key it cannot be ticked; two co-authors are
+      listed in the menu and under the box, each taken away by a click.
 
 ### `commit.option-arguments` — The arguments of the options of a commit
 
@@ -919,7 +925,8 @@ What the options of the commit box add to `git commit`, for `commit.create` and 
 - **Function**: `model::commit::option_arguments(options: &CommitOptions, signing: &SigningConfig, message: &str) ->
   Vec<OsString>`
 - **Uses**: by `commit.create` and `commit.amend`; `commit.read-signing`.
-- **Extension**: Planned, as `commit.options`.
+- **Extension**: the engine's, given the options in the answers of `feature/run`; the co-authors are known from its
+  first call, as a flag is, since no question asks them (protocol 1.13).
 
 - **Sign this commit** ticked while git's configuration does not sign: `--gpg-sign`, which signs with the key git's
   configuration names. Unticked while it signs: `--no-gpg-sign`. As the configuration says: nothing.
@@ -941,6 +948,8 @@ Acceptance:
       --trailer "Co-authored-by: Ben <ben@example.com>" --no-edit`, and the message of the commit ends with the two
       lines after.
 - [ ] A name with a space or a quote is one argument, whatever it holds.
+- [ ] Extension: **Add Signed-off-by**, two co-authors and **Skip the hooks** commit past a `pre-commit` hook that
+      fails, and the message ends with the three lines.
 
 ### `commit.read-signing` — Read how git signs commits
 
@@ -954,13 +963,14 @@ as git would commit, and says what it signs with.
   `commit.gpgSign` is read as git reads a boolean: `true`, `yes`, `on`, `1` and a key with no value are true; the
   kind is `openpgp` when `gpg.format` is not set.
 - **Uses**: by `commit.options` and `commit.option-arguments`.
-- **Extension**: Planned, with `read/repo.read-state` of the engine.
+- **Extension**: `signing` of `read/repo.read-state` of the engine (protocol 1.13).
 
 Acceptance:
 
 - [ ] With nothing set, git does not sign, the kind is OpenPGP and there is no key.
 - [ ] With `commit.gpgSign` set to `yes` in the global configuration and `false` in the repository, git does not sign.
 - [ ] With `gpg.format` set to `ssh` and `user.signingKey` to a path, the kind is SSH and the key that path.
+- [ ] Extension: with `commit.gpgSign` set to `true`, the state the engine sends says git signs every commit.
 
 ### `commit.read-authors` — Read the authors of the history
 
@@ -972,13 +982,15 @@ The people who made commits in the repository, with how many each made, for choo
   the repository's `.mailmap` says them; an author is an email, without regard to case, with the name of its latest
   commit. Read when `commit.co-authors` opens, and stopped when it closes (Q1096).
 - **Uses**: by `commit.co-authors`.
-- **Extension**: Planned: `read/commit.read-authors` of the engine.
+- **Extension**: `read/commit.read-authors` of the engine (protocol 1.13), asked as the quick pick of the co-authors
+  opens.
 
 Acceptance:
 
 - [ ] A history with three commits of `ben@example.com` and one of `cy@example.com` gives Ben with 3 and Cy with 1.
 - [ ] `Ben@Example.com` and `ben@example.com` are one author, named as the latest of their commits says.
 - [ ] A `.mailmap` that maps an old email to a new one gives the new one alone.
+- [ ] Extension: `read/commit.read-authors` gives each author with how many commits they made.
 
 ### `commit.co-authors` — Choose the co-authors of a commit
 
@@ -990,7 +1002,9 @@ the commit names them in `Co-authored-by` lines.
 - **Entry points**: **Co-authors…** in the menu of `commit.options`.
 - **Reads**: `commit.read-authors`.
 - **Uses**: `commit.read-authors`, `commit.options`, `identity.read`.
-- **Extension**: Planned: a quick pick of many of VS Code, from the **Gitardo Changes** view.
+- **Extension**: a quick pick of many of VS Code, from **Co-authors…** of the **Gitardo Changes** view
+  (`src/extension/coAuthors.ts`), titled **Co-authors of this commit**; it opens at once, busy until the authors are
+  read, and its entries are made by `coAuthorEntries` of `src/shared/commitOptions.ts`.
 
 Gitardo's picker of many, titled **Co-authors of this commit**: each author by name with the email under it and how
 many commits, the ones with the most first, the identity that commits left out; the co-authors chosen already are
@@ -1010,6 +1024,8 @@ Acceptance:
 - [ ] Typing `Dee <dee@example.com>` offers **Add Dee <dee@example.com>**; chosen, Dee is a co-author.
 - [ ] Typing `Dee` alone offers nothing to add.
 - [ ] `Escape` after ticking two authors leaves the co-authors as they were.
+- [ ] Extension: the quick pick lists the authors without the identity that commits, and offers someone typed as
+      `Name <email>` first.
 
 ### `commit.prepared-message` — The message git prepared
 

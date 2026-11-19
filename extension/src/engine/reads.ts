@@ -40,7 +40,7 @@ import {
 } from '../shared/protocol';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
 import type { FolderSummary } from '../shared/summaries';
-import { uncommittedDetail } from '../shared/state';
+import { type Author, type CommitSignature, uncommittedDetail } from '../shared/state';
 import type { CommandProposal, IgnoredEntry, SetupPatterns, SetupPreview } from '../shared/worktreeSetup';
 
 /** A read, or a run, asked while there is no engine: its message is the sentence of the views. */
@@ -360,6 +360,18 @@ export class Reads {
   /** The message git prepared for the commit of a squash merge, without the newlines at its end (R3); null otherwise. */
   squashMessage(repo: Repository): Promise<string | null> {
     return this.client().preparedMessage(repo.root);
+  }
+
+  /** What git says of the signature of a commit; null for the uncommitted changes, a stash, or a commit not found. */
+  async signature(repo: Repository, hash: string, signal?: AbortSignal): Promise<CommitSignature | null> {
+    if (hash === WORKTREE) return null;
+    const commit = await this.fullId(repo, hash);
+    return commit ? this.client().signature(repo.root, commit, signal) : null;
+  }
+
+  /** The people who made commits in the repository, for the co-authors of a commit. */
+  async authors(repo: Repository): Promise<Author[]> {
+    return (await this.client().authors(repo.root)).authors;
   }
 
   /** The git folder the worktrees share, where the references are. */
