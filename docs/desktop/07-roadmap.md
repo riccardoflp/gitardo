@@ -981,7 +981,7 @@ Phase 3: the README and the CHANGELOG of the desktop, the stored data and **Befo
 `ai.copilot` is Built. The exit's checks with a real CLI signed in are those of **Before a release**: the tests run
 against the fake.
 
-## M31 — Ask Gitardo how to do something
+## M31 — Ask Gitardo how to do something (done)
 
 A question in the user's own words, in any language, about how to do something with Gitardo, answered by the AI
 provider from the cards of the catalog, with the words of the controls as they are on screen and a button that does
@@ -1017,10 +1017,16 @@ window first, the extension last.
    The README of each app and its CHANGELOG say what is new. Cards: `help.guide`, `help.choose-cards`,
    `help.question`, `help.ask`, `help.read-answer`, `help.page`, `help.show-me`, Built in the extension.
 
-Built so far: phases 1 and 2. The guide is about 430 KB for the two apps, about 480 cards in the desktop's and 470 in the
+Built: all five phases, every card Built in both apps. The guide is about 430 KB for the two apps, about 480 cards in the desktop's and 470 in the
 extension's; its index is one line a card. `model::help::guide` reads it at each call into slices of the file rather
 than once for the program, which rule R3.3 forbids, and its tests are in `xtask`, where it is made, which the check
-of the catalog now counts.
+of the catalog now counts. Where the plan could not be followed, the questions say what was built instead: the
+entry is in the **…** menu, the window having no Help menu (Q1351); **Stop** on the page cancels, the activity of
+the status bar cancelling nothing (Q1352); the box is the code editor without line numbers (Q1353); a page opened
+only on something chosen gets **Show where** (Q1354); in VS Code, the features are written in bold as the answer
+comes, from a field `features` of `host/languageModel` (Q1366), and the Chat has no limit of 4 buttons (Q1367).
+The exit was not walked against a real provider or in a real VS Code: the tests use fakes, and the e2e and UI
+suites are left to the pipeline.
 
 Exit: with an AI provider set, typing *how do I put my changes aside* in Quick search offers **Ask Gitardo: "how do I
 put my changes aside"**, whose page answers with **Stash changes…** in the context menu of the draft and a button
