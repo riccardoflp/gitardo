@@ -1401,6 +1401,9 @@ export async function run(): Promise<void> {
       assert.equal(await index(), 'one\ntwo\nthree\n');
       // As Gitardo's own operations: in its log, exactly as it ran.
       assert.ok(logged.includes('> git apply --cached --unidiff-zero --whitespace=nowarn -'));
+      // The panel follows the index as soon as git writes it, while the engine still reads the repository after the
+      // operation; one operation runs at a time, so the next waits for this one to end.
+      await until('the operation to end', () => !(controller as unknown as { running: boolean }).running);
 
       panel.onMessage({ type: 'unstageChunk', chunkId: 0 });
       await until('the change to show as unstaged again', () => panel.currentModel?.chunks[0]?.staged === false);
@@ -4032,14 +4035,16 @@ export async function run(): Promise<void> {
       assert.equal(await message('HEAD'), 'Reword three, new\n\nWith a body now.');
       assert.deepEqual(state().workingTree.staged, [{ kind: 'modified', path: 'three.txt', originalPath: null }]);
 
-      // An older one is asked first, and the changes not committed come back after.
+      // An older one is asked first, and the changes not committed come back after; once done, what the rewrite changed
+      // is offered (M36).
       const one = (await git(app, ['rev-parse', 'HEAD~2'])).stdout.trim();
       await controller.action({ kind: 'reword', hash: one, message: 'Reword one, new\n\nIts body.' });
       assert.deepEqual(
         asked.map((question) => question.message),
-        [`Edit the message of ${one.slice(0, 7)}?`],
+        [`Edit the message of ${one.slice(0, 7)}?`, `Gitardo: Edit the message of ${one.slice(0, 7)}: done.`],
       );
       assert.ok(asked[0].detail.includes('the 2 commits after it are made again'), asked[0].detail);
+      assert.deepEqual(asked[1].items, ['See What Changed']);
       assert.equal(await message('HEAD~2'), 'Reword one, new\n\nIts body.');
       assert.equal(await message('HEAD'), 'Reword three, new\n\nWith a body now.');
       assert.equal(fs.readFileSync(path.join(app, 'three.txt'), 'utf8'), 'staged\n');
