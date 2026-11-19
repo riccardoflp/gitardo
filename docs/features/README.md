@@ -190,9 +190,9 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`details.read-commit`](04-details-and-commit-page.md#detailsread-commit--read-the-details-of-a-commit) | Read the details of a commit | Read | Built | Built |
-| [`details.read-signature`](04-details-and-commit-page.md#detailsread-signature--read-the-signature-of-a-commit) | Read the signature of a commit | Read | Specified | Planned |
+| [`details.read-signature`](04-details-and-commit-page.md#detailsread-signature--read-the-signature-of-a-commit) | Read the signature of a commit | Read | Built | Planned |
 | [`details.show`](04-details-and-commit-page.md#detailsshow--details-of-the-selected-commit) | Details of the selected commit | View | Built | Built |
-| [`details.signature`](04-details-and-commit-page.md#detailssignature--the-signature-of-a-commit) | The signature of a commit | View | Specified | Planned |
+| [`details.signature`](04-details-and-commit-page.md#detailssignature--the-signature-of-a-commit) | The signature of a commit | View | Built | Planned |
 | [`details.message-title`](04-details-and-commit-page.md#detailsmessage-title--the-title-of-a-message) | The title of a message | Derivation | Built | Built |
 | [`details.message-unwrap`](04-details-and-commit-page.md#detailsmessage-unwrap--lines-of-a-message-put-back-together) | Lines of a message put back together | Derivation | Built | Built |
 | [`details.show-more`](04-details-and-commit-page.md#detailsshow-more--show-more-of-a-long-message) | Show more of a long message | View | Built | Built |

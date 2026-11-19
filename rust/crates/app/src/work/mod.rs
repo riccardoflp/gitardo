@@ -185,6 +185,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadCommits { folder, .. } => (folder, activity::LOADING_MORE_COMMITS),
         JobKind::ReadTimeline { folder, .. } => (folder, activity::NARROWING_TIMELINE),
         JobKind::ReadDetails { folder, .. } => (folder, activity::SHOWING_DETAILS),
+        JobKind::ReadSignature { folder, .. } => (folder, activity::CHECKING_SIGNATURE),
         JobKind::ReadCommitPage { folder, .. } => (folder, activity::OPENING_COMMIT_PAGE),
         JobKind::ReadDiff { folder, .. } => (folder, activity::COMPUTING_DIFF),
         JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } => (folder, activity::OPENING_FILE),

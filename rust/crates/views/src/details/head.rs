@@ -35,6 +35,8 @@ pub(crate) struct Head<'a> {
     /// Whether the commit is a stash, whose parents after the first are where git keeps its index and its untracked
     /// files: only the commit it was made on is shown.
     pub(crate) is_stash: bool,
+    /// The signature of the commit, when it has a line (`details.signature`).
+    pub(crate) signature: Option<super::SignatureRead<'a>>,
 }
 
 /// The heights of the parts of the head at a width.
@@ -59,7 +61,8 @@ impl Heights {
         let title = (crate::number::float_of_count(title_lines) * ui.line_height(heading)).max(side);
         let text = text_height(ui, &head.message, width);
         let meta = head.detail.map_or(0.0, |detail| {
-            crate::number::float_of_count(meta_lines(detail)) * theme.sizes.row_height
+            let lines = meta_lines(detail) + usize::from(head.signature.is_some());
+            crate::number::float_of_count(lines) * theme.sizes.row_height
         });
         Heights {
             title,
@@ -111,7 +114,7 @@ pub(crate) fn draw_head(ui: &mut Ui<'_>, head: &Head<'_>, rect: Rect) -> Vec<Int
         intents.extend(ui.clip(area.top(heights.text), |ui| show_more(&head.message, ui)));
     }
     if let Some(detail) = head.detail.filter(|_| heights.meta > 0.0) {
-        meta(ui, area.top(heights.meta), (detail, head.is_stash), &mut intents);
+        meta(ui, area.top(heights.meta), (detail, head), &mut intents);
     }
     files_header(ui, area.top(heights.files), head, &mut intents);
     intents
@@ -142,7 +145,7 @@ fn title_line(ui: &mut Ui<'_>, rect: Rect, head: &Head<'_>, intents: &mut Vec<In
 }
 
 /// The lines about who made the commit, when, its hash and its parents.
-fn meta(ui: &mut Ui<'_>, rect: Rect, (detail, is_stash): (&CommitDetail, bool), intents: &mut Vec<Intent>) {
+fn meta(ui: &mut Ui<'_>, rect: Rect, (detail, head): (&CommitDetail, &Head<'_>), intents: &mut Vec<Intent>) {
     let line = ui.theme().sizes.row_height;
     let mut area = Area::new(rect);
     if let Some(author) = &detail.author {
@@ -167,7 +170,14 @@ fn meta(ui: &mut Ui<'_>, rect: Rect, (detail, is_stash): (&CommitDetail, bool), 
             ui.copy_to_clipboard(commit.as_str().to_owned());
         }
     }
-    let shown = shown_parents(detail, is_stash);
+    if let Some(read) = head.signature {
+        let state = super::SignatureState {
+            read,
+            key_width: KEY_WIDTH,
+        };
+        intents.extend(ui.clip(area.top(line), |ui| super::signature_view(&state, ui)));
+    }
+    let shown = shown_parents(detail, head.is_stash);
     if !shown.is_empty() {
         let key = if shown.len() > 1 { words::PARENTS } else { words::PARENT };
         let value = key_line(ui, area.top(line), key);

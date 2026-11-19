@@ -28,6 +28,8 @@ pub const LOADING_MORE_COMMITS: &str = "Loading more commits";
 pub const NARROWING_TIMELINE: &str = "Showing other branches";
 /// What asks for a read of the details of a commit: a row of the timeline was selected.
 pub const SHOWING_DETAILS: &str = "Showing the details of a commit";
+/// Why the signature of a commit is checked: the inspector or the page of a commit shows it.
+pub const CHECKING_SIGNATURE: &str = "Checking the signature of a commit";
 /// What asks for a read of the commit of a page and its lines: the page was opened.
 pub const OPENING_COMMIT_PAGE: &str = "Opening the page of a commit";
 /// Why the diff of a file is read: a Diff page shows it.

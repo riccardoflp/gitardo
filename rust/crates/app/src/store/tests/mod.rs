@@ -68,6 +68,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::Search(_)
             | JobKind::ReadDetails { .. }
             | JobKind::ReadCommitPage { .. }
+            | JobKind::ReadSignature { .. }
             | JobKind::ReadDiff { .. }
             | JobKind::ReadMerge { .. }
             | JobKind::ReadFile { .. }
@@ -166,8 +167,14 @@ fn answer_asking(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[Pat
 }
 
 /// What a list of the files of the Files page, a read of the page of new worktrees, a question of the files git
-/// ignores, a blame, an image or a diagram gives in these tests: nothing.
+/// ignores, a blame, the signature of a commit, an image or a diagram gives in these tests: nothing.
 fn not_listed(job: JobId, kind: &JobKind) -> Message {
+    if let JobKind::ReadSignature { .. } = kind {
+        return Message::SignatureRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        };
+    }
     if let JobKind::ReadBlame { .. } = kind {
         return Message::BlameRead {
             job,
@@ -265,6 +272,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
         | JobKind::ReadIgnored { .. }
         | JobKind::ReadImage { .. }
         | JobKind::ReadBlame { .. }
+        | JobKind::ReadSignature { .. }
         | JobKind::DrawDiagram { .. } => not_listed(job, kind),
     }
 }

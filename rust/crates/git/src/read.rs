@@ -32,6 +32,7 @@ pub mod repo;
 pub mod review;
 pub mod rewrite;
 pub mod search;
+pub mod signature;
 pub mod stash;
 pub mod submodule;
 pub mod summary;

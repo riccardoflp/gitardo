@@ -33,6 +33,7 @@ mod rebase;
 pub mod review;
 pub mod search;
 mod settings_page;
+mod signature;
 mod stashes;
 mod state;
 pub mod tabs;
@@ -66,6 +67,7 @@ pub use merge_page::{MergePage, MergePages};
 pub use message::{Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use rail::{FilterPicker, Rail};
 pub use reads::Reads;
+pub use signature::SignatureCheck;
 pub use stashes::StashesList;
 pub use state::{Dialog, Opened, Opening, Pages, RepositoryRead, Shown, State, Workspace};
 pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
@@ -153,6 +155,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         }
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
+        Message::SignatureRead { job, result } => signature::signature_read(state, job, result),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
         Message::FileRead { job, result } => file_page::file_read(state, job, result),

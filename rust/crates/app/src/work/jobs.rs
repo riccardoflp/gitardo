@@ -4,7 +4,7 @@
 use std::path::{Path, PathBuf};
 
 use git::read::commit_page::{PatchRequest, read_patch};
-use git::read::details::{CommitRequest, read_commit};
+use git::read::details::{CommitRequest, read_commit, read_signature};
 use git::read::graph::read_position;
 use git::read::repo::{RepositoriesRequest, read_repositories};
 use git::read::search::{read_matches, read_revision};
@@ -65,6 +65,11 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: read_commit(&Git::new(folder).with_cancel(cancel.clone()), request)
                 .map(|detail| detail.map(Box::new))
+                .map_err(|error| error.to_string()),
+        },
+        JobKind::ReadSignature { folder, request } => Message::SignatureRead {
+            job: job.id,
+            result: read_signature(&Git::new(folder).with_cancel(cancel.clone()), request)
                 .map_err(|error| error.to_string()),
         },
         JobKind::ReadCommitPage { folder, commit } => Message::CommitPageRead {

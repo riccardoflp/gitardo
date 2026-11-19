@@ -1091,7 +1091,9 @@ their tests passing. Desktop first: the extension gets the line of the signature
    a `--trailer` for each co-author chosen, and none for one the message names already. Cards:
    `commit.read-authors`, `commit.co-authors`, `commit.option-arguments`.
 
-Nothing is built yet.
+Phase 1 is built: the line **Signature** of the inspector and of the page of a commit, read once the details are
+drawn, the read before cancelled when another commit is selected, and tested with commits signed by an SSH key made
+for each test. The object of the commit is read first, where the plan read it only after `N` (the card says why).
 
 Exit: in a repository signing with an SSH key whose allowed signers are set, selecting a commit signed shows
 **Signature** `Good` with the signer, and one not signed shows no such line; without the allowed signers, the same

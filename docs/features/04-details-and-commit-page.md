@@ -43,13 +43,18 @@ check, and by whom ([D79](../08-decisions.md#d79--the-signature-of-a-commit-show
 - **Kind**: Read
 - **Function**: `git::read::details::read_signature(git: &Git, request: &SignatureRequest) -> Result<Signature, GitError>`
 - **Reads**:
-  - `git show --no-patch --format=%G?%x1f%GS%x1f%GK%x1f%GF%x1f%GT <hash>`: what git says of the signature, with the
-    signer, the key, its fingerprint and how far it is trusted. Git checks the signature with the program its
-    configuration names (`gpg`, `gpgsm` or `ssh-keygen`), which is why it is read apart from `details.read-commit`, for
-    the commit shown alone and after its details (Q1090).
-  - When git says `N`, no signature: `git cat-file commit <hash>`, for whether the commit has a `gpgsig` or
-    `gpgsig-sha256` header all the same. Git says `N` of a commit signed with SSH while `gpg.ssh.allowedSignersFile`
-    is not set; such a commit is signed, and git cannot check it here.
+  - `git cat-file commit <hash>` first, for whether the commit has a `gpgsig` or `gpgsig-sha256` header, and the kind
+    of signature its first line says. A commit with none is **Not signed**, and nothing else runs: most commits are
+    not signed, and the program that checks signatures is not started for them.
+  - For a commit that carries a signature, `git show --no-patch --no-show-signature
+    --format=%G?%x1f%GS%x1f%GK%x1f%GF%x1f%GT <hash>`: what git says of it, with the signer, the key, its fingerprint
+    and how far it is trusted. Git checks the signature with the program its configuration names (`gpg`, `gpgsm` or
+    `ssh-keygen`), which is why it is read apart from `details.read-commit`, for the commit shown alone and after its
+    details (Q1090). `--no-show-signature` keeps `log.showSignature` from printing what that program said.
+  - When git says `N` of a commit whose object carries a signature, as it does of a commit signed with SSH while
+    `gpg.ssh.allowedSignersFile` is not set, the commit is **Signed, not checked**.
+  The object is read first, where the plan read it only after `N`, so that the kind of every signature is known for
+  the tooltip of `details.signature` with one process more for a signed commit and one less for the others.
 - **Uses**: by `details.signature`.
 - **Extension**: Planned: `read/details.read-signature` of the engine, for the details of the graph and the tab of a
   commit.
@@ -62,7 +67,7 @@ SIGNATURE-----`, `-----BEGIN SIGNED MESSAGE-----`, `-----BEGIN SSH SIGNATURE----
 
 Acceptance:
 
-- [ ] A commit made without `-S` is **Not signed**, and `git cat-file` ran once.
+- [ ] A commit made without `-S` is **Not signed**, `git cat-file` ran once, and `git show` did not run.
 - [ ] A commit signed with SSH, with `gpg.ssh.allowedSignersFile` naming a file that lists its key, is **Good**, with
       the signer's email and the key's fingerprint.
 - [ ] The same commit, with `gpg.ssh.allowedSignersFile` not set, is **Signed, not checked**, of the kind SSH.
@@ -92,8 +97,8 @@ What it shows, from the top:
 - the title of the message in bold and the rest under it, as `details.message-title` and `details.message-unwrap` make
   them, cut by `details.show-more`;
 - **Author** (the email in the tooltip), **Date**, **Committer** with its date only when the committer or the date
-  differs from the author's, **Commit** with the short hash, which a click copies whole (**Copy full hash**), and
-  **Parent** or **Parents**, each short hash going to that commit in the timeline;
+  differs from the author's, **Commit** with the short hash, which a click copies whole (**Copy full hash**),
+  **Signature** for a signed commit (`details.signature`), and **Parent** or **Parents**, each short hash going to that commit in the timeline;
 - the count, **N changed files**, followed by **against the first parent** on a merge;
 - the two buttons that list the files one after the other, each with its directory beside its name (**One after the
   other, each with its directory**), or as a tree of directories (**Under their directories**); the choice is
@@ -145,6 +150,7 @@ Says, in the inspector and in the tab of a commit, whether the commit is signed 
   signature, the key, its fingerprint and the trust git gave it.
 - **Not signed** is said by no line: most commits are not signed, and a line on each would say nothing (Q1091).
 - While the signature is read, the line says **Checking the signature…**; the stashes and the draft have none.
+- When git cannot read it, there is no line, and what git said is the last error of the window.
 - Nothing is drawn in the timeline for the signature (Q1092).
 
 Acceptance:
@@ -497,7 +503,8 @@ What it shows, from the top:
 - the title of the message, the labels of the commit (its branches, remote branches and tags, as the timeline draws
   them, while the window shows its repository), and the rest of the message;
 - **Author** with name and `<email>`, **Date**, **Committer** with name, `<email>` and date only when it differs from the
-  author, **Commit** with the full hash, which a click copies (**Copy the hash**), **Parent** or **Parents**, each of
+  author, **Commit** with the full hash, which a click copies (**Copy the hash**), **Signature** for a signed commit
+  (`details.signature`), **Parent** or **Parents**, each of
   which opens its own page;
 - **Show in the timeline** and, when the commit changed files, **Open in the Diff page**, which opens all of its changes
   one after the other in one Diff page;

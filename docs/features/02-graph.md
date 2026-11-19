@@ -567,6 +567,7 @@ own dash.
 | Check out a branch, a tag or a commit | `log-in` |
 | Open in a new window; reveal a folder in the file manager of the system | `app-window`, `folder-open` |
 | The logo of Gitardo, at the top left of the window | the extension's `gitardo.svg`, not Lucide's |
+| The signature of a commit, and signing one; the `Signed-off-by` line; the co-authors of a commit | `shield`, `signature`, `users` |
 
 Acceptance:
 

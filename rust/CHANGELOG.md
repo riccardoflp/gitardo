@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The inspector and the page of a commit say whether the commit is signed, on a line **Signature** under **Commit**,
+  with a shield in the color of what git said: **Good** and by whom, the three kinds of good signature git doubts,
+  **Bad**, **Cannot be checked**, or **Signed, not checked** for a commit signed with SSH while no allowed signers are
+  set. Its tooltip has the kind of signature, the key, its fingerprint and its trust. The signature is checked once the
+  details are shown, for the commit selected alone; a commit not signed has no line.
+
 ## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of

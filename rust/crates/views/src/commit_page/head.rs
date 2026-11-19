@@ -58,7 +58,8 @@ impl Heights {
                 ui.badge_height()
             },
             text: wrapped(&head.data.text, TextKind::Body),
-            meta: crate::number::float_of_count(meta_lines(&head.data.detail)) * theme.sizes.row_height,
+            meta: crate::number::float_of_count(meta_lines(&head.data.detail) + usize::from(signature(head).is_some()))
+                * theme.sizes.row_height,
             actions: theme.sizes.control_height,
             files: theme.sizes.control_height,
         }
@@ -106,6 +107,11 @@ pub(crate) fn draw_head(ui: &mut Ui<'_>, head: &PageHead<'_>, top: Rect) -> Vec<
     actions(ui, area.top(heights.actions), head, &mut intents);
     files_header(ui, area.top(heights.files), head, &mut intents);
     intents
+}
+
+/// The signature of the commit of a page, when it has a line (`details.signature`).
+fn signature<'a>(head: &PageHead<'a>) -> Option<crate::details::SignatureRead<'a>> {
+    head.state.signature.filter(|read| read.is_shown())
 }
 
 /// How many lines about who made the commit there are.
@@ -158,14 +164,26 @@ fn meta(ui: &mut Ui<'_>, rect: Rect, head: &PageHead<'_>, intents: &mut Vec<Inte
             ui.copy_to_clipboard(commit.as_str().to_owned());
         }
     }
-    let parents = crate::details::shown_parents(detail, head.state.is_stash);
+    if let Some(read) = signature(head) {
+        let state = crate::details::SignatureState {
+            read,
+            key_width: KEY_WIDTH,
+        };
+        intents.extend(ui.clip(area.top(line), |ui| crate::details::signature_view(&state, ui)));
+    }
+    parents(ui, area.top(line), head, intents);
+}
+
+/// The parents of the commit of a page, each of which opens its own page; nothing for a root commit.
+fn parents(ui: &mut Ui<'_>, rect: Rect, head: &PageHead<'_>, intents: &mut Vec<Intent>) {
+    let parents = crate::details::shown_parents(&head.data.detail, head.state.is_stash);
     if !parents.is_empty() {
         let key = if parents.len() > 1 {
             words::PARENTS
         } else {
             words::PARENT
         };
-        let value = key_line(ui, area.top(line), key);
+        let value = key_line(ui, rect, key);
         let mut cells = Area::new(crate::details::outdent(ui, value));
         for parent in parents {
             let button = Button::secondary(parent.short())

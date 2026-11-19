@@ -19,3 +19,5 @@ mod files;
 mod golden;
 #[path = "details_and_diffs/patch.rs"]
 mod patch;
+#[path = "details_and_diffs/signature.rs"]
+mod signature;

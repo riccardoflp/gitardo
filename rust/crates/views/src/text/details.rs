@@ -146,3 +146,56 @@ pub fn page_title(short_hash: &str, subject: &str) -> String {
         format!("{short_hash} {subject}")
     }
 }
+
+/// The line of the signature of a commit (`details.signature`).
+pub const SIGNATURE: &str = "Signature";
+/// What the line of the signature says while it is read.
+pub const CHECKING_SIGNATURE: &str = "Checking the signature\u{2026}";
+
+/// What the line of the signature says of what git said of it: `Good, Ada <ada@example.com>`, `Good, expired key`,
+/// `Bad`; nothing for a commit not signed, which has no line.
+#[must_use]
+pub fn signature_words(signature: &model::details::CommitSignature) -> String {
+    use model::details::SignatureVerdict;
+    let said = match signature.verdict {
+        SignatureVerdict::Good if signature.signer.is_empty() => "Good",
+        SignatureVerdict::Good => return format!("Good, {}", signature.signer),
+        SignatureVerdict::GoodUnknownValidity => "Good, from a key whose validity is not known",
+        SignatureVerdict::GoodExpired => "Good, expired",
+        SignatureVerdict::GoodExpiredKey => "Good, expired key",
+        SignatureVerdict::GoodRevokedKey => "Good, revoked key",
+        SignatureVerdict::Bad => "Bad",
+        SignatureVerdict::CannotCheck if signature.key.is_empty() => "Cannot be checked",
+        SignatureVerdict::CannotCheck => return format!("Cannot be checked: no key {} here", signature.key),
+        SignatureVerdict::SignedNotChecked if signature.kind == Some(model::details::SignatureKind::Ssh) => {
+            "Signed, not checked: no allowed signers are set"
+        }
+        SignatureVerdict::SignedNotChecked => "Signed, not checked",
+        SignatureVerdict::NotSigned => "",
+    };
+    said.to_owned()
+}
+
+/// The tooltip of the line of a signature: its kind, the key, its fingerprint and the trust git gave it, each when
+/// git said it.
+#[must_use]
+pub fn signature_tooltip(signature: &model::details::CommitSignature) -> String {
+    use model::details::SignatureKind;
+    let kind = match signature.kind {
+        Some(SignatureKind::OpenPgp) => "OpenPGP signature",
+        Some(SignatureKind::X509) => "X.509 signature",
+        Some(SignatureKind::Ssh) => "SSH signature",
+        None => "Signature",
+    };
+    let mut lines = vec![kind.to_owned()];
+    for (name, value) in [
+        ("Key", &signature.key),
+        ("Fingerprint", &signature.fingerprint),
+        ("Trust", &signature.trust),
+    ] {
+        if !value.is_empty() {
+            lines.push(format!("{name}: {value}"));
+        }
+    }
+    lines.join("\n")
+}

@@ -65,6 +65,8 @@ pub struct Inspector {
     pub folded: BTreeSet<String>,
     /// The tree of the files shown.
     pub tree: Vec<TreeNode>,
+    /// The signature of its commit, read once its details are (`details.signature`).
+    pub signature: Option<super::signature::SignatureCheck>,
 }
 
 /// Follows the row selected: when another one is, the read of the last one is cancelled, the details of the new one
@@ -76,7 +78,8 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
         return Vec::new();
     }
     let mut effects = Vec::new();
-    if let Some(job) = state.inspector.job.take() {
+    let signature_job = state.inspector.signature.take().and_then(|check| check.job());
+    for job in [state.inspector.job.take(), signature_job].into_iter().flatten() {
         let _cancelled = state.jobs.remove(&job);
         effects.push(Effect::Cancel(job));
     }
@@ -138,7 +141,19 @@ pub fn details_read(state: &mut State, job: JobId, result: Result<Option<Box<Com
     if let InspectorRead::Read(read) = &inspector.read {
         inspector.tree = tree_of(&read.detail.files, inspector.is_all_files_shown);
     }
-    Vec::new()
+    let commit = match (&state.inspector.read, &state.inspector.subject) {
+        (InspectorRead::Read(_), Some(subject)) => match &subject.row {
+            SubjectRow::Commit(commit) => Some((subject.folder.clone(), commit.clone())),
+            SubjectRow::Draft(_) => None,
+        },
+        _ => None,
+    };
+    let Some((folder, commit)) = commit else {
+        return Vec::new();
+    };
+    let (check, effect) = super::signature::check(state, folder, commit);
+    state.inspector.signature = Some(check);
+    vec![effect]
 }
 
 /// The details of a commit with its message shaped as the inspector and the page show it (`details.message-title`,
@@ -231,5 +246,9 @@ pub fn details_state<'a>(state: &'a State, selected: Option<SelectedDetails<'a>>
         folded: &inspector.folded,
         in_place: super::compare::in_place::in_place_state(state),
         shown_file: super::diff_page::beside::shown_file(state),
+        signature: match selected {
+            Some(SelectedDetails::Commit(_)) => super::signature::shown(inspector.signature.as_ref()),
+            Some(SelectedDetails::Draft(_) | SelectedDetails::Stash { .. }) | None => None,
+        },
     }
 }

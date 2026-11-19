@@ -58,6 +58,8 @@ pub struct CommitPageState<'a> {
     pub reveal: Option<(u64, PageTarget)>,
     /// A number that changes whenever what the page lists changes, for find in page.
     pub version: u64,
+    /// The signature of its commit (`details.signature`); none for a stash, or before it is asked.
+    pub signature: Option<crate::details::SignatureRead<'a>>,
 }
 
 /// How far the commit of a page is read.

@@ -293,9 +293,20 @@ pub(crate) const UNFOLD: Icon = Icon::Unfold;
 /// How the timeline is shown: the menu of the view of the header (`graph.view-menu`).
 pub(crate) const VIEW_MENU: Icon = Icon::Sliders;
 
+/// The signature of a commit (`details.signature`), and signing one (`commit.options`).
+pub(crate) const SIGNATURE: Icon = Icon::Shield;
+
+/// The `Signed-off-by` line of a commit (`commit.options`).
+#[allow(dead_code, reason = "drawn by the menu of commit.options, phase 2 of M34")]
+pub(crate) const SIGN_OFF: Icon = Icon::Signature;
+
+/// The co-authors of a commit (`commit.options`, `commit.co-authors`).
+#[allow(dead_code, reason = "drawn by the menu of commit.options, phase 2 of M34")]
+pub(crate) const CO_AUTHORS: Icon = Icon::Users;
+
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 92] = [
+pub(crate) const MEANINGS: [(&str, Icon); 95] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -412,4 +423,7 @@ pub(crate) const MEANINGS: [(&str, Icon); 92] = [
     ("Reveal a folder in the file manager of the system", REVEAL),
     ("Unfold: show again the commits a merge brought in", UNFOLD),
     ("How the timeline is shown: the menu of the view", VIEW_MENU),
+    ("The signature of a commit, and signing one", SIGNATURE),
+    ("The Signed-off-by line of a commit", SIGN_OFF),
+    ("The co-authors of a commit", CO_AUTHORS),
 ];

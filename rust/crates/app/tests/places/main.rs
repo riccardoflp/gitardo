@@ -103,6 +103,7 @@ mod settings_values;
 mod show_in_graph;
 mod side_column;
 mod side_room;
+mod signature;
 mod speed;
 mod stashes;
 mod submodules;
