@@ -57,6 +57,10 @@ themes; the window follows the scale of its monitor.
 cargo run --release --bin gitardo-demo
 ```
 
+Conflicts can be resolved and commit messages drafted by a language model, once `ai.provider` names one: `anthropic`
+or `openai-compatible` over HTTP, or `copilot` for GitHub Copilot, which Gitardo asks through the GitHub Copilot CLI
+with the user's own sign-in and subscription; the CLI is installed and signed in to by the user (`copilot login`).
+
 The only program needed besides the Rust toolchain is `git`, 2.40 or later for the previews of conflicts. Building
 needs the C compiler the Rust toolchain uses on the system, for the cryptography of the TLS library.
 

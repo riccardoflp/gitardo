@@ -5,6 +5,12 @@
 - The window, the taskbar and a release say **Gitardo**: the title of the window is *\<repository\> — Gitardo*, the
   archives of a release are named `gitardo-<version>-<system>`, and the settings page says *a new window of Gitardo*.
   The settings and the secrets are kept where they were.
+- **GitHub Copilot** as the AI provider: `ai.provider` set to `copilot` asks GitHub Copilot, with the sign-in and the
+  subscription of the GitHub Copilot CLI, to resolve conflicts and to draft commit messages. Gitardo starts `copilot`
+  once for the window, in its server mode, and allows it no tool, so it reads and runs nothing; **Choose the model that
+  resolves conflicts** lists the models of the subscription, and `ai.endpoint` is left off the settings page. Without
+  the CLI, Gitardo says so with **How to install**; signed out, with **Sign in**, which runs `copilot login` in a
+  terminal of the bottom panel.
 
 ## 1.2.0 - 2026-11-18
 

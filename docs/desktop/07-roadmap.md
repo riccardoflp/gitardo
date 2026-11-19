@@ -926,7 +926,7 @@ resized from its title bar, opens the compositor's menu of the window with a rig
 hash that a terminal of the system pastes and pastes a text copied there; on X11 the same holds; the pipeline runs the
 tests of `platform` under Weston and passes; every card of the milestone passes its tests.
 
-## M30 — GitHub Copilot, an AI provider
+## M30 — GitHub Copilot, an AI provider (done)
 
 `ai.provider` set to `copilot` asks GitHub Copilot, with the user's sign-in and subscription, what the other providers
 are asked: the conflicts and the draft of a commit message
@@ -957,11 +957,14 @@ leaves the CLI running and the next one is answered; with the CLI signed out, **
 `copilot login`, and once it ends the question is answered; without the CLI, the refusal offers **How to install**;
 every card of the milestone passes its tests, against the fake CLI.
 
-Built so far: phase 1, `engine::ai::CopilotCli` and `copilot_model`, with the fake CLI of `testkit` (`FakeCopilot`);
+Built: phase 1, `engine::ai::CopilotCli` and `copilot_model`, with the fake CLI of `testkit` (`FakeCopilot`);
 the parts of the protocol are in the card, read from the Copilot SDK (Q1350). Phase 2: `copilot` taken by
 `ai.provider`, one CLI for the window shared by the questions and by `ai.choose-model`, the endpoint left out of the
 settings page, and the refusals with **How to install** and **Sign in**. The settings page has no labels for the
 values of a text setting, so the description of `ai.provider` names **GitHub Copilot** beside `copilot`.
+Phase 3: the README and the CHANGELOG of the desktop, the stored data and **Before a release** say so, and
+`ai.copilot` is Built. The exit's checks with a real CLI signed in are those of **Before a release**: the tests run
+against the fake.
 
 ## M31 — Ask Gitardo how to do something
 
@@ -1399,6 +1402,9 @@ By hand, on each system, with a real account and a real model:
 
 - [ ] Sign in to GitHub with a real token, load the pull requests, open one.
 - [ ] Draft a commit message and resolve a conflict with the AI provider configured.
+- [ ] With the GitHub Copilot CLI installed and signed in, and `ai.provider` set to `copilot`: choose the model, resolve
+      a conflict and draft a message with GitHub Copilot; sign out with `copilot logout` and sign in again from
+      **Sign in** (`ai.copilot`, Q1350).
 - [ ] Choose a folder, a file to open and a file to save with the system's dialogs.
 - [ ] Open a worktree in a new window, in the external editor and in a terminal.
 - [ ] Remove a worktree with a linked `node_modules` on Windows, and check that the original `node_modules` is intact.
