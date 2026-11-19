@@ -51,6 +51,8 @@ pub(crate) struct StepRunner<'a> {
     pub(crate) cancel: &'a CancelToken,
     /// The links and copies that failed, which the steps after them went on from.
     pub(crate) went_on_after: Vec<StepFailure>,
+    /// What says the progress of the plan, for a git step that asks git for it with `--progress`.
+    pub(crate) progress: Option<&'a crate::ProgressReporter>,
 }
 
 /// Why a step did not run to its end.
@@ -91,7 +93,7 @@ impl StepRunner<'_> {
                 continue;
             }
             self.log.record(self.clock.now(), step);
-            let (said, cancelled) = match run_step(self.git, step, self.cancel) {
+            let (said, cancelled) = match run_step(self.git, step, (self.cancel, self.progress)) {
                 Ok(()) => {
                     ran.push(step.log_line());
                     continue;
@@ -146,7 +148,7 @@ impl StepRunner<'_> {
             said,
             &mut crate::held::Attempts {
                 is_windows: cfg!(windows),
-                again: &mut || match run_step(&git, step, cancel) {
+                again: &mut || match run_step(&git, step, (cancel, None)) {
                     Ok(()) => Ok(()),
                     Err(StepError::Failed(said)) => Err(said),
                     Err(StepError::Cancelled) => Err(String::from("Cancelled.")),
@@ -160,15 +162,28 @@ impl StepRunner<'_> {
     }
 }
 
-/// Runs one step; what went wrong, in the words of git or of the system, when it fails.
-fn run_step(git: &Git, step: &Step, cancel: &CancelToken) -> Result<(), StepError> {
+/// Runs one step; what went wrong, in the words of git or of the system, when it fails. A git step that asks git for
+/// its progress says the last line of it as git prints it (`activity.describe-task`).
+fn run_step(
+    git: &Git,
+    step: &Step,
+    (cancel, progress): (&CancelToken, Option<&crate::ProgressReporter>),
+) -> Result<(), StepError> {
     match step {
         Step::Git {
             arguments,
             directory,
             input,
         } => {
-            let output = match git.in_directory(directory).run_step(arguments, input.as_deref()) {
+            let git = git.in_directory(directory);
+            let reporter = progress.filter(|_| arguments.iter().any(|argument| argument == "--progress"));
+            let ran = match reporter {
+                Some(reporter) => git.run_step_reporting(arguments, input.as_deref(), &mut |printed| {
+                    reporter.report(model::activity::progress_line(printed));
+                }),
+                None => git.run_step(arguments, input.as_deref()),
+            };
+            let output = match ran {
                 Ok(output) => output,
                 Err(GitError::Cancelled { .. }) => return Err(StepError::Cancelled),
                 Err(error) => return Err(StepError::failed(&error)),

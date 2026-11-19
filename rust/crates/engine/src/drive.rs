@@ -92,6 +92,8 @@ pub struct Engine {
     host: Option<Box<dyn crate::Host>>,
     /// The GitHub Copilot CLI of the window, which lists the models when `ai.provider` is `copilot` (`ai.copilot`).
     copilot: Option<crate::ai::CopilotCli>,
+    /// What says the progress of the plan running, for its steps that ask git for it.
+    progress: Option<crate::ProgressReporter>,
 }
 
 impl Engine {
@@ -113,6 +115,7 @@ impl Engine {
             task_steps: TaskSteps::InPlace,
             host: None,
             copilot: None,
+            progress: None,
         }
     }
 
@@ -275,15 +278,17 @@ impl Engine {
         if needs_confirmation(&plan.danger, context.settings.command_preview) && !asker.confirm(&plan) {
             return Ok(Finished::NotConfirmed(plan));
         }
-        let _running = self
+        let running = self
             .activities
             .track(plan.title.clone(), Text::from(feature.0), self.clock.now());
+        self.progress = Some(running.reporter());
         let (now, waiting) = crate::tasks::split(&plan.steps, self.task_steps);
         let waiting = waiting.to_vec();
         let ran = self.run_plan(&Plan {
             steps: now.to_vec(),
             ..plan.clone()
         });
+        self.progress = None;
         let went_on_after = std::mem::take(&mut self.went_on_after);
         self.clean_up(&plan);
         let steps = match ran {
@@ -385,6 +390,7 @@ impl Engine {
                 clock: self.clock.as_ref(),
                 cancel: &self.cancel,
                 went_on_after: Vec::new(),
+                progress: None,
             }
             .run(&steps);
         }
@@ -445,6 +451,7 @@ impl Engine {
             clock: self.clock.as_ref(),
             cancel: &self.cancel,
             went_on_after: Vec::new(),
+            progress: self.progress.as_ref(),
         };
         let ran = runner.run(&plan.steps);
         let mut failed = runner.went_on_after;

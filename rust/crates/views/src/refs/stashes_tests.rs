@@ -104,6 +104,7 @@ fn stash_pane__a_stash_unfolded_says_loading_while_it_is_read_and_no_files_when_
         message: String::new(),
         files: Vec::new(),
         untracked_files: Vec::new(),
+        note: None,
     };
     assert_eq!(lines_with(Some(StashFilesRead::Read(Box::new(empty)))), ["No files"]);
 }

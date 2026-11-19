@@ -51,6 +51,9 @@ pub struct TabEntry {
     pub members: Vec<TabMemberEntry>,
     /// Whether the rows of its worktrees and its submodules are shown under its row.
     pub is_unfolded: bool,
+    /// Whether git's scheduled maintenance looks after its repository, as its last read says
+    /// (`upkeep.read-background`); none on a row not shown, whose repository is not read here.
+    pub looked_after: Option<bool>,
 }
 
 /// The worktree or the submodule a row shows, when it is not the repository's own folder.
@@ -80,6 +83,8 @@ pub struct TabMemberEntry {
     pub is_shown: bool,
     /// What it is on, once it is known (`repo.worktree-summary`).
     pub summary: Option<TabSummary>,
+    /// The tooltip of its lock, **Locked: `<reason>`**, while it is a locked worktree (`worktree.locked`).
+    pub lock: Option<String>,
 }
 
 /// What an entry of the menu of **+** does.
@@ -89,6 +94,10 @@ enum OpenCommand {
     Repository(usize),
     /// **Open folder…**.
     Folder,
+    /// **Clone a repository…**.
+    Clone,
+    /// **Create a repository…**.
+    Create,
     /// **Open workspace file…**.
     WorkspaceFile,
 }
@@ -104,6 +113,11 @@ enum TabCommand {
     Reveal,
     /// **Copy path**.
     CopyPath,
+    /// **Clean up…** (`upkeep.clean-up`).
+    CleanUp,
+    /// **Look after it in the background…**, unticked (`upkeep.start-background`), or ticked
+    /// (`upkeep.stop-background`).
+    LookAfter,
 }
 
 /// The height of a row of **Repositories**: one line, its name and what it is on.
@@ -179,6 +193,25 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
         worktree_words::COPY_PATH,
         TabCommand::CopyPath,
     )));
+    // The upkeep runs on the repository the views show, and so is offered on its row alone (`upkeep.clean-up`).
+    if tab.is_shown && !tab.is_running {
+        entries.push(MenuEntry::Separator);
+        entries.push(MenuEntry::Item(icons::action(
+            icons::DELETE,
+            words::CLEAN_UP,
+            TabCommand::CleanUp,
+        )));
+        entries.push(MenuEntry::Item(icons::choice(
+            words::LOOK_AFTER,
+            TabCommand::LookAfter,
+            tab.looked_after == Some(true),
+        )));
+    }
+    let run = |feature| {
+        let run =
+            crate::feature::FeatureIntent::Run(model::contract::FeatureId(feature), model::contract::Target::Head);
+        Some(Intent::Feature(run))
+    };
     match ui.context_menu(("tab menu", index), response, &entries)? {
         TabCommand::Close => Some(Intent::CloseTab(index)),
         TabCommand::CloseOthers => Some(Intent::CloseOtherTabs(index)),
@@ -187,6 +220,9 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
             ui.copy_to_clipboard(tab.folder.clone());
             None
         }
+        TabCommand::CleanUp => run("upkeep.clean-up"),
+        TabCommand::LookAfter if tab.looked_after == Some(true) => run("upkeep.stop-background"),
+        TabCommand::LookAfter => run("upkeep.start-background"),
     }
 }
 
@@ -210,7 +246,7 @@ pub fn cut_at_start(ui: &Ui<'_>, name: &str, (room, kind): (f32, TextKind)) -> S
 }
 
 /// **+** in the heading of **Repositories**, over a rectangle, with its menu: the repositories of the workspace with
-/// no row, then **Open folder…** and **Open workspace file…**.
+/// no row, then **Open folder…**, **Clone a repository…**, **Create a repository…** and **Open workspace file…**.
 pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: Rect) -> Option<Intent> {
     let side = rect.height;
     let rect = ui::layout::place(
@@ -238,6 +274,16 @@ pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: R
         header::OPEN_FOLDER,
         OpenCommand::Folder,
     )));
+    entries.push(MenuEntry::Item(icons::operation_item(
+        words::CLONE,
+        "repo.clone",
+        OpenCommand::Clone,
+    )));
+    entries.push(MenuEntry::Item(icons::operation_item(
+        words::CREATE,
+        "repo.init",
+        OpenCommand::Create,
+    )));
     entries.push(MenuEntry::Item(icons::action(
         icons::OPEN_FILE,
         words::OPEN_WORKSPACE_FILE,
@@ -246,8 +292,18 @@ pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: R
     match ui.menu_button(OPEN_MENU, rect, &button, &entries)? {
         OpenCommand::Repository(index) => not_open.get(index).map(|entry| Intent::OpenTab(entry.folder.clone())),
         OpenCommand::Folder => Some(Intent::OpenFolder),
+        OpenCommand::Clone => Some(new_repository("repo.clone")),
+        OpenCommand::Create => Some(new_repository("repo.init")),
         OpenCommand::WorkspaceFile => Some(Intent::OpenWorkspaceFile),
     }
+}
+
+/// The intent that runs an operation that makes a repository (`repo.clone`, `repo.init`).
+pub(crate) fn new_repository(feature: &'static str) -> Intent {
+    Intent::Feature(crate::feature::FeatureIntent::Run(
+        model::contract::FeatureId(feature),
+        model::contract::Target::Head,
+    ))
 }
 
 /// The keys of the rows, when nothing else took them: `Ctrl` with a digit, `PageDown` or `PageUp`; on macOS `Cmd` with

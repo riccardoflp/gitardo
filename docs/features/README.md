@@ -47,14 +47,14 @@ earns it.
 | [`repo.name-repositories`](01-repositories.md#reponame-repositories--name-the-repositories-in-lists) | Name the repositories in lists | Derivation | Built | Built |
 | [`repo.open-folder`](01-repositories.md#repoopen-folder--open-a-folder) | Open a folder | Operation | Built | Host only |
 | [`repo.open-recent`](01-repositories.md#repoopen-recent--open-a-recent-workspace) | Open a recent workspace | Operation | Built | Host only |
-| [`repo.clone`](01-repositories.md#repoclone--clone-a-repository) | Clone a repository | Operation | Specified | Host only |
-| [`repo.folder-from-url`](01-repositories.md#repofolder-from-url--the-name-of-a-clones-folder) | The name of a clone's folder | Derivation | Specified | Host only |
-| [`repo.init`](01-repositories.md#repoinit--create-a-repository) | Create a repository | Operation | Specified | Host only |
+| [`repo.clone`](01-repositories.md#repoclone--clone-a-repository) | Clone a repository | Operation | Built | Host only |
+| [`repo.folder-from-url`](01-repositories.md#repofolder-from-url--the-name-of-a-clones-folder) | The name of a clone's folder | Derivation | Built | Host only |
+| [`repo.init`](01-repositories.md#repoinit--create-a-repository) | Create a repository | Operation | Built | Host only |
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | Operation | Built | Built |
 | [`repo.owner-of-file`](01-repositories.md#repoowner-of-file--the-repository-a-file-is-in) | The repository a file is in | Derivation | Built | Built |
 | [`repo.no-repository`](01-repositories.md#repono-repository--no-repository-in-the-workspace) | No repository in the workspace | View | Built | Built |
 | [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built | Built |
-| [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Specified | Planned |
+| [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Built | Planned |
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
 | [`repo.read-git-version`](01-repositories.md#reporead-git-version--read-the-version-of-git) | Read the version of git | Read | Built | Planned |
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Built | Built |
@@ -78,11 +78,11 @@ earns it.
 | [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built | Host only |
 | [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built | Host only |
 | [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Built | Host only |
-| [`upkeep.read-size`](01-repositories.md#upkeepread-size--the-size-of-a-repository) | The size of a repository | Read | Specified | Planned |
-| [`upkeep.clean-up`](01-repositories.md#upkeepclean-up--clean-up-a-repository) | Clean up a repository | Operation | Specified | Planned |
-| [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Specified | Planned |
-| [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Specified | Planned |
-| [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Specified | Planned |
+| [`upkeep.read-size`](01-repositories.md#upkeepread-size--the-size-of-a-repository) | The size of a repository | Read | Built | Built |
+| [`upkeep.clean-up`](01-repositories.md#upkeepclean-up--clean-up-a-repository) | Clean up a repository | Operation | Built | Built |
+| [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Built | Built |
+| [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Built | Built |
+| [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Built | Built |
 
 ## Graph
 
@@ -109,7 +109,7 @@ earns it.
 | [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Built | Host only |
 | [`ui.page-trail`](02-graph.md#uipage-trail--the-way-back-in-the-title-of-a-page) | The way back, in the title of a page | Derivation | Built | Host only |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
-| [`graph.shallow-end`](02-graph.md#graphshallow-end--where-the-history-of-a-shallow-clone-ends) | Where the history of a shallow clone ends | View | Specified | Planned |
+| [`graph.shallow-end`](02-graph.md#graphshallow-end--where-the-history-of-a-shallow-clone-ends) | Where the history of a shallow clone ends | View | Built | Planned |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built | Built |
 | [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Built | Built |
 | [`graph.resize-graph`](02-graph.md#graphresize-graph--give-the-graph-less-room-or-more) | Give the graph less room or more | View | Built | Built |
@@ -209,12 +209,12 @@ earns it.
 | [`commit-page.initial-folds`](04-details-and-commit-page.md#commit-pageinitial-folds--which-diffs-start-folded) | Which diffs start folded | Derivation | Built | Built |
 | [`commit-page.images`](04-details-and-commit-page.md#commit-pageimages--the-images-of-a-commit-in-its-page) | The images of a commit in its page | View | Specified | Planned |
 | [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-timeline) | Show a commit in the timeline | View | Built | Built |
-| [`note.read`](04-details-and-commit-page.md#noteread--read-the-notes-of-commits) | Read the notes of commits | Read | Specified | Planned |
-| [`note.show`](04-details-and-commit-page.md#noteshow--the-note-of-a-commit-in-the-inspector-and-in-its-page) | The note of a commit, in the inspector and in its page | View | Specified | Planned |
-| [`note.edit`](04-details-and-commit-page.md#noteedit--add-or-edit-the-note-of-a-commit) | Add or edit the note of a commit | Operation | Specified | Planned |
-| [`note.remove`](04-details-and-commit-page.md#noteremove--remove-the-note-of-a-commit) | Remove the note of a commit | Operation | Specified | Planned |
-| [`note.fetch`](04-details-and-commit-page.md#notefetch--fetch-the-notes-of-a-remote) | Fetch the notes of a remote | Operation | Specified | Planned |
-| [`note.push`](04-details-and-commit-page.md#notepush--push-the-notes-to-a-remote) | Push the notes to a remote | Operation | Specified | Planned |
+| [`note.read`](04-details-and-commit-page.md#noteread--read-the-notes-of-commits) | Read the notes of commits | Read | Built | Built |
+| [`note.show`](04-details-and-commit-page.md#noteshow--the-note-of-a-commit-in-the-inspector-and-in-its-page) | The note of a commit, in the inspector and in its page | View | Built | Built |
+| [`note.edit`](04-details-and-commit-page.md#noteedit--add-or-edit-the-note-of-a-commit) | Add or edit the note of a commit | Operation | Built | Built |
+| [`note.remove`](04-details-and-commit-page.md#noteremove--remove-the-note-of-a-commit) | Remove the note of a commit | Operation | Built | Built |
+| [`note.fetch`](04-details-and-commit-page.md#notefetch--fetch-the-notes-of-a-remote) | Fetch the notes of a remote | Operation | Built | Built |
+| [`note.push`](04-details-and-commit-page.md#notepush--push-the-notes-to-a-remote) | Push the notes to a remote | Operation | Built | Built |
 
 ## Changes and commit
 
@@ -249,13 +249,13 @@ earns it.
 | [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built | Built |
 | [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built | Built |
 | [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Built | Built |
-| [`changes.ignore-patterns`](05-changes-and-commit.md#changesignore-patterns--the-patterns-that-ignore-a-file) | The patterns that ignore a file | Derivation | Specified | Planned |
-| [`changes.ignore`](05-changes-and-commit.md#changesignore--ignore-a-file-or-a-folder) | Ignore a file or a folder | Operation | Specified | Planned |
-| [`changes.stop-tracking`](05-changes-and-commit.md#changesstop-tracking--stop-tracking-a-file-and-keep-it-on-disk) | Stop tracking a file, and keep it on disk | Operation | Specified | Planned |
-| [`changes.read-skipped`](05-changes-and-commit.md#changesread-skipped--read-the-files-hidden-from-git) | Read the files hidden from git | Read | Specified | Planned |
-| [`changes.skip`](05-changes-and-commit.md#changesskip--hide-a-files-changes-from-git) | Hide a file's changes from git | Operation | Specified | Planned |
-| [`changes.unskip`](05-changes-and-commit.md#changesunskip--show-a-files-changes-to-git-again) | Show a file's changes to git again | Operation | Specified | Planned |
-| [`changes.skipped-list`](05-changes-and-commit.md#changesskipped-list--the-files-hidden-from-git-under-the-changes) | The files hidden from git, under the changes | View | Specified | Planned |
+| [`changes.ignore-patterns`](05-changes-and-commit.md#changesignore-patterns--the-patterns-that-ignore-a-file) | The patterns that ignore a file | Derivation | Built | Planned |
+| [`changes.ignore`](05-changes-and-commit.md#changesignore--ignore-a-file-or-a-folder) | Ignore a file or a folder | Operation | Built | Planned |
+| [`changes.stop-tracking`](05-changes-and-commit.md#changesstop-tracking--stop-tracking-a-file-and-keep-it-on-disk) | Stop tracking a file, and keep it on disk | Operation | Built | Planned |
+| [`changes.read-skipped`](05-changes-and-commit.md#changesread-skipped--read-the-files-hidden-from-git) | Read the files hidden from git | Read | Built | Planned |
+| [`changes.skip`](05-changes-and-commit.md#changesskip--hide-a-files-changes-from-git) | Hide a file's changes from git | Operation | Built | Planned |
+| [`changes.unskip`](05-changes-and-commit.md#changesunskip--show-a-files-changes-to-git-again) | Show a file's changes to git again | Operation | Built | Planned |
+| [`changes.skipped-list`](05-changes-and-commit.md#changesskipped-list--the-files-hidden-from-git-under-the-changes) | The files hidden from git, under the changes | View | Built | Planned |
 
 ## Branches, tags, remotes and sync
 
@@ -299,8 +299,8 @@ earns it.
 | [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Built | Built |
 | [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built | Built |
 | [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Built | Built |
-| [`sync.deepen`](06-branches-tags-remotes.md#syncdeepen--load-more-history) | Load more history | Operation | Specified | Planned |
-| [`sync.unshallow`](06-branches-tags-remotes.md#syncunshallow--load-the-whole-history) | Load the whole history | Operation | Specified | Planned |
+| [`sync.deepen`](06-branches-tags-remotes.md#syncdeepen--load-more-history) | Load more history | Operation | Built | Planned |
+| [`sync.unshallow`](06-branches-tags-remotes.md#syncunshallow--load-the-whole-history) | Load the whole history | Operation | Built | Planned |
 | [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Built | Built |
 | [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Built | Built |
 | [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Built | Built |
@@ -511,9 +511,9 @@ earns it.
 | [`worktree.copy-path`](12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree) | Copy the path of a worktree | Operation | Built | Built |
 | [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Built | Built |
 | [`worktree.prune`](12-worktrees.md#worktreeprune--prune-missing-worktrees) | Prune missing worktrees | Operation | Built | Built |
-| [`worktree.lock`](12-worktrees.md#worktreelock--lock-a-worktree) | Lock a worktree | Operation | Specified | Planned |
-| [`worktree.unlock`](12-worktrees.md#worktreeunlock--unlock-a-worktree) | Unlock a worktree | Operation | Specified | Planned |
-| [`worktree.locked`](12-worktrees.md#worktreelocked--what-a-locked-worktree-shows-and-what-it-changes) | What a locked worktree shows, and what it changes | Derivation | Specified | Planned |
+| [`worktree.lock`](12-worktrees.md#worktreelock--lock-a-worktree) | Lock a worktree | Operation | Built | Built |
+| [`worktree.unlock`](12-worktrees.md#worktreeunlock--unlock-a-worktree) | Unlock a worktree | Operation | Built | Built |
+| [`worktree.locked`](12-worktrees.md#worktreelocked--what-a-locked-worktree-shows-and-what-it-changes) | What a locked worktree shows, and what it changes | Derivation | Built | Built |
 | [`worktree.read-folder-links`](12-worktrees.md#worktreeread-folder-links--read-the-links-to-folders-outside-a-worktree) | Read the links to folders outside a worktree | Read | Built | Built |
 | [`worktree.recover-held-folder`](12-worktrees.md#worktreerecover-held-folder--get-past-a-folder-that-windows-holds) | Get past a folder that Windows holds | Derivation | Built | Built |
 | [`worktree.remove-empty-folders`](12-worktrees.md#worktreeremove-empty-folders--leave-no-empty-folders-behind) | Leave no empty folders behind | Derivation | Built | Built |
@@ -578,7 +578,7 @@ earns it.
 | [`patch.check`](14-patches.md#patchcheck--check-a-patch-before-applying-it) | Check a patch before applying it | Read | Built | Built |
 | [`patch.apply`](14-patches.md#patchapply--apply-a-patch) | Apply a patch | Operation | Built | Built |
 | [`patch.am-stopped`](14-patches.md#patcham-stopped--a-patch-that-stopped-on-a-conflict) | A patch that stopped on a conflict | View | Built | Built |
-| [`archive.save`](14-patches.md#archivesave--save-as-an-archive) | Save as an archive… | Operation | Specified | Planned |
+| [`archive.save`](14-patches.md#archivesave--save-as-an-archive) | Save as an archive… | Operation | Built | Built |
 
 ## GitHub
 

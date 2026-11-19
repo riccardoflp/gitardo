@@ -323,15 +323,18 @@ What the window shows when the workspace has no repository, or the one it had ca
 - **Entry points**: the timeline and the branch rail, in place of what they list.
 
 The timeline says **No Git repository in this workspace** with a **Check again** button, which looks for the
-repositories again (`repo.read-repositories`) and reads the first one. While the repositories are looked for and the
-first one is read, it says **Loading repository…**. A read that fails, as when the folder was deleted, comes here too;
-the error goes to the Command log.
+repositories again (`repo.read-repositories`) and reads the first one, and beside it **Create a repository here**, which
+makes one in the first folder of the workspace (`repo.init`), and **Clone a repository…** (`repo.clone`). While the
+repositories are looked for and the first one is read, it says **Loading repository…**. A read that fails, as when
+the folder was deleted, comes here too; the error goes to the Command log.
 
 Acceptance:
 
 - [ ] A workspace of a folder with no repository shows **No Git repository in this workspace** and **Check again**.
 - [ ] Running `git init` in the folder and clicking **Check again** shows the new repository with no commits.
 - [ ] Deleting the folder of the repository shown brings the window to this page.
+- [ ] **Create a repository here** and **Clone a repository…** are beside **Check again**, and run `repo.init` in the
+      folder of the workspace and `repo.clone`.
 
 ### `repo.read-state` — Read the state of the repository
 
@@ -376,6 +379,7 @@ operation that stopped half way.
     `split.commit`.
   - The bisect in progress (`BISECT_START`), with its marks: see `bisect.start`.
   - The submodules: see `submodule.read-list`.
+  - Whether the repository is a shallow clone, and where its history ends: see `repo.read-shallow`.
   - With the setting `conflicts.autoResolve`, what can be resolved without a choice in the files in conflict: see
     `conflicts.resolve-by-rules`.
 - **Settings**: `readOnStartup` (on by default): when the window opens a workspace as it starts, the repository shown is
@@ -405,6 +409,7 @@ Acceptance:
 - [ ] Stopped in a cherry-pick, the operation is a cherry-pick; between two commits of a revert of a series, it is a
       revert; during `git am`, a patch, not a rebase.
 - [ ] Another worktree with three files not committed counts 3; a missing one counts nothing and is marked missing.
+- [ ] The state of a clone made with `--depth 1` says where its history ends: its one commit.
 - [ ] With five other worktrees and nothing changed in their git folders, a read after a change to a file of this one
       runs `git status` here only, and each other worktree keeps its count; after `git add` in one of them, the next
       read runs `git status` there too; **Refresh** runs it in all of them.
@@ -497,7 +502,7 @@ What is watched, and what each change asks for:
 
 | Change | Asks for a read | After | Said as |
 | --- | --- | --- | --- |
-| In the common git folder (`git rev-parse --git-common-dir`): `HEAD`, `FETCH_HEAD`, `ORIG_HEAD`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `index`, `config`, `packed-refs`, anything under `refs/`, `logs/refs/stash`, anything under `worktrees/`, and `modules/**/HEAD`, `modules/**/refs/**` of the submodules | yes | 400 ms | `.git/<path> changed` |
+| In the common git folder (`git rev-parse --git-common-dir`): `HEAD`, `FETCH_HEAD`, `ORIG_HEAD`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `index`, `config`, `packed-refs`, `shallow`, anything under `refs/`, `logs/refs/stash`, anything under `worktrees/`, and `modules/**/HEAD`, `modules/**/refs/**` of the submodules | yes | 400 ms | `.git/<path> changed` |
 | A file of the working tree, anywhere but in a `.git`, that git does not ignore and that is not in the folder of another worktree nested in this one | yes | 1,000 ms (builds and installs write many files at once) | `<path> changed` |
 | A file of the working tree that git ignores (`git check-ignore --stdin`, asked once for the files of a burst), such as the output of a build | no | | |
 | A file in the folder of another worktree nested in this one, such as `.claude/worktrees/<name>/` | no | | |
@@ -534,6 +539,8 @@ Acceptance:
 - [ ] A change to `.git/worktrees/feature/fsmonitor--daemon.ipc` asks for nothing.
 - [ ] A change to `.git/index.lock` asks for nothing.
 - [ ] With `core.fsmonitor=true` and nothing changing, the repository is read once and then not again.
+- [ ] A fetch that changes `.git/shallow` asks for a read after 400 ms, said as `.git/shallow changed`
+      (`repo.read-shallow`).
 
 ### `repo.schedule-reads` — Read again when something changed
 
@@ -607,7 +614,7 @@ that takes time.
 | What | Title | Detail |
 | --- | --- | --- |
 | A read of the repository | `Reading <name>`, or `Searching <name>` while a search in the changes (`git log -S` or `-G`) narrows the timeline | `Because <cause>.` for the change that asked for it; from the second read in a row, `Read <n> times in a row: something changed during each read.` before it |
-| An operation | its title, as the preview shows it | |
+| An operation | its title, as the preview shows it | while a step that asks git for its progress (`--progress`) runs, the last line of progress git printed, as git prints it: `Receiving objects: 45% (1203/2671), 1.20 MiB \| 3.40 MiB/s` (`model::activity::progress_line`) |
 | A comparison | `Comparing <from> ↔ <to>` | |
 | A patch being made | `Making a patch of <commits>` | |
 | The pull requests | `Reading the pull requests from GitHub` | |
@@ -625,6 +632,8 @@ Acceptance:
 - [ ] A read while the timeline is narrowed to `git log -S foo` is titled `Searching <name>`.
 - [ ] Four reads of `work/app` one after the other are titled `Reading work/app ×4`, and one alone `Reading
       work/app`.
+- [ ] An operation whose step asks git for its progress says, as its detail, the last line git printed, its parts
+      started again with a carriage return: `Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s`.
 
 ### `activity.status-bar` — What is running, in the status bar
 
@@ -743,6 +752,8 @@ going on while it is shown. The list is laid out so that it holds still while it
   other, with nothing else ending between them, are one row there too, with the time the last ended and how long they
   took together. **Ran** keeps the last 50 of the session, however long ago they ended.
 - The list scrolls, under the title of its column, when it is taller than the tab.
+- The detail of an operation whose step asks git for its progress, such as a clone, is the last line of progress git
+  printed, changing as git prints (`activity.describe-task`).
 
 With nothing running it says **Nothing is running now** and "Gitardo is not reading or changing anything", where the
 first row would be. The commands Gitardo runs are in the tab beside it, **Command log** (`log.show`), and the
@@ -767,6 +778,9 @@ Acceptance:
       was.
 - [ ] Reads that ended one after the other are one row under **Ran**, until something else ends.
 - [ ] With more rows than fit, the wheel brings the last into sight.
+- [ ] The row of an operation whose step asks git for its progress has git's last line of progress under its title,
+      changing as git prints
+      ([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
 
 ### `welcome.page` — The Welcome page
 
@@ -777,10 +791,11 @@ what to try first, and opens a folder.
 - **Function**: `views::welcome::page_view(state: &WelcomeState, ui) -> Vec<Intent>`
 - **Entry points**: shown by itself the first time Gitardo Desktop starts; **Welcome** in Quick search and in the
   Help menu; the window with no workspace.
-- **Uses**: `repo.open-folder`, `repo.open-recent`, `filter.show-only`, `commit-page.open`, `compare.choose`,
-  `blame.toggle-file`, `worktree.create`.
+- **Uses**: `repo.open-folder`, `repo.open-recent`, `repo.clone`, `repo.init`, `filter.show-only`,
+  `commit-page.open`, `compare.choose`, `blame.toggle-file`, `worktree.create`.
 
-Its title is **Get started with Gitardo**. At the top, **Open folder…** and the recent workspaces, the latest first,
+Its title is **Get started with Gitardo**. At the top, **Open folder…**, with **Clone a repository…**, **Create a
+repository…** and **Open workspace file…** beside it, and the recent workspaces, the latest first,
 each by its folders, opening it on a click. Then the five steps, each with a short text, a picture and a button; a step
 is ticked once it is done, in any way, and stays ticked:
 
@@ -798,6 +813,7 @@ Acceptance:
 - [ ] **Welcome** in Quick search shows it again, with the steps done ticked.
 - [ ] Opening a commit with a double click in the timeline ticks **Open a commit, compare two branches**.
 - [ ] A workspace opened from the page is listed first the next time.
+- [ ] **Clone a repository…** and **Create a repository…**, beside **Open folder…**, run `repo.clone` and `repo.init`.
 
 ## Repository tabs
 
@@ -875,7 +891,9 @@ that folder. Each row and each chevron takes the keyboard with `Tab`, `Enter` or
 the screen reader its name and whether it is the one shown, or whether its rows are unfolded. The **×** of a row is on
 the row under the pointer and the row shown, and stays while the pointer is on it, the row still lit as a row under
 the pointer; a middle click closes it; its context menu has **Close tab** and **Close other tabs**
-(`repo.close-tab`), **Reveal in the file manager** and **Copy path**. Its tooltip is the folder of what it
+(`repo.close-tab`), **Reveal in the file manager** and **Copy path**, and, on the row shown while nothing runs in
+it, **Clean up…** (`upkeep.clean-up`) and **Look after it in the background…**, ticked while git's maintenance looks
+after the repository (`upkeep.start-background`, `upkeep.stop-background`). Its tooltip is the folder of what it
 shows. A name too long for the row is cut at its start with `…`, so that the name of the repository's own folder
 stays. When the rows do not fit the height of the section, it scrolls.
 
@@ -1033,7 +1051,8 @@ Opens a repository of the workspace, or of a folder added to it, in a tab of its
 - **Function**: `app::store::tabs::open_tab(state: &mut State, folder: &Path) -> Vec<Effect>`, a function of the
   store (Q43)
 - **Entry points**: **+** in the heading of **Repositories**, whose menu lists the repositories of the workspace that
-  are not open, then **Open folder…** and **Open workspace file…**; **Open Repository in a Tab** in Quick search.
+  are not open, then **Open folder…**, **Clone a repository…** (`repo.clone`), **Create a repository…** (`repo.init`)
+  and **Open workspace file…**; **Open Repository in a Tab** in Quick search.
 - **Asks**: the repository, when it was not chosen in the menu, in Gitardo's picker titled **Open a repository in a
   tab**: the repositories of the workspace that are not open, each by its name with its folder under it.
 - **Reads**: `repo.read-state` and the first page of commits, for its first read; `repo.read-repositories` for a
@@ -1055,6 +1074,8 @@ Acceptance:
 - [ ] Opening a repository that is open already shows its tab and opens no other.
 - [ ] Opening a worktree of `api` that is a folder of the workspace shows it in the tab of `api`.
 - [ ] The tabs open are the same once the window is closed and opened again.
+- [ ] The menu of **+** has **Clone a repository…** and **Create a repository…** after **Open folder…**, which run
+      `repo.clone` and `repo.init`.
 
 ### `repo.choose-tabs` — Choose the repositories a workspace opens
 
@@ -1458,7 +1479,7 @@ How much room the objects of a repository take, loose and packed, and how much o
   that are in a pack too; `garbage` and `size-garbage`, the files of the object folder that are not objects. Without
   `-H`, whose sizes are for people. It runs when asked, never with the reads of the repository.
 - **Uses**: by `upkeep.clean-up`.
-- **Extension**: read by the engine for the question of `upkeep.clean-up`: planned.
+- **Extension**: read by the engine for the question of `upkeep.clean-up`: built.
 
 Acceptance:
 
@@ -1473,8 +1494,9 @@ room it takes before and after.
 
 - **Kind**: Operation
 - **Function**: `features::upkeep::clean_up(context, answers) -> Outcome`
-- **Entry points**: **Clean up…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`);
-  Quick search, **Clean Up the Repository…**.
+- **Entry points**: **Clean up…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`),
+  on the row shown alone, since an operation runs on the repository the views show; Quick search, **Clean Up the
+  Repository…**, is not there yet (Q1455).
 - **Offered when**: no operation of Gitardo runs in the repository.
 - **Reads**: `upkeep.read-size`.
 - **Plan**: `git gc` (Q1220).
@@ -1482,12 +1504,14 @@ room it takes before and after.
   older than 90 days, are deleted for good, as git's settings of `gc` say.** The question says, above it, the room the
   repository takes: **`<repository>` takes 1.2 GB: 830 MB in 3 packs, and 45,210 loose objects in 380 MB.**
 - **Undo**: Impossible: what git deletes is not kept.
-- **After**: reads the size again and says **Cleaned up `<repository>`: 1.2 GB, now 640 MB.** It runs with what is
-  running in the status bar and in the Activity tab (`activity.status-bar`), as long as it takes.
+- **After**: says **Cleaned up `<repository>`, which took 1.2 GB.**: the size after is not read again yet, since a
+  plan has no step after it that reads (Q1455). It runs with what is running in the status bar and in the Activity
+  tab (`activity.status-bar`), as long as it takes.
 - **Refuses**: git's message when another `git gc` runs in the repository.
 - **Uses**: `upkeep.read-size`, `repo.tabs`, `activity.status-bar`.
-- **Extension**: planned: **Clean Up…** in the context menu of a row of the **Gitardo Repositories** view
-  (`repositoryRowMenu`), its question in a modal dialog, sending `feature/run` of `upkeep.clean-up` to the engine.
+- **Extension**: built: **Clean up…** in the context menu of the row of the repository shown in the **Gitardo
+  Repositories** view (`repositoryRowMenu`), its question in a modal dialog, sending `feature/run` of `upkeep.clean-up`
+  to the engine (Q1459).
 
 Acceptance:
 
@@ -1505,7 +1529,7 @@ Whether the repository is among those git's scheduled maintenance looks after.
 - **Reads**: `git config --global --get-all maintenance.repo`, the repositories registered, each compared with the
   folder of this one as git writes it (absolute, with `/`); none set reads as none registered.
 - **Uses**: `repo.read-state`, with which it runs, again only when the user's configuration changed.
-- **Extension**: read by the engine for the menu of the row: planned.
+- **Extension**: read by the engine for the menu of the row, sent as `isLookedAfter`: built.
 
 Acceptance:
 
@@ -1533,8 +1557,9 @@ packs and checks the repository each hour, day and week, so that it stays quick 
 - **After**: the entry of the menu is ticked.
 - **Refuses**: git's message when the system's scheduler refuses, as without the rights to it.
 - **Uses**: `upkeep.read-background`, `upkeep.stop-background`, `repo.tabs`.
-- **Extension**: planned: **Look After It in the Background…** in the context menu of a row of the **Gitardo
-  Repositories** view, sending `feature/run` of `upkeep.start-background` to the engine.
+- **Extension**: built: **Look after it in the background…** in the context menu of the row of the repository shown in
+  the **Gitardo Repositories** view, ticked while `isLookedAfter`, sending `feature/run` of `upkeep.start-background`
+  to the engine (Q1459).
 
 Acceptance:
 
@@ -1556,7 +1581,7 @@ Takes the repository out of those git's scheduled maintenance looks after; the o
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: `upkeep.start-background` registers it again.
 - **Uses**: `upkeep.read-background`, `upkeep.start-background`.
-- **Extension**: planned, with `upkeep.start-background`.
+- **Extension**: built, with `upkeep.start-background`: the same entry, ticked.
 
 Acceptance:
 

@@ -17,6 +17,7 @@ use super::{Effect, State, reads, search};
 use crate::persisted::inputs::{inputs_of, remember_inputs};
 
 mod after_read;
+pub(crate) mod made;
 mod said;
 mod shown;
 
@@ -169,6 +170,9 @@ fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answer
     if let Some(effects) = switch_first(state, feature, &target) {
         return effects;
     }
+    if made::NEW_REPOSITORY.contains(&feature) {
+        return made::run(state, (feature, target), preset);
+    }
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
@@ -287,11 +291,11 @@ fn reply(state: &mut State, reply: Reply) -> Vec<Effect> {
 /// The operation running asks a question: in a dialog of the window, or, for a file to open or where to save one, in
 /// the dialog of the system.
 pub fn asks(state: &mut State, question: Question) -> Vec<Effect> {
-    if let QuestionKind::OpenFile(file) | QuestionKind::SaveFile(file) = &question.kind {
+    if let Some((file, choosing)) = super::effect::Choosing::of(&question.kind) {
         return vec![Effect::ChooseFile {
             title: question.title.as_str().to_owned(),
             question: file.clone(),
-            is_saving: matches!(question.kind, QuestionKind::SaveFile(_)),
+            choosing,
         }];
     }
     let typed = match &question.default {
@@ -458,6 +462,9 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
             (FollowUp::OpenUrl(url), _) => effects.push(Effect::OpenUrl(url)),
             (FollowUp::RememberInputs(values), _) => effects.extend(remember_values(state, &values)),
+            (made @ (FollowUp::RememberCloneFolder(_) | FollowUp::OpenRepository(_)), _) => {
+                effects.extend(made::carry_out(state, made));
+            }
             (FollowUp::OpenWindow(folder), _) => effects.push(Effect::OpenWindow(folder)),
             (FollowUp::OpenComparison(target), _) => effects.extend(super::compare::opened(state, *target)),
             (FollowUp::OpenFileDiff(sides), _) => {

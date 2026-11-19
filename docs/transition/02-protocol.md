@@ -80,18 +80,18 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
-Version 1.11 adds what milestones M31, M34, M35 and M37 needed. For M31
+Version 1.11 adds what milestones M31, M32, M34, M35, M37, M38 and M40 needed. For M31
 ([D76](../08-decisions.md#d76--ask-gitardo-how-to-do-something-answered-from-the-catalog)): `read/help.ask`, a question
 of VS Code's Chat to Ask Gitardo, a read that takes no repository and asks the model chosen in the Chat
 ([Ask Gitardo](#ask-gitardo)); the purpose `help` of `host/languageModel`; and `features` in its parameters, the
 features an answer may name with their titles, so that the Chat writes each as its title while the answer comes
 (Q1366). An older extension leaves out the field, which the engine sends only with a question to Ask Gitardo.
-For M37: the kinds `pullRequestNumber` of the validation of a question, the number
-of a pull request typed as `12`, `#12` or `!12`, and `pullRequestBranch`, the name of the local branch it is checked out
-in, one of `branches` taken too (`hosting.checkout-pull-request`); the host question of the token of a GitLab
-(`hosting.token`); the reads `read/hosting.detect-remote`, the hosting service of the main remote, and
-`read/hosting.web-link`, the address of a page of it; and the merge requests of a GitLab in
-`read/github.read-pull-requests` (`hosting.read-merge-requests`).
+For M32
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)): the
+question `openFolder`, a folder chosen in the system's dialog, and the validations `cloneFolder`, the name of the folder
+of a clone, and `count`, a whole number of at least 1 ([Types](#types)); and `shallow` in `RepositoryState`, where the
+history of a shallow clone ends. The extension clones and creates a repository
+with VS Code's own commands, so it sends none of them yet; they travel as every question and validation does.
 For M34
 ([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)):
 `signing` in `RepositoryState`, how git's configuration signs commits; `read/details.read-signature`, what git says of
@@ -103,6 +103,18 @@ none of the reads. For M35
 `read/tag.read-remote-tags`, the tags of a remote asked of it and compared with those of the repository, and the
 follow-up `tagsOnRemote`, what an operation on tags changed of them on a remote; an older extension asks no such read
 and leaves the follow-up unknown, as it does any other.
+For M37: the kinds `pullRequestNumber` of the validation of a question, the number
+of a pull request typed as `12`, `#12` or `!12`, and `pullRequestBranch`, the name of the local branch it is checked out
+in, one of `branches` taken too (`hosting.checkout-pull-request`); the host question of the token of a GitLab
+(`hosting.token`); the reads `read/hosting.detect-remote`, the hosting service of the main remote, and
+`read/hosting.web-link`, the address of a page of it; and the merge requests of a GitLab in
+`read/github.read-pull-requests` (`hosting.read-merge-requests`).
+For M38
+([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)):
+`skipped` in `RepositoryState`, the tracked files git is told not to look at, and `locked` in `Worktree`, the reason
+a worktree is locked. For M40: `isLookedAfter` in `RepositoryState`, whether git's scheduled
+maintenance looks after the repository, `notes` in `RepositoryState`, the commits with a note, and `note` in
+`CommitDetail`, the text of the note of the commit.
 
 ## Transport
 
@@ -725,6 +737,7 @@ The answers given in `feature/run` are taken first: a question whose key has one
 | `confirm { accept }` | `showWarningMessage` modal, the button `accept` | `{ kind: "confirmed" }` |
 | `openFile` | `showOpenDialog` (through `host/openFile` when the engine asks outside a feature) | `{ kind: "path", path }` |
 | `saveFile` | `showSaveDialog` | `{ kind: "path", path }` |
+| `openFolder` (1.11) | `showOpenDialog` with `canSelectFolders` | `{ kind: "path", path }` |
 
 The engine checks each answer again (`check_answer` in `drive.rs`), so a wrong answer is `answerRefused`, never a plan
 run on it. The questions the extension asks today in `src/extension/actions.ts` and `src/extension/controller.ts` are
@@ -740,16 +753,23 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `tags: Tag[]`, `stashes: Stash[]`, `worktrees: Worktree[]`, `remotes: string[]`, `identity: { name, email }`,
   `signing: { signsEveryCommit: boolean, kind: "openpgp" | "x509" | "ssh", key: string | null }` (1.11), `branchSort: string | null`, `reflogSubjects: string[]`, `workingTree: WorkingTree`, `operation: "merge" |
   "rebase" | "cherryPick" | "revert" | "patch" | … | null`, `rebaseStop: RebaseStop | null`, `bisect: Bisect | null`,
-  `submodules: Submodule[]`.
+  `submodules: Submodule[]`, `shallow: CommitId[]` (1.11), the commits whose parents were not fetched, empty when the
+  repository is not shallow (`repo.read-shallow`), `skipped: { path, skipWorktree, assumeUnchanged }[]` (1.11), the
+  tracked files git is told not to look at by hand, not those a sparse checkout leaves out (`changes.read-skipped`),
+  `isLookedAfter: boolean` (1.11), whether git's scheduled maintenance looks after it (`upkeep.read-background`),
+  `notes: { reference, tip: CommitId | null, commits: CommitId[] }` (1.11), the reference of notes git uses, the
+  commit it is at and the commits with a note (`note.read`).
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,
-  `isCurrent`, `isMissing`, `uncommitted: number | null`.
+  `isCurrent`, `isMissing`, `locked: string | null` (1.11), the reason it is locked, empty when none was given,
+  `uncommitted: number | null`.
 - **`WorkingTree`**: `staged: FileChange[]`, `unstaged: FileChange[]`, `untracked: string[]`, `conflicted:
   ConflictedFile[]`. **`FileChange`**: `path`, `originalPath: string | null`, `kind: "added" | "modified" | "deleted" |
   "renamed" | "copied" | …`.
 - **`CommitDetail`** (`model/src/details.rs`): `id: CommitId | null`, `parents`, `author`, `committer` (each
-  `{ name, email, date }` or `null`), `message`, `files: FileChange[]`, `untrackedFiles: FileChange[]`.
+  `{ name, email, date }` or `null`), `message`, `files: FileChange[]`, `untrackedFiles: FileChange[]`,
+  `note: string | null` (1.11), the text of its note as it was written.
 - **`Target`** (`model/src/contract/context.rs`): `{ kind: "head" }`, `{ kind: "commit", commit }`, `{ kind:
   "branch", name }`, `{ kind: "remoteBranch", name }`, `{ kind: "tag", name }`, `{ kind: "stash", index }`, `{ kind:
   "remote", name }`, `{ kind: "files", paths }`, `{ kind: "file", path }`, `{ kind: "changes" }`, `{ kind: "commits",
@@ -778,7 +798,8 @@ The fields are those of `model`; this section says only what the JSON adds or le
   every kind an object, those without data too, since `question/validate` sends it back: `{ kind: "anything" }`,
   `{ kind: "referenceName", taken: string[], takenMessage }`, `{ kind: "url" }`, `{ kind: "newMessage", old }`,
   `{ kind: "required", message }`, `{ kind: "optionalReferenceName" }`, `{ kind: "submoduleFolder", submodules }`,
-  `{ kind: "worktreeName", branches, emptyName, worktrees, beside, takenFolders }`, `{ kind: "pattern", pattern }`.
+  `{ kind: "worktreeName", branches, emptyName, worktrees, beside, takenFolders }`, `{ kind: "pattern", pattern }`,
+  `{ kind: "cloneFolder", parent, taken }` and `{ kind: "count" }` (1.11).
   **`FileQuestion`**: `{ folder: string | null, fileName: string | null, filters: { name, extensions }[] }`.
 - **`Answer`** (`model/src/contract/answers.rs`): only the kinds a person gives travel to the engine: `text`,
   `choice`, `choices`, `confirmed`, `path`, and `flag { value }` (1.3) in the `answers` of an `offerRun`, which the

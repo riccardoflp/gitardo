@@ -68,7 +68,7 @@ const WITHOUT_ICON: [(&str, &str, &str); 14] = [
 
 /// The operations offered in a menu that have no icon: they rewrite the history (rebase, reset, squash, split,
 /// fixup), or no icon of Lucide says them, as a branch that stops following its upstream.
-const OPERATIONS_WITHOUT_ICON: [&str; 11] = [
+const OPERATIONS_WITHOUT_ICON: [&str; 14] = [
     "rebase.onto",
     "rebase.branch-onto",
     "reset.to-commit",
@@ -80,6 +80,9 @@ const OPERATIONS_WITHOUT_ICON: [&str; 11] = [
     "identity.switch",
     "submodule.sync-urls",
     "branch.unset-upstream",
+    "worktree.unlock",
+    "upkeep.start-background",
+    "upkeep.stop-background",
 ];
 
 /// The sources of the views, tests left out, with their paths from `src/`.

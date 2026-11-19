@@ -133,6 +133,8 @@ pub enum QuestionKindJson {
     OpenFile(FileQuestionJson),
     /// A file to save.
     SaveFile(FileQuestionJson),
+    /// A folder chosen in the dialog of the system (since 1.11).
+    OpenFolder(FileQuestionJson),
 }
 
 /// One choice of a pick.
@@ -227,6 +229,15 @@ pub enum ValidationJson {
         /// The names of the local branches.
         branches: Vec<String>,
     },
+    /// The name of the folder of a clone, new or empty (since 1.11).
+    CloneFolder {
+        /// The folder that holds the clone.
+        parent: String,
+        /// The names of what is in it and is not an empty folder.
+        taken: Vec<String>,
+    },
+    /// A whole number of at least 1 (since 1.11).
+    Count,
 }
 
 fn text_of(text: &Text) -> String {
@@ -274,6 +285,11 @@ impl From<&Validation> for ValidationJson {
             Validation::PullRequestBranch { branches } => ValidationJson::PullRequestBranch {
                 branches: branches.clone(),
             },
+            Validation::CloneFolder(rule) => ValidationJson::CloneFolder {
+                parent: path_of(&rule.parent),
+                taken: rule.taken.clone(),
+            },
+            Validation::Count => ValidationJson::Count,
         }
     }
 }
@@ -309,6 +325,13 @@ impl From<ValidationJson> for Validation {
             ValidationJson::Pattern { pattern } => Validation::Pattern(pattern),
             ValidationJson::PullRequestNumber => Validation::PullRequestNumber,
             ValidationJson::PullRequestBranch { branches } => Validation::PullRequestBranch { branches },
+            ValidationJson::CloneFolder { parent, taken } => {
+                Validation::CloneFolder(Box::new(model::repo::CloneFolderRule {
+                    parent: PathBuf::from(parent),
+                    taken,
+                }))
+            }
+            ValidationJson::Count => Validation::Count,
         }
     }
 }
@@ -366,6 +389,7 @@ impl From<&Question> for QuestionJson {
             },
             QuestionKind::OpenFile(file) => QuestionKindJson::OpenFile(file_question_of(file)),
             QuestionKind::SaveFile(file) => QuestionKindJson::SaveFile(file_question_of(file)),
+            QuestionKind::OpenFolder(file) => QuestionKindJson::OpenFolder(file_question_of(file)),
         };
         QuestionJson {
             key: question.key.0.to_owned(),

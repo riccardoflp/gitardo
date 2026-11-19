@@ -477,6 +477,10 @@ fn worktree_row(ui: &mut Ui<'_>, state: &ReferencesState<'_>, (worktree, marks):
     let stands = crate::worktree::standing(state.repository, worktree);
     let width = ui.measure(&stands, ui.text_style(TextKind::Small));
     let _ = ui.label(parts.right(width), &small(&stands));
+    // The lock after the label; the tooltip of the row says its reason (`worktree.locked`).
+    if worktree.locked.is_some() {
+        ui.icon_in(parts.right(theme.sizes.icon), icons::LOCK, Tone::Muted);
+    }
     let label = crate::worktree::label(state.repository, state.window, worktree);
     let kind = if worktree.is_current {
         TextKind::Strong

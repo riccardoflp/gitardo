@@ -21,8 +21,8 @@ fn can_change(menus: ReferenceMenus<'_>, worktree: &Worktree) -> bool {
 
 /// The context menu of a worktree in the Worktrees list: what opens it, in a new window and **Show in Gitardo** except
 /// for the one the views show; **Rename…** and **Remove…** except for the main worktree, the one shown and the folder
-/// of the window; **Copy path**; and **Prune missing worktrees** while one is missing. A missing worktree has only
-/// these two.
+/// of the window; **Copy path**; **Lock…** or **Unlock** except on the main worktree; and **Prune missing worktrees**
+/// while one is missing and not locked. A missing worktree has only these.
 pub(crate) fn worktree_entries(menus: ReferenceMenus<'_>, worktree: &Worktree) -> Vec<OperationEntry> {
     let target = || Target::Worktree(worktree.folder.clone());
     let runs = |label: &str, feature: &'static str| OperationEntry::runs(label, feature, target());
@@ -44,10 +44,15 @@ pub(crate) fn worktree_entries(menus: ReferenceMenus<'_>, worktree: &Worktree) -
         }
     }
     entries.push(runs(words::COPY_PATH, "worktree.copy-path"));
+    if worktree.locked.is_some() {
+        entries.push(runs(words::UNLOCK, "worktree.unlock"));
+    } else if !worktree.is_main {
+        entries.push(runs(words::LOCK, "worktree.lock"));
+    }
     if can_change(menus, worktree) {
         entries.push(runs(words::REMOVE, "worktree.remove"));
     }
-    if menus.repository.worktrees.iter().any(|worktree| worktree.is_missing) {
+    if model::worktree::has_prunable(&menus.repository.worktrees) {
         entries.push(runs(words::PRUNE, "worktree.prune"));
     }
     entries
@@ -90,7 +95,7 @@ pub(crate) fn other_branch_entries(
 }
 
 /// The **…** of the Worktrees list: **Create worktree…**, **Switch worktree…**, and **Prune missing worktrees** while a
-/// worktree is missing.
+/// worktree is missing and not locked.
 pub(crate) fn list_entries(menus: ReferenceMenus<'_>) -> Vec<OperationEntry> {
     let mut entries = vec![
         OperationEntry::runs(words::CREATE_WORKTREE, "worktree.create", Target::Head),
@@ -101,7 +106,7 @@ pub(crate) fn list_entries(menus: ReferenceMenus<'_>) -> Vec<OperationEntry> {
             Target::Head,
         ),
     ];
-    if menus.repository.worktrees.iter().any(|worktree| worktree.is_missing) {
+    if model::worktree::has_prunable(&menus.repository.worktrees) {
         entries.push(OperationEntry::runs(words::PRUNE, "worktree.prune", Target::Head));
     }
     entries

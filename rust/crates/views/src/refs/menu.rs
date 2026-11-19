@@ -179,7 +179,8 @@ fn stash_operations() -> Vec<MenuEntry<'static, EntryCommand>> {
         .collect()
 }
 
-/// The operations of a list: those of the **…** of the Worktrees list; none for the others.
+/// The operations of a list: those of the **…** of the Worktrees list; **Fetch notes** and, when the repository has
+/// notes, **Push notes** for a remote; none for the others.
 pub(super) fn list_operations(state: &ReferencesState<'_>, list: &RailList) -> Vec<OperationEntry> {
     let menus = ReferenceMenus {
         repository: state.repository,
@@ -189,14 +190,22 @@ pub(super) fn list_operations(state: &ReferencesState<'_>, list: &RailList) -> V
     };
     match list {
         RailList::Worktrees => crate::worktree::list_entries(menus),
-        _ => Vec::new(), // Only the Worktrees list runs operations from its menu.
+        RailList::Remote(remote) => {
+            let target = Target::Remote(remote.clone());
+            let mut entries = vec![OperationEntry::runs(words::FETCH_NOTES, "note.fetch", target.clone())];
+            if state.repository.notes.has_reference() {
+                entries.push(OperationEntry::runs(words::PUSH_NOTES, "note.push", target));
+            }
+            entries
+        }
+        _ => Vec::new(), // Only the Worktrees list and the remotes run operations from their menu.
     }
 }
 
 /// The menu of a list, none for a list that has none: the order of the local branches, of each remote and of the
-/// tags, checked as it is; the operations of the Worktrees list, from [`list_operations`]; **Add submodule…**; and,
-/// in the Tags list of a repository with a remote, **Check tags on `<remote>`** and **Push tags…** (`tag.remote-marks`,
-/// `tag.push-all`).
+/// tags, checked as it is; the operations of the Worktrees list and of a remote, from [`list_operations`]; **Add
+/// submodule…**; and, in the Tags list of a repository with a remote, **Check tags on `<remote>`** and **Push tags…**
+/// (`tag.remote-marks`, `tag.push-all`).
 pub(super) fn list_menu<'t>(
     list: &RailList,
     (order, tags): (SortOrder, &'t TagsMenu),
@@ -226,10 +235,19 @@ pub(super) fn list_menu<'t>(
             }
             entries
         }
-        RailList::Local | RailList::Remote(_) => vec![
+        RailList::Local => vec![
             sort(words::SORT_BY_NAME, SortOrder::Name),
             sort(words::SORT_BY_DATE, SortOrder::Date),
         ],
+        RailList::Remote(_) => {
+            let mut entries = vec![
+                sort(words::SORT_BY_NAME, SortOrder::Name),
+                sort(words::SORT_BY_DATE, SortOrder::Date),
+                MenuEntry::Separator,
+            ];
+            entries.extend(menu_items(operations, ListCommand::Operation));
+            entries
+        }
         RailList::Worktrees => menu_items(operations, ListCommand::Operation),
         RailList::Submodules => vec![MenuEntry::Item(icons::operation_item(
             words::ADD_SUBMODULE,

@@ -45,9 +45,13 @@ pub fn label(repository: &RepositoryState, window: WorktreeWindow<'_>, worktree:
 }
 
 /// How a worktree stands, after its label in the Worktrees list: its branch or `detached`, then `↑n ↓m` from the
-/// branch's upstream when it has one; `missing` in place of all that when its folder is gone.
+/// branch's upstream when it has one; `missing` in place of all that when its folder is gone, `missing, locked` when it
+/// is locked too (`worktree.locked`).
 #[must_use]
 pub fn standing(repository: &RepositoryState, worktree: &Worktree) -> String {
+    if let Some(standing) = lock_rules(worktree).standing {
+        return standing.to_owned();
+    }
     if worktree.is_missing {
         return rail_words::MISSING.to_owned();
     }
@@ -67,10 +71,11 @@ pub fn standing(repository: &RepositoryState, worktree: &Worktree) -> String {
 }
 
 /// The tooltip of a worktree in the Worktrees list: its folder, `<branch> → <upstream>`, how many files are not
-/// committed, and whether it is the one shown in this window.
+/// committed, whether it is the one shown in this window, and its lock with the reason (`worktree.locked`).
 #[must_use]
 pub fn tooltip(repository: &RepositoryState, worktree: &Worktree) -> String {
     let mut lines = vec![worktree.folder.display().to_string()];
+    lines.extend(lock_rules(worktree).tooltip);
     if let Some(name) = branch_of(worktree) {
         let upstream = repository
             .branches
@@ -102,6 +107,16 @@ pub fn open_intent(worktree: &Worktree) -> Option<crate::intent::Intent> {
         let target = model::contract::Target::Worktree(worktree.folder.clone());
         let open = crate::feature::FeatureIntent::Run(model::contract::FeatureId("worktree.open"), target);
         crate::intent::Intent::Feature(open)
+    })
+}
+
+/// What a lock changes for a worktree, named by its folder: the views need only its tooltip and its standing.
+#[must_use]
+pub fn lock_rules(worktree: &Worktree) -> model::worktree::LockedRules {
+    model::worktree::locked(&model::worktree::LockedInput {
+        label: "",
+        reason: worktree.locked.as_deref(),
+        is_missing: worktree.is_missing,
     })
 }
 

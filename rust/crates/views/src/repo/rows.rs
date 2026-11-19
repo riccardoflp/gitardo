@@ -198,7 +198,8 @@ pub(super) fn repository_row(
 
 /// The row of a worktree or a submodule under the row of its repository: indented, a submodule of a submodule further;
 /// the name of the worktree's folder or the submodule's path, and what it is on, or the branch git listed for it while
-/// it is not read yet. Marked while it is shown; a click shows it in the tab of its repository.
+/// it is not read yet; a lock at its end while the worktree is locked (`worktree.locked`). Marked while it is shown; a
+/// click shows it in the tab of its repository.
 pub(super) fn member_row(
     (index, tab, member): (usize, &TabEntry, &TabMemberEntry),
     ui: &mut Ui<'_>,
@@ -229,6 +230,13 @@ pub(super) fn member_row(
     // The room of the **×** of a repository is kept, so that what each row is on ends at the same place.
     let mut parts = Area::with_gap(line, theme.sizes.spacing.small);
     let _ = parts.right(theme.sizes.icon + theme.sizes.spacing.small);
+    if let Some(lock) = &member.lock {
+        let side = theme.sizes.icon;
+        let rect = place(parts.right(side), (side, side), (Align::Start, Align::Center));
+        ui.icon_in(rect, icons::LOCK, Tone::Muted);
+        let hovered = ui.interact(ui.id(("locked worktree", &folder)), rect, Sense::HOVER);
+        ui.tooltip(&hovered, lock);
+    }
     name_and_summary(ui, parts.rest(), &look);
     if response.clicked && !look.is_shown {
         vec![Intent::ShowInTab(index, member.folder.clone())]

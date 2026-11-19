@@ -60,6 +60,14 @@ pub enum QuickCommand {
     Refresh,
     /// **Open folder…** (`repo.open-folder`).
     OpenFolder,
+    /// **Clone Repository…** (`repo.clone`).
+    CloneRepository,
+    /// **Create Repository…** (`repo.init`).
+    CreateRepository,
+    /// **Load More History** (`sync.deepen`), offered in a shallow clone.
+    LoadMoreHistory,
+    /// **Load the Whole History** (`sync.unshallow`), offered in a shallow clone.
+    LoadWholeHistory,
     /// **Select Repository** (`repo.select`).
     SelectRepository,
     /// **Open workspace file…** (`repo.open-code-workspace`).
@@ -112,6 +120,10 @@ pub enum QuickCommand {
     Compare,
     /// **Browse reflog** (`reflog.browse`).
     BrowseReflog,
+    /// **Fetch Notes…** (`note.fetch`).
+    FetchNotes,
+    /// **Push Notes…** (`note.push`).
+    PushNotes,
     /// **Clean up branches** (`branch.clean-up`).
     CleanUpBranches,
     /// **Set upstream of the current branch…** (`branch.set-upstream`).
@@ -174,12 +186,16 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 60] = [
+    pub const ALL: [QuickCommand; 66] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
         QuickCommand::Refresh,
         QuickCommand::OpenFolder,
+        QuickCommand::CloneRepository,
+        QuickCommand::CreateRepository,
+        QuickCommand::LoadMoreHistory,
+        QuickCommand::LoadWholeHistory,
         QuickCommand::SelectRepository,
         QuickCommand::OpenWorkspaceFile,
         QuickCommand::OpenRepositoryInTab,
@@ -218,6 +234,8 @@ impl QuickCommand {
         QuickCommand::ShowStashes,
         QuickCommand::Compare,
         QuickCommand::BrowseReflog,
+        QuickCommand::FetchNotes,
+        QuickCommand::PushNotes,
         QuickCommand::CleanUpBranches,
         QuickCommand::SetUpstream,
         QuickCommand::CheckTags,
@@ -271,11 +289,22 @@ impl QuickCommand {
         }
     }
 
+    /// Whether the command is offered only in a shallow clone: the fetches of more history (`sync.deepen`,
+    /// `sync.unshallow`).
+    #[must_use]
+    pub fn is_for_shallow_clones(self) -> bool {
+        matches!(self, QuickCommand::LoadMoreHistory | QuickCommand::LoadWholeHistory)
+    }
+
     /// The operation of the catalog the command runs at `HEAD`, for the commands that run one: the window runs it once
     /// it is built.
     #[must_use]
     pub fn operation(self) -> Option<&'static str> {
         match self {
+            QuickCommand::CloneRepository => Some("repo.clone"),
+            QuickCommand::CreateRepository => Some("repo.init"),
+            QuickCommand::LoadMoreHistory => Some("sync.deepen"),
+            QuickCommand::LoadWholeHistory => Some("sync.unshallow"),
             QuickCommand::CreateBranch => Some("branch.create"),
             QuickCommand::CreateBranchWithNoHistory => Some("branch.create-orphan"),
             QuickCommand::Fetch => Some("sync.fetch"),
@@ -288,6 +317,8 @@ impl QuickCommand {
             QuickCommand::AddSubmodule => Some("submodule.add"),
             QuickCommand::Compare => Some("compare.choose"),
             QuickCommand::BrowseReflog => Some("reflog.browse"),
+            QuickCommand::FetchNotes => Some("note.fetch"),
+            QuickCommand::PushNotes => Some("note.push"),
             QuickCommand::ApplyPatch => Some("patch.apply"),
             QuickCommand::SwitchIdentity => Some("identity.switch"),
             QuickCommand::SignInToGitHub => Some("github.load-pull-requests"),

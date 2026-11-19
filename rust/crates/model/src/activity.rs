@@ -36,6 +36,8 @@ pub enum TaskKind {
     Operation {
         /// The title.
         title: String,
+        /// The last line of progress git printed, for a step that asks git for its progress (`--progress`).
+        progress: Option<String>,
     },
     /// A comparison of two sides.
     Comparison {
@@ -84,12 +86,24 @@ pub fn describe_task(task: &Task, now: Instant) -> TaskText {
             };
             (title, read_detail(cause.as_ref(), *in_a_row))
         }
-        TaskKind::Operation { title } => (title.clone(), None),
+        TaskKind::Operation { title, progress } => (title.clone(), progress.clone()),
         TaskKind::Comparison { from, to } => (format!("Comparing {from} \u{2194} {to}"), None),
         TaskKind::Patch { commits } => (format!("Making a patch of {commits}"), None),
         TaskKind::PullRequests => (String::from("Reading the pull requests from GitHub"), None),
     };
     TaskText { title, detail, elapsed }
+}
+
+/// The last line of progress in what git printed on its standard error so far: git writes its progress on one line
+/// that it starts again with a carriage return, `Receiving objects: 45% (1203/2671), 1.20 MiB | 3.40 MiB/s`, and ends
+/// with a line feed; the last part that holds more than spaces, as git printed it. None while it printed nothing.
+#[must_use]
+pub fn progress_line(printed: &[u8]) -> Option<String> {
+    String::from_utf8_lossy(printed)
+        .split(['\r', '\n'])
+        .map(str::trim)
+        .rfind(|part| !part.is_empty())
+        .map(str::to_owned)
 }
 
 /// The title of things of the same words that run one after the other, on the one row that counts them, with how

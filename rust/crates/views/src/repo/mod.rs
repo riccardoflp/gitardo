@@ -18,6 +18,7 @@ pub use side_column::{
 };
 pub use side_sections::{DraggedLine, SECTION_LEAST, SectionAsk, SectionPlace, section_places};
 pub use summary::{TabSummary, counts_words, head_words};
+pub(crate) use tabs::new_repository;
 pub use tabs::{TabEntry, TabMemberEntry, TabPlace, TabsState, cut_at_start, row_height, rows_height, tabs_view};
 
 use ui::layout::{Align, Area, place};
@@ -40,7 +41,7 @@ pub enum NoRepositoryState {
 }
 
 /// What the timeline shows in a workspace with no repository: **No Git repository in this workspace** with **Check
-/// again**, or **Loading repository…** while the repositories are looked for and the first one is read, or **Not read
+/// again**, **Create a repository here** and **Clone a repository…** (`repo.init`, `repo.clone`), or **Loading repository…** while the repositories are looked for and the first one is read, or **Not read
 /// yet** with **Read the repository** when the window opened with `readOnStartup` off. The branch rail beside it is
 /// empty.
 ///
@@ -67,18 +68,42 @@ pub fn no_repository_view(state: &NoRepositoryState, ui: &mut Ui<'_>) -> Vec<Int
     if *state == NoRepositoryState::Loading {
         return Vec::new();
     }
-    let (button, intent) = if *state == NoRepositoryState::NotRead {
-        (Button::primary(words::READ_THE_REPOSITORY), Intent::ReadRepository)
+    let buttons = if *state == NoRepositoryState::NotRead {
+        vec![(
+            "check again",
+            Button::primary(words::READ_THE_REPOSITORY),
+            Intent::ReadRepository,
+        )]
     } else {
-        (Button::secondary(words::CHECK_AGAIN), Intent::CheckAgain)
+        vec![
+            ("check again", Button::secondary(words::CHECK_AGAIN), Intent::CheckAgain),
+            (
+                "create here",
+                Button::secondary(words::CREATE_HERE),
+                Intent::CreateRepositoryHere,
+            ),
+            (
+                "clone",
+                Button::secondary(words::CLONE),
+                tabs::new_repository("repo.clone"),
+            ),
+        ]
     };
-    let (width, button_height) = ui.button_size(&button);
-    let cell = place(area.rest(), (width, button_height), (Align::Center, Align::Start));
-    if ui.button("check again", cell, &button).clicked {
-        vec![intent]
-    } else {
-        Vec::new()
+    let sizes: Vec<(f32, f32)> = buttons.iter().map(|(_, button, _)| ui.button_size(button)).collect();
+    let gaps = spacing.medium * f32::from(u16::try_from(sizes.len().saturating_sub(1)).unwrap_or(0));
+    let width = sizes.iter().map(|(width, _)| width).sum::<f32>() + gaps;
+    let button_height = sizes.iter().map(|(_, height)| *height).fold(0.0, f32::max);
+    let row = place(area.rest(), (width, button_height), (Align::Center, Align::Start));
+    let mut left = row.x;
+    let mut intents = Vec::new();
+    for ((id, button, intent), (width, height)) in buttons.into_iter().zip(sizes) {
+        let cell = ui::Rect::new(left, row.y, width, height);
+        left = cell.right() + spacing.medium;
+        if ui.button(id, cell, &button).clicked {
+            intents.push(intent);
+        }
     }
+    intents
 }
 
 /// What the picker of the repositories lists.

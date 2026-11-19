@@ -558,6 +558,7 @@ own dash.
 | What is running | `activity` |
 | More | `ellipsis` |
 | How the timeline is shown: the menu of the view | `sliders-horizontal` |
+| A locked worktree; lock one | `lock` |
 | List; tree of folders | `list`, `list-tree` |
 | Fold the lines that did not change, the commits a merge brought in; unfold them | `fold-vertical`, `unfold-vertical` |
 | A button that opens a list of choices below it | `chevrons-up-down` |

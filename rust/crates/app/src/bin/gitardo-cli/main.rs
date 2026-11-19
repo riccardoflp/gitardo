@@ -60,6 +60,16 @@ fn run(arguments: &Arguments, out: &mut dyn Write, errors: &mut dyn Write) -> io
         }
         return Ok(DONE);
     }
+    if let Command::Feature(feature) = &arguments.command
+        && ["repo.clone", "repo.init"].contains(&feature.identifier.as_str())
+    {
+        // An operation that makes a repository is given the context of no repository: its folder is where it starts.
+        let nowhere = RepositoryState {
+            folder: arguments.repository.clone(),
+            ..RepositoryState::default()
+        };
+        return run_feature(nowhere, feature, out, errors);
+    }
     let git = Git::new(&arguments.repository);
     let state = match read_state(
         &git,
@@ -193,6 +203,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
             writeln!(out, "Compare {path} of {right} with {left}")?;
         }
         FollowUp::ShowFolder(folder) => writeln!(out, "Show {} in this window", folder.display())?,
+        FollowUp::RememberCloneFolder(folder) => writeln!(out, "Remember {} for the next clone", folder.display())?,
+        FollowUp::OpenRepository(folder) => writeln!(out, "Open {} in a tab", folder.display())?,
         FollowUp::OfferRun(offered) => writeln!(out, "Next: {} ({})", offered.label, offered.feature.0)?,
         FollowUp::KeepGitHubToken(_) | FollowUp::KeepHostingToken(..) => keep_token_line(out, follow_up)?,
         FollowUp::KeepAiKey(..) => writeln!(out, "Keep the key of the AI provider in the credential store")?,

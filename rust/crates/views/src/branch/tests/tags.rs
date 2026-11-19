@@ -1,6 +1,6 @@
 //! The entries of the menu of a tag: checking it out, and deleting it from a remote (`tag.delete-remote`).
 
-use super::{of_tag, repository};
+use super::{ARCHIVE, of_tag, repository};
 
 #[test]
 fn tag_checkout__a_tag_on_the_commit_checked_out_has_no_such_entry() {
@@ -10,6 +10,7 @@ fn tag_checkout__a_tag_on_the_commit_checked_out_has_no_such_entry() {
         [
             "Create branch here\u{2026}",
             "Push tag",
+            ARCHIVE,
             "Delete",
             "Delete from origin",
             "Delete here and from origin"

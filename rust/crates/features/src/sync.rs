@@ -1,5 +1,6 @@
 //! Fetching, pulling and pushing (`docs/features/06-branches-tags-remotes.md`).
 
+mod deepen;
 mod fetch;
 mod forced;
 mod pull;
@@ -14,6 +15,7 @@ mod push_force_with_lease;
 mod sync;
 mod target;
 
+pub use deepen::{COUNT, deepen, unshallow};
 pub use fetch::fetch;
 pub use forced::OVERWRITTEN;
 pub use pull::pull;

@@ -77,6 +77,12 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::FileTexts { .. } | Query::PathExists { .. } | Query::FolderLinks { .. } => readings::on_disk(git, query),
         Query::GitFolder { folder } => git::read::submodule::read_git_folder(git, folder).map(Answer::Path),
         Query::HasFiles { path } => Ok(Answer::Flag(readings::has_files(path))),
+        Query::TakenNames { .. } | Query::RepositoryAround { .. } | Query::DefaultBranch { .. } => {
+            crate::new_repository::answer(git, query)
+        }
+        Query::IgnoredBy { .. } | Query::ExcludeFile => crate::ignoring::answer(git, query),
+        Query::RepositorySize | Query::CommitFolders { .. } => crate::upkeep::answer(git, query),
+        Query::Note { .. } | Query::RemoteNotes { .. } => crate::notes::answer(git, query),
         Query::SetupTakes(requests) => setup_takes(git, requests),
         Query::PathStatuses { paths } => path_statuses(git, paths),
         Query::FileNames { path } => history::file_names(git, path),
@@ -275,6 +281,14 @@ fn stash(git: &Git, index: usize) -> Result<Answer, GitError> {
     }))
 }
 
+/// What a cherry-pick or a revert stopped on an empty commit reads, as the log writes it.
+const EMPTY_STOP_READS: &str =
+    "git rev-parse -q --verify CHERRY_PICK_HEAD (or REVERT_HEAD), git ls-files -u -z, git diff --quiet HEAD --";
+
+/// What the texts of the conflicts read, as the log writes it.
+const CONFLICT_TEXTS_READS: &str =
+    "git diff --name-only --diff-filter=U -z, git ls-files --unmerged -z, git cat-file blob <object>, read <file>";
+
 /// The command a query runs, as the log writes it at the debug level.
 pub(crate) fn describe(query: &Query) -> String {
     match query {
@@ -297,10 +311,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::HasFile { revision, path } => git::command_line(&branch::has_file_arguments(revision, path)),
         Query::Overwritten { upstream } => describe_overwritten(upstream),
         Query::Remotes => String::from("git remote, git remote get-url"),
-        Query::Stash { index } => format!(
-            "git diff --name-only -z stash@{{{index}}}^1 stash@{{{index}}}, git merge-tree --write-tree \
-             --merge-base=stash@{{{index}}}^1 HEAD stash@{{{index}}}"
-        ),
+        Query::Stash { index } => describe_stash(*index),
         Query::Identity => String::from(r"git config -z --get-regexp ^user\.(name|email)$"),
         Query::FileVersions { path, commit } => describe_file_versions(path, commit.as_ref()),
         Query::PredictedConflicts { ours, theirs, base } => git::command_line(
@@ -309,9 +320,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::Commits { revisions } => git::command_line(&rewrite::commits_arguments(revisions)),
         Query::LineAfter { commit } => git::command_line(&rewrite::line_after_arguments(commit)),
         Query::Message { commit } => git::command_line(&rewrite::message_arguments(commit)),
-        Query::EmptyStop => String::from(
-            "git rev-parse -q --verify CHERRY_PICK_HEAD (or REVERT_HEAD), git ls-files -u -z, git diff --quiet HEAD --",
-        ),
+        Query::EmptyStop => String::from(EMPTY_STOP_READS),
         Query::Line { commit } => describe_line(commit),
         Query::Messages { commits } => describe_messages(commits),
         Query::GitVersion | Query::StackedBranches { .. } => crate::stacking::describe(query),
@@ -324,12 +333,17 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::ConflictStages { path } => {
             git::command_line(&git::read::conflicts::stages_arguments(std::slice::from_ref(path)))
         }
-        Query::ConflictTexts => String::from(
-            "git diff --name-only --diff-filter=U -z, git ls-files --unmerged -z, git cat-file blob <object>, read <file>",
-        ),
+        Query::ConflictTexts => String::from(CONFLICT_TEXTS_READS),
         Query::FileTexts { .. } | Query::SetupTakes(_) | Query::PathStatuses { .. } => describe_reads(query),
-        Query::GitFolder { folder } => format!("git -C {} rev-parse --absolute-git-dir", folder.display()),
-        Query::HasFiles { path } => format!("look in {}", path.display()),
+        Query::GitFolder { .. }
+        | Query::HasFiles { .. }
+        | Query::TakenNames { .. }
+        | Query::RepositoryAround { .. }
+        | Query::DefaultBranch { .. } => crate::new_repository::describe(query),
+        Query::IgnoredBy { .. } | Query::ExcludeFile | Query::RepositorySize | Query::CommitFolders { .. } => {
+            crate::upkeep::describe(query)
+        }
+        Query::Note { .. } | Query::RemoteNotes { .. } => crate::notes::describe(query),
         Query::FileNames { path } => history::describe_file_names(path),
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),
@@ -362,7 +376,15 @@ fn describe_file_versions(path: &str, commit: Option<&model::CommitId>) -> Strin
     }
 }
 
-/// The command that lists what a force push would throw away.
+/// What the read of what a stash changes, and of the conflicts it would meet, runs.
+fn describe_stash(index: usize) -> String {
+    format!(
+        "git diff --name-only -z stash@{{{index}}}^1 stash@{{{index}}}, git merge-tree --write-tree \
+         --merge-base=stash@{{{index}}}^1 HEAD stash@{{{index}}}"
+    )
+}
+
+/// What the read of the commits a push would overwrite runs.
 fn describe_overwritten(upstream: &str) -> String {
     format!("git log --max-count=11 --format=%h%x00%s%x00 HEAD..{upstream} --")
 }

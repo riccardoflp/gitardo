@@ -22,7 +22,7 @@ use crate::graph::GraphIntent;
 use crate::intent::{FilterIntent, Intent, RailIntent, RailList, RailLists};
 
 /// The hash of a commit named in a test: its name in hexadecimal, padded.
-fn id(name: &str) -> CommitId {
+pub(super) fn id(name: &str) -> CommitId {
     let hex = name.bytes().take(20).fold(String::new(), |mut hex, byte| {
         let _ = write!(hex, "{byte:02x}");
         hex

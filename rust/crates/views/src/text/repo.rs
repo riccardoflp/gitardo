@@ -12,6 +12,13 @@ pub const LOADING_REPOSITORY: &str = "Loading repository\u{2026}";
 pub const NOT_READ_YET: &str = "Not read yet";
 /// The button that reads the repository then.
 pub const READ_THE_REPOSITORY: &str = "Read the repository";
+/// The entry that clones a repository (`repo.clone`): on the Welcome page, in the menu of **+** and on the timeline of
+/// a workspace with no repository.
+pub const CLONE: &str = "Clone a repository\u{2026}";
+/// The entry that creates a repository in a folder chosen (`repo.init`).
+pub const CREATE: &str = "Create a repository\u{2026}";
+/// The button of the timeline of a workspace with no repository that creates one in its folder (`repo.init`).
+pub const CREATE_HERE: &str = "Create a repository here";
 /// The title of the system's folder dialog.
 pub const CHOOSE_FOLDER: &str = "Open folder";
 /// The picker of the repositories (`repo.select`).
@@ -58,6 +65,11 @@ pub const OPEN_TAB_TITLE: &str = "Open a repository in a tab";
 pub const CLOSE_TAB: &str = "Close tab";
 /// The entry of the menu of a tab that closes the others.
 pub const CLOSE_OTHER_TABS: &str = "Close other tabs";
+/// **Clean up…** in the menu of the row of the repository shown (`upkeep.clean-up`).
+pub const CLEAN_UP: &str = "Clean up\u{2026}";
+/// **Look after it in the background…** in the menu of the row of the repository shown, ticked while git's
+/// maintenance looks after it (`upkeep.start-background`, `upkeep.stop-background`).
+pub const LOOK_AFTER: &str = "Look after it in the background\u{2026}";
 /// The tooltip of the **▾** of a tab, which lists its worktrees and its submodules (`repo.group-tabs`).
 pub const TAB_MEMBERS: &str = "Worktrees and submodules";
 /// What is put between the name of a tab and the name of the worktree or the submodule it shows.

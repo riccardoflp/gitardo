@@ -12,6 +12,7 @@
         is_main: true,
         is_current: false,
         is_missing: false,
+        locked: None,
         uncommitted: None,
     },
     Worktree {
@@ -25,6 +26,9 @@
         is_main: false,
         is_current: false,
         is_missing: false,
+        locked: Some(
+            "on a drive [unplugged]",
+        ),
         uncommitted: None,
     },
     Worktree {
@@ -40,6 +44,7 @@
         is_main: false,
         is_current: false,
         is_missing: false,
+        locked: None,
         uncommitted: None,
     },
     Worktree {
@@ -55,6 +60,7 @@
         is_main: false,
         is_current: false,
         is_missing: true,
+        locked: None,
         uncommitted: None,
     },
 ]

@@ -80,6 +80,7 @@ fn graph_labels__a_branch_checked_out_in_another_worktree_names_its_folder() {
         is_main: false,
         is_current: false,
         is_missing: false,
+        locked: None,
         uncommitted: Some(0),
     });
     let found = labels(&state, &GraphSettings::default());

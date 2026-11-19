@@ -20,6 +20,15 @@ pub fn author_and_date(author: &str, date: &str) -> String {
 }
 /// The last row of the timeline while more commits are to be read (`graph.load-more`).
 pub const LOADING_MORE: &str = "Loading more commits\u{2026}";
+/// The last row of the timeline of a shallow clone (`graph.shallow-end`).
+pub const SHALLOW_END: &str = "The history ends here: this is a shallow clone.";
+/// The button that fetches more of the history of a shallow clone (`sync.deepen`).
+pub const LOAD_MORE_HISTORY: &str = "Load more history";
+/// The button that fetches all of the history of a shallow clone (`sync.unshallow`).
+pub const LOAD_WHOLE_HISTORY: &str = "Load the whole history";
+/// The tooltip of the dot of a commit whose parents were not fetched (`graph.shallow-end`).
+pub const NOT_FETCHED_BEFORE: &str =
+    "The commits before this one were not fetched: this repository is a shallow clone.";
 /// The draft, for the screen reader and at the top of the inspector (`graph.uncommitted-row`).
 pub const UNCOMMITTED_CHANGES: &str = "Uncommitted changes";
 /// What the message of the draft says while it is empty.

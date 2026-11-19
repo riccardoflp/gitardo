@@ -243,8 +243,8 @@ Saves the files of a commit, or of one folder of it, in a zip or a tar.gz file t
 - **Kind**: Operation
 - **Function**: `features::archive::save(context, answers) -> Outcome`
 - **Entry points**: **Save as archive…** in the context menu of a commit in the timeline, and of a branch, a remote
-  branch or a tag in the branch rail and on its label in the timeline; Quick search, **Save as Archive…**, which asks
-  the commit first as **Open Commit as a Page…** asks it (`commit-page.open`).
+  branch or a tag in the branch rail and on its label in the timeline; Quick search, **Save as Archive…**, which would
+  ask the commit first as **Open Commit as a Page…** asks it (`commit-page.open`), is not there yet (Q1456).
 - **Offered when**: on a commit, a branch, a remote branch or a tag; not on the draft nor on a stash.
 - **Asks**:
   1. **What the archive holds**: **Every file** (the default) or **One folder…**, which asks the folder among those of
@@ -260,9 +260,10 @@ Saves the files of a commit, or of one folder of it, in a zip or a tar.gz file t
   share a name.
 - **Danger**: None: the save dialog asked before writing over a file.
 - **Undo**: Impossible: the file saved is outside what Undo takes back; delete it to take it back.
-- **After**: says **Saved `<file>`** with **Reveal in the file manager**.
+- **After**: says **Saved `<file>`**; **Reveal in the file manager** is not offered with it yet, since a message after
+  an operation offers only operations (Q1456).
 - **Uses**: `commit-page.open`, `compare.resolve-revision`.
-- **Extension**: planned: **Save as Archive…** in the context menu of a commit, a branch, a remote branch or a tag in
+- **Extension**: built: **Save as archive…** in the context menu of a commit, a branch, a remote branch or a tag in
   the graph and in the Branches view, the questions in VS Code's pickers and its save dialog, sending `feature/run` of
   `archive.save` to the engine.
 
@@ -272,10 +273,10 @@ empty folder.
 
 Acceptance:
 
-- [ ] **Save as archive…** on the tag `v1.2.0`, with the defaults on Windows, proposes `<parent>/app-v1.2.0.zip` and
+- [x] **Save as archive…** on the tag `v1.2.0`, with the defaults on Windows, proposes `<parent>/app-v1.2.0.zip` and
       runs `git archive --format=zip --prefix=app-v1.2.0/ -o <file> refs/tags/v1.2.0`; the zip holds the files of
       that commit under `app-v1.2.0/`.
-- [ ] **One folder…** with `docs` adds `-- docs`, and the archive holds only the files of `docs`.
-- [ ] **tar.gz** gives a file `tar -tzf` lists.
-- [ ] With the folder inside the archive left empty it runs without `--prefix`, and the files are at its top.
-- [ ] Cancelling the dialog writes nothing; the log has the `git archive` command once it is saved.
+- [x] **One folder…** with `docs` adds `-- docs`, and the archive holds only the files of `docs`.
+- [x] **tar.gz** gives a file `tar -tzf` lists.
+- [x] With the folder inside the archive left empty it runs without `--prefix`, and the files are at its top.
+- [x] Cancelling the dialog writes nothing; the log has the `git archive` command once it is saved.

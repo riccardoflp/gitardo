@@ -458,6 +458,8 @@ export type Action =
   | { kind: 'worktreeRemove'; path: string; deleteBranch?: boolean }
   | { kind: 'worktreeRename' | 'worktreeTerminal' | 'worktreeReveal'; path: string }
   | { kind: 'worktreePrune' }
+  /** Locks a worktree with the reason asked, or unlocks it (`worktree.lock`, `worktree.unlock`). */
+  | { kind: 'worktreeLock' | 'worktreeUnlock'; path: string }
   /** Brings into the worktree in `path`, or into every other worktree, what new worktrees get of what git ignores here. */
   | { kind: 'worktreeSetUp'; path?: string }
   /** Asks for the URL, the folder and the branch of a new submodule. */
@@ -495,6 +497,16 @@ export type Action =
   | { kind: 'pushTags' }
   /** **Check tags on `<remote>`**: asks the remote of `remote.default` for its tags and marks those it lacks (`tag.remote-marks`). */
   | { kind: 'checkTags' }
+  /** Writes the note of a commit, proposing the one it has, or removes it (`note.edit`, `note.remove`). */
+  | { kind: 'editNote' | 'removeNote'; hash: string }
+  /** Fetches the notes of a remote, or pushes the notes to it (`note.fetch`, `note.push`). */
+  | { kind: 'fetchNotes' | 'pushNotes'; remote: string }
+  /** Saves the files of a commit, a branch, a remote branch or a tag as a zip or a tar.gz: `at` is a hash or a full name (`archive.save`). */
+  | { kind: 'saveArchive'; at: string }
+  /** Cleans up the repository shown with `git gc` (`upkeep.clean-up`). */
+  | { kind: 'cleanUp' }
+  /** Has git look after the repository shown in the background, or stop (`upkeep.start-background`, `upkeep.stop-background`). */
+  | { kind: 'lookAfter'; start: boolean }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }

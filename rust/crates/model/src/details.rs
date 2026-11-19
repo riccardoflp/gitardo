@@ -43,6 +43,9 @@ pub struct CommitDetail {
     pub files: Vec<FileChange>,
     /// For a stash made with its untracked files, those files, apart from the others; otherwise none.
     pub untracked_files: Vec<FileChange>,
+    /// The text of its note as it was written, in the reference of notes git uses; none when it has no note
+    /// (`note.read`).
+    pub note: Option<String>,
 }
 
 impl CommitDetail {

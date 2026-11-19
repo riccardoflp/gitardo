@@ -52,6 +52,7 @@
       "isMain": true,
       "isCurrent": true,
       "isMissing": false,
+      "locked": null,
       "uncommitted": null
     },
     {
@@ -61,6 +62,7 @@
       "isMain": false,
       "isCurrent": false,
       "isMissing": true,
+      "locked": "On the USB drive",
       "uncommitted": 3
     }
   ],
@@ -108,5 +110,13 @@
   "operation": "merge",
   "rebaseStop": null,
   "bisect": null,
-  "submodules": []
+  "submodules": [],
+  "shallow": [],
+  "skipped": [],
+  "isLookedAfter": false,
+  "notes": {
+    "reference": "refs/notes/commits",
+    "tip": null,
+    "commits": []
+  }
 }

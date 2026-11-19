@@ -113,6 +113,8 @@ export interface Worktree {
   isCurrent: boolean;
   /** Its folder is gone, so `git worktree prune` would forget it. */
   isMissing: boolean;
+  /** The reason it is locked, empty when none was given; null or absent when it is not locked (protocol 1.11). */
+  locked?: string | null;
   /**
    * How many of its files are not committed: staged, not staged, untracked or in conflict, each once. Null when they
    * could not be read.
@@ -267,6 +269,29 @@ export interface RepositoryState {
   bisect: Bisect | null;
   /** The submodules and theirs, each after the one it is in. */
   submodules: Submodule[];
+  /**
+   * The commits whose parents were not fetched, where the history of a shallow clone ends (protocol 1.11); the graph
+   * does not show them yet (`graph.shallow-end` is Planned in the extension).
+   */
+  shallow?: string[];
+  /**
+   * The tracked files git is told not to look at, by hand, and how (protocol 1.11); the **Gitardo Changes** view does
+   * not list them yet (`changes.skipped-list` is Planned in the extension).
+   */
+  skipped?: { path: string; skipWorktree: boolean; assumeUnchanged: boolean }[];
+  /** Whether git's scheduled maintenance looks after the repository (protocol 1.11, `upkeep.read-background`). */
+  isLookedAfter?: boolean;
+  /** The commits with a note, in the reference of notes git uses (protocol 1.11, `note.read`). */
+  notes?: Notes;
+}
+
+/** The commits with a note, in the reference of notes git uses: `refs/notes/commits` unless `core.notesRef` names another. */
+export interface Notes {
+  reference: string;
+  /** The commit the reference is at; null while no note was ever written. */
+  tip: string | null;
+  /** The full ids of the commits with a note. */
+  commits: string[];
 }
 
 /** Who made a commit, or committed it, and when. */
@@ -294,6 +319,8 @@ export interface CommitDetail {
   files: FileChange[];
   /** For a stash made with its untracked files, those files, which its third parent holds. */
   untrackedFiles: FileChange[];
+  /** The text of its note as it was written; null or absent when it has none (protocol 1.11, `note.read`). */
+  note?: string | null;
 }
 
 /** The letter git gives each kind of change, which the views show. */

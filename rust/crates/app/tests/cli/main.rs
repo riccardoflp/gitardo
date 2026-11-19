@@ -4,6 +4,7 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::panic, reason = "a helper that cannot go on fails the test")]
 
+mod archive;
 mod branch;
 mod branches;
 mod changes;
@@ -12,14 +13,19 @@ mod commit;
 mod commits;
 mod compare;
 mod conflicts;
+mod hidden;
+mod ignore;
+mod locked;
 mod merge;
 mod message;
+mod notes;
 mod patch;
 mod picks;
 mod pull_requests;
 mod push;
 mod rebase;
 mod remote;
+mod repo;
 mod rewrite;
 mod stack;
 mod stash;
@@ -29,6 +35,7 @@ mod sync;
 mod sync_all;
 mod tag;
 mod undo;
+mod upkeep;
 mod worktree;
 mod worktree_setup;
 

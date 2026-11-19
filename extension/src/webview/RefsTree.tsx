@@ -23,9 +23,12 @@ import { endDrag, startDrag, type DragSource } from './drag';
 import {
   act,
   branchMenu,
+  isLocked,
+  lockTitle,
   openBranch,
   openRemoteBranch,
   remoteBranchMenu,
+  remoteNotesEntries,
   stashMenu,
   submoduleMenu,
   remoteTagsEntries,
@@ -88,6 +91,8 @@ interface Item {
   worktree?: string;
   /** How many files are not committed in the worktree, when there are any. */
   changes?: number;
+  /** Whether it is a locked worktree, which has a lock after its label (`worktree.locked`). */
+  locked?: boolean;
   /** How far it is indented under the one it is in. */
   depth?: number;
   badge?: Badge;
@@ -228,6 +233,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
                 }}
               >
                 <span className="grow">{item.label}</span>
+                {item.locked && <Icon name="lock" />}
                 {item.favorite && id !== 'favorites' && <Icon name="star-full" />}
                 {item.worktree && <Icon name="worktree" />}
                 {item.hint && <span className="hint">{item.hint}</span>}
@@ -338,14 +344,16 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
       branches.find((item) => item.key === name),
     ),
   );
-  // Branches and tags are listed in the same order, which the menu of each of their sections chooses.
-  const sorting = (what: string): SectionAction[] => [
+  // Branches and tags are listed in the same order, which the menu of each of their sections chooses; the menu of the
+  // remotes fetches and pushes their notes too, as no row stands for each remote.
+  const sorting = (what: string, more: MenuEntry[] = []): SectionAction[] => [
     {
       icon: 'ellipsis',
       title: `More actions for ${what}`,
       menu: () => [
         { label: 'Sort by name', checked: state.sortOrder === 'name', run: () => post({ type: 'setBranchSort', sort: 'name' }) },
         { label: 'Sort by date', checked: state.sortOrder === 'date', run: () => post({ type: 'setBranchSort', sort: 'date' }) },
+        ...(more.length ? ['separator' as const, ...more] : []),
       ],
     },
   ];
@@ -395,7 +403,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
       {section('recent', 'Recent', 'history', recentItems, true)}
       {section('branches', 'Local', 'git-branch', branches, false, sorting('branches'))}
       {/* While the filter of the list lists some references only, a list it leaves empty is left out (Q415). */}
-      {section('remotes', 'Remotes', 'cloud', remotes, !!state.listed, sorting('remote branches'))}
+      {section('remotes', 'Remotes', 'cloud', remotes, !!state.listed, sorting('remote branches', remoteNotesEntries(state)))}
       {section(
         'tags',
         'Tags',
@@ -442,8 +450,13 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
             key: worktree.folder,
             hash: worktree.commit ?? undefined,
             label: worktreeLabel(worktree.folder, state.worktreesRoot),
-            hint: worktree.isMissing ? 'missing' : [worktreeBranch(worktree) ?? 'detached', ahead].filter(Boolean).join(' '),
-            title: [worktree.folder, tracking, changesText(worktree.uncommitted), pull && pullTitle(pull)].filter(Boolean).join('\n'),
+            hint: worktree.isMissing
+              ? isLocked(worktree)
+                ? 'missing, locked'
+                : 'missing'
+              : [worktreeBranch(worktree) ?? 'detached', ahead].filter(Boolean).join(' '),
+            title: [worktree.folder, lockTitle(worktree), tracking, changesText(worktree.uncommitted), pull && pullTitle(pull)].filter(Boolean).join('\n'),
+            locked: isLocked(worktree),
             changes: worktree.uncommitted || undefined,
             pull,
             current: worktree.isCurrent,

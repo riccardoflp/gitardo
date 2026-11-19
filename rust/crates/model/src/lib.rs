@@ -28,6 +28,7 @@ pub mod hosting;
 mod identifier;
 pub mod markdown;
 pub mod merge_view;
+pub mod note;
 pub mod patch;
 pub mod rebase;
 pub mod reflog;
@@ -45,6 +46,7 @@ pub mod tasks;
 pub mod terminal;
 pub mod trail;
 pub mod trust;
+pub mod upkeep;
 pub mod worktree;
 pub mod worktree_setup;
 

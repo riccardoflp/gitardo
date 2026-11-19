@@ -46,6 +46,31 @@ pub struct StateJson {
     pub bisect: Option<BisectJson>,
     /// The submodules, each followed by its own.
     pub submodules: Vec<SubmoduleJson>,
+    /// The commits whose parents were not fetched, where the history of a shallow clone ends; empty when the
+    /// repository is not shallow (since 1.11).
+    #[serde(default)]
+    pub shallow: Vec<String>,
+    /// The tracked files git is told not to look at, by hand (since 1.11).
+    #[serde(default)]
+    pub skipped: Vec<SkippedFileJson>,
+    /// Whether git's scheduled maintenance looks after the repository (since 1.11).
+    #[serde(default)]
+    pub is_looked_after: bool,
+    /// The commits with a note, in the reference of notes git uses (since 1.11).
+    #[serde(default)]
+    pub notes: NotesJson,
+}
+
+/// The commits with a note, in the reference of notes git uses (since 1.11).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotesJson {
+    /// The reference of notes: `refs/notes/commits` unless `core.notesRef` names another.
+    pub reference: String,
+    /// The commit the reference is at; none while no note was ever written.
+    pub tip: Option<String>,
+    /// The full ids of the commits with a note, in the order of their ids.
+    pub commits: Vec<String>,
 }
 
 /// What is checked out.
@@ -148,6 +173,9 @@ pub struct WorktreeJson {
     pub is_current: bool,
     /// Whether its folder is gone.
     pub is_missing: bool,
+    /// The reason it is locked, empty when none was given; none when it is not locked (since 1.11).
+    #[serde(default)]
+    pub locked: Option<String>,
     /// How many files are not committed in it, when that was read.
     pub uncommitted: Option<usize>,
 }
@@ -298,6 +326,18 @@ pub struct BisectJson {
     pub skipped: Vec<String>,
     /// How many commits are left to test, when git says.
     pub remaining: Option<u32>,
+}
+
+/// A tracked file git is told not to look at, and how (since 1.11).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkippedFileJson {
+    /// Its path from the top of the working tree.
+    pub path: String,
+    /// Whether it is marked skip-worktree: its changes stay out of commits.
+    pub skip_worktree: bool,
+    /// Whether it is marked assume-unchanged.
+    pub assume_unchanged: bool,
 }
 
 /// A submodule.

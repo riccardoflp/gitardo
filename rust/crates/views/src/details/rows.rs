@@ -238,11 +238,23 @@ fn head_of<'a>(state: &DetailsState<'a>, (read, is_stash): (&'a ReadDetails, boo
             text: &read.text,
             is_expanded: state.is_message_expanded,
         },
+        note: detail
+            .id
+            .as_ref()
+            .zip(detail.note.as_deref())
+            .map(|(commit, text)| super::NoteState {
+                commit,
+                text,
+                length: super::NoteLength::Cut {
+                    is_expanded: state.is_note_expanded,
+                },
+            }),
         detail: (!matches!(state.selected, Some(SelectedDetails::Draft(_)))).then_some(detail),
         read: detail,
         files: (detail.files.len(), state.layout),
         is_stash,
         signature: state.signature.filter(|read| read.is_shown()),
+        is_shallow_end: detail.id.as_ref().is_some_and(|id| state.shallow_ends.contains(id)),
     }
 }
 

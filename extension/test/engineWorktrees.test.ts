@@ -201,6 +201,18 @@ describe.skipIf(!built)('Worktrees, through the engine', { timeout: 60_000 }, ()
     expect((await worktreesOf(root)).filter((line) => line.startsWith('worktree '))).toHaveLength(1);
   });
 
+  it('worktree.lock and worktree.unlock: locks a worktree with the reason asked, then unlocks it, in the engine', async () => {
+    const root = await made(withWorktree);
+    const folder = worktreeOf(root, 'feature');
+    const locked = await runAction(root, { kind: 'worktreeLock', path: folder }, { reason: text('On the USB drive') });
+    expect(locked.lines).toEqual(['git worktree lock --reason On the USB drive <parent>/repo.worktrees/feature']);
+    const listed = async () => (await git(root, ['worktree', 'list', '--porcelain'])).stdout.split(/\r?\n/);
+    expect(await listed()).toContain('locked On the USB drive');
+    const unlocked = await runAction(root, { kind: 'worktreeUnlock', path: folder });
+    expect(unlocked.lines).toEqual(['git worktree unlock <parent>/repo.worktrees/feature']);
+    expect((await listed()).some((line) => line.startsWith('locked'))).toBe(false);
+  });
+
   it('opens a remote branch in a new worktree, on a local branch that tracks it', async () => {
     const root = await made(async (setup) => {
       await git(setup, ['branch', 'fix']);

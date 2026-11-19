@@ -94,6 +94,65 @@
   typed, each with its email and its commits; `Name <email>` typed adds someone who never committed. `Enter` keeps the
   ticks, `Escape` leaves the co-authors as they were. The next commit ends with a `Co-authored-by` line for each, and
   the menu lists them, each with × to take it away.
+- An operation that asks git for its progress has the last line of progress git printed under its title in the
+  **Activity** tab, changing as git prints: `Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s`.
+- **Clone a repository…**, on the Welcome page, in the menu of **+** of **Repositories**, on the timeline of a
+  workspace with no repository and as **Clone Repository…** in Quick search, clones a repository from its URL or its
+  folder on disk: the URL starts as the one on the clipboard, the folder that holds the clone is chosen in the system's
+  dialog, which starts where the last clone went, and the name of its folder is the name of the repository, refused
+  while typed when that folder is not empty. **Check out another branch than the remote's default one**, **Only the
+  last commits, a shallow clone** and **The submodules too, and theirs**, ticked, are the options. The clone shows in
+  the **Activity** tab with git's progress under it, then opens in a tab, or as the workspace when none is open.
+- **Create a repository…**, beside **Clone a repository…** and as **Create Repository…** in Quick search, runs
+  `git init` in a folder chosen, with the first branch of `init.defaultBranch`, or the one asked, `main` by default; a
+  folder that is a repository already is refused, and one inside a repository asks first. **Create a repository here**,
+  on the timeline of a workspace with no repository, makes it in the folder of the workspace.
+- A shallow clone says where its history ends: the line of a commit whose parents were not fetched goes on under its
+  dot, dashed, with a tooltip that says so; the inspector says **Not fetched** for its parents, with **Load more
+  history**; and the last row of the timeline says **The history ends here: this is a shallow clone.** with **Load
+  more history**, which fetches a number of commits further back, `100` by default (`git fetch --deepen`), and **Load
+  the whole history** (`git fetch --unshallow`), both in Quick search too while the repository is shallow.
+- **Ignore…**, in the menu of a file of the changes and in the context menu of a file or a folder of the Files page,
+  has git ignore it: the patterns offered are **This file**, **All `.log` files** and **The folder `logs`** for
+  `logs/today.log`, **This folder** and **Every folder named `node_modules`** for a folder, or one typed, each written
+  in the `.gitignore` of the repository, the one of the folder of the file, or the exclude file of the repository
+  (**Only on this computer**, not committed). A path some pattern ignores already is refused, with the pattern and its
+  file; on a file git tracks, **Stop tracking it, and keep it on disk** is offered too.
+- **Stop tracking, keep on disk…**, in the same menus, takes a file or a folder out of the index with
+  `git rm --cached`, after a warning: the file stays on disk, and its deletion is staged for the next commit. When git
+  refuses because the version staged is found nowhere else, **Stop tracking anyway** is offered, as destructive.
+- **Hide its changes from git…**, in the menu of a tracked file of the changes and of the Files page, has git leave the
+  changes of the file alone, skipped in the working tree (the default) or assumed unchanged: they stay on disk and out
+  of every commit. Such files are listed under the changes, in the page and in the section, as **Hidden from git 1**,
+  each marked **skip-worktree** or **assumed unchanged**, where a click shows its diff between the last commit and the
+  disk and **Show its changes to git again** brings it back, one file or all of them; the Files page marks them with a
+  struck eye. The files a sparse checkout leaves out are not listed.
+- **Save as archive…**, in the menu of a commit, a branch, a remote branch and a tag, saves its files in a zip or a
+  tar.gz with `git archive`: every file or one folder, chosen in a search of the folders of the commit; zip by default
+  on Windows and tar.gz elsewhere; the folder inside the archive, `<repository>-<name>/` by default or empty for none;
+  and the file, in the system's save dialog, which starts beside the repository.
+- **Lock…** in the menu of a worktree has git keep it whatever happens to its folder, with the reason typed, such as a
+  worktree on a drive that is not always plugged in; **Unlock** takes the lock away. A locked worktree has a lock after
+  its label in the Worktrees list and on its row in **Repositories**, whose tooltip says the reason, and one whose
+  folder is gone says `missing, locked`. **Remove…** and **Rename…** on a locked worktree say its reason first, then
+  unlock it, **Rename…** locking it again in its new folder; **Prune missing worktrees** is not offered while the only
+  missing worktree is locked; **Clean up branches…** lists the branch of a locked worktree unticked.
+- **Clean up…** in the menu of the row of the repository shown in **Repositories** says the room the repository takes,
+  `app takes 1.2 GB: 830 MB in 3 packs, and 45,210 loose objects in 380 MB.`, warns of what git deletes, then runs
+  `git gc`. **Look after it in the background…** in the same menu registers the repository for git's scheduled
+  maintenance with `git maintenance start`, after saying that git is then scheduled on the computer; it is ticked while
+  git looks after the repository, and ticked it runs `git maintenance unregister`, leaving the others registered.
+- The note of a commit, the text `git notes` keeps beside it, is shown under its message in the inspector and in the page
+  of the commit, in a block **Note**, its lines as they were written; a note of more than 12 lines is cut with **Show
+  more** in the inspector. The notes are those of the reference git uses, `refs/notes/commits` unless `core.notesRef`
+  names another.
+- **Add note…** in the menu of a commit writes its note, with `git notes add`; a commit with a note has **Edit note…**,
+  which proposes the note it has, and **Remove note**, also on the pencil and the **…** of the block **Note**. **Undo**
+  takes them back, putting the reference of notes where it was.
+- **Fetch notes** and **Push notes** in the menu of a remote in the branch rail, and **Fetch Notes…** and **Push
+  Notes…** in Quick search, bring the notes of a remote and send them, which `git fetch` and `git push` do not do by
+  themselves. When each side has notes the other has not, **Merge the notes** puts the two notes of a commit one after
+  the other; a push the remote refuses offers **Fetch notes**.
 
 ## 1.2.0 - 2026-11-18
 

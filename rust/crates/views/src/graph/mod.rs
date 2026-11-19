@@ -23,6 +23,7 @@ mod more_menu;
 mod panes;
 mod pull_request_badge;
 mod row;
+mod shallow_end;
 mod stashes;
 mod state;
 mod sticky;
@@ -61,6 +62,7 @@ pub use pull_request_badge::{
     PullRequestBadge, draw_pull_request_badge, pull_request_badge_tone, pull_request_badge_view,
     pull_request_badge_width,
 };
+pub use shallow_end::{ShallowEndState, fetch_more, shallow_end_view};
 pub use stashes::{StashEntry, StashRow, stash_intent, stash_menu, stashes_view};
 pub use state::{Awaited, DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};
 pub use sticky::{StickyName, StickyNames, sticky_branch_names_view, sticky_names};

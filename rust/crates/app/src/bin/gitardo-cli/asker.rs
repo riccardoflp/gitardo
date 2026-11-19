@@ -62,7 +62,9 @@ fn answer(kind: &QuestionKind, given: &str) -> Option<Answer> {
                 .collect(),
         )),
         QuestionKind::Confirm { .. } => (given == "yes").then_some(Answer::Confirmed),
-        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Some(Answer::Path(std::path::PathBuf::from(given))),
+        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) | QuestionKind::OpenFolder(_) => {
+            Some(Answer::Path(std::path::PathBuf::from(given)))
+        }
     }
 }
 

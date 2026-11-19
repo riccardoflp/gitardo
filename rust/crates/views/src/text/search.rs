@@ -8,7 +8,7 @@ use model::filter::BranchesShown;
 use model::search::{BoxMode, SearchMode};
 
 use super::filter;
-use crate::search::Narrowed;
+use crate::search::{Narrowed, QuickCommand};
 
 /// The button that steps to the previous match.
 pub const PREVIOUS_MATCH: &str = "Previous match (Shift+Enter, Shift+F3)";
@@ -240,14 +240,17 @@ pub fn commit_detail(author: &str) -> String {
 
 /// The name of a command of Quick search, as its card says it.
 #[must_use]
-pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
-    use crate::search::QuickCommand;
+pub fn command_name(command: QuickCommand) -> &'static str {
     match command {
         QuickCommand::OpenTimeline => "Open Timeline",
         QuickCommand::GoToCommit => "Go to Commit\u{2026}",
         QuickCommand::OpenCommitAsPage => "Open Commit as a Page\u{2026}",
         QuickCommand::Refresh => "Refresh",
         QuickCommand::OpenFolder => "Open folder\u{2026}",
+        QuickCommand::CloneRepository => "Clone Repository\u{2026}",
+        QuickCommand::CreateRepository => "Create Repository\u{2026}",
+        QuickCommand::LoadMoreHistory => "Load More History",
+        QuickCommand::LoadWholeHistory => "Load the Whole History",
         QuickCommand::SelectRepository => "Select Repository",
         QuickCommand::OpenWorkspaceFile => super::repo::OPEN_WORKSPACE_FILE,
         QuickCommand::OpenRepositoryInTab => "Open Repository in a Tab",
@@ -266,6 +269,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::ShowStashes => "Show Stashes",
         QuickCommand::Compare => "Compare Branches, Tags or Commits\u{2026}",
         QuickCommand::BrowseReflog => "Browse reflog",
+        QuickCommand::FetchNotes | QuickCommand::PushNotes => notes_command_name(command),
         QuickCommand::CleanUpBranches => "Clean up branches",
         QuickCommand::SetUpstream => "Set upstream of the current branch\u{2026}",
         QuickCommand::CheckTags => "Check tags on the remote",
@@ -312,5 +316,14 @@ fn later_command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::ToggleIgnoreWhitespace => crate::text::blame::TOGGLE_IGNORE_WHITESPACE,
         QuickCommand::ToggleEveryFile => crate::text::blame::TOGGLE_EVERY_FILE,
         _ => command_name(command),
+    }
+}
+
+/// The name of a command of Quick search on the notes of commits (`note.fetch`, `note.push`).
+fn notes_command_name(command: QuickCommand) -> &'static str {
+    if command == QuickCommand::PushNotes {
+        "Push Notes\u{2026}"
+    } else {
+        "Fetch Notes\u{2026}"
     }
 }

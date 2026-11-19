@@ -17,7 +17,9 @@ pub(super) fn check_answer(question: &Question, answer: &Answer) -> Result<(), E
         }
         (QuestionKind::Confirm { .. }, Answer::Confirmed)
         | (QuestionKind::PickMany { .. }, Answer::Choices(_))
-        | (QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_), Answer::Path(_)) => None,
+        | (QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) | QuestionKind::OpenFolder(_), Answer::Path(_)) => {
+            None
+        }
         _ => Some(Text::from("This is not the kind of answer the question asks for")),
     };
     match problem {

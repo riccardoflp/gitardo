@@ -38,7 +38,7 @@ pub(crate) const ACCEPT_SIMPLE: Icon = Icon::CheckAll;
 /// Add: stage a file or a change, take a side into the result, a new terminal, a submodule, a tab.
 pub(crate) const ADD: Icon = Icon::Plus;
 
-/// Unstage.
+/// Unstage; take a file out of the index, leaving it on disk.
 pub(crate) const UNSTAGE: Icon = Icon::Minus;
 
 /// Back to how it was: discard the changes of a file, revert a change, Undo.
@@ -56,10 +56,10 @@ pub(crate) const SEARCH: Icon = Icon::Search;
 /// Filter what is shown or listed.
 pub(crate) const FILTER: Icon = Icon::Filter;
 
-/// Show, show beside.
+/// Show, show beside; show the changes of a file to git again.
 pub(crate) const SHOW: Icon = Icon::Eye;
 
-/// Hide.
+/// Hide: from what is shown, or from git, by ignoring a file or hiding its changes.
 pub(crate) const HIDE: Icon = Icon::EyeOff;
 
 /// Branch.
@@ -303,9 +303,12 @@ pub(crate) const SIGNATURE: Icon = Icon::Shield;
 /// The co-authors of a commit (`commit.options`, `commit.co-authors`).
 pub(crate) const CO_AUTHORS: Icon = Icon::Users;
 
+/// A worktree git keeps whatever happens to its folder; lock one (`worktree.locked`).
+pub(crate) const LOCK: Icon = Icon::Lock;
+
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 96] = [
+pub(crate) const MEANINGS: [(&str, Icon); 97] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -426,4 +429,5 @@ pub(crate) const MEANINGS: [(&str, Icon); 96] = [
     ("How the timeline is shown: the menu of the view", VIEW_MENU),
     ("The signature of a commit, and signing one", SIGNATURE),
     ("The co-authors of a commit", CO_AUTHORS),
+    ("A locked worktree; lock one", LOCK),
 ];

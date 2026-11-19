@@ -27,22 +27,26 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "submodule.update-to-recorded" => super::CHECK_OUT,
         "branch.create" | "branch.create-orphan" | "stash.branch" => super::CREATE_BRANCH,
         "tag.create" => super::TAG,
-        "branch.rename" | "worktree.rename" | "message.edit" => super::RENAME,
+        "branch.rename" | "worktree.rename" | "message.edit" | "note.edit" => super::RENAME,
         "branch.delete"
         | "branch.clean-up"
         | "tag.delete"
         | "tag.delete-remote"
         | "remote.delete-branch"
-        | "stash.drop" => super::DELETE,
+        | "stash.drop"
+        | "upkeep.clean-up"
+        | "note.remove" => super::DELETE,
         "sync.sync" => super::SYNC,
-        "sync.fetch" => super::FETCH,
+        "sync.fetch" | "note.fetch" => super::FETCH,
         "sync.pull" | "sync.pull-with" | "branch.fast-forward" | "submodule.update-to-latest" => super::PULL,
-        "sync.push" | "sync.push-force-with-lease" | "sync.push-force" | "tag.push" | "tag.push-all" => super::PUSH,
+        "sync.push" | "sync.push-force-with-lease" | "sync.push-force" | "tag.push" | "tag.push-all" | "note.push" => {
+            super::PUSH
+        }
         "merge.into-current" | "merge.choose-way" => super::MERGE,
         "cherry-pick.commit" | "selection.cherry-pick" => super::CHERRY_PICK,
         "revert.commit" | "undo.last" | "changes.discard" | "changes.discard-all" | "settings.reset" => super::UNDO,
         "commits.copy-hash" | "commits.copy-message" | "patch.copy" => super::COPY,
-        "patch.save" => super::SAVE,
+        "patch.save" | "archive.save" => super::SAVE,
         "compare.with"
         | "compare.with-current"
         | "compare.selected-before"
@@ -51,7 +55,9 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "details.compare-file-with" => super::COMPARE,
         "bisect.start" | "bisect.mark" => super::BISECT,
         "changes.stage" | "changes.stage-all" | "conflicts.mark-resolved" => super::ADD,
-        "changes.unstage" | "changes.unstage-all" => super::UNSTAGE,
+        "changes.unstage" | "changes.unstage-all" | "changes.stop-tracking" => super::UNSTAGE,
+        "changes.ignore" | "changes.skip" => super::HIDE,
+        "changes.unskip" => super::SHOW,
         "stash.push" | "stash.push-staged" | "stash.push-file" => super::STASH,
         "stash.apply" => super::APPLY,
         "stash.pop" => super::POP,
@@ -69,7 +75,8 @@ fn history_icon(feature: &str) -> Option<Icon> {
     Some(icon)
 }
 
-/// The icon of an operation on a worktree or a submodule, as a place on the disk: opened, revealed, copied, removed.
+/// The icon of an operation on a worktree, a submodule or a repository, as a place on the disk: made, opened,
+/// revealed, copied, removed; a clone fetches its repository.
 fn place_icon(feature: &str) -> Option<Icon> {
     let icon = match feature {
         "worktree.create"
@@ -84,10 +91,12 @@ fn place_icon(feature: &str) -> Option<Icon> {
         "worktree.reveal" | "submodule.reveal" => super::REVEAL,
         "worktree.show-in-gitardo" | "submodule.show-in-gitardo" => super::SHOW,
         "worktree.copy-path" | "submodule.copy-path" | "submodule.copy-url" => super::COPY,
+        "worktree.lock" => super::LOCK,
         "worktree.remove" | "worktree.prune" | "submodule.remove" => super::DELETE,
         "submodule.initialize" => super::SUBMODULE,
         "submodule.deinitialize" => super::NOT_INITIALIZED,
-        "submodule.add" | "submodule.stage-recorded" => super::ADD,
+        "submodule.add" | "submodule.stage-recorded" | "repo.init" => super::ADD,
+        "repo.clone" => super::FETCH,
         _ => return None,
     };
     Some(icon)

@@ -43,7 +43,7 @@ fn summaries() -> Vec<WorktreeSummary> {
 fn version_1_10_is_spoken_by_an_engine_of_version_1_and_is_not_read_as_1_1() {
     assert_eq!(
         VERSION, "1.11",
-        "1.11 added Ask Gitardo (milestone M31) and the number of a pull request (milestone M37)"
+        "1.11 added Ask Gitardo (milestone M31), clones (milestone M32), the number of a pull request (milestone M37) and notes (milestone M40)"
     );
     assert!(is_compatible("1.10"));
     assert!(is_compatible("1.9"));
@@ -80,6 +80,7 @@ fn the_folders_followed_their_summaries_and_a_change_seen_in_one_are_read_back_a
         is_main: false,
         is_current: false,
         is_missing: false,
+        locked: None,
         uncommitted: None,
     };
     let result = SummariesResult {

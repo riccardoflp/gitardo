@@ -1,5 +1,6 @@
 //! The files of the working tree, as the Changes page lists them and the operations on them name them.
 
+mod ignore;
 mod list;
 mod marks;
 mod open;
@@ -7,6 +8,7 @@ mod unsaved;
 
 use std::ffi::OsString;
 
+pub use ignore::{IgnoreChoices, IgnoreInput, IgnorePattern, IgnorePlace, ignore_patterns, with_line};
 pub use list::{ChangeRow, ChangesInput, ChangesList, FileStatus, StagedBox, list};
 pub use marks::{FolderMark, MarkedFile, TreeMark, TreeMarks, tree_marks};
 pub use open::{OpenAction, OpenInput, OpenOnClick, OpenTarget, OpenVersion, PageRequest, open, open_all};

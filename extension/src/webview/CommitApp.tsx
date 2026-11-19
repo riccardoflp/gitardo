@@ -7,6 +7,7 @@ import { LabelIcons, labelTitle } from './CommitList';
 import { FileChanges } from './FileChanges';
 import { FileRow } from './FileRow';
 import { Icon } from './Icon';
+import { NoteBlock } from './NoteBlock';
 import { fileMenu } from './menus';
 import { fullDate, shortHash } from './util';
 import { SignatureLine, useSignature } from './Signature';
@@ -30,18 +31,25 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
   // The changes of the files are in the page only once asked for.
   const [diffs, setDiffs] = useState(false);
   const page = useRef<HTMLElement>(null);
+  // Where the reference of notes was at the last state, which tells when to read the note again.
+  const notesTip = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     const stop = onMessage((message) => {
-      if (message.type === 'state') setState(message.state);
-      else if (message.type === 'detail' && message.hash === hash) setDetail(message.detail);
+      if (message.type === 'state') {
+        setState(message.state);
+        // The note of the commit is read again when the reference of notes moved, as after Edit note….
+        const tip = message.state?.root === root ? (message.state.notes?.tip ?? null) : undefined;
+        if (tip !== undefined && notesTip.current !== undefined && tip !== notesTip.current) post({ type: 'getDetail', hash });
+        if (tip !== undefined) notesTip.current = tip;
+      } else if (message.type === 'detail' && message.hash === hash) setDetail(message.detail);
       else if (message.type === 'patch' && message.hash === hash) setPatch(message.patch);
     });
     post({ type: 'ready' });
     post({ type: 'getDetail', hash });
     post({ type: 'getPatch', hash });
     return stop;
-  }, [hash]);
+  }, [hash, root]);
   // Asked once the details are drawn, so that they never wait for it (`details.signature`).
   const signature = useSignature(hash, Boolean(detail));
 
@@ -79,6 +87,11 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
             </div>
           )}
           {message.text && <pre className="body">{message.text}</pre>}
+          {detail.note && (
+            <NoteBlock hash={id} editable={state?.root === root}>
+              <pre className="body">{detail.note}</pre>
+            </NoteBlock>
+          )}
           <dl>
             {author && (
               <>

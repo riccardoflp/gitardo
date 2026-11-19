@@ -13,6 +13,7 @@ use ui::{
 use super::ChangesRepository;
 use super::actions::{buttons_kept, conflict_actions, file_actions, heading_actions, open_page, run, staying};
 use super::menu::{RowMenuState, more_menu, row_menu};
+use super::skipped::{SkippedListState, SkippedRow, skipped_list, skipped_rows};
 use crate::conflicts::{OpenFileState, open_file_row};
 use crate::details::{CappedList, FileRow, FilesOwner, FilesState, directory_row, file_rows};
 use crate::intent::Intent;
@@ -31,6 +32,17 @@ enum ChangesRow<'a> {
     File(FileRow<'a>),
     /// **No changes**.
     NoChanges,
+    /// A row of the files hidden from git (`changes.skipped-list`).
+    Hidden(SkippedRow),
+}
+
+/// The group of the files hidden from git, as the list draws it.
+fn skipped_state<'a>(state: &ChangesRepository<'a>) -> SkippedListState<'a> {
+    SkippedListState {
+        files: state.skipped,
+        is_folded: state.is_hidden_folded,
+        is_running: state.is_running,
+    }
 }
 
 /// The files of the list as the lists of files of the window lay them out, every one shown.
@@ -94,7 +106,8 @@ fn row_path<'a>(state: &ChangesRepository<'a>, row: &ChangesRow<'_>) -> Option<&
         | ChangesRow::Conflict(_)
         | ChangesRow::ChangesHeading
         | ChangesRow::File(FileRow::Directory { .. })
-        | ChangesRow::NoChanges => None,
+        | ChangesRow::NoChanges
+        | ChangesRow::Hidden(_) => None,
     }
 }
 
@@ -109,10 +122,11 @@ fn changes_rows<'a>(state: &ChangesRepository<'_>, files: &[FileRow<'a>]) -> Vec
         if state.list.conflicts.is_empty() {
             rows.push(ChangesRow::NoChanges);
         }
-        return rows;
+    } else {
+        rows.push(ChangesRow::ChangesHeading);
+        rows.extend(files.iter().copied().map(ChangesRow::File));
     }
-    rows.push(ChangesRow::ChangesHeading);
-    rows.extend(files.iter().copied().map(ChangesRow::File));
+    rows.extend(skipped_rows(&skipped_state(state)).into_iter().map(ChangesRow::Hidden));
     rows
 }
 
@@ -132,6 +146,7 @@ fn draw_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, row): (Rect, 
             let _ = ui.label(rect, &Label::new(words::NO_CHANGES).tone(Tone::Muted));
             Vec::new()
         }
+        ChangesRow::Hidden(row) => skipped_list(&skipped_state(state), ui, (rect, row)),
     }
 }
 

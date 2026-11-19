@@ -43,7 +43,7 @@ impl RowAction {
     }
 
     /// An action that changes the repository or a file.
-    fn changes(words: &'static str, icon: Icon, intent: Intent) -> RowAction {
+    pub(super) fn changes(words: &'static str, icon: Icon, intent: Intent) -> RowAction {
         RowAction {
             words,
             icon,
@@ -82,7 +82,8 @@ pub(super) fn open_page(row: &ChangeRow, action: OpenAction, on_click: OpenOnCli
 
 /// What can be done to a changed file, in the order its menu lists them: **Open changes** and **Open file**, the
 /// second only while the file is still on disk; then **Stage**, or **Unstage** on a file wholly staged, **Discard
-/// changes** and **Stash this file…**; then **Save** on a file with edits not saved. A file only an editor has changed
+/// changes** and **Stash this file…**; then **Ignore…** and, on a file git tracks, **Stop tracking, keep on disk…** and
+/// **Hide its changes from git…**, on a file still on disk; then **Save** on a file with edits not saved. A file only an editor has changed
 /// has **Save** and **Compare with the saved file**, whose operation comes later.
 #[must_use]
 pub fn file_actions(row: &ChangeRow) -> Vec<RowAction> {
@@ -113,6 +114,16 @@ pub fn file_actions(row: &ChangeRow) -> Vec<RowAction> {
     ));
     let stash = run("stash.push-file", Target::Files(vec![row.path.clone()]));
     actions.push(RowAction::changes(words::STASH_FILE, icons::STASH, stash));
+    if row.status != FileStatus::Changed(ChangeKind::Deleted) {
+        let ignore = run("changes.ignore", file());
+        actions.push(RowAction::changes(words::IGNORE, icons::HIDE, ignore).starting_group());
+        if row.status != FileStatus::Untracked {
+            let stop = run("changes.stop-tracking", file());
+            actions.push(RowAction::changes(words::STOP_TRACKING, icons::UNSTAGE, stop));
+            let hide = run("changes.skip", file());
+            actions.push(RowAction::changes(words::HIDE_FROM_GIT, icons::HIDE, hide));
+        }
+    }
     if row.is_unsaved {
         actions.push(RowAction::changes(words::SAVE, icons::SAVE, save).starting_group());
     }

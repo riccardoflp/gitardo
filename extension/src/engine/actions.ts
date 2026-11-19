@@ -137,6 +137,22 @@ export function engineRuns(
       return [{ feature: 'tag.push-all', target: { kind: 'head' } }];
     case 'deleteTagOnRemote':
       return [{ feature: 'tag.delete-remote', target: { kind: 'tag', name: action.name }, answers: action.here ? { here: { kind: 'flag', value: true } } : {} }];
+
+    // Notes, archives and upkeep (M40).
+    case 'editNote':
+      return [{ feature: 'note.edit', target: { kind: 'commit', commit: action.hash } }];
+    case 'removeNote':
+      return [{ feature: 'note.remove', target: { kind: 'commit', commit: action.hash } }];
+    case 'fetchNotes':
+      return [{ feature: 'note.fetch', target: { kind: 'remote', name: action.remote } }];
+    case 'pushNotes':
+      return [{ feature: 'note.push', target: { kind: 'remote', name: action.remote } }];
+    case 'saveArchive':
+      return [{ feature: 'archive.save', target: targetOf(action.at, state) }];
+    case 'cleanUp':
+      return [{ feature: 'upkeep.clean-up', target: { kind: 'head' } }];
+    case 'lookAfter':
+      return [{ feature: action.start ? 'upkeep.start-background' : 'upkeep.stop-background', target: { kind: 'head' } }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
     case 'merge':
       if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];
@@ -217,6 +233,10 @@ export function engineRuns(
       return isHome(action.path, state) ? null : [{ feature: 'worktree.rename', target: { kind: 'worktree', folder: action.path } }];
     case 'worktreePrune':
       return [{ feature: 'worktree.prune', target: { kind: 'head' } }];
+    case 'worktreeLock':
+      return [{ feature: 'worktree.lock', target: { kind: 'worktree', folder: action.path } }];
+    case 'worktreeUnlock':
+      return [{ feature: 'worktree.unlock', target: { kind: 'worktree', folder: action.path } }];
     case 'worktreeSetUp':
       return action.path
         ? [{ feature: 'worktree-setup.bring-into-worktree', target: { kind: 'worktree', folder: action.path } }]

@@ -62,6 +62,26 @@ pub const OPEN_CHANGES: &str = "Open changes";
 pub const SAVE: &str = "Save";
 /// **Stash this file…**.
 pub const STASH_FILE: &str = "Stash this file\u{2026}";
+/// **Ignore…**, which has git ignore the file by a pattern (`changes.ignore`).
+pub const IGNORE: &str = "Ignore\u{2026}";
+/// **Stop tracking, keep on disk…** (`changes.stop-tracking`).
+pub const STOP_TRACKING: &str = "Stop tracking, keep on disk\u{2026}";
+/// **Hide its changes from git…** (`changes.skip`).
+pub const HIDE_FROM_GIT: &str = "Hide its changes from git\u{2026}";
+/// **Show its changes to git again** (`changes.unskip`).
+pub const SHOW_TO_GIT: &str = "Show its changes to git again";
+/// **Show all to git again**, in **…** of the heading of the files hidden from git.
+pub const SHOW_ALL_TO_GIT: &str = "Show all to git again";
+/// The heading of the files hidden from git, before their count (`changes.skipped-list`).
+pub const HIDDEN_FROM_GIT: &str = "Hidden from git";
+/// The name of **…** on the heading of the files hidden from git.
+pub const MORE_FOR_HIDDEN: &str = "More for the files hidden from git";
+/// A file hidden from git with `--skip-worktree`.
+pub const SKIP_WORKTREE: &str = "skip-worktree";
+/// A file hidden from git with `--assume-unchanged`.
+pub const ASSUMED_UNCHANGED: &str = "assumed unchanged";
+/// The tooltip of a file hidden from git.
+pub const HIDDEN_TOOLTIP: &str = "Git does not look at the changes of this file: they stay out of every commit.";
 /// **Discard changes**.
 pub const DISCARD: &str = "Discard changes";
 /// **Compare with the saved file**.

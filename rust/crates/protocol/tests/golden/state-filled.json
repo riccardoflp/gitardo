@@ -52,6 +52,7 @@
       "isMain": true,
       "isCurrent": true,
       "isMissing": false,
+      "locked": "On the USB drive",
       "uncommitted": 3
     }
   ],
@@ -131,5 +132,23 @@
         }
       }
     }
-  ]
+  ],
+  "shallow": [
+    "2222222222222222222222222222222222222222"
+  ],
+  "skipped": [
+    {
+      "path": "config/local.json",
+      "skipWorktree": true,
+      "assumeUnchanged": false
+    }
+  ],
+  "isLookedAfter": true,
+  "notes": {
+    "reference": "refs/notes/commits",
+    "tip": "7777777777777777777777777777777777777777",
+    "commits": [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ]
+  }
 }

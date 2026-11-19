@@ -296,6 +296,58 @@ pub enum Query {
         /// The key just typed, when one was.
         key: Option<crate::ai::Key>,
     },
+    /// The names of what is in a folder and is not an empty folder, a file or a folder with something in it, which the
+    /// folder of a clone cannot be (`repo.clone`). The answer is [`super::Answer::Names`], sorted.
+    TakenNames {
+        /// The folder.
+        folder: std::path::PathBuf,
+    },
+    /// The top folder of the repository a folder is in (`git rev-parse --show-toplevel`, run in it), for `repo.init`.
+    /// The answer is [`super::Answer::Paths`]: that folder, or none when the folder is in no repository.
+    RepositoryAround {
+        /// The folder.
+        folder: std::path::PathBuf,
+    },
+    /// The first branch a new repository gets from git's configuration (`git config --get init.defaultBranch`, run in
+    /// a folder), for `repo.init`. The answer is [`super::Answer::Names`]: that name, or none when nothing sets it.
+    DefaultBranch {
+        /// The folder.
+        folder: std::path::PathBuf,
+    },
+    /// The file and the pattern that ignore a path already (`git check-ignore -v -z --no-index`), for
+    /// `changes.ignore`. The answer is [`super::Answer::Names`]: the file and the pattern, or none when nothing ignores
+    /// it.
+    IgnoredBy {
+        /// The path from the top of the working tree, with `/`.
+        path: String,
+    },
+    /// How much room the objects of the repository take (`git count-objects -v`, `upkeep.read-size`), for
+    /// `upkeep.clean-up`. The answer is [`super::Answer::Names`]: the numbers of
+    /// [`crate::upkeep::RepositorySize::to_names`].
+    RepositorySize,
+    /// The folders of a commit, at any depth (`git ls-tree -r -d --name-only -z <revision>`), for `archive.save`. The
+    /// answer is [`super::Answer::Names`]: their paths, with `/`.
+    CommitFolders {
+        /// The commit, or the full name of a branch or a tag.
+        revision: String,
+    },
+    /// The text of the note of a commit as it was written (`git notes show <hash>`), for `note.edit`. The answer is
+    /// [`super::Answer::Text`], empty when the commit has no note.
+    Note {
+        /// The commit.
+        commit: crate::CommitId,
+    },
+    /// Whether a remote has a reference of notes (`git ls-remote <remote> <reference>`), for `note.fetch`. The answer
+    /// is [`super::Answer::Flag`].
+    RemoteNotes {
+        /// The remote.
+        remote: String,
+        /// The reference of notes: `refs/notes/commits`.
+        reference: String,
+    },
+    /// The exclude file of the repository, in full (`git rev-parse --git-path info/exclude`), for `changes.ignore`.
+    /// The answer is [`super::Answer::Path`].
+    ExcludeFile,
     /// The links in worktrees to folders outside them, which git on Windows would empty when it removes a worktree
     /// (`worktree.read-folder-links`), for every worktree named. The answer is [`super::Answer::Paths`].
     FolderLinks {

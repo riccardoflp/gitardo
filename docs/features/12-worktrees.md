@@ -16,10 +16,12 @@ Worktrees list, the picker of **Switch worktree…** and the rules about branche
 - **Function**: `git::read::worktree::read_list(git, request) -> Result<Vec<Worktree>, GitError>`
 - **Reads**: `git worktree list --porcelain -z`, run in the folder the views show. For each worktree: its folder, the
   commit it has checked out, its branch or none (detached), whether it is the main worktree (the first one listed, the
-  folder the repository was created in), whether it is the folder the views show, and whether it is missing (listed as
-  `prunable`). Then, for every worktree other than the one the views show and other than a missing one, all at once:
-  `git -C <folder> status --porcelain=v2 -z --untracked-files=all`, whose entries are counted: staged, not staged and
-  untracked alike. The count of the worktree the views show is the count of the Changes page, read already.
+  folder the repository was created in), whether it is the folder the views show, whether it is missing (listed as
+  `prunable`), and whether it is locked, with its reason (`locked`); the folder of a locked worktree is looked for on
+  disk, since git never says one is `prunable` (`worktree.locked`). Then, for every worktree other than the one the
+  views show and other than a missing one, all at once: `git -C <folder> status --porcelain=v2 -z
+  --untracked-files=all`, whose entries are counted: staged, not staged and untracked alike. The count of the worktree
+  the views show is the count of the Changes page, read already.
 - **Uses**: `repo.read-state`.
 - **Extension**: read by the engine with the state of the repository, each time the views read it: `Reads.parts` in
   `src/engine/reads.ts` asks for `repo.read-state`, whose worktrees and counts the views show as they come.
@@ -282,17 +284,19 @@ What each row shows:
 
 - Its label: its path from the folder of the worktrees, or the name of its folder (`worktree.folder-path`).
 - Its branch, or `detached`, then `↑n` for the commits its branch has that its upstream has not, and `↓m` the other way
-  round, when it has an upstream; `missing` instead of all that when its folder is gone.
+  round, when it has an upstream; `missing` instead of all that when its folder is gone, `missing, locked` when it is
+  locked too.
+- A lock after its label while it is locked, whose reason its tooltip says (`worktree.locked`).
 - A pencil with the number of its files not committed, when there are some.
 - Its open pull request, colored by the result of its checks.
 - The worktree the views show is marked as current.
 - Its tooltip says the same in words: its folder, `<branch> → <upstream>`, how many files are not committed, the pull
   request.
 
-The title of the list has **…**, which has **Create worktree…**, **Switch worktree…**,
-**Choose what new worktrees get…**, **Bring ignored files into the other worktrees…** while there is another worktree
-that is not missing, and **Prune missing worktrees** while one is missing. A double click on a row opens it as
-`worktree.open` does, except on the current one and on a missing one, where it does nothing. Its context menu is the
+The title of the list has **…**, which has **Create worktree…**, **Switch worktree…**, **Choose what new worktrees
+get…**, **Bring ignored files into the other worktrees…** while there is another worktree that is not missing, and
+**Prune missing worktrees** while one is missing and not locked. A double click on a row opens it as `worktree.open`
+does, except on the current one and on a missing one, where it does nothing. Its context menu is the
 one of the cards of this area: `worktree.open-in-new-window`, `worktree.open-in-editor`, `worktree.open-in-terminal`,
 `worktree.reveal`, `worktree.show-in-gitardo`, `worktree.show-in-graph`, `worktree.rename`, `worktree.copy-path`,
 `worktree-setup.bring-into-worktree`, `worktree.remove`, `worktree.prune`.
@@ -724,7 +728,8 @@ Has git forget the worktrees whose folders are gone, which frees their branches.
 - **Function**: `features::worktree::prune(context, answers) -> Outcome`
 - **Entry points**: **Prune missing worktrees** in the context menu of a worktree and in the **…** of the Worktrees
   list.
-- **Offered when**: at least one worktree is missing.
+- **Offered when**: at least one worktree is missing and not locked: git never prunes a locked one
+  (`worktree.locked`).
 - **Plan**: `git worktree prune`.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: git forgets only worktrees whose folders are gone.
@@ -752,7 +757,8 @@ plugged in is not forgotten by **Prune**, and is not removed or moved by mistake
 - **Kind**: Operation
 - **Function**: `features::worktree::lock(context, answers) -> Outcome`
 - **Entry points**: **Lock…** in the context menu of a worktree in the Worktrees list and of the row of a worktree in
-  **Repositories** (`repo.group-tabs`).
+  **Repositories** (`repo.group-tabs`). The rows of the worktrees in **Repositories** have no context menu yet, so the
+  entry is only in the Worktrees list (Q1452).
 - **Offered when**: the worktree is not the main worktree and is not locked; a missing worktree too, which is what a
   lock is most for.
 - **Asks**: **Why `<label>` is locked**, a text that may stay empty, with *On a drive that is not always plugged in* as
@@ -764,8 +770,8 @@ plugged in is not forgotten by **Prune**, and is not removed or moved by mistake
 - **Refuses**: on the main worktree, as git does: **Git cannot lock the main worktree, the folder the repository was
   created in.**
 - **Uses**: `worktree.locked`, `worktree.read-list`.
-- **Extension**: planned: **Lock…** in the context menu of a worktree in the Worktrees section, beside the graph and in
-  the Branches view, and of the row of a worktree in the **Gitardo Repositories** view (`worktreeMenu` in
+- **Extension**: **Lock…** in the context menu of a worktree in the Worktrees section, beside the graph and in the
+  Branches view, and of the row of a worktree in the **Gitardo Repositories** view (`worktreeMenu` in
   `src/webview/menus.ts`), sending `feature/run` of `worktree.lock` to the engine (`Controller.runOnEngine`), the reason
   asked in an input box of VS Code (`VscodeAsker`).
 
@@ -790,10 +796,11 @@ Takes the lock of `worktree.lock` away, so that **Prune**, **Remove…** and **R
 - **Offered when**: the worktree is locked.
 - **Plan**: `git worktree unlock <folder>`.
 - **Danger**: None.
-- **Undo**: Not taken back by Undo: **Lock…** locks it again, the reason it had proposed in its box.
+- **Undo**: Not taken back by Undo: **Lock…** locks it again. The reason it had is not proposed in its box: once
+  unlocked, git keeps no reason to read back (Q1453).
 - **After**: the row loses its lock; a missing worktree can then be pruned.
 - **Uses**: `worktree.locked`.
-- **Extension**: planned: **Unlock** in the same menus, sending `feature/run` of `worktree.unlock` to the engine.
+- **Extension**: **Unlock** in the same menus, sending `feature/run` of `worktree.unlock` to the engine.
 
 Acceptance:
 
@@ -813,8 +820,9 @@ locked worktree, which git refuses to remove or move and never prunes.
   folder of each locked worktree is looked for on disk, to know whether it is missing.
 - **Uses**: `worktree.read-list`, `worktree.section`, `worktree.remove`, `worktree.rename`, `worktree.prune`,
   `worktree.unlock`, `branch.clean-up`, `repo.group-tabs`.
-- **Extension**: the same rules, in the engine; the rows of the Worktrees section and of the **Gitardo Repositories**
-  view draw the lock as their tooltips say it: planned.
+- **Extension**: the same rules, in the engine; the rows of the Worktrees section draw the lock after the label, say
+  `missing, locked`, and their tooltips say the reason (`lockTitle` in `src/webview/menus.ts`). The rows of the
+  **Gitardo Repositories** view do not draw the lock yet (Q1454).
 
 Rules:
 

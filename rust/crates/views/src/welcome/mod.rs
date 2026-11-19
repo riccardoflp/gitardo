@@ -1,4 +1,5 @@
-//! The Welcome page (`welcome.page`): **Open folder…** and the recent workspaces, then five steps that show where the
+//! The Welcome page (`welcome.page`): **Open folder…**, **Clone a repository…**, **Create a repository…** and the
+//! recent workspaces, then five steps that show where the
 //! timeline, the branch rail and the inspector are and what to try first.
 
 use ui::layout::{Align, Area, Insets, inset, place};
@@ -28,8 +29,8 @@ pub struct WelcomeState<'a> {
     pub has_timeline: bool,
 }
 
-/// The Welcome page, over the rectangle its caller clipped it to: its title, **Open folder…**, the recent workspaces
-/// that open on a click, and the five steps, each ticked once done.
+/// The Welcome page, over the rectangle its caller clipped it to: its title, the buttons that open a workspace or make a
+/// repository, the recent workspaces that open on a click, and the five steps, each ticked once done.
 ///
 /// Feature cards that fill it further: the buttons of the steps that narrow the timeline, open a commit, a comparison,
 /// a file and a worktree, and the pictures of the steps, which are icons for now, with `filter.show-only`,
@@ -55,22 +56,8 @@ pub fn page_view(state: &WelcomeState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let _ = ui.scroll_area("welcome page", column_area, (width, height), |ui, content| {
             let mut column = Area::with_gap(inset(content, Insets::symmetric(0.0, spacing.huge)), spacing.large);
             let _ = ui.heading(column.top(line * 2.0), words::TITLE);
-            let open = Button::primary(words::OPEN_FOLDER).with_icon(icons::FOLDER);
-            let (open_width, open_height) = ui.button_size(&open);
-            let cell = place(
-                column.top(open_height),
-                (open_width, open_height),
-                (Align::Start, Align::Center),
-            );
-            if ui.button("open folder", cell, &open).clicked {
-                intents.push(Intent::OpenFolder);
-            }
-            let file = Button::secondary(crate::text::repo::OPEN_WORKSPACE_FILE);
-            let (file_width, file_height) = ui.button_size(&file);
-            let beside = Rect::new(cell.right() + spacing.medium, cell.y, file_width, file_height);
-            if ui.button("open workspace file", beside, &file).clicked {
-                intents.push(Intent::OpenWorkspaceFile);
-            }
+            let opening = column.top(theme.sizes.control_height);
+            open_buttons(ui, opening, &mut intents);
             if !state.recent.is_empty() {
                 recent(state.recent, ui, &mut column, &mut intents);
             }
@@ -82,6 +69,44 @@ pub fn page_view(state: &WelcomeState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         });
     });
     intents
+}
+
+/// The row of buttons that open a workspace or make a repository: **Open folder…**, **Clone a repository…**, **Create a
+/// repository…** and **Open workspace file…**.
+fn open_buttons(ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<Intent>) {
+    let gap = ui.theme().sizes.spacing.medium;
+    let open = Button::primary(words::OPEN_FOLDER).with_icon(icons::FOLDER);
+    let (open_width, open_height) = ui.button_size(&open);
+    let cell = place(row, (open_width, open_height), (Align::Start, Align::Center));
+    if ui.button("open folder", cell, &open).clicked {
+        intents.push(Intent::OpenFolder);
+    }
+    let mut right = cell.right();
+    for (id, words, intent) in [
+        (
+            "clone",
+            crate::text::repo::CLONE,
+            crate::repo::new_repository("repo.clone"),
+        ),
+        (
+            "create",
+            crate::text::repo::CREATE,
+            crate::repo::new_repository("repo.init"),
+        ),
+        (
+            "open workspace file",
+            crate::text::repo::OPEN_WORKSPACE_FILE,
+            Intent::OpenWorkspaceFile,
+        ),
+    ] {
+        let button = Button::secondary(words);
+        let (width, height) = ui.button_size(&button);
+        let beside = Rect::new(right + gap, cell.y, width, height);
+        right = beside.right();
+        if ui.button(id, beside, &button).clicked {
+            intents.push(intent);
+        }
+    }
 }
 
 /// A number of things, as a length to multiply.

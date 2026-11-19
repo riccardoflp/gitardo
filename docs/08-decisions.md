@@ -5533,6 +5533,46 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1185** — `changes.ignore`, `changes.stop-tracking`, `changes.skip`: in the extension the entries are planned in the
   **Gitardo Changes** view and in the context menu of VS Code's Explorer. Should they be in the Explorer, where VS Code
   and other extensions have many entries already, or in Gitardo's views alone?
+- **Q1450** — `changes.ignore`: the message after it says which pattern ignores the path, in which file, without
+  **Open `<file>`**: the messages after an operation have no button that opens a file at a line, only the operations
+  offered after it (`FollowUp::OfferRun`). Should a follow-up that says something with a button that opens a file be
+  added, for this and for the other operations that write a file?
+- **Q1452** — `worktree.lock`: the rows of the worktrees in **Repositories** have no context menu, so **Lock…** and
+  **Unlock** are only in the Worktrees list. Should those rows get the menu of a worktree, as the Worktrees list has it?
+- **Q1455** — `upkeep.clean-up`: the message after says the room the repository took, not the room it takes after
+  `git gc`, since a plan cannot read once its steps ended; and Quick search has no **Clean Up the Repository…** yet.
+  Should a plan get a follow-up that reads the size again, and Quick search the entry?
+- **Q1453** — `worktree.unlock`: **Lock…** after **Unlock** does not propose the reason the worktree had, since git
+  forgets it. Should the window keep the reason of each worktree it unlocked, while it is open, to propose it again?
+- **Q1454** — `worktree.locked`: in the extension, the rows of the **Gitardo Repositories** view do not draw the lock
+  of a worktree, since the summaries of that view are read apart from the state that carries `locked`. Should the
+  summary of a worktree carry its lock too?
+- **Q1456** — `archive.save`: Quick search has no **Save as Archive…**, which would ask the commit first, and the
+  message **Saved `<file>`** has no **Reveal in the file manager**, since the messages after an operation offer only
+  operations (`FollowUp::OfferRun`). Should Quick search get the entry, and a follow-up a button that reveals a file, as
+  Q1450 asks for one that opens a file?
+- **Q1451** — `changes.skipped-list`: a click on a file hidden from git opens its diff between the last commit and the
+  disk even when the two are the same, since the list knows only how the file is hidden, not whether it differs. Should
+  the read of the hidden files compare each with the last commit, so that one as committed opens its File page?
+- **Q1457** — `note.read`: the text of a note is read with the details of its commit, `git notes show <hash>`, rather
+  than `git cat-file blob` of the id that `git notes list` gives, since the details are read, in the window and for the
+  extension, without the list in hand; a commit with no note costs one run of git more when it is selected. Should the
+  read of the details be given the id of the note instead, read with the state?
+- **Q1458** — `note.fetch`, `note.push`: **Fetch notes** says **Fetched the notes of `<remote>`.** without how many
+  commits have a note, since a plan says what it planned and cannot read the repository once its steps ended; the
+  inspector shows the notes fetched. When the remote refuses **Push notes**, the message is git's own, under
+  **Fetch notes** (`note.fetch`), since a message the plan gives for its failure would show whatever git said.
+  **Fetch Notes…** and **Push Notes…** in Quick search run on the only remote and, with several, are refused with
+  where to choose one, the branch rail, rather than asking which. Should a follow-up read the count, the refusal be
+  matched on what git said, and Quick search ask the remote?
+- **Q1459** — notes and upkeep in the extension: the entries are in sentence case, as the other entries of the menus of
+  the webviews (**Add note…**, **Clean up…**), not in the title case the cards planned. The references list the remote
+  branches under one title, with no row for each remote, so **Fetch notes from `<remote>`** and **Push notes to
+  `<remote>`** are in the menu of that title, one for each remote. A note is asked in VS Code's input box, which takes
+  one line: a note of several lines is written in Gitardo Desktop. The block **Note** has a pencil and a bin rather
+  than a pencil and **…**, as the details have no menu button of their own. The upkeep is on the row of the repository
+  shown alone, as in Gitardo Desktop, since the engine runs on that one. Should the extension ask a note in an editor
+  tab, and should the references get a row for each remote?
 
 ### Of large files and remembered resolutions, from Q1190
 

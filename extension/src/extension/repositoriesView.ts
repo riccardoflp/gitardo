@@ -234,7 +234,14 @@ export class RepositoriesView implements vscode.Disposable {
     const state = this.state;
     const rows = repositoryRows({ repositories: this.repositories, summaries: this.summaries, state, running: this.running });
     // The menus of the rows of its worktrees and its submodules are made of these, as in the Branches view.
-    const shown = state && { root: state.root, home: state.home, agentsWindow: state.agentsWindow, worktrees: state.worktrees, submodules: state.submodules };
+    const shown = state && {
+      root: state.root,
+      home: state.home,
+      agentsWindow: state.agentsWindow,
+      worktrees: state.worktrees,
+      submodules: state.submodules,
+      isLookedAfter: state.isLookedAfter,
+    };
     return { type: 'repositories', rows, shown };
   }
 

@@ -58,6 +58,8 @@ pub enum QuestionKind {
     OpenFile(FileQuestion),
     /// Where to save a file, chosen in a dialog; the answer is its path.
     SaveFile(FileQuestion),
+    /// A folder, chosen in the dialog of the system; the answer is its path (`repo.clone`, `repo.init`).
+    OpenFolder(FileQuestion),
 }
 
 /// Where a dialog that chooses a file starts, and which files it shows.
@@ -152,6 +154,11 @@ pub enum Validation {
         /// The names of the local branches.
         branches: Vec<String>,
     },
+    /// The name of the folder of a clone: one new folder, or an empty one, in the folder that holds the clone
+    /// (`repo.clone`), with where the clone goes said while it is typed.
+    CloneFolder(Box<crate::repo::CloneFolderRule>),
+    /// A whole number of at least 1: how many commits (`repo.clone`, `sync.deepen`).
+    Count,
 }
 
 impl Validation {
@@ -182,6 +189,8 @@ impl Validation {
                 .is_none()
                 .then(|| Text::from("Type the number of a pull request")),
             Validation::PullRequestBranch { .. } => validate_name(text.trim()),
+            Validation::CloneFolder(rule) => rule.problem(text),
+            Validation::Count => count_problem(text),
         }
     }
 
@@ -191,7 +200,9 @@ impl Validation {
     pub fn hint(&self, text: &str) -> Option<Text> {
         match self {
             Validation::WorktreeName(rule) => rule.hint(text),
+            Validation::CloneFolder(rule) => rule.hint(text),
             Validation::Anything
+            | Validation::Count
             | Validation::ReferenceName { .. }
             | Validation::Url
             | Validation::NewMessage { .. }
@@ -210,6 +221,18 @@ impl Validation {
             }
         }
     }
+}
+
+/// What is wrong with a number of commits typed: **Enter a whole number of at least 1** for anything else.
+fn count_problem(text: &str) -> Option<Text> {
+    let is_count = text.trim().parse::<u32>().is_ok_and(|count| count >= 1);
+    (!is_count).then(|| Text::from("Enter a whole number of at least 1"))
+}
+
+/// The number of commits typed for a question of [`Validation::Count`], once it accepted it.
+#[must_use]
+pub fn count_of(text: &str) -> Option<u32> {
+    text.trim().parse::<u32>().ok().filter(|count| *count >= 1)
 }
 
 /// What is wrong with a value that must match a pattern: nothing typed, or a value it does not match. A pattern that

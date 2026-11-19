@@ -218,6 +218,11 @@ pub enum Undo {
 pub enum FollowUp {
     /// Say something to the user.
     Say(Text),
+    /// Remember the folder that held a clone, which the dialog of the next clone starts in (`cloneFolder`).
+    RememberCloneFolder(PathBuf),
+    /// Open a repository made from the window in a tab and show it: its folder added to the workspace, or made the
+    /// workspace when none is open (`repo.clone`, `repo.init`).
+    OpenRepository(PathBuf),
     /// Select the commit `HEAD` is at.
     SelectHead,
     /// Select a commit in the timeline, going to it as `graph.show-in-graph` does.

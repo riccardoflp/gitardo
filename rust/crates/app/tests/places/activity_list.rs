@@ -262,3 +262,45 @@ fn activity_status_bar__reads_one_after_the_other_are_one_entry_of_the_indicator
         "the fetch, which has run a fifth of a second, is not listed yet"
     );
 }
+
+#[test]
+fn activity_what_is_running__an_operation_that_asks_git_for_its_progress_has_its_last_line_under_its_title() {
+    let start = Instant::now();
+    let mut clone = engine::ActivityEntry {
+        number: 7,
+        description: model::contract::Text::from("Clone https://example.com/acme/lib.git into lib"),
+        cause: model::contract::Text::from("repo.clone"),
+        started: model::Timestamp(NOW),
+        since: start,
+        is_read: false,
+        progress: Some(String::from("Receiving objects:  12% (321/2671)")),
+    };
+    let mut clock = RunningClock::default();
+    let report = |entry: &engine::ActivityEntry| engine::ActivityReport {
+        running: vec![entry.clone()],
+        ended: Vec::new(),
+    };
+    let running = clock.tasks(&report(&clone), start + ms(800));
+    assert_eq!(
+        running.first().and_then(|task| task.detail.as_deref()),
+        Some("Receiving objects:  12% (321/2671)")
+    );
+    clone.progress = Some(String::from(
+        "Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s",
+    ));
+    let running = clock.tasks(&report(&clone), start + ms(1_600));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let tree = tab(
+        &mut window,
+        &ActivityState {
+            running: &running,
+            ran: &[],
+        },
+    );
+    for words in [
+        "Clone https://example.com/acme/lib.git into lib",
+        "Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s",
+    ] {
+        assert!(says(&tree, words), "{words}");
+    }
+}

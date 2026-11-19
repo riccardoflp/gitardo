@@ -24,6 +24,7 @@ pub fn worktree(folder: &str, branch: Option<&str>, (is_main, is_current, is_mis
         is_main,
         is_current,
         is_missing,
+        locked: None,
         uncommitted: (!is_missing).then_some(0),
     }
 }

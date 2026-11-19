@@ -71,6 +71,14 @@ pub(super) fn dot_of(shown: &ShownRow, read: Option<&Row>) -> Dot {
 pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row, report: &mut RowReport) {
     let layout = context.state.layout;
     let Some(shown) = layout.folded.rows.get(row.index) else {
+        if row.index == layout.len() && context.state.has_shallow_end() {
+            let end = super::shallow_end::ShallowEndState {
+                row: row.rect,
+                graph_width: context.graph_width,
+            };
+            report.intents.extend(super::shallow_end::shallow_end_view(&end, ui));
+            return;
+        }
         match context.state.awaited {
             Some(awaited) if row.index > layout.len() || !context.state.has_more => {
                 awaited_row(ui, context, awaited, row);
@@ -194,21 +202,27 @@ fn draw_graph(
         lane_width: context.lane_width,
         dot,
         is_unpushed: id.is_some_and(|id| layout.unpushed.contains_key(id)),
+        is_shallow_end: id.is_some_and(|id| context.state.shallow_ends.contains(id)),
     };
     let trace = trace_of(context, index);
     ui.clip(rect, |ui| draw_cell(ui, cell, &place, trace));
+    if place.is_shallow_end {
+        let response = dot_hover(ui, (rect, context.lane_width, cell.lane), ("shallow end", index));
+        ui.tooltip(&response, words::NOT_FETCHED_BEFORE);
+    }
     if let Some(upstream) = id.and_then(|id| layout.unpushed.get(id)) {
-        let center = Point::new(
-            super::cell::lane_x(rect, context.lane_width, cell.lane),
-            rect.y + rect.height * 0.5,
-        );
-        let side = ui.theme().sizes.graph_dot * 3.0;
-        let dot_rect = Rect::new(center.x - side * 0.5, center.y - side * 0.5, side, side);
-        let key = ("unpushed", index);
-        let id = ui.id(key);
-        let response = ui.interact(id, dot_rect, Sense::HOVER);
+        let response = dot_hover(ui, (rect, context.lane_width, cell.lane), ("unpushed", index));
         ui.tooltip(&response, &words::not_pushed_to(upstream));
     }
+}
+
+/// Whether the pointer is on the dot of a row, for the tooltip of the dot.
+fn dot_hover(ui: &mut Ui<'_>, (rect, lane_width, lane): (Rect, f32, usize), key: (&str, usize)) -> ui::Response {
+    let center = Point::new(super::cell::lane_x(rect, lane_width, lane), rect.y + rect.height * 0.5);
+    let side = ui.theme().sizes.graph_dot * 3.0;
+    let dot_rect = Rect::new(center.x - side * 0.5, center.y - side * 0.5, side, side);
+    let id = ui.id(key);
+    ui.interact(id, dot_rect, Sense::HOVER)
 }
 
 /// What the history brought out says of a row, and how strongly it is brought out; none while nothing is.

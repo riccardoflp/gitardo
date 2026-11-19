@@ -89,7 +89,7 @@ diff.
 - **Reads**: `details.read-commit`.
 - **Uses**: `details.message-title`, `details.message-unwrap`, `details.show-more`, `details.file-tree`,
   `details.show-all-files`, `details.compare-file-with`, `details.stash`, `commit-page.open`, `message.edit`,
-  `file-history.file`, the Diff page (`diff.page`), `compare.in-place` (which takes the place of the commit in the
+  `note.show`, `file-history.file`, the Diff page (`diff.page`), `compare.in-place` (which takes the place of the commit in the
   inspector).
 
 What it shows, from the top:
@@ -98,6 +98,7 @@ What it shows, from the top:
   changes**; not on the draft), and the pencil of `message.edit` where that is offered;
 - the title of the message in bold and the rest under it, as `details.message-title` and `details.message-unwrap` make
   them, cut by `details.show-more`;
+- the note of the commit, when it has one, in the block **Note** (`note.show`);
 - **Author** (the email in the tooltip), **Date**, **Committer** with its date only when the committer or the date
   differs from the author's, **Commit** with the short hash, which a click copies whole (**Copy full hash**),
   **Signature** for a signed commit (`details.signature`), and **Parent** or **Parents**, each short hash going to that commit in the timeline;
@@ -502,12 +503,13 @@ with the lines each gained and lost, and, on demand, what changed in each, in th
 - **Reads**: `details.read-commit`, `commit-page.read-patch`.
 - **Uses**: `details.message-title`, `details.message-unwrap`, `details.file-tree`, `details.show-all-files`,
   `details.compare-file-with`, `details.stash`, `commit-page.diff-lines`, `commit-page.initial-folds`,
-  `commit-page.show-in-graph`, the Diff page (`diff.page`), the colors of code of the Diff page.
+  `commit-page.show-in-graph`, `note.show`, the Diff page (`diff.page`), the colors of code of the Diff page.
 
 What it shows, from the top:
 
 - the title of the message, the labels of the commit (its branches, remote branches and tags, as the timeline draws
   them, while the window shows its repository), and the rest of the message;
+- the note of the commit, when it has one, whole, in the block **Note** (`note.show`);
 - **Author** with name and `<email>`, **Date**, **Committer** with name, `<email>` and date only when it differs from the
   author, **Commit** with the full hash, which a click copies (**Copy the hash**), **Signature** for a signed commit
   (`details.signature`), **Parent** or **Parents**, each of
@@ -661,19 +663,23 @@ Which commits have a note, and the text of the note of one commit.
 
 - **Kind**: Read
 - **Function**: `git::read::note::read(git: &Git, request: &NoteRequest) -> Result<Notes, GitError>`
-- **Reads**: `git notes list`, a line `<id of the note> <id of the commit>` for each commit with a note, in the
-  reference of notes git uses (Q1210); then, for the commit shown in the inspector or in a page,
-  `git cat-file blob <id of its note>`, its text as it was written. With no reference of notes, there are none.
+- **Reads**: `git notes get-ref`, the reference of notes git uses (Q1210), and
+  `git rev-parse --verify --quiet <reference>^{commit}`, the commit it is at; then, when it moved since the read
+  before, `git notes --ref=<reference> list`, a line `<id of the note> <id of the commit>` for each commit with a note.
+  The text of the note of the commit shown in the inspector or in a page is read with its details
+  (`details.read-commit`), `git notes show <hash>`, as it was written, rather than `git cat-file blob` of the id the
+  list gives, since the details are read without the list in hand, in the window and for the extension alike (Q1457).
+  With no reference of notes, there are none.
 - **Uses**: `repo.read-state`, with which the list is read, again only when the reference of notes moved
   (`repo.watch-changes`); by `note.show`.
-- **Extension**: read by the engine with the details of a commit: planned.
+- **Extension**: read by the engine with the details of a commit (`note` of `CommitDetail`, `notes` of the state): built.
 
 Acceptance:
 
-- [ ] With a note on `3f2a1c9`, the list has `3f2a1c9`, and the text read is the note as written, lines and all.
-- [ ] A repository with no `refs/notes/commits` reads no note and no error.
-- [ ] With `core.notesRef` set to `refs/notes/review`, the notes of that reference are read.
-- [ ] A read after a change to a file of the working tree only does not run `git notes list` again.
+- [x] With a note on `3f2a1c9`, the list has `3f2a1c9`, and the text read is the note as written, lines and all.
+- [x] A repository with no `refs/notes/commits` reads no note and no error.
+- [x] With `core.notesRef` set to `refs/notes/review`, the notes of that reference are read.
+- [x] A read after a change to a file of the working tree only does not run `git notes list` again.
 
 ### `note.show` — The note of a commit, in the inspector and in its page
 
@@ -685,8 +691,9 @@ The note of a commit under its message, wherever the commit is read.
   commit that has a note.
 - **Reads**: `note.read`.
 - **Uses**: `details.show`, `commit-page.view`, `note.edit`, `note.remove`, `ui.menu-icons`.
-- **Extension**: planned: the same block under the message in the details beside the graph (`Detail.tsx`) and in the
-  tab of a commit (`CommitApp.tsx`).
+- **Extension**: built: the same block under the message in the details beside the graph (`Detail.tsx`), cut with
+  **Show more**, and in the tab of a commit (`CommitApp.tsx`), with the pencil of **Edit note…** and the bin of
+  **Remove note** on its title; the note is read again when the reference of notes moves (Q1459).
 
 - Under the message, a block titled **Note**, with its text as it was written, lines kept as they are and not joined as
   those of a message are (Q1212), in the font of the message; in the inspector, a note of more than 12 lines is cut
@@ -697,11 +704,11 @@ The note of a commit under its message, wherever the commit is read.
 
 Acceptance:
 
-- [ ] Selecting a commit with the note `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector,
+- [x] Selecting a commit with the note `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector,
       and in its page.
-- [ ] A commit with no note shows no **Note**.
-- [ ] A note of three lines keeps its three lines.
-- [ ] The block matches its snapshots in each theme.
+- [x] A commit with no note shows no **Note**.
+- [x] A note of three lines keeps its three lines.
+- [x] The block matches its snapshots in each theme.
 
 ### `note.edit` — Add or edit the note of a commit
 
@@ -720,20 +727,21 @@ Writes the note of a commit, a new one or in place of the one it had.
 - **Undo**: Undo puts the reference of notes back where it was, from its reflog, which git keeps for `refs/notes/` as
   for branches: `git update-ref <reference> <before> <after>`, or `git update-ref -d <reference> <after>` when it was
   the first note (Q1215).
-- **After**: the block **Note** shows the new text.
-- **Refuses**: an empty text: **A note cannot be empty: remove it instead.**; the same text as the note has: nothing
-  runs.
+- **After**: the block **Note** shows the new text, read again once the reference of notes moved.
+- **Refuses**: an empty text: **A note cannot be empty: remove it instead.**, said while it is typed; the same text as
+  the note has: **The note is the same: nothing to change.**, and nothing runs; the draft and a stash: **Only a commit
+  has a note.**
 - **Uses**: `note.read`, `note.show`, `undo.last`.
-- **Extension**: planned: **Add Note…** and **Edit Note…** in the context menu of a commit in the graph, the text asked
-  in an input box of VS Code, sending `feature/run` of `note.edit` to the engine.
+- **Extension**: built: **Add note…** and **Edit note…** in the context menu of a commit in the graph, the text asked
+  in an input box of VS Code, which takes one line, sending `feature/run` of `note.edit` to the engine (Q1459).
 
 Acceptance:
 
-- [ ] **Add note…** on `3f2a1c9` with `Reviewed.` runs `git notes add -f -F - <hash>` with `Reviewed.` on its input,
+- [x] **Add note…** on `3f2a1c9` with `Reviewed.` runs `git notes add -f -F - <hash>` with `Reviewed.` on its input,
       and `git notes show <hash>` prints `Reviewed.` after.
-- [ ] **Edit note…** proposes the note it has, and the text changed replaces it.
-- [ ] **Undo** right after it gives the commit its note of before, or none.
-- [ ] An empty text is refused, and nothing runs.
+- [x] **Edit note…** proposes the note it has, and the text changed replaces it.
+- [x] **Undo** right after it gives the commit its note of before, or none.
+- [x] An empty text is refused, and nothing runs.
 
 ### `note.remove` — Remove the note of a commit
 
@@ -743,19 +751,19 @@ Takes the note of a commit away.
 - **Function**: `features::note::remove(context, answers) -> Outcome`
 - **Entry points**: **Remove note** in the **…** of the block **Note** and in the context menu of a commit that has a
   note in the timeline.
-- **Offered when**: the commit has a note.
+- **Offered when**: the commit has a note; otherwise it refuses: **`<short hash>` has no note.**
 - **Plan**: `git notes remove <hash>`.
 - **Danger**: None.
 - **Undo**: as `note.edit`, from the reflog of the reference of notes.
 - **After**: the block **Note** is gone.
 - **Uses**: `note.read`, `note.show`, `undo.last`.
-- **Extension**: planned: **Remove Note** in the context menu of a commit with a note in the graph and on the block of
+- **Extension**: built: **Remove note** in the context menu of a commit with a note in the graph and on the block of
   the note, sending `feature/run` of `note.remove` to the engine.
 
 Acceptance:
 
-- [ ] On a commit with a note it runs `git notes remove <hash>`, and the inspector shows no **Note** after.
-- [ ] **Undo** right after it gives the note back.
+- [x] On a commit with a note it runs `git notes remove <hash>`, and the inspector shows no **Note** after.
+- [x] **Undo** right after it gives the note back.
 
 ### `note.fetch` — Fetch the notes of a remote
 
@@ -764,7 +772,7 @@ Brings the notes of a remote into the reference of notes of the repository, whic
 - **Kind**: Operation
 - **Function**: `features::note::fetch(context, answers) -> Outcome`
 - **Entry points**: **Fetch notes** in the context menu of a remote in the branch rail; Quick search, **Fetch
-  Notes…**, which asks the remote when there are several.
+  Notes…**, on the only remote; with several it is refused with where to choose one (Q1458).
 - **Offered when**: the repository has a remote.
 - **Plan**: `git fetch <remote> <reference>:<reference>`, the reference of notes git uses (`refs/notes/commits`
   unless `core.notesRef` names another), which moves it only forward. When git refuses because each side has notes the
@@ -775,19 +783,20 @@ Brings the notes of a remote into the reference of notes of the repository, whic
   one after the other, without a line twice (Q1214).
 - **Danger**: None.
 - **Undo**: as `note.edit`, from the reflog of the reference of notes.
-- **After**: says how many commits have a note now; the inspector shows the notes fetched.
+- **After**: says **Fetched the notes of `<remote>`.** (Q1458); the inspector shows the notes fetched.
 - **Refuses**: a remote with no notes: **`<remote>` has no notes.**
 - **Uses**: `note.read`, `remote.read-remotes`, `undo.last`.
-- **Extension**: planned: **Fetch Notes** in the context menu of a remote among the references and in the Branches
-  view, sending `feature/run` of `note.fetch` to the engine.
+- **Extension**: built: **Fetch notes from `<remote>`**, one for each remote, in the menu of the title **Remotes**
+  among the references and in the Branches view, which have no row for each remote, sending `feature/run` of
+  `note.fetch` to the engine (Q1459).
 
 Acceptance:
 
-- [ ] From a remote whose notes are ahead, it runs `git fetch origin refs/notes/commits:refs/notes/commits`, and the
+- [x] From a remote whose notes are ahead, it runs `git fetch origin refs/notes/commits:refs/notes/commits`, and the
       notes fetched show in the inspector.
-- [ ] With a note added on each side, git's refusal is followed by **Merge the notes**, after which a commit noted on
+- [x] With a note added on each side, git's refusal is followed by **Merge the notes**, after which a commit noted on
       both sides shows both notes.
-- [ ] From a remote with no notes, it says so, and nothing changes.
+- [x] From a remote with no notes, it says so, and nothing changes.
 
 ### `note.push` — Push the notes to a remote
 
@@ -795,18 +804,19 @@ Sends the reference of notes to a remote, which `git push` does not do by itself
 
 - **Kind**: Operation
 - **Function**: `features::note::push(context, answers) -> Outcome`
-- **Entry points**: **Push notes** in the context menu of a remote in the branch rail; Quick search, **Push Notes…**.
+- **Entry points**: **Push notes** in the context menu of a remote in the branch rail, while the repository has notes;
+  Quick search, **Push Notes…**, on the only remote (Q1458).
 - **Offered when**: the repository has a reference of notes and a remote.
 - **Plan**: `git push <remote> <reference>`, the reference of notes git uses.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: the notes are on the remote.
-- **Refuses**: when the remote refuses because it has notes this repository has not: **`<remote>` has notes you do not
-  have: fetch them first.** with **Fetch notes** (`note.fetch`).
+- **Refuses**: a repository with no notes: **This repository has no notes to push.** When the remote refuses because
+  it has notes this repository has not, git's message with **Fetch notes** (`note.fetch`) (Q1458).
 - **Uses**: `note.fetch`, `remote.read-remotes`.
-- **Extension**: planned: **Push Notes** in the context menu of a remote, sending `feature/run` of `note.push` to the
-  engine.
+- **Extension**: built: **Push notes to `<remote>`** in the same menu, while the repository has notes, sending
+  `feature/run` of `note.push` to the engine (Q1459).
 
 Acceptance:
 
-- [ ] It runs `git push origin refs/notes/commits`, and a clone that fetches the notes then has them.
-- [ ] When the remote has a note this repository has not, the refusal offers **Fetch notes**.
+- [x] It runs `git push origin refs/notes/commits`, and a clone that fetches the notes then has them.
+- [x] When the remote has a note this repository has not, the refusal offers **Fetch notes**.

@@ -118,6 +118,8 @@ export function App({ compact = false }: { compact?: boolean }) {
   const comparingRef = useRef(comparing);
   comparingRef.current = comparing;
   const rootRef = useRef<string | null>(null);
+  // Where the reference of notes was at the last state, which tells when the note of the commit selected is read again.
+  const notesTipRef = useRef<string | null>(null);
   const findRef = useRef(find);
   findRef.current = find;
   const rowsRef = useRef<Row[]>([]);
@@ -197,7 +199,11 @@ export function App({ compact = false }: { compact?: boolean }) {
           // The list of uncommitted files is the only detail that goes stale.
           if (message.state?.changes) post({ type: 'getDetail', hash: WORKTREE });
           else select(null);
+        } else if (selectedRef.current && (next?.notes?.tip ?? null) !== notesTipRef.current) {
+          // And the note of a commit, when the reference of notes moved, as after Edit note….
+          post({ type: 'getDetail', hash: selectedRef.current });
         }
+        notesTipRef.current = next?.notes?.tip ?? null;
       } else if (message.type === 'detail') {
         if (message.hash === selectedRef.current) setDetail(message.detail);
       } else if (message.type === 'busy') {

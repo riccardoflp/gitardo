@@ -132,14 +132,16 @@ pub fn question(out: &mut dyn Write, question: &Question) -> io::Result<()> {
             }
         }
         QuestionKind::Confirm { accept } => writeln!(out, "  Answer {key}=yes to {accept}")?,
-        QuestionKind::OpenFile(file) | QuestionKind::SaveFile(file) => match &file.file_name {
-            Some(name) => writeln!(
-                out,
-                "  Answer with {key}=<path>, such as {}",
-                file.folder.join(name).display()
-            )?,
-            None => writeln!(out, "  Answer with {key}=<path>")?,
-        },
+        QuestionKind::OpenFile(file) | QuestionKind::SaveFile(file) | QuestionKind::OpenFolder(file) => {
+            match &file.file_name {
+                Some(name) => writeln!(
+                    out,
+                    "  Answer with {key}=<path>, such as {}",
+                    file.folder.join(name).display()
+                )?,
+                None => writeln!(out, "  Answer with {key}=<path>")?,
+            }
+        }
     }
     Ok(())
 }

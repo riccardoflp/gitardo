@@ -160,16 +160,7 @@ impl Git {
         take: &mut dyn FnMut(&[u8]) -> Result<Taken, GitError>,
     ) -> Result<(), GitError> {
         let line = command_line(arguments);
-        let mut child = self
-            .read_command(arguments)
-            .spawn()
-            .map_err(|source| match source.kind() {
-                std::io::ErrorKind::NotFound => GitError::NotFound { source },
-                _ => GitError::Process {
-                    command: line.clone(),
-                    source,
-                },
-            })?;
+        let mut child = spawn(self.read_command(arguments), &line)?;
         drop(child.stdin.take());
         let stderr = drain(child.stderr.take());
         let parts = parts(child.stdout.take());
@@ -275,6 +266,52 @@ impl Git {
         self.run(self.command(arguments), arguments, input)
     }
 
+    /// Runs a step of a plan as [`Git::run_step`] does, and gives all git printed on its standard error so far to
+    /// `printed` each time it prints more: the progress of a step that asks for it with `--progress`.
+    ///
+    /// # Errors
+    ///
+    /// When git cannot be started or is cancelled. A step that fails is not an error here: its output says so.
+    pub fn run_step_reporting<Argument: AsRef<OsStr>>(
+        &self,
+        arguments: &[Argument],
+        input: Option<&[u8]>,
+        printed: &mut dyn FnMut(&[u8]),
+    ) -> Result<Output, GitError> {
+        let line = command_line(arguments);
+        let mut child = spawn(self.command(arguments), &line)?;
+        let feeder = feed(child.stdin.take(), input.map(<[u8]>::to_vec));
+        let stdout = drain(child.stdout.take());
+        let parts = parts(child.stderr.take());
+        let mut stderr = Vec::new();
+        loop {
+            if self.cancel.is_cancelled() {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(GitError::Cancelled { command: line });
+            }
+            match parts.recv_timeout(CANCEL_CHECK) {
+                Ok(part) => {
+                    stderr.extend_from_slice(&part);
+                    printed(&stderr);
+                }
+                Err(RecvTimeoutError::Timeout) => {}
+                Err(RecvTimeoutError::Disconnected) => break,
+            }
+        }
+        let status = self.wait(&mut child, &line)?;
+        let stdout = stdout
+            .join()
+            .unwrap_or_else(|_| Ok(Vec::new()))
+            .map_err(|source| GitError::Process { command: line, source })?;
+        let _ = feeder.join();
+        Ok(Output {
+            code: status.code(),
+            stdout,
+            stderr,
+        })
+    }
+
     fn command<Argument: AsRef<OsStr>>(&self, arguments: &[Argument]) -> Command {
         let mut command = Command::new(&self.executable);
         let _ = command
@@ -297,18 +334,12 @@ impl Git {
 
     fn run<Argument: AsRef<OsStr>>(
         &self,
-        mut command: Command,
+        command: Command,
         arguments: &[Argument],
         input: Option<&[u8]>,
     ) -> Result<Output, GitError> {
         let line = command_line(arguments);
-        let mut child = command.spawn().map_err(|source| match source.kind() {
-            std::io::ErrorKind::NotFound => GitError::NotFound { source },
-            _ => GitError::Process {
-                command: line.clone(),
-                source,
-            },
-        })?;
+        let mut child = spawn(command, &line)?;
         let feeder = feed(child.stdin.take(), input.map(<[u8]>::to_vec));
         let stdout = drain(child.stdout.take());
         let stderr = drain(child.stderr.take());
@@ -355,6 +386,17 @@ impl Git {
             pause = (pause * 2).min(Duration::from_millis(5));
         }
     }
+}
+
+/// Starts a command; git not found on the `PATH` is said apart from any other reason it did not start.
+fn spawn(mut command: Command, line: &str) -> Result<Child, GitError> {
+    command.spawn().map_err(|source| match source.kind() {
+        std::io::ErrorKind::NotFound => GitError::NotFound { source },
+        _ => GitError::Process {
+            command: line.to_owned(),
+            source,
+        },
+    })
 }
 
 /// Reads all a pipe gives, on a thread of its own, so that a full pipe never stops the process.

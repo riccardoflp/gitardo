@@ -41,6 +41,7 @@ fn worktree(folder: &str, branch: &str, commit: char, is_current: bool) -> Workt
         is_main: is_current,
         is_current,
         is_missing: false,
+        locked: None,
         uncommitted: Some(2),
     }
 }

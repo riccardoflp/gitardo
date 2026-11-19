@@ -1038,7 +1038,7 @@ up; in VS Code, `@gitardo how do I put my changes aside` in the Chat answers wit
 Changes**; every card of the milestone is Built in both apps, and the snapshots of the page match in the dark and in the
 light theme.
 
-## M32 — Clone and create a repository, and the history of a shallow clone
+## M32 — Clone and create a repository, and the history of a shallow clone (done)
 
 The window clones a repository and creates one, where it could only open a folder already on disk, and a shallow clone
 says where its history ends and fetches more of it
@@ -1066,7 +1066,13 @@ there; the shallow history is *Planned* in the extension, for a later milestone.
    fetches behind them. Cards: `repo.read-shallow`, `repo.read-state`, `repo.watch-changes`, `graph.shallow-end`,
    `sync.deepen`, `sync.unshallow`.
 
-Nothing is built yet.
+Done: the four phases are built. The engine reads what git prints on its standard error while a step with
+`--progress` runs, and the row of the operation in the **Activity** tab says its last line; `repo.clone` and
+`repo.init` run with the context of no repository, from the Welcome page, the menu of **+**, the timeline of a
+workspace with no repository and Quick search, the folder of the last clone kept as `cloneFolder` (clone and create
+are one commit, since they share the question of a folder and their entries); the state says where the history of a
+shallow clone ends (`shallow` in the state of the protocol, 1.11), the timeline and the inspector show it, and
+`sync.deepen` and `sync.unshallow` fetch more of it. The shallow history stays *Planned* in the extension.
 
 Exit: on the Welcome page, **Clone a repository…** with the URL of a public repository, into a folder chosen, with
 nothing else ticked than the submodules, shows the clone in the **Activity** tab with git's progress under it, then
@@ -1369,7 +1375,23 @@ fourth brings the milestone to the extension.
    the Worktrees section, the group **Hidden from git** at the end of the **Gitardo Changes** view, and the lock on the
    rows of the worktrees, all run by the engine. Cards: the cards of the first three phases, in the extension.
 
-Nothing is built yet.
+Built so far: the first three phases. **Ignore…** in the menu of a file of the changes and of a file or a folder of the
+Files page offers the patterns of `changes.ignore-patterns` and the places each can be written in, asks git with
+`git check-ignore` whether the path is ignored already, and writes the line as one `write` step; on a tracked path it
+offers to stop tracking it, which **Stop tracking, keep on disk…** does alone too, with **Stop tracking anyway** when
+git refuses. The message after has no **Open `<file>`** yet (Q1450). The files hidden from git are read with the
+state, `git ls-files -v` running again only when the index changed, and travel to the extension as `skipped` (protocol
+1.11); **Hide its changes from git…** and **Show its changes to git again** are in the menus of the changes and of the
+Files page, which marks a hidden file with a struck eye, and the group **Hidden from git** is under the changes, in the
+page and in the section. The lock of a worktree and its reason are read with the list, and travel to the extension as
+`locked` (protocol 1.11); **Lock…** and **Unlock** are in the menu of a worktree of the Worktrees list, not yet on the
+rows of **Repositories**, which have no menu (Q1452); the lock is drawn in both; **Remove…** and **Rename…** ask
+first and unlock, **Rename…** locking the new folder again; **Prune** is offered only while a missing worktree is not
+locked, and **Clean up branches…** lists the branch of a locked worktree unticked and unlocks it before removing it.
+Of the fourth phase, the locks only: **Lock…** and **Unlock** in the menus of a worktree in the extension, run by the
+engine, and the lock on the rows of the Worktrees section, not yet on those of the **Gitardo Repositories** view
+(Q1454). The entries of the first two phases in the **Gitardo Changes** view and in VS Code's Explorer, and the group
+**Hidden from git** there, are not built yet: this lane went on to M40 first.
 
 Exit: in a repository with `debug.log` untracked, **Ignore…** with **All `.log` files** writes `*.log` at the end of
 the `.gitignore`, `debug.log` leaves the changes and the `.gitignore` comes in; **Ignore…** on the tracked
@@ -1425,7 +1447,7 @@ and met again by the same merge is said **Resolved as before**, **Show what git 
 git wrote, and **Forget this resolution…** marks the conflict again; every card of the milestone passes its tests, and
 the snapshots of the page and of a file not downloaded match in each theme.
 
-## M40 — Notes, archives and upkeep
+## M40 — Notes, archives and upkeep (done)
 
 The notes of commits shown under their messages, written, removed, fetched and pushed; a commit, a branch or a tag saved
 as a zip or a tar.gz; and the upkeep of a repository from the menu of its row: the room it takes, **Clean up…**, and
@@ -1453,7 +1475,32 @@ extension.
    the **Gitardo Repositories** view, all run by the engine. Cards: the cards of the first five phases, in the
    extension.
 
-Nothing is built yet.
+Done: the six phases are built, the fifth before the others. The menu of the row of the repository shown in **Repositories** has
+**Clean up…**, whose question says the room the repository takes as `git count-objects -v` reads it, then runs
+`git gc`; its message says the room before, not after (Q1455). **Look after it in the background…** is ticked while
+`maintenance.repo` in the user's configuration lists the repository, read with the state again only when that
+configuration changed, and sent to the extension as `isLookedAfter` (protocol 1.11); unticked it runs
+`git maintenance start` after its warning, ticked `git maintenance unregister`. Then the fourth phase: **Save as
+archive…** in the menu of a commit, a branch, a remote branch and a tag runs `git archive` with every file or one
+folder read with `git ls-tree -d`, zip or tar.gz, the folder inside the archive and the save dialog; Quick search has
+no entry for it yet, and its message no **Reveal in the file manager** (Q1456).
+Then the first phase: the reference of notes git uses and the commit it is at are read with the reads of the
+repository, `git notes list` only when it moved, and the text of the note of a commit with its details, by
+`git notes show` (Q1457); the block **Note** is under the message in the inspector, cut at 12 lines with **Show
+more**, and in the page of a commit, which is read again when the reference of notes moves.
+Then the second phase: **Add note…**, or **Edit note…** and **Remove note**, in the menu of a commit and on the
+block **Note**, run `git notes add -f -F -` and `git notes remove`, and **Undo** puts the reference of notes back where
+it was with `git update-ref`, from the journal, which the engine fills with where the plan left it.
+Then the third phase: **Fetch notes** and, while the repository has notes, **Push notes** in the menu of a remote in
+the branch rail and in Quick search run `git fetch <remote> <reference>:<reference>` and `git push <remote>
+<reference>`; when git refuses the fetch, **Merge the notes** fetches them beside and runs `git notes merge
+--strategy=cat_sort_uniq`, and a push refused offers **Fetch notes** (Q1458).
+Then the sixth phase: in the extension, the block **Note** under the message in the details and in the tab of a
+commit, read again when the reference of notes moves; **Add note…**, **Edit note…**, **Remove note** and **Save as
+archive…** in the context menus of the graph and of the Branches view; **Fetch notes from `<remote>`** and **Push
+notes to `<remote>`** in the menu of the title **Remotes**, which has no row for each remote; and **Clean up…** and
+**Look after it in the background…** on the row of the repository shown in the **Gitardo Repositories** view, all
+sent to the engine as `feature/run` (Q1459).
 
 Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
 in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save

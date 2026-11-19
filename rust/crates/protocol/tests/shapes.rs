@@ -102,6 +102,24 @@ fn repository() -> RepositoryState {
             remaining: Some(4),
         }),
         submodules: vec![submodule()],
+        shallow: model::state::Shallow {
+            ends: vec![commit('2')],
+        },
+        skipped: vec![model::state::SkippedFile {
+            path: String::from("config/local.json"),
+            how: model::state::Skipped::Worktree,
+        }],
+        is_looked_after: true,
+        notes: notes(),
+    }
+}
+
+/// One commit with a note.
+fn notes() -> model::note::Notes {
+    model::note::Notes {
+        reference: String::from("refs/notes/commits"),
+        tip: Some(commit('7')),
+        noted: std::iter::once((commit('a'), commit('8'))).collect(),
     }
 }
 
@@ -132,6 +150,7 @@ fn worktree() -> Worktree {
         is_main: true,
         is_current: true,
         is_missing: false,
+        locked: Some(String::from("On the USB drive")),
         uncommitted: Some(3),
     }
 }
@@ -183,6 +202,10 @@ fn detail() -> CommitDetail {
         message: String::from("On main: half a fix\n\nThe rest tomorrow."),
         files: vec![renamed("src/new.rs", "src/old.rs")],
         untracked_files: vec![renamed("notes.txt", "notes.old")],
+        note: Some(String::from(
+            "Reviewed.
+Shipped in 2.1.",
+        )),
     }
 }
 

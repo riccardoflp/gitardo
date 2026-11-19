@@ -1,6 +1,7 @@
-//! The head of the page of a commit: the title of the message, its labels and the rest of it, who made the commit and
-//! when, its full hash and its parents, **Show in the timeline** and **Open in the Diff page**, and the count of the
-//! files with the lines gained and lost; and the heading of the changes, with the buttons that show and fold them.
+//! The head of the page of a commit: the title of the message, its labels and the rest of it, its note, who made the
+//! commit and when, its full hash and its parents, **Show in the timeline** and **Open in the Diff page**, and the count
+//! of the files with the lines gained and lost; and the heading of the changes, with the buttons that show and fold
+//! them.
 
 use model::commit_page::{Fold, PatchLines};
 use model::details::{CommitDetail, Signature};
@@ -32,6 +33,7 @@ struct Heights {
     title: f32,
     labels: f32,
     text: f32,
+    note: f32,
     meta: f32,
     actions: f32,
     files: f32,
@@ -58,6 +60,7 @@ impl Heights {
                 ui.badge_height()
             },
             text: wrapped(&head.data.text, TextKind::Body),
+            note: note_of(head).map_or(0.0, |note| crate::details::note_height(ui, &note, width)),
             meta: crate::number::float_of_count(meta_lines(&head.data.detail) + usize::from(signature(head).is_some()))
                 * theme.sizes.row_height,
             actions: theme.sizes.control_height,
@@ -66,9 +69,27 @@ impl Heights {
     }
 
     /// The parts that take room, in order.
-    fn parts(&self) -> [f32; 6] {
-        [self.title, self.labels, self.text, self.meta, self.actions, self.files]
+    fn parts(&self) -> [f32; 7] {
+        [
+            self.title,
+            self.labels,
+            self.text,
+            self.note,
+            self.meta,
+            self.actions,
+            self.files,
+        ]
     }
+}
+
+/// The note of the commit, shown whole under its message (`note.show`).
+fn note_of<'a>(head: &PageHead<'a>) -> Option<crate::details::NoteState<'a>> {
+    let detail = &head.data.detail;
+    Some(crate::details::NoteState {
+        commit: detail.id.as_ref()?,
+        text: detail.note.as_deref()?,
+        length: crate::details::NoteLength::Whole,
+    })
 }
 
 /// The height of the head at a width, with its margins.
@@ -102,6 +123,9 @@ pub(crate) fn draw_head(ui: &mut Ui<'_>, head: &PageHead<'_>, top: Rect) -> Vec<
     }
     if heights.text > 0.0 {
         let _ = ui.paragraph(area.top(heights.text), &head.data.text, (TextKind::Body, Tone::Normal));
+    }
+    if let Some(note) = note_of(head).filter(|_| heights.note > 0.0) {
+        intents.extend(ui.clip(area.top(heights.note), |ui| crate::details::note_view(&note, ui)));
     }
     meta(ui, area.top(heights.meta), head, &mut intents);
     actions(ui, area.top(heights.actions), head, &mut intents);

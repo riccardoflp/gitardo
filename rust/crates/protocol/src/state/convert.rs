@@ -14,8 +14,9 @@ use model::submodule::{Checkout, Distance, Submodule};
 
 use super::{
     BisectJson, BranchJson, ChangeKindJson, CheckoutJson, ConflictKindJson, ConflictedFileJson, DistanceJson,
-    FileChangeJson, HeadJson, IdentityJson, OperationJson, RebaseStopJson, RemoteBranchJson, SigningJson,
-    SigningKindJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson, UpstreamJson, WorkingTreeJson,
+    FileChangeJson, HeadJson, IdentityJson, NotesJson, OperationJson, RebaseStopJson, RemoteBranchJson, SigningJson,
+    SigningKindJson, SkippedFileJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson, UpstreamJson,
+    WorkingTreeJson,
     WorktreeJson,
 };
 
@@ -61,6 +62,22 @@ impl From<&RepositoryState> for StateJson {
             rebase_stop: state.rebase_stop.as_ref().map(RebaseStopJson::from),
             bisect: state.bisect.as_ref().map(BisectJson::from),
             submodules: state.submodules.iter().map(SubmoduleJson::from).collect(),
+            shallow: ids(&state.shallow.ends),
+            skipped: state
+                .skipped
+                .iter()
+                .map(|file| SkippedFileJson {
+                    path: file.path.clone(),
+                    skip_worktree: file.how.is_skip_worktree(),
+                    assume_unchanged: file.how.is_assumed_unchanged(),
+                })
+                .collect(),
+            is_looked_after: state.is_looked_after,
+            notes: NotesJson {
+                reference: state.notes.reference.clone(),
+                tip: state.notes.tip.as_ref().map(id),
+                commits: state.notes.noted.keys().map(id).collect(),
+            },
         }
     }
 }
@@ -145,6 +162,7 @@ impl From<&Worktree> for WorktreeJson {
             is_main: worktree.is_main,
             is_current: worktree.is_current,
             is_missing: worktree.is_missing,
+            locked: worktree.locked.clone(),
             uncommitted: worktree.uncommitted,
         }
     }

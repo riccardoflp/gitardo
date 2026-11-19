@@ -26,6 +26,8 @@ pub(crate) struct Head<'a> {
     pub(crate) title: &'a str,
     /// The text under it.
     pub(crate) message: MessageState<'a>,
+    /// The note of the commit, under the message, when it has one (`note.show`).
+    pub(crate) note: Option<super::note::NoteState<'a>>,
     /// The commit, none for the draft.
     pub(crate) detail: Option<&'a CommitDetail>,
     /// What was read of the commit or the draft, whose files open in the Diff page.
@@ -37,12 +39,15 @@ pub(crate) struct Head<'a> {
     pub(crate) is_stash: bool,
     /// The signature of the commit, when it has a line (`details.signature`).
     pub(crate) signature: Option<super::SignatureRead<'a>>,
+    /// Whether the parents of the commit were not fetched, in a shallow clone (`graph.shallow-end`).
+    pub(crate) is_shallow_end: bool,
 }
 
 /// The heights of the parts of the head at a width.
 struct Heights {
     title: f32,
     text: f32,
+    note: f32,
     meta: f32,
     files: f32,
 }
@@ -60,13 +65,18 @@ impl Heights {
             .max(1);
         let title = (crate::number::float_of_count(title_lines) * ui.line_height(heading)).max(side);
         let text = text_height(ui, &head.message, width);
+        let note = head
+            .note
+            .as_ref()
+            .map_or(0.0, |note| super::note::note_height(ui, note, width));
         let meta = head.detail.map_or(0.0, |detail| {
-            let lines = meta_lines(detail) + usize::from(head.signature.is_some());
+            let lines = meta_lines(detail, head.is_shallow_end) + usize::from(head.signature.is_some());
             crate::number::float_of_count(lines) * theme.sizes.row_height
         });
         Heights {
             title,
             text,
+            note,
             meta,
             files: side,
         }
@@ -74,8 +84,11 @@ impl Heights {
 
     /// The height of the whole head, with the gaps between its parts.
     fn total(&self, gap: f32) -> f32 {
-        let gaps = [self.text, self.meta].iter().filter(|part| **part > 0.0).count();
-        self.title + self.text + self.meta + self.files + crate::number::float_of_count(gaps + 1) * gap
+        let gaps = [self.text, self.note, self.meta]
+            .iter()
+            .filter(|part| **part > 0.0)
+            .count();
+        self.title + self.text + self.note + self.meta + self.files + crate::number::float_of_count(gaps + 1) * gap
     }
 }
 
@@ -86,9 +99,9 @@ fn title_width(ui: &Ui<'_>, width: f32) -> f32 {
 }
 
 /// How many lines about who made the commit there are: the author, the date, the committer when it differs, the hash
-/// and the parents.
-fn meta_lines(detail: &CommitDetail) -> usize {
-    let parents = usize::from(!detail.parents.is_empty());
+/// and the parents, which a commit whose parents were not fetched has too.
+fn meta_lines(detail: &CommitDetail, is_shallow_end: bool) -> usize {
+    let parents = usize::from(!detail.parents.is_empty() || is_shallow_end);
     3 + parents + usize::from(committer_differs(detail).is_some())
 }
 
@@ -112,6 +125,9 @@ pub(crate) fn draw_head(ui: &mut Ui<'_>, head: &Head<'_>, rect: Rect) -> Vec<Int
     title_line(ui, area.top(heights.title), head, &mut intents);
     if heights.text > 0.0 {
         intents.extend(ui.clip(area.top(heights.text), |ui| show_more(&head.message, ui)));
+    }
+    if let Some(note) = head.note.as_ref().filter(|_| heights.note > 0.0) {
+        intents.extend(ui.clip(area.top(heights.note), |ui| super::note::note_view(note, ui)));
     }
     if let Some(detail) = head.detail.filter(|_| heights.meta > 0.0) {
         meta(ui, area.top(heights.meta), (detail, head), &mut intents);
@@ -182,6 +198,22 @@ fn meta(ui: &mut Ui<'_>, rect: Rect, (detail, head): (&CommitDetail, &Head<'_>),
         let key = if shown.len() > 1 { words::PARENTS } else { words::PARENT };
         let value = key_line(ui, area.top(line), key);
         parents(ui, value, shown, intents);
+    } else if head.is_shallow_end {
+        let value = key_line(ui, area.top(line), words::PARENTS);
+        not_fetched(ui, value, intents);
+    }
+}
+
+/// The parents of a commit whose parents were not fetched: **Not fetched**, with **Load more history**
+/// (`graph.shallow-end`).
+fn not_fetched(ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
+    let mut cells = Area::with_gap(rect, ui.theme().sizes.spacing.medium);
+    let said = ui.measure(words::NOT_FETCHED, ui.text_style(TextKind::Body));
+    let _ = ui.label(cells.left(said), &Label::new(words::NOT_FETCHED).tone(Tone::Muted));
+    let button = Button::secondary(crate::text::timeline::LOAD_MORE_HISTORY).kind(ButtonKind::Icon);
+    let width = ui.button_size(&button).0;
+    if ui.button("load more history", cells.left(width), &button).clicked {
+        intents.push(crate::graph::fetch_more("sync.deepen"));
     }
 }
 

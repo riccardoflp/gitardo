@@ -7,6 +7,7 @@ use model::contract::{
 use model::state::Worktree;
 use model::worktree::{EmptyFoldersInput, is_listed, remove_empty_folders};
 
+use super::lock::{ask_unlock, unlock_step};
 use super::names::choice;
 use super::{folder_of_worktrees, label, refuse_missing, target_worktree};
 
@@ -39,6 +40,9 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
     if let Some(refusal) = refused(context, worktree) {
         return refusal;
     }
+    if let Some(ask) = ask_unlock(context, worktree, (answers, "Unlock and remove")) {
+        return ask;
+    }
     let branch = worktree
         .branch
         .as_deref()
@@ -62,11 +66,16 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
         }
     };
     let is_forced = answers.flag(FORCE) == Some(true);
-    Outcome::Run(plan(
+    let mut plan = plan(
         context,
         worktree,
         (branch.filter(|_| deletes_branch), &links, is_forced),
-    ))
+    );
+    // Git's `remove -f -f` is never used on a locked worktree: it is unlocked first (`worktree.locked`, Q1182).
+    if worktree.locked.is_some() {
+        plan.steps.insert(0, unlock_step(context, &worktree.folder));
+    }
+    Outcome::Run(plan)
 }
 
 /// Why a worktree is not removed: it is missing, the main worktree, or open in this window.

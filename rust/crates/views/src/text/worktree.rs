@@ -17,6 +17,10 @@ pub const COPY_PATH: &str = "Copy path";
 pub const REMOVE: &str = "Remove\u{2026}";
 /// **Prune missing worktrees** in the menu of a worktree and of the Worktrees list (`worktree.prune`).
 pub const PRUNE: &str = "Prune missing worktrees";
+/// **Lock…**, in the menu of a worktree that is not locked (`worktree.lock`).
+pub const LOCK: &str = "Lock\u{2026}";
+/// **Unlock**, in the menu of a locked worktree (`worktree.unlock`).
+pub const UNLOCK: &str = "Unlock";
 /// **Switch worktree…** in the menu of the Worktrees list (`worktree.switch`).
 pub const SWITCH: &str = "Switch worktree\u{2026}";
 /// **Open worktree in external editor** in the menu of a branch another worktree has.

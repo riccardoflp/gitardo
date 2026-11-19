@@ -12,6 +12,7 @@ mod menu;
 mod options;
 mod rows;
 mod section;
+mod skipped;
 
 use std::collections::BTreeSet;
 
@@ -41,7 +42,7 @@ pub enum ChangesState<'a> {
     /// No repository is shown: none in the workspace, or the one shown is being read.
     NoRepository(NoRepositoryState),
     /// The changes of the repository shown.
-    Repository(ChangesRepository<'a>),
+    Repository(Box<ChangesRepository<'a>>),
 }
 
 /// The changes of the repository shown, as the page shows them.
@@ -78,6 +79,10 @@ pub struct ChangesRepository<'a> {
     pub marked: Option<&'a str>,
     /// A number that changes each time another file is shown beside the list, which brings its row into sight once.
     pub serial: u64,
+    /// The files hidden from git, listed under the changes (`changes.skipped-list`).
+    pub skipped: &'a [model::state::SkippedFile],
+    /// Whether the group of the files hidden from git is folded.
+    pub is_hidden_folded: bool,
 }
 
 /// Something asked of the Changes page, or of the draft of the timeline, which shows its message and **Commit**.
@@ -110,6 +115,8 @@ pub enum ChangesIntent {
     StepFile(crate::diff::FileStep),
     /// **Changes** in the trail, or the Changes view of the bar of views: the whole page again, nothing beside it.
     ShowWhole,
+    /// The heading of the files hidden from git: fold the group, or unfold it (`changes.skipped-list`).
+    FoldHidden,
 }
 
 /// The Changes page, over the rectangle its caller clipped it to: with no repository, what the timeline says in its

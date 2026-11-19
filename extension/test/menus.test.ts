@@ -3,7 +3,7 @@ import type { Branch, RepoState, Row, Submodule, Worktree } from '../src/shared/
 import type { ShownParts } from '../src/shared/repositories';
 import type { Hosting, HostingService } from '../src/shared/hosting';
 import { changesText, pullTitle, upstreamHint, worktreeOf, worktreeStatus } from '../src/shared/refs';
-import { branchAt, headAt, remoteAt, upstreamOf, workingTreeOf } from './states';
+import { branchAt, headAt, remoteAt, tagAt, upstreamOf, workingTreeOf } from './states';
 
 // The menus post what is chosen to the extension; here they are only read.
 const posted = vi.hoisted(() => [] as unknown[]);
@@ -17,11 +17,14 @@ const {
   commitMenu,
   deleteOnRemoteEntries,
   dropMenu,
+  lockTitle,
+  remoteNotesEntries,
   openBranch,
   openRemoteBranch,
   remoteBranchMenu,
   repositoryRowMenu,
   selectionMenu,
+  tagMenu,
   trackingEntries,
   worktreeMenu,
 } = await import('../src/webview/menus');
@@ -136,6 +139,23 @@ describe('menus of branches that a worktree has', () => {
     expect(labels(worktreeMenu(window, shown))).not.toEqual(expect.arrayContaining(['Rename…']));
     expect(labels(worktreeMenu(window, shown))).not.toContain('Remove…');
     expect(labels(branchMenu(branchAt('feature', 'aaa', { isCheckedOut: false }), shown, () => {}))).not.toContain('Remove worktree…');
+  });
+
+  it('worktree.lock: offers Lock… on a worktree, Unlock on a locked one, and no prune while the only missing one is locked', () => {
+    expect(labels(worktreeMenu(there, repo))).toContain('Lock…');
+    expect(labels(worktreeMenu(worktree({}), repo))).not.toContain('Lock…');
+    const locked = { ...there, isMissing: true, locked: 'On the USB drive' };
+    const lockedRepo = state([worktree({}), locked], [main, login]);
+    const menu = labels(worktreeMenu(locked, lockedRepo));
+    expect(menu).toContain('Unlock');
+    expect(menu).not.toContain('Lock…');
+    expect(menu).not.toContain('Prune missing worktrees');
+    posted.length = 0;
+    const unlock = worktreeMenu(locked, lockedRepo).find((entry) => entry && entry !== 'separator' && entry.label === 'Unlock');
+    if (unlock && unlock !== 'separator') unlock.run();
+    expect(posted).toEqual([{ type: 'action', action: { kind: 'worktreeUnlock', path: there.folder } }]);
+    expect(lockTitle(locked)).toBe('Locked: On the USB drive');
+    expect(lockTitle({ ...there, locked: '' })).toBe('Locked');
   });
 });
 
@@ -291,6 +311,52 @@ describe('changing the message of a commit', () => {
   });
 });
 
+describe('notes and archives', () => {
+  const row = (hash: string, parents: string[]): Row => ({ hash, parents, author: '', email: '', date: 0, subject: hash, graph: [] as never });
+  const rows = [row('d', ['c']), row('c', [])];
+  const repo = (more: Partial<RepoState> = {}) => ({ ...state([], []), head: headAt('d', 'main'), rows, workingTree: workingTreeOf(), bisect: null, ...more }) as RepoState;
+  const tools = { selected: null, onInteractiveRebase: () => {}, onCompare: () => {}, onEditMessage: () => {} };
+  const chosen = (entries: ReturnType<typeof branchMenu>, label: string) => {
+    posted.length = 0;
+    for (const entry of entries) if (entry && entry !== 'separator' && entry.label === label) entry.run();
+    return [...posted];
+  };
+
+  it('note.edit and note.remove: offers Add note… on a commit with none, Edit note… and Remove note on one with a note', () => {
+    const plain = labels(commitMenu(rows[0], repo(), tools));
+    expect(plain).toContain('Add note…');
+    expect(plain).not.toContain('Remove note');
+    const noted = repo({ notes: { reference: 'refs/notes/commits', tip: 'n1', commits: ['d'] } });
+    expect(labels(commitMenu(rows[0], noted, tools))).toEqual(expect.arrayContaining(['Edit note…', 'Remove note']));
+    expect(chosen(commitMenu(rows[0], noted, tools), 'Edit note…')).toEqual([{ type: 'action', action: { kind: 'editNote', hash: 'd' } }]);
+    expect(chosen(commitMenu(rows[0], noted, tools), 'Remove note')).toEqual([{ type: 'action', action: { kind: 'removeNote', hash: 'd' } }]);
+  });
+
+  it('note.fetch and note.push: fetches the notes of each remote, and pushes them only while the repository has some', () => {
+    expect(labels(remoteNotesEntries({ remotes: ['origin'], notes: undefined }))).toEqual(['Fetch notes from origin']);
+    const entries = remoteNotesEntries({ remotes: ['origin'], notes: { reference: 'refs/notes/commits', tip: 'n1', commits: ['d'] } });
+    expect(labels(entries)).toEqual(['Fetch notes from origin', 'Push notes to origin']);
+    expect(chosen(entries, 'Push notes to origin')).toEqual([{ type: 'action', action: { kind: 'pushNotes', remote: 'origin' } }]);
+    expect(chosen(entries, 'Fetch notes from origin')).toEqual([{ type: 'action', action: { kind: 'fetchNotes', remote: 'origin' } }]);
+  });
+
+  it('archive.save: saves a commit, a branch, a remote branch and a tag by their full names', () => {
+    const main = branchAt('main', 'd', { isCheckedOut: true });
+    const shown = repo({ branches: [main] });
+    expect(chosen(commitMenu(rows[1], shown, tools), 'Save as archive…')).toEqual([{ type: 'action', action: { kind: 'saveArchive', at: 'c' } }]);
+    expect(chosen(branchMenu(main, shown, () => {}), 'Save as archive…')).toEqual([
+      { type: 'action', action: { kind: 'saveArchive', at: 'refs/heads/main' } },
+    ]);
+    const remote = remoteAt('origin/main', 'd');
+    expect(chosen(remoteBranchMenu(remote, shown, () => {}), 'Save as archive…')).toEqual([
+      { type: 'action', action: { kind: 'saveArchive', at: 'refs/remotes/origin/main' } },
+    ]);
+    expect(chosen(tagMenu(tagAt('v1.0', 'c'), shown, () => {}), 'Save as archive…')).toEqual([
+      { type: 'action', action: { kind: 'saveArchive', at: 'refs/tags/v1.0' } },
+    ]);
+  });
+});
+
 describe('squashing commits', () => {
   const row = (hash: string, parents: string[]): Row => ({ hash, parents, author: '', email: '', date: 0, subject: hash, graph: [] as never });
   const rows = [row('e', ['d']), row('d', ['c']), row('c', ['b']), row('b', ['a', 'x']), row('a', [])];
@@ -393,35 +459,53 @@ describe('the menu of a row of the Repositories view', () => {
   };
 
   it('reveals the folder of a row of another repository, copies its path, opens a terminal there and shows it', () => {
-    const menu = repositoryRowMenu({ folder: 'C:/prj/web', isShown: false }, shown);
+    const menu = repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown);
     expect(labels(menu)).toEqual(['Open in terminal', expect.stringMatching(/^Reveal in|^Open containing folder$/), 'Show in Gitardo', 'Copy path']);
     expect(run(menu, 'Open in terminal')).toEqual([{ type: 'action', action: { kind: 'worktreeTerminal', path: 'C:/prj/web' } }]);
     expect(run(menu, /^Reveal in|^Open containing folder$/)).toEqual([{ type: 'action', action: { kind: 'worktreeReveal', path: 'C:/prj/web' } }]);
     expect(run(menu, 'Show in Gitardo')).toEqual([{ type: 'selectRepo', root: 'C:/prj/web' }]);
     expect(run(menu, 'Copy path')).toEqual([{ type: 'copy', text: 'C:/prj/web' }]);
     // Before the repository shown is read, every row has these.
-    expect(labels(repositoryRowMenu({ folder: 'C:/prj/app-login', isShown: true }, null))).toEqual(['Open in terminal', expect.any(String), 'Copy path']);
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/app-login', isShown: true, kind: 'worktree' }, null))).toEqual([
+      'Open in terminal',
+      expect.any(String),
+      'Copy path',
+    ]);
   });
 
   it('has what the menu of a worktree has in the Branches view, for a worktree of the repository shown', () => {
-    const menu = repositoryRowMenu({ folder: 'c:\\prj\\app-login', isShown: false }, shown);
+    const menu = repositoryRowMenu({ folder: 'c:\\prj\\app-login', isShown: false, kind: 'worktree' }, shown);
     expect(labels(menu)).toEqual(labels(worktreeMenu(login, shown)));
     expect(labels(menu)).toEqual(expect.arrayContaining(['Open in new window', 'Show in Gitardo', 'Rename…', 'Copy path', 'Bring ignored files…', 'Remove…']));
     expect(run(menu, 'Remove…')).toEqual([{ type: 'action', action: { kind: 'worktreeRemove', path: login.folder } }]);
     // The one shown is not shown again, nor removed from here.
-    const own = labels(repositoryRowMenu({ folder: 'C:/prj/app', isShown: true }, shown));
+    const own = labels(repositoryRowMenu({ folder: 'C:/prj/app', isShown: true, kind: 'repository' }, shown));
     expect(own).toContain('Copy path');
     expect(own).not.toEqual(expect.arrayContaining(['Show in Gitardo']));
     expect(own).not.toContain('Remove…');
   });
 
   it('has what the menu of a submodule has in the Branches view, for a submodule of the repository shown', () => {
-    const menu = repositoryRowMenu({ folder: 'C:/prj/app/lib/core', isShown: false }, shown);
+    const menu = repositoryRowMenu({ folder: 'C:/prj/app/lib/core', isShown: false, kind: 'submodule' }, shown);
     expect(labels(menu)).toEqual(expect.arrayContaining(['Open in new window', 'Show in Gitardo', 'Update to the latest of its remote', 'Copy URL', 'Deinitialize…']));
     expect(run(menu, 'Show in Gitardo')).toEqual([{ type: 'selectRepo', root: 'C:\\prj\\app/lib/core' }]);
     expect(run(menu, 'Deinitialize…')).toEqual([{ type: 'action', action: { kind: 'submoduleDeinit', path: 'lib/core' } }]);
     // A submodule of another repository is a folder like another.
-    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web/lib/core', isShown: false }, shown))).toHaveLength(4);
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web/lib/core', isShown: false, kind: 'submodule' }, shown))).toHaveLength(4);
+  });
+
+  it('upkeep.clean-up and upkeep.start-background: the row of the repository shown alone cleans up and has git look after it', () => {
+    const own = repositoryRowMenu({ folder: 'C:/prj/app', isShown: true, kind: 'repository' }, shown);
+    expect(labels(own).slice(-2)).toEqual(['Clean up…', 'Look after it in the background…']);
+    expect(run(own, 'Clean up…')).toEqual([{ type: 'action', action: { kind: 'cleanUp' } }]);
+    expect(run(own, 'Look after it in the background…')).toEqual([{ type: 'action', action: { kind: 'lookAfter', start: true } }]);
+    // Ticked while git looks after it, it stops.
+    const lookedAfter = repositoryRowMenu({ folder: 'C:/prj/app', isShown: true, kind: 'repository' }, { ...shown, isLookedAfter: true });
+    const entry = lookedAfter.find((each) => each && each !== 'separator' && each.label === 'Look after it in the background…');
+    expect(entry && entry !== 'separator' && entry.checked).toBe(true);
+    expect(run(lookedAfter, 'Look after it in the background…')).toEqual([{ type: 'action', action: { kind: 'lookAfter', start: false } }]);
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/app-login', isShown: false, kind: 'worktree' }, shown))).not.toContain('Clean up…');
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown))).not.toContain('Clean up…');
   });
 });
 

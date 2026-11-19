@@ -125,6 +125,9 @@ before it. It always shows what it is about to do first. With nothing in the jou
   - a cherry-pick of several commits or a patch applied as commits, also continued in Gitardo after a conflict:
     `git reset --keep <HEAD before it>`, all of it at once;
   - a squash, or a split of an older commit: `git reset --keep <HEAD before it>`.
+  - a note written, removed, fetched or merged in Gitardo: `git update-ref <reference> <before> <after>`, the reference
+    of notes put back where it was, or `git update-ref -d <reference> <after>` when there was none (`note.edit`,
+    `note.remove`, `note.fetch`, Q1215); notes do not move `HEAD`, so the entry holds until `HEAD` moves.
 
   A branch restored this way does not get its upstream back; the dialog says so.
 - **Danger**: Destructive, because it moves a branch or rewrites files; the dialog says what it takes back in words
@@ -240,7 +243,9 @@ in words, when it started and what asked for it, so that the activity indicator 
 and the **Activity** tab (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
 
 - **Kind**: Operation (of the engine; it has no entry point of its own)
-- **Function**: `engine::activity::track(description, cause) -> ActivityGuard`, which ends the entry when dropped.
+- **Function**: `engine::activity::track(description, cause) -> ActivityGuard`, which ends the entry when dropped. A
+  git step of the plan that asks git for its progress (`--progress`) is read as git prints, and the last line of
+  progress is the entry's progress (`ActivityGuard::reporter`) until the step ends.
 - **Danger**: None
 - **Undo**: Not applicable.
 
@@ -248,3 +253,5 @@ Acceptance:
 
 - [ ] A plan of a push shows **Pushing main to origin** in the activity indicator of the status bar while `git push` runs
       for more than half a second, and the time it has run.
+- [ ] A plan whose git step asks git for its progress (`--progress`) gives its activity the last line of progress git
+      printed on its standard error, changing as git prints, while the step runs.

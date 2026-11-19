@@ -79,6 +79,9 @@ pub struct CommitPage {
     pub version: u64,
     /// The signature of its commit, read once its commit is (`details.signature`).
     pub signature: Option<super::signature::SignatureCheck>,
+    /// The commit the reference of notes was at when the page was read: once a note is written or removed, the page is
+    /// read again for the note it shows (`note.show`).
+    pub notes: Option<CommitId>,
 }
 
 /// Opens the page of a commit of a repository, or shows the one it has: there is never a second page for the same
@@ -107,6 +110,7 @@ pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect>
         .and_then(model::graph::Row::commit)
         .map_or_default(|row| row.subject.clone());
     let is_stash = matches!(row, Some(model::graph::Row::Stash { .. }));
+    let notes = notes_tip(state, &folder);
     state.commit_pages.pages.push(CommitPage {
         id,
         title: page_title(commit.short(), &subject),
@@ -123,6 +127,7 @@ pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect>
         reveal: None,
         version: 0,
         signature: None,
+        notes,
     });
     super::pages::show_page(state, Page::Commit(id));
     let mut effects = vec![Effect::Start(job)];
@@ -143,15 +148,19 @@ pub fn page_read(
     };
     page.job = None;
     page.version += 1;
+    // A page read again for its note keeps the diffs folded as the user left them.
+    let was_read = matches!(page.read, PageReadState::Read(_));
     page.read = match result {
         Ok(Some(read)) => {
             let (detail, patch) = *read;
             let subject = detail.message.lines().next().unwrap_or_default().to_owned();
             page.title = page_title(page.commit.short(), &subject);
-            page.folds = match &patch {
-                PatchLines::Files(patches) => initial_folds(patches),
-                PatchLines::Unmatched => FoldSet::default(),
-            };
+            if !was_read {
+                page.folds = match &patch {
+                    PatchLines::Files(patches) => initial_folds(patches),
+                    PatchLines::Unmatched => FoldSet::default(),
+                };
+            }
             page.tree = tree_of(&detail.files, page.is_all_files_shown);
             let shaped = shape(detail);
             PageReadState::Read(Box::new(PageData {
@@ -177,6 +186,46 @@ pub fn page_read(
         page.signature = Some(check);
     }
     vec![effect]
+}
+
+/// The commit the reference of notes of a repository is at, as the read of the repository shown found it.
+fn notes_tip(state: &State, folder: &std::path::Path) -> Option<CommitId> {
+    state
+        .shown_read()
+        .filter(|read| same_folder(&read.folder, folder))
+        .and_then(|read| read.state.notes.tip.clone())
+}
+
+/// Reads again the pages of the repository shown whose reference of notes moved since they were read, once a note was
+/// written, removed or fetched, so that they show the note their commit has now (`note.show`).
+pub fn follow_notes(state: &mut State) -> Vec<Effect> {
+    let Some((folder, tip)) = state
+        .shown_read()
+        .map(|read| (read.folder.clone(), read.state.notes.tip.clone()))
+    else {
+        return Vec::new();
+    };
+    let outdated: Vec<(CommitPageId, CommitId)> = state
+        .commit_pages
+        .pages
+        .iter()
+        .filter(|page| page.job.is_none() && same_folder(&page.folder, &folder) && page.notes != tip)
+        .map(|page| (page.id, page.commit.clone()))
+        .collect();
+    let mut effects = Vec::new();
+    for (id, commit) in outdated {
+        let kind = JobKind::ReadCommitPage {
+            folder: folder.clone(),
+            commit,
+        };
+        let job = super::workspace::start_job(state, kind);
+        if let Some(page) = state.commit_pages.pages.iter_mut().find(|page| page.id == id) {
+            page.job = Some(job.id);
+            page.notes.clone_from(&tip);
+        }
+        effects.push(Effect::Start(job));
+    }
+    effects
 }
 
 /// Forgets the pages closed, and cancels the reads of their commits.

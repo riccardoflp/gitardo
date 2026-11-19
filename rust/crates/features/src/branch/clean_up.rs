@@ -79,11 +79,12 @@ struct Candidate<'a> {
 
 impl Candidate<'_> {
     /// Whether it is ticked to start with: merged, and its worktree, if any, has nothing uncommitted.
+    /// Ticked when merged, unless its worktree has files not committed or is locked (`worktree.locked`, Q1183).
     fn is_ticked(&self) -> bool {
         self.is_merged
             && self
                 .worktree
-                .is_none_or(|worktree| worktree.uncommitted.unwrap_or(0) == 0)
+                .is_none_or(|worktree| worktree.uncommitted.unwrap_or(0) == 0 && worktree.locked.is_none())
     }
 
     /// How many files its worktree has not committed.
@@ -156,6 +157,9 @@ fn why(candidate: &Candidate<'_>, into: &str) -> String {
         String::from("upstream is gone, not merged")
     }];
     match candidate.worktree {
+        Some(worktree) if worktree.locked.is_some() => {
+            words.push(format!("with its locked worktree {}", folder_name(worktree)));
+        }
         Some(worktree) if worktree.is_missing => words.push(String::from("with its missing worktree")),
         Some(worktree) => {
             words.push(format!("with its worktree {}", folder_name(worktree)));
@@ -214,11 +218,24 @@ fn plan(context: &Context, picked: &[&Candidate<'_>], links: &[PathBuf]) -> Plan
 
 /// `git worktree prune` when a worktree picked is missing; then, for each of the others, its links to folders outside
 /// it unlinked, so that git on Windows does not empty those folders through them and git elsewhere does not refuse a
-/// link it does not ignore, and `git worktree remove`, with
-/// `--force` when it has files not committed.
+/// link it does not ignore, and `git worktree remove`, with `--force` when it has files not committed. A locked worktree
+/// is unlocked first, as **Unlock and remove** does, since git neither removes nor prunes one (`worktree.locked`).
 fn worktree_steps(context: &Context, worktrees: &[&Worktree], links: &[PathBuf]) -> Vec<Step> {
     let folder = &context.repository.folder;
-    let mut steps = Vec::new();
+    let mut steps: Vec<Step> = worktrees
+        .iter()
+        .filter(|worktree| worktree.locked.is_some())
+        .map(|worktree| {
+            Step::git(
+                folder.clone(),
+                [
+                    "worktree".into(),
+                    "unlock".into(),
+                    worktree.folder.clone().into_os_string(),
+                ],
+            )
+        })
+        .collect();
     if worktrees.iter().any(|worktree| worktree.is_missing) {
         steps.push(Step::git(folder.clone(), ["worktree", "prune"]));
     }

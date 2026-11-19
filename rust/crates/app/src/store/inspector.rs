@@ -23,6 +23,9 @@ pub struct Subject {
     pub folder: PathBuf,
     /// The row.
     pub row: SubjectRow,
+    /// The commit the reference of notes was at when the row was read: once a note is written or removed, the details
+    /// are read again for the note they show (`note.show`).
+    pub notes: Option<CommitId>,
 }
 
 /// The row the details of the inspector are of.
@@ -59,6 +62,8 @@ pub struct Inspector {
     pub read: InspectorRead,
     /// Whether **Show more** was clicked.
     pub is_message_expanded: bool,
+    /// Whether **Show more** of the note was clicked (`note.show`).
+    pub is_note_expanded: bool,
     /// Whether **Show all** was clicked.
     pub is_all_files_shown: bool,
     /// The directories of the tree folded, by their paths.
@@ -71,7 +76,7 @@ pub struct Inspector {
 
 /// Follows the row selected: when another one is, the read of the last one is cancelled, the details of the new one
 /// are read, and **Show more**, **Show all** and the folds start again. The draft read again keeps what it showed until
-/// its new files come.
+/// its new files come, and a commit whose note was written or removed keeps it until its note comes.
 pub fn follow(state: &mut State) -> Vec<Effect> {
     let wanted = wanted(state);
     if wanted == state.inspector.subject {
@@ -83,12 +88,14 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
         let _cancelled = state.jobs.remove(&job);
         effects.push(Effect::Cancel(job));
     }
-    let is_same_draft = matches!(
+    // The same row read again, the draft with its new files or a commit whose note changed, keeps what it showed.
+    let is_same_row = matches!(
         (&wanted, &state.inspector.subject),
         (Some(new), Some(old)) if new.folder == old.folder
-            && matches!((&new.row, &old.row), (SubjectRow::Draft(_), SubjectRow::Draft(_)))
+            && (new.row == old.row
+                || matches!((&new.row, &old.row), (SubjectRow::Draft(_), SubjectRow::Draft(_))))
     );
-    if !is_same_draft {
+    if !is_same_row {
         state.inspector = Inspector::default();
     }
     if let Some(subject) = wanted {
@@ -118,6 +125,7 @@ fn wanted(state: &State) -> Option<Subject> {
     Some(Subject {
         folder: read.folder.clone(),
         row,
+        notes: read.state.notes.tip.clone(),
     })
 }
 
@@ -208,6 +216,10 @@ pub fn reduce_details(state: &mut State, intent: DetailsIntent) -> Vec<Effect> {
             state.inspector.is_message_expanded = is_expanded;
             Vec::new()
         }
+        DetailsIntent::ShowMoreNote(is_expanded) => {
+            state.inspector.is_note_expanded = is_expanded;
+            Vec::new()
+        }
         DetailsIntent::Files(FilesIntent::ShowAll) => {
             let inspector = &mut state.inspector;
             inspector.is_all_files_shown = true;
@@ -241,6 +253,7 @@ pub fn details_state<'a>(state: &'a State, selected: Option<SelectedDetails<'a>>
         },
         layout: state.persisted.file_layouts.inspector,
         is_message_expanded: inspector.is_message_expanded,
+        is_note_expanded: inspector.is_note_expanded,
         is_all_files_shown: inspector.is_all_files_shown,
         tree: &inspector.tree,
         folded: &inspector.folded,
@@ -250,5 +263,8 @@ pub fn details_state<'a>(state: &'a State, selected: Option<SelectedDetails<'a>>
             Some(SelectedDetails::Commit(_)) => super::signature::shown(inspector.signature.as_ref()),
             Some(SelectedDetails::Draft(_) | SelectedDetails::Stash { .. }) | None => None,
         },
+        shallow_ends: state
+            .shown_read()
+            .map_or(&[], |read| read.state.shallow.ends.as_slice()),
     }
 }

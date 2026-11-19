@@ -149,6 +149,10 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
                 is_running: super::operation_tab(state) == Some(index),
                 members: shows.members,
                 is_unfolded: !folded.iter().any(|folder| same_folder(folder, &tab.folder)),
+                looked_after: state
+                    .shown_read()
+                    .filter(|_| is_shown)
+                    .map(|read| read.state.is_looked_after),
             }
         })
         .collect()

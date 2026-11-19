@@ -1,6 +1,8 @@
 //! The state of a repository as last read: everything the window shows of it but its commits.
 
 mod references;
+mod shallow;
+mod skipped;
 mod working_tree;
 
 use std::path::PathBuf;
@@ -8,6 +10,8 @@ use std::path::PathBuf;
 use crate::CommitId;
 
 pub use references::{Branch, RemoteBranch, Stash, Tag, Upstream, Worktree};
+pub use shallow::Shallow;
+pub use skipped::{Skipped, SkippedFile};
 pub use working_tree::{ChangeKind, ConflictKind, ConflictedFile, FileChange, WorkingTree};
 
 /// What one read of a repository found. It does not change once read: a new read makes a new state.
@@ -52,6 +56,15 @@ pub struct RepositoryState {
     pub bisect: Option<crate::bisect::Bisect>,
     /// The submodules, and theirs, each followed by its own (`submodule.read-list`).
     pub submodules: Vec<crate::submodule::Submodule>,
+    /// Where the history ends, when the repository is a shallow clone (`repo.read-shallow`).
+    pub shallow: Shallow,
+    /// The tracked files git is told not to look at, by hand: not those a sparse checkout leaves out
+    /// (`changes.read-skipped`).
+    pub skipped: Vec<SkippedFile>,
+    /// Whether git's scheduled maintenance looks after the repository (`upkeep.read-background`).
+    pub is_looked_after: bool,
+    /// The commits with a note, in the reference of notes git uses (`note.read`).
+    pub notes: crate::note::Notes,
 }
 
 impl RepositoryState {

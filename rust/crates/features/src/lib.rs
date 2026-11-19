@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 pub mod ai;
+pub mod archive;
 pub mod bisect;
 pub mod blame;
 pub mod branch;
@@ -28,10 +29,12 @@ pub mod identity;
 pub mod merge;
 pub mod merge_view;
 pub mod message;
+pub mod note;
 pub mod patch;
 pub mod rebase;
 pub mod reflog;
 pub mod remote;
+pub mod repo;
 pub mod reset;
 pub mod revert;
 pub mod review;
@@ -47,6 +50,7 @@ pub mod tag;
 pub mod tasks;
 pub mod trust;
 pub mod undo;
+pub mod upkeep;
 pub mod worktree;
 pub mod worktree_setup;
 
@@ -56,7 +60,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 172] = [
+pub const OPERATIONS: [(FeatureId, Operation); 190] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -77,8 +81,12 @@ pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("changes.save"), changes::save),
     (FeatureId("changes.stage"), changes::stage),
     (FeatureId("changes.stage-all"), changes::stage_all),
+    (FeatureId("changes.ignore"), changes::ignore),
+    (FeatureId("changes.skip"), changes::skip),
+    (FeatureId("changes.stop-tracking"), changes::stop_tracking),
     (FeatureId("changes.unstage"), changes::unstage),
     (FeatureId("changes.unstage-all"), changes::unstage_all),
+    (FeatureId("changes.unskip"), changes::unskip),
     (FeatureId("commit-page.open"), commit_page::open),
     (FeatureId("commit.amend"), commit::amend),
     (FeatureId("commit.create"), commit::create),
@@ -88,6 +96,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("identity.use-global"), identity::use_global),
     (FeatureId("search.go-to-commit"), search::go_to_commit),
     (FeatureId("sync.fetch"), sync::fetch),
+    (FeatureId("sync.deepen"), sync::deepen),
+    (FeatureId("sync.unshallow"), sync::unshallow),
     (FeatureId("tag.checkout"), tag::checkout),
     (FeatureId("tag.create"), tag::create),
     (FeatureId("tag.delete"), tag::delete),
@@ -109,6 +119,9 @@ pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("remote.remove"), remote::remove),
     (FeatureId("remote.rename"), remote::rename),
     (FeatureId("remote.set-url"), remote::set_url),
+    // Repositories cloned and created.
+    (FeatureId("repo.clone"), repo::clone),
+    (FeatureId("repo.init"), repo::init),
     (FeatureId("stash.apply"), stash::apply),
     (FeatureId("stash.branch"), stash::branch),
     (FeatureId("stash.drop"), stash::drop),
@@ -133,6 +146,10 @@ pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("merge.into-current"), merge::into_current),
     (FeatureId("merge.undo-squash"), merge::undo_squash),
     (FeatureId("message.edit"), message::edit),
+    (FeatureId("note.edit"), note::edit),
+    (FeatureId("note.remove"), note::remove),
+    (FeatureId("note.fetch"), note::fetch),
+    (FeatureId("note.push"), note::push),
     (FeatureId("reset.to-commit"), reset::to_commit),
     (FeatureId("revert.commit"), revert::commit),
     (FeatureId("selection.cherry-pick"), selection::cherry_pick),
@@ -155,6 +172,7 @@ pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("patch.apply"), patch::apply),
     (FeatureId("patch.copy"), patch::copy),
     (FeatureId("patch.save"), patch::save),
+    (FeatureId("archive.save"), archive::save),
     // Comparisons.
     (FeatureId("compare.change-side"), compare::change_side),
     (FeatureId("compare.choose"), compare::choose),
@@ -215,6 +233,11 @@ pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("worktree.open-in-terminal"), worktree::open_in_terminal),
     (FeatureId("worktree.open-in-worktree"), worktree::open_in_worktree),
     (FeatureId("worktree.prune"), worktree::prune),
+    (FeatureId("worktree.lock"), worktree::lock),
+    (FeatureId("worktree.unlock"), worktree::unlock),
+    (FeatureId("upkeep.clean-up"), upkeep::clean_up),
+    (FeatureId("upkeep.start-background"), upkeep::start_background),
+    (FeatureId("upkeep.stop-background"), upkeep::stop_background),
     (FeatureId("worktree.remove"), worktree::remove),
     (FeatureId("worktree.rename"), worktree::rename),
     (FeatureId("worktree.reveal"), worktree::reveal),

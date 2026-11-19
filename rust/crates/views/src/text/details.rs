@@ -24,6 +24,8 @@ pub const COMMIT: &str = "Commit";
 pub const PARENT: &str = "Parent";
 /// The parents of a merge.
 pub const PARENTS: &str = "Parents";
+/// What the inspector says of the parents of a commit whose parents were not fetched, in a shallow clone.
+pub const NOT_FETCHED: &str = "Not fetched";
 /// What a click on the short hash in the inspector does.
 pub const COPY_FULL_HASH: &str = "Copy full hash";
 /// What a click on the hash in the page does.
@@ -199,3 +201,14 @@ pub fn signature_tooltip(signature: &model::details::CommitSignature) -> String 
     }
     lines.join("\n")
 }
+
+/// The title of the block of the note of a commit, under its message (`note.show`).
+pub const NOTE: &str = "Note";
+/// **Add note…** in the menu of a commit with no note (`note.edit`).
+pub const ADD_NOTE: &str = "Add note\u{2026}";
+/// **Edit note…** in the menu of a commit with a note, and the tooltip of the pencil of its block (`note.edit`).
+pub const EDIT_NOTE: &str = "Edit note\u{2026}";
+/// **Remove note** in the menu of a commit with a note and in the **…** of its block (`note.remove`).
+pub const REMOVE_NOTE: &str = "Remove note";
+/// The tooltip of the **…** of the block of a note.
+pub const MORE_FOR_NOTE: &str = "More for the note";

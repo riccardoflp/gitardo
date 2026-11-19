@@ -17,6 +17,14 @@ pub(super) fn plan(context: &Context, entry: &JournalEntry) -> Plan {
     if matches!(entry.record, UndoRecord::ConflictsResolved { .. }) {
         return crate::conflicts::restore_plan(context, entry);
     }
+    if let UndoRecord::NotesMoved {
+        reference,
+        before,
+        after,
+    } = &entry.record
+    {
+        return crate::note::restore_plan(context, entry, (reference, before.as_ref(), after.as_ref()));
+    }
     let (what, arguments) = what_and_arguments(entry);
     let title = Text::from(format!("Undo {what}"));
     // Making a deleted branch again loses nothing, so it is only confirmed; the others move or delete what is there.
@@ -90,7 +98,9 @@ fn what_and_arguments(entry: &JournalEntry) -> (String, Vec<OsString>) {
         UndoRecord::SplitLast { commit } => (
             format!("the split of {}", commit.short()),
             words(&["reset", "--mixed", commit.as_str()]),
-        ), // `undo.last` takes these back by the reflog, or refuses: never here.
-        UndoRecord::Reflog | UndoRecord::NotUndoable { .. } => (format!("\"{}\"", entry.title), Vec::new()),
+        ), // `undo.last` takes these back by the reflog or refuses, and the notes have a plan of their own: never here.
+        UndoRecord::Reflog | UndoRecord::NotUndoable { .. } | UndoRecord::NotesMoved { .. } => {
+            (format!("\"{}\"", entry.title), Vec::new())
+        }
     }
 }

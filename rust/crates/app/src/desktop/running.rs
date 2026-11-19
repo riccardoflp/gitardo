@@ -105,7 +105,21 @@ impl RunningClock {
             }
         }
         self.end_idle(now);
+        self.follow_progress(report);
         self.rows.iter().map(|row| row.task(now)).collect()
+    }
+
+    /// Takes in the last line of progress of what runs and asks git for it: the detail of its row, changing as git
+    /// prints (`activity.describe-task`).
+    fn follow_progress(&mut self, report: &ActivityReport) {
+        for entry in &report.running {
+            let Some(progress) = &entry.progress else {
+                continue;
+            };
+            if let Some(row) = self.rows.iter_mut().find(|row| row.running.contains(&entry.number)) {
+                row.detail = Some(progress.clone());
+            }
+        }
     }
 
     /// What ran, the latest first, each with when it ended and how long it took.

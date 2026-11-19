@@ -9,6 +9,7 @@ use model::contract::{
 use model::state::Worktree;
 use model::worktree::{EmptyFoldersInput, FolderBase, WorktreeNameRule, is_listed, remove_empty_folders};
 
+use super::lock::{ask_unlock, lock_step, unlock_step};
 use super::names::choice;
 use super::{folder_of_worktrees, label, refuse_missing, target_worktree};
 
@@ -42,6 +43,9 @@ pub fn rename(context: &Context, answers: &Answers) -> Outcome {
     if let Some(refusal) = refused(context, worktree) {
         return refusal;
     }
+    if let Some(ask) = ask_unlock(context, worktree, (answers, "Unlock and rename")) {
+        return ask;
+    }
     let old_label = label(context, &worktree.folder);
     let base = base_of(context, worktree, &old_label);
     let Some(typed) = answers.text(NEW_NAME) else {
@@ -67,7 +71,23 @@ pub fn rename(context: &Context, answers: &Answers) -> Outcome {
             },
         },
     };
-    Outcome::Run(plan(context, worktree, (&new_folder, new_branch), &base))
+    let mut plan = plan(context, worktree, (&new_folder, new_branch), &base);
+    if let Some(reason) = &worktree.locked {
+        relock(context, &mut plan, (&worktree.folder, &new_folder, reason));
+    }
+    Outcome::Run(plan)
+}
+
+/// A locked worktree is unlocked before `git worktree move`, which git refuses on a locked one, and locked again after
+/// it on the new folder with the same reason (`worktree.locked`).
+fn relock(context: &Context, plan: &mut Plan, (old, new, reason): (&Path, &Path, &str)) {
+    let moved = plan
+        .steps
+        .iter()
+        .position(|step| step.log_line().starts_with("git worktree move"))
+        .map_or(plan.steps.len(), |at| at + 1);
+    plan.steps.insert(moved, lock_step(context, new, reason));
+    plan.steps.insert(0, unlock_step(context, old));
 }
 
 /// Why a worktree is not renamed: it is missing, it is the main worktree, or it is open in this window.

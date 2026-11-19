@@ -218,6 +218,8 @@ pub enum Icon {
     Shield,
     /// Two people: the co-authors of a commit. Lucide's `users`.
     Users,
+    /// A padlock: a worktree git keeps whatever happens to its folder (`worktree.locked`). Lucide's `lock`.
+    Lock,
     /// The logo of Gitardo: a branch leaving a line of two commits, as the extension draws it (`window.brand`). Not one
     /// of Lucide's, so not in [`Icon::ALL`].
     Logo,
