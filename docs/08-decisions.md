@@ -5109,6 +5109,10 @@ built; each is built as it says until the maintainer answers otherwise.
 - **Q1300** — `file-view.image`: a picture larger than the page is moved by dragging and by the wheel, across with
   `Shift`, with no scroll bars: the scroll bars of the toolkit belong to its scroll areas, which take the wheel that
   `Ctrl` with the wheel zooms with. Should the page have scroll bars of its own around the picture?
+- **Q1301** — `commit-page.images`: the page of a commit reads as images only the binary files whose name ends as an
+  image does, so that a commit of hundreds of binary files does not read them all, and keeps their place before they
+  are read; a PNG named `logo.dat` says **Binary file.** there, while the Diff page, which reads one file, draws it.
+  Should the page read every binary file shown, and take the place of a picture only once it is read?
 
 ### Of the name, Wayland and GitHub Copilot, from Q860
 

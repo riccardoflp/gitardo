@@ -9,6 +9,7 @@ mod changed_files;
 mod changes;
 mod changes_beside;
 mod code_workspace;
+mod commit_images;
 mod commit_page;
 pub mod compare;
 mod conflicts;
@@ -153,6 +154,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         }
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
+        Message::ImagesRead { job, images } => commit_images::images_read(state, job, images),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
         Message::FileRead { job, result } => file_page::file_read(state, job, result),

@@ -3,13 +3,13 @@
 //! (`commit-page.show-in-graph`), which points the window back at the repository of the page and loads the history until
 //! the commit is in it.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use model::CommitId;
 use model::commit_page::{Fold, FoldSet, PatchLines, initial_folds};
 use model::details::{CommitDetail, TreeNode};
-use views::commit_page::{CommitPageId, CommitPageIntent, CommitPageState, PageData, PageRead, PageTarget};
+use views::commit_page::{CommitPageId, CommitPageIntent, CommitPageState, PageData, PageImages, PageRead, PageTarget};
 use views::details::FilesIntent;
 use views::page::Page;
 use views::text::details::page_title;
@@ -77,6 +77,10 @@ pub struct CommitPage {
     pub reveal: Option<(u64, PageTarget)>,
     /// A number that changes whenever what it lists changes.
     pub version: u64,
+    /// The two versions of its image files, read as their diffs are shown (`commit-page.images`).
+    pub images: PageImages,
+    /// The reads of those images running, by the place of the file.
+    pub image_jobs: BTreeMap<usize, JobId>,
 }
 
 /// Opens the page of a commit of a repository, or shows the one it has: there is never a second page for the same
@@ -120,6 +124,8 @@ pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect>
         tree: Vec::new(),
         reveal: None,
         version: 0,
+        images: PageImages::default(),
+        image_jobs: BTreeMap::new(),
     });
     super::pages::show_page(state, Page::Commit(id));
     let mut effects = vec![Effect::Start(job)];
@@ -140,6 +146,7 @@ pub fn page_read(
     };
     page.job = None;
     page.version += 1;
+    let id = page.id;
     page.read = match result {
         Ok(Some(read)) => {
             let (detail, patch) = *read;
@@ -164,7 +171,7 @@ pub fn page_read(
             PageReadState::Failed
         }
     };
-    Vec::new()
+    super::commit_images::refresh(state, id)
 }
 
 /// Forgets the pages closed, and cancels the reads of their commits.
@@ -176,7 +183,7 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
     state.commit_pages.pages = kept;
     closed
         .into_iter()
-        .filter_map(|page| page.job)
+        .flat_map(|page| page.job.into_iter().chain(page.image_jobs.into_values()))
         .map(|job| {
             let _cancelled = state.jobs.remove(&job);
             Effect::Cancel(job)
@@ -215,8 +222,9 @@ pub fn reduce_page(state: &mut State, id: CommitPageId, intent: CommitPageIntent
             page.reveal = Some((serial, PageTarget::Top));
             state.commit_pages.serial = serial;
         }
+        CommitPageIntent::ShowImages(index, shows) => super::commit_images::show_images(page, index, shows),
     }
-    Vec::new()
+    super::commit_images::refresh(state, id)
 }
 
 /// Changes the files of a page as the user asked: the layout chosen is the one the next pages open with.
@@ -230,7 +238,7 @@ fn reduce_files(state: &mut State, id: CommitPageId, intent: FilesIntent) -> Vec
             if let PageReadState::Read(data) = &page.read {
                 page.tree = tree_of(&data.detail.files, true);
             }
-            Vec::new()
+            super::commit_images::refresh(state, id)
         }
         FilesIntent::Layout(layout) => {
             state.persisted.file_layouts.page = layout;
@@ -325,6 +333,7 @@ pub fn page_state(state: &State, id: CommitPageId) -> Option<CommitPageState<'_>
         tree: &page.tree,
         folded: &page.folded,
         is_all_files_shown: page.is_all_files_shown,
+        images: &page.images,
         labels,
         lane,
         reveal: page.reveal,

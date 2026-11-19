@@ -67,10 +67,36 @@ pub fn read_diff(folder: &Path, job: &DiffJob, cancel: &CancelToken) -> DiffRead
     text_diff(&git, job, &sides, cancel)
 }
 
+/// The two versions of an image file of the page of a commit, drawn, without the diff of their lines
+/// (`commit-page.images`); none when neither side is an image, or git could not read them.
+#[must_use]
+pub fn read_images(folder: &Path, request: &DiffRequest, cancel: &CancelToken) -> Option<DiffImages> {
+    let git = Git::new(folder).with_cancel(cancel.clone());
+    let sides = read_sides(&git, request).ok()?;
+    pictures(request, &sides)
+}
+
 /// The two versions of a file that is an image on either side, drawn, and for an SVG the diff of its lines; none for
 /// a file that is an image on neither side.
 fn images_of(git: &Git, job: &DiffJob, sides: &DiffSides, cancel: &CancelToken) -> Option<DiffImages> {
-    let paths = (&job.request.left.path, &job.request.right.path);
+    let mut images = pictures(&job.request, sides)?;
+    let is_svg = |bytes: &Option<Vec<u8>>, path: &str| {
+        bytes
+            .as_deref()
+            .is_none_or(|bytes| image_format(bytes, path) == Some(ImageFormat::Svg))
+    };
+    if is_svg(&sides.left, &job.request.left.path) && is_svg(&sides.right, &job.request.right.path) {
+        images.text = match text_diff(git, job, sides, cancel) {
+            DiffRead::Text(text) => Some(text),
+            _ => None,
+        };
+    }
+    Some(images)
+}
+
+/// The two versions of a file that is an image on either side, drawn; none for a file that is an image on neither.
+fn pictures(request: &DiffRequest, sides: &DiffSides) -> Option<DiffImages> {
+    let paths = (&request.left.path, &request.right.path);
     let format = |bytes: &Option<Vec<u8>>, path: &str| bytes.as_deref().and_then(|bytes| image_format(bytes, path));
     let formats = (format(&sides.left, paths.0), format(&sides.right, paths.1));
     if formats == (None, None) {
@@ -81,21 +107,10 @@ fn images_of(git: &Git, job: &DiffJob, sides: &DiffSides, cancel: &CancelToken) 
             .as_deref()
             .map(|bytes| read_image(bytes, path, super::file_view::DRAW_SCALE))
     };
-    let is_svg = |side_format: Option<ImageFormat>, side: &Option<Vec<u8>>| {
-        side_format == Some(ImageFormat::Svg) || side.is_none()
-    };
-    let text = if is_svg(formats.0, &sides.left) && is_svg(formats.1, &sides.right) {
-        match text_diff(git, job, sides, cancel) {
-            DiffRead::Text(text) => Some(text),
-            _ => None,
-        }
-    } else {
-        None
-    };
     Some(DiffImages {
         left: read(&sides.left, paths.0),
         right: read(&sides.right, paths.1),
-        text,
+        text: None,
         is_same_bytes: sides.left == sides.right,
     })
 }

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The page of a commit shows, with its changes, the two versions of an image it changed side by side under the header
+  of its diff, in place of *Binary file.*: each at most 240 pixels high and half the width of the page, **Empty** on a
+  side with none, with its size and weight under it. They are read once the diff is shown unfolded, and a click on
+  them opens the file in the Diff page. An SVG shows its lines, with **Show the images** on its header for its two
+  pictures and **Show the lines** back.
 - The Diff page of an image shows its two versions side by side in place of *This file looks binary.*, at one scale
   so that a picture that grew looks larger, **Empty** on a side with none, and over them what changed: the sizes and
   the weights, or *Only the bytes of the file changed; the pixels are the same.* An SVG opens on **Image**, its two

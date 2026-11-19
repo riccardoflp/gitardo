@@ -7,7 +7,10 @@
 
 mod diff;
 mod head;
+mod images;
 mod rows;
+
+pub use images::{ImagesState, PICTURE_HEIGHT, PageImage, PageImages, images_view, is_image_name, is_svg_name};
 
 use std::collections::BTreeSet;
 
@@ -50,6 +53,8 @@ pub struct CommitPageState<'a> {
     pub folded: &'a BTreeSet<String>,
     /// Whether **Show all** was clicked.
     pub is_all_files_shown: bool,
+    /// The two versions of its image files, read as their diffs are shown (`commit-page.images`).
+    pub images: &'a PageImages,
     /// The labels of the commit, as the timeline of its repository draws them; none while the window shows another.
     pub labels: &'a [Label],
     /// The color of the line of the commit in the timeline.
@@ -114,6 +119,8 @@ pub enum CommitPageIntent {
     ShowFile(usize),
     /// **Back to the top**.
     BackToTop,
+    /// **Show the images** of an SVG, by its place, or **Show the lines** back.
+    ShowImages(usize, bool),
 }
 
 /// The page of a commit, over the rectangle its caller clipped it to.

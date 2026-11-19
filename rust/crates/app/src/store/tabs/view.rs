@@ -97,6 +97,7 @@ impl Answered {
             | Message::FileRead { job, .. }
             | Message::ImageRead { job, .. }
             | Message::ImageDrawn { job, .. }
+            | Message::ImagesRead { job, .. }
             | Message::DiagramDrawn { job, .. }
             | Message::ComparisonRead { job, .. }
             | Message::InPlaceRead { job, .. }

@@ -162,7 +162,7 @@ fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, us
 }
 
 /// What opens the Diff page of a file of the page, by its place.
-fn open_file(page: &Page<'_>, index: usize) -> Intent {
+pub(crate) fn open_file(page: &Page<'_>, index: usize) -> Intent {
     let detail = &page.data.detail;
     match detail.files.get(index) {
         Some(file) => open(crate::diff::commit_file(detail, file)),
@@ -254,6 +254,9 @@ pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rec
     {
         intents.push(open_file(page, file));
     }
+    if !is_folded && super::is_svg_name(&change.path) {
+        intents.extend(svg_button(ui, page, (file, &mut parts)));
+    }
     lines_of(ui, &mut parts, (page, file));
     let name_cell = file_start(ui, parts.rest(), (change, 0));
     let path = change.original_path.as_ref().map_or_else(
@@ -269,6 +272,27 @@ pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rec
         intents.push(compare_file(change, commit_list(&page.data.detail)));
     }
     intents
+}
+
+/// **Show the images** on the header of the diff of an SVG, which shows its two pictures in place of its lines, or
+/// **Show the lines** back (`commit-page.images`).
+fn svg_button(ui: &mut Ui<'_>, page: &Page<'_>, (file, parts): (usize, &mut Area)) -> Option<Intent> {
+    let shows_images = page.state.images.svg_shown.contains(&file);
+    let said = if shows_images {
+        words::SHOW_THE_LINES
+    } else {
+        words::SHOW_THE_IMAGES
+    };
+    let button = Button::secondary(said).kind(ButtonKind::Icon);
+    let width = ui.button_size(&button).0;
+    let height = ui.theme().sizes.control_height;
+    let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
+    ui.button(("diff svg images", file), cell, &button)
+        .clicked
+        .then_some(Intent::CommitPage(
+            page.state.id,
+            CommitPageIntent::ShowImages(file, !shows_images),
+        ))
 }
 
 /// The note of a diff with no lines, with the link that opens it in the Diff page when it has some elsewhere; or, with
@@ -357,7 +381,9 @@ pub(crate) fn sticky_header(ui: &mut Ui<'_>, page: &Page<'_>, (rect, drawn): (Re
         return Vec::new();
     };
     let file = match page.rows.get(first) {
-        Some(PageRow::Hunk(file, _) | PageRow::Line(file, _, _) | PageRow::Note(file, _)) => *file,
+        Some(
+            PageRow::Hunk(file, _) | PageRow::Line(file, _, _) | PageRow::Note(file, _) | PageRow::Images(file, _),
+        ) => *file,
         _ => return Vec::new(),
     };
     let height = crate::number::float_of_count(HEADER_ROWS) * page.height;

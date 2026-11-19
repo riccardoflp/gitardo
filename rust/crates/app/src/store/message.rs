@@ -129,6 +129,13 @@ pub enum Message {
         /// The image, none when it is not there or could not be read as an image.
         image: Option<render::Image>,
     },
+    /// A job that read the two versions of an image file of the page of a commit is done (`commit-page.images`).
+    ImagesRead {
+        /// The job.
+        job: JobId,
+        /// The two versions, none when neither side is an image or git could not read them.
+        images: Option<Box<views::diff::DiffImages>>,
+    },
     /// A job that drew the picture of an image file of a File page is done (`file-view.image`).
     ImageDrawn {
         /// The job.
@@ -387,6 +394,13 @@ pub enum JobKind {
         folder: PathBuf,
         /// The image read.
         job: crate::work::file_view::FileJob,
+    },
+    /// Reads the two versions of an image file of the page of a commit and draws them (`commit-page.images`).
+    ReadImages {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// The two versions.
+        request: git::read::diff::DiffRequest,
     },
     /// Draws the picture of the bytes of an image file of a File page (`file-view.image`).
     DrawImage {

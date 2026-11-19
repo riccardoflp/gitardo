@@ -599,19 +599,25 @@ Rules:
 - In the header of the file, **binary** stays where the count of lines would be.
 - An image counts as one line for the folds of `commit-page.initial-folds`, and is unfolded at first as a binary file
   is.
+- The page reads as images the binary files whose name ends as an image does: `.png`, `.jpg`, `.jpeg`, `.gif`,
+  `.webp`, `.bmp`, `.ico`, in any case, and an SVG on **Show the images**; a binary file of another name says **Binary
+  file.** without reading its two versions, and one that was read and is not an image says it too
+  ([Q1301](../08-decisions.md#open-questions)). The block of the two pictures takes the rows of a picture 240 pixels
+  high, read or not, so that the page does not jump.
 - Extension: the webview draws the two as `<img>` of `data:` URIs, which its policy of content allows for images
   alone; in an `<img>` nothing of an SVG runs and nothing is fetched. A side over 10 MB is not sent: *Too large to show
   here.* with **Open it in the Diff page**.
 
 Acceptance:
 
-- [ ] The page of a commit that changed `media/logo.png` shows, with the changes shown, its two versions side by side
+- [x] The page of a commit that changed `media/logo.png` shows, with the changes shown, its two versions side by side
       in place of **Binary file.**
-- [ ] A commit that added a PNG shows **Empty** on the left and the picture on the right.
-- [ ] A folded diff of an image reads nothing until it is unfolded.
-- [ ] A click on the picture opens the Diff page of the file at that commit.
-- [ ] An SVG shows its lines; **Show the images** shows its two pictures.
-- [ ] A comparison of two branches that differ in a PNG shows its two versions.
+- [x] A commit that added a PNG shows **Empty** on the left and the picture on the right.
+- [x] A folded diff of an image reads nothing until it is unfolded.
+- [x] A click on the picture opens the Diff page of the file at that commit.
+- [x] An SVG shows its lines; **Show the images** shows its two pictures.
+- [x] A comparison of two branches that differ in a PNG shows its two versions: in the desktop the page of a
+      comparison lists its files, and a file opens in the Diff page, which draws them (`diff.image`).
 - [ ] Extension: the page of a commit that changed a PNG shows its two versions in the webview; one of 12 MB says *Too
       large to show here.*
 

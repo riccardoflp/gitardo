@@ -41,6 +41,8 @@ pub(crate) enum PageRow<'a> {
     Line(usize, usize, usize),
     /// A row of the note of a diff with no lines, by its first row.
     Note(usize, usize),
+    /// A row of the two pictures of an image file, by its first row (`commit-page.images`).
+    Images(usize, usize),
     /// A row of what the page says when the lines cannot be matched to the files, by its first row.
     Unmatched(usize),
 }
@@ -80,13 +82,14 @@ pub(crate) fn page_rows<'a>(
     let changes = rows.len();
     rows.extend((0..CHANGES_ROWS).map(|_| PageRow::Changes(changes)));
     if state.shows_changes {
-        diff_rows(state, data, &mut rows);
+        let image_rows = rows_for(super::images::block_height(ui), height);
+        diff_rows(state, data, image_rows, &mut rows);
     }
     rows
 }
 
 /// The rows of the diffs of the files shown.
-fn diff_rows<'a>(state: &CommitPageState<'a>, data: &'a PageData, rows: &mut Vec<PageRow<'a>>) {
+fn diff_rows<'a>(state: &CommitPageState<'a>, data: &'a PageData, image_rows: usize, rows: &mut Vec<PageRow<'a>>) {
     let patches = match &data.patch {
         PatchLines::Files(patches) => patches,
         PatchLines::Unmatched => {
@@ -104,6 +107,12 @@ fn diff_rows<'a>(state: &CommitPageState<'a>, data: &'a PageData, rows: &mut Vec
         let start = rows.len();
         rows.extend((0..HEADER_ROWS).map(|_| PageRow::DiffHeader(index, start)));
         if state.folds.is_folded(index) {
+            continue;
+        }
+        let path = data.detail.files.get(index).map_or("", |file| file.path.as_str());
+        if state.images.shows(index, patch, path) {
+            let images = rows.len();
+            rows.extend((0..image_rows).map(|_| PageRow::Images(index, images)));
             continue;
         }
         if patch.hunks.is_empty() {
@@ -190,6 +199,22 @@ impl Page<'_> {
             Some(PageRow::Note(file, start)) => {
                 block(start).map_or_default(|top| diff::note(ui, self, (Some(file), self.block(top, NOTE_ROWS))))
             }
+            Some(PageRow::Images(file, start)) => block(start).map_or_default(|top| {
+                let rows = self
+                    .rows
+                    .iter()
+                    .skip(start)
+                    .take_while(|row| **row == PageRow::Images(file, start));
+                let state = super::ImagesState {
+                    page: self.state.id,
+                    file,
+                    path: &self.path_of(file),
+                    image: self.state.images.files.get(&file),
+                    rect: self.block(top, rows.count()),
+                    open: diff::open_file(self, file),
+                };
+                super::images_view(&state, ui)
+            }),
             Some(PageRow::Unmatched(start)) => {
                 block(start).map_or_default(|top| diff::note(ui, self, (None, self.block(top, NOTE_ROWS))))
             }

@@ -87,18 +87,10 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::file_view::read_file(folder, file, cancel),
         },
-        JobKind::ReadImage { folder, job: file } => Message::ImageRead {
-            job: job.id,
-            image: super::file_view::read_image(folder, file, cancel),
-        },
-        JobKind::DrawImage { path, bytes, .. } => Message::ImageDrawn {
-            job: job.id,
-            result: render::image::read_image(bytes, path, super::file_view::DRAW_SCALE),
-        },
-        JobKind::DrawDiagram { job: diagram, .. } => Message::DiagramDrawn {
-            job: job.id,
-            diagram: super::diagram::draw_diagram(diagram),
-        },
+        JobKind::ReadImage { .. }
+        | JobKind::ReadImages { .. }
+        | JobKind::DrawImage { .. }
+        | JobKind::DrawDiagram { .. } => pictures_read(job, cancel),
         JobKind::ReadComparison { folder, target } => Message::ComparisonRead {
             job: job.id,
             result: super::compare::read_comparison(folder, target, cancel).map(Box::new),
@@ -112,6 +104,29 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             result: super::review::read_review(folder, request, cancel).map(Box::new),
         },
         // The reads of files, and those `run` sends itself, which never come here.
+        _ => files_read(job, cancel),
+    }
+}
+
+/// The message of an image read or drawn, or of a diagram drawn.
+fn pictures_read(job: &Job, cancel: &CancelToken) -> Message {
+    match &job.kind {
+        JobKind::ReadImage { folder, job: file } => Message::ImageRead {
+            job: job.id,
+            image: super::file_view::read_image(folder, file, cancel),
+        },
+        JobKind::ReadImages { folder, request } => Message::ImagesRead {
+            job: job.id,
+            images: super::diff::read_images(folder, request, cancel).map(Box::new),
+        },
+        JobKind::DrawImage { path, bytes, .. } => Message::ImageDrawn {
+            job: job.id,
+            result: render::image::read_image(bytes, path, super::file_view::DRAW_SCALE),
+        },
+        JobKind::DrawDiagram { job: diagram, .. } => Message::DiagramDrawn {
+            job: job.id,
+            diagram: super::diagram::draw_diagram(diagram),
+        },
         _ => files_read(job, cancel),
     }
 }
