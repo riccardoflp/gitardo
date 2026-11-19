@@ -484,6 +484,14 @@ export type Action =
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }
   | { kind: 'stage' | 'unstage' | 'discard'; paths: string[] }
+  /**
+   * Has git ignore a file or a folder by a pattern asked for, takes it out of the index while it stays on disk, or hides
+   * the changes of a tracked file from git (`changes.ignore`, `changes.stop-tracking`, `changes.skip`); `path` is from
+   * the top of the repository.
+   */
+  | { kind: 'ignore' | 'stopTracking' | 'hideFromGit'; path: string }
+  /** Shows the changes of a file hidden from git to git again, or of every file hidden when `path` is left out (`changes.unskip`). */
+  | { kind: 'showToGit'; path?: string }
   /** Resolves the conflicts that need no choice between the two sides, in these files or in all of them. */
   | { kind: 'resolveConflicts'; paths?: string[] }
   /** Makes a file in conflict what one side has, whole: `ours` is what is checked out, `theirs` what is coming in. */

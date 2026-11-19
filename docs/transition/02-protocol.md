@@ -88,8 +88,9 @@ history of a shallow clone ends. The extension clones and creates a repository
 with VS Code's own commands, so it sends none of them yet; they travel as every question and validation does. The same
 version adds what milestone M38 needs
 ([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)):
-`skipped` in `RepositoryState`, the tracked files git is told not to look at, and `locked` in `Worktree`, the reason
-a worktree is locked; and, for milestone M40, `isLookedAfter` in `RepositoryState`, whether git's scheduled
+`skipped` in `RepositoryState`, the tracked files git is told not to look at, which the **Gitardo Changes** view lists
+under **Hidden from git**, and `locked` in `Worktree`, the reason a worktree is locked; the extension runs the features
+of that milestone with `feature/run` and the targets it had, `file` and `changes`, so they need no other message; and, for milestone M40, `isLookedAfter` in `RepositoryState`, whether git's scheduled
 maintenance looks after the repository.
 
 ## Transport

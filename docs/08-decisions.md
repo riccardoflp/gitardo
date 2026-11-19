@@ -5483,6 +5483,16 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1451** — `changes.skipped-list`: a click on a file hidden from git opens its diff between the last commit and the
   disk even when the two are the same, since the list knows only how the file is hidden, not whether it differs. Should
   the read of the hidden files compare each with the last commit, so that one as committed opens its File page?
+- **Q1480** — `changes.unskip`: in the extension, VS Code's Explorer offers **Show Its Changes to Git Again** in place of
+  **Hide Its Changes from Git…** on the files hidden from git of the repository the views show only, told it by the
+  context key `gitardo.hiddenFromGit`, since the extension has the state of that repository alone; a file hidden in
+  another repository of the workspace offers **Hide Its Changes from Git…**, which the engine refuses as hidden
+  already. Should the hidden files of every repository of the workspace be read for the Explorer?
+- **Q1481** — `changes.ignore`, `changes.stop-tracking`, `changes.skip`: in the extension, the context menu of VS Code's
+  Explorer cannot know which files git tracks or ignores, so **Ignore…**, **Stop Tracking, Keep on Disk…** and **Hide
+  Its Changes from Git…** are offered on every file of a repository (the last not on a folder), and the engine refuses
+  what does not apply, saying why, with **Ignore…** on an untracked file. Should the extension tell the Explorer which
+  files git tracks, a context key that would list every file of a large repository?
 
 ### Of large files and remembered resolutions, from Q1190
 

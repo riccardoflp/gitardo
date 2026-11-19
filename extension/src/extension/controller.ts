@@ -343,6 +343,8 @@ export class Controller implements vscode.Disposable {
   private unsaved: string[] = [];
   /** What `unsaved` was last worked out from: the state, and the files of the editors with edits not saved. */
   private unsavedFrom?: { state: RepoState | null; files: string };
+  /** The files hidden from git the Explorer's menu was last told of, as JSON. */
+  private hiddenInMenus = '';
   private readonly stateEmitter = new vscode.EventEmitter<RepoState | null>();
   private readonly subscriptions: vscode.Disposable[];
   /** What Gitardo is doing that takes time, in the status bar. */
@@ -2156,10 +2158,39 @@ export class Controller implements vscode.Disposable {
 
   private setState(state: RepoState | null): void {
     this.state = state;
+    this.showHiddenInMenus(state);
     this.post({ type: 'state', state });
     this.repositoriesView.shown(state);
     this.stateEmitter.fire(state);
     void this.checkUnsaved();
+  }
+
+  /**
+   * Tells the context menu of the Explorer which files of the repository shown are hidden from git, for it to offer
+   * **Show Its Changes to Git Again** on them in place of **Hide Its Changes from Git…**.
+   */
+  private showHiddenInMenus(state: RepoState | null): void {
+    const hidden = Object.fromEntries((state?.skipped ?? []).map((file) => [vscode.Uri.file(path.join(state?.root ?? '', file.path)).fsPath, true]));
+    const said = JSON.stringify(hidden);
+    if (said === this.hiddenInMenus) return;
+    this.hiddenInMenus = said;
+    void vscode.commands.executeCommand('setContext', 'gitardo.hiddenFromGit', hidden);
+  }
+
+  /**
+   * Ignores, stops tracking, hides from git or shows to git again the file or the folder the Explorer's menu was opened
+   * on, in the repository it is in, which the views show first (`changes.ignore`, `changes.stop-tracking`,
+   * `changes.skip`, `changes.unskip`). One path at a time, as in the desktop (Q1173).
+   */
+  async leaveAloneFromExplorer(kind: 'ignore' | 'stopTracking' | 'hideFromGit' | 'showToGit', uri: vscode.Uri | undefined): Promise<void> {
+    if (uri?.scheme !== 'file' || !(await this.requireState())) return;
+    await this.showRepoOf(uri);
+    const relative = this.repo ? path.relative(this.repo.root, uri.fsPath).replace(/\\/g, '/') : '';
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+      void vscode.window.showWarningMessage(`Gitardo: ${path.basename(uri.fsPath)} is in no repository of the workspace.`);
+      return;
+    }
+    await this.action({ kind, path: relative });
   }
 
   /** Tells the Changes views which files of the repository have edits not saved in an editor, when that changed. */

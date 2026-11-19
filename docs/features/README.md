@@ -227,7 +227,7 @@ earns it.
 | [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-page-opens) | What a file of the Changes page opens | Derivation | Built | Built |
 | [`changes.beside-file`](05-changes-and-commit.md#changesbeside-file--the-changes-page-beside-what-it-opens) | The Changes page beside what it opens | View | Built | Host only |
 | [`changes.section`](05-changes-and-commit.md#changessection--changes-a-section-of-the-side-column) | Changes, a section of the side column | View | Built | Host only |
-| [`changes.row-menu`](05-changes-and-commit.md#changesrow-menu--the-menu-of-a-file-of-the-changes) | The menu of a file of the changes | View | Built | Planned |
+| [`changes.row-menu`](05-changes-and-commit.md#changesrow-menu--the-menu-of-a-file-of-the-changes) | The menu of a file of the changes | View | Built | Built |
 | [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Built | Built |
 | [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Built | Built |
 | [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Built | Built |
@@ -249,13 +249,13 @@ earns it.
 | [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built | Built |
 | [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built | Built |
 | [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Built | Built |
-| [`changes.ignore-patterns`](05-changes-and-commit.md#changesignore-patterns--the-patterns-that-ignore-a-file) | The patterns that ignore a file | Derivation | Built | Planned |
-| [`changes.ignore`](05-changes-and-commit.md#changesignore--ignore-a-file-or-a-folder) | Ignore a file or a folder | Operation | Built | Planned |
-| [`changes.stop-tracking`](05-changes-and-commit.md#changesstop-tracking--stop-tracking-a-file-and-keep-it-on-disk) | Stop tracking a file, and keep it on disk | Operation | Built | Planned |
-| [`changes.read-skipped`](05-changes-and-commit.md#changesread-skipped--read-the-files-hidden-from-git) | Read the files hidden from git | Read | Built | Planned |
-| [`changes.skip`](05-changes-and-commit.md#changesskip--hide-a-files-changes-from-git) | Hide a file's changes from git | Operation | Built | Planned |
-| [`changes.unskip`](05-changes-and-commit.md#changesunskip--show-a-files-changes-to-git-again) | Show a file's changes to git again | Operation | Built | Planned |
-| [`changes.skipped-list`](05-changes-and-commit.md#changesskipped-list--the-files-hidden-from-git-under-the-changes) | The files hidden from git, under the changes | View | Built | Planned |
+| [`changes.ignore-patterns`](05-changes-and-commit.md#changesignore-patterns--the-patterns-that-ignore-a-file) | The patterns that ignore a file | Derivation | Built | Built |
+| [`changes.ignore`](05-changes-and-commit.md#changesignore--ignore-a-file-or-a-folder) | Ignore a file or a folder | Operation | Built | Built |
+| [`changes.stop-tracking`](05-changes-and-commit.md#changesstop-tracking--stop-tracking-a-file-and-keep-it-on-disk) | Stop tracking a file, and keep it on disk | Operation | Built | Built |
+| [`changes.read-skipped`](05-changes-and-commit.md#changesread-skipped--read-the-files-hidden-from-git) | Read the files hidden from git | Read | Built | Built |
+| [`changes.skip`](05-changes-and-commit.md#changesskip--hide-a-files-changes-from-git) | Hide a file's changes from git | Operation | Built | Built |
+| [`changes.unskip`](05-changes-and-commit.md#changesunskip--show-a-files-changes-to-git-again) | Show a file's changes to git again | Operation | Built | Built |
+| [`changes.skipped-list`](05-changes-and-commit.md#changesskipped-list--the-files-hidden-from-git-under-the-changes) | The files hidden from git, under the changes | View | Built | Built |
 
 ## Branches, tags, remotes and sync
 

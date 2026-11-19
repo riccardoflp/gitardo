@@ -2,6 +2,13 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- **Lock…** in the menu of a worktree, in the Worktrees section and in the **Gitardo Repositories** view, has git keep it whatever happens to its folder, with the reason typed; **Unlock** takes the lock away. A locked worktree has a lock after its label in the Worktrees section, whose tooltip says the reason, and one whose folder is gone says `missing, locked`. **Remove…** and **Rename…** on a locked worktree say its reason first and unlock it, and **Prune missing worktrees** is not offered while the only missing worktree is locked.
+- **Ignore…** in the context menu of a file of the **Gitardo Changes** view, and of a file or a folder of VS Code's Explorer, has git ignore it by a pattern you choose, this file, all the files of its extension or its folder, or one you type, written at the end of the `.gitignore` of the repository, of the folder of the file, or only on this computer, in the exclude file of the repository; on a file git tracks it offers to stop tracking it too. **Stop tracking, keep on disk…** takes a file or a folder out of the index, after a warning, while it stays on disk. **Hide its changes from git…** has git leave the changes of a tracked file alone, skipped in the working tree or assumed unchanged, and the group **Hidden from git** at the end of the Gitardo Changes view lists such files, each opening its diff with the last commit, with **Show its changes to git again** on each and **Show all to git again** in its **…**; the Explorer offers it on a file hidden from git. The context menu of a file of the Gitardo Changes view also has what the buttons of its row do. Gitardo's engine runs all of them.
+
 ## 1.2.0 - 2026-11-18
 
 ### Added
@@ -10,7 +17,6 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - **Show all commits on one line** in the **…** menu of the Graph view, or `gitardo.graph.oneLane`, off by default: every commit of the graph on one straight line, without lanes, merges as rings, in a column one lane wide; **Fold all merges** and **Unfold all merges** leave the menu while it is on.
 - The settings of Gitardo are in sections in the Settings editor, with the names and the order of the sections of Gitardo Desktop's settings page: **General**, **Timeline**, **Branches**, **Pull and commits**, **Worktrees**, **Files and blame** and **AI and conflicts**.
 - `gitardo.graph.islands`, off by default: the references, the commits and the details of the Graph view are each a rounded island on a darker ground, with the toolbar above them, and the gap between two islands is the line dragged to resize them.
-- **Lock…** in the menu of a worktree, in the Worktrees section and in the **Gitardo Repositories** view, has git keep it whatever happens to its folder, with the reason typed; **Unlock** takes the lock away. A locked worktree has a lock after its label in the Worktrees section, whose tooltip says the reason, and one whose folder is gone says `missing, locked`. **Remove…** and **Rename…** on a locked worktree say its reason first and unlock it, and **Prune missing worktrees** is not offered while the only missing worktree is locked.
 - `gitardo.markdown.openAsPreview`, off by default: a Markdown file opened from the Gitardo Changes view, with **Open File** or a click, opens in VS Code's preview of Markdown rather than in its editor.
 - VS Code's preview of Markdown draws a block fenced as `mermaid` as its diagram, laid out and drawn by Gitardo's engine in the colors of VS Code's default theme of the kind of yours, as an image in which nothing runs or is fetched. Until it is drawn, and without the engine, the block shows its code; a diagram with an error, or of a kind not drawn, shows its code with a line saying why. Another extension that draws Mermaid in the preview, when installed, is left its blocks.
 

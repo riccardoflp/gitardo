@@ -70,6 +70,15 @@ export function engineRuns(
       return action.paths?.length
         ? [{ feature: 'changes.discard', target: files(action.paths) }]
         : [{ feature: 'changes.discard-all', target: { kind: 'head' } }];
+    // What git leaves alone (milestone M38): one file or folder each, from the Changes view or VS Code's Explorer.
+    case 'ignore':
+      return [{ feature: 'changes.ignore', target: { kind: 'file', path: action.path } }];
+    case 'stopTracking':
+      return [{ feature: 'changes.stop-tracking', target: { kind: 'file', path: action.path } }];
+    case 'hideFromGit':
+      return [{ feature: 'changes.skip', target: { kind: 'file', path: action.path } }];
+    case 'showToGit':
+      return [{ feature: 'changes.unskip', target: action.path ? { kind: 'file', path: action.path } : { kind: 'changes' } }];
     case 'commit':
       return [{ feature: action.amend ? 'commit.amend' : 'commit.create', target: { kind: 'head' }, answers: { message: text(action.message) } }];
 

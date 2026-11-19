@@ -1948,6 +1948,22 @@ input:focus-visible,
   padding: 0 3px;
 }
 
+/* The name of a group that folds is the button that folds it, its chevron where the box of the others is. */
+.group header .fold-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  margin-left: -4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* How a file is hidden from git, after its name. */
+.file .hint {
+  margin-left: 6px;
+}
+
 .none {
   padding: 0 12px;
 }

@@ -169,6 +169,63 @@ export function changesMenu(state: RepoState): MenuEntry[] {
   ];
 }
 
+/** A file of the **Gitardo Changes** view, as the menu of its row needs it. */
+export interface ChangedFile {
+  file: FileChange;
+  /** How much of it is staged; null for a file only an editor has changed, which git sees nothing of. */
+  staged: 'all' | 'some' | 'none' | null;
+  untracked: boolean;
+  /** An editor has edits of it that are not saved. */
+  unsaved: boolean;
+}
+
+/** A staged rename covers two paths: unstaging only the new one would leave the deletion of the old one staged. */
+export const pathsOf = (file: FileChange) => (file.originalPath ? [file.path, file.originalPath] : [file.path]);
+
+/**
+ * The menu of a changed file of the **Gitardo Changes** view (`changes.row-menu`): what its buttons do, then, under a
+ * line, what has git leave it alone: **Ignore…** on a file still on disk, and on one git tracks **Stop tracking, keep on
+ * disk…** and **Hide its changes from git…**. While an operation runs, what changes something cannot be chosen.
+ */
+export function changedFileMenu({ file, staged, untracked, unsaved }: ChangedFile, busy: boolean): MenuEntry[] {
+  const change = (label: string, action: Action): MenuEntry => ({ label, disabled: busy, run: () => act(action) });
+  const save = unsaved && { label: 'Save', run: () => post({ type: 'save', paths: [file.path] }) };
+  // Only its editor has changed it: there is nothing for git to stage, stash, discard or leave alone until it is saved.
+  if (staged === null) return [save, { label: 'Compare with the saved file', run: () => post({ type: 'compareWithSaved', path: file.path }) }];
+  const onDisk = file.kind !== 'deleted';
+  return [
+    { label: 'Open changes', run: () => post({ type: 'openDiff', source: { kind: 'change' }, file }) },
+    onDisk && { label: 'Open file', run: () => post({ type: 'openFile', file }) },
+    'separator',
+    staged === 'all' ? change('Unstage', { kind: 'unstage', paths: pathsOf(file) }) : change('Stage', { kind: 'stage', paths: [file.path] }),
+    // With some of it staged, all of it goes back to HEAD.
+    change('Discard changes', staged === 'none' ? { kind: 'discard', paths: [file.path] } : { kind: 'discardChanges', paths: pathsOf(file) }),
+    change('Stash this file…', { kind: 'stashPush', paths: pathsOf(file) }),
+    'separator',
+    onDisk && change('Ignore…', { kind: 'ignore', path: file.path }),
+    onDisk && !untracked && change('Stop tracking, keep on disk…', { kind: 'stopTracking', path: file.path }),
+    onDisk && !untracked && change('Hide its changes from git…', { kind: 'hideFromGit', path: file.path }),
+    'separator',
+    save,
+  ];
+}
+
+/** The menu of a file of **Hidden from git** (`changes.skipped-list`): its diff, the file, and showing it to git again. */
+export function hiddenFileMenu(path: string, busy: boolean): MenuEntry[] {
+  const file: FileChange = { path, originalPath: null, kind: 'modified' };
+  return [
+    { label: 'Open changes', run: () => post({ type: 'openDiff', source: { kind: 'worktree' }, file }) },
+    { label: 'Open file', run: () => post({ type: 'openFile', file }) },
+    'separator',
+    { label: 'Show its changes to git again', disabled: busy, run: () => act({ kind: 'showToGit', path }) },
+  ];
+}
+
+/** What the **…** of the heading of **Hidden from git** offers (`changes.unskip`). */
+export function hiddenGroupMenu(busy: boolean): MenuEntry[] {
+  return [{ label: 'Show all to git again', disabled: busy, run: () => act({ kind: 'showToGit' }) }];
+}
+
 export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): MenuEntry[] {
   if (row.hash === WORKTREE) return changesMenu(state);
 
