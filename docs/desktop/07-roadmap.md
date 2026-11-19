@@ -1250,7 +1250,7 @@ warning and `v1` is gone from both; **Create branch with no history…** named `
 leaves only the untracked files in the working tree, its first commit has no parent, and Undo before that commit goes
 back to `main`; every card of the milestone passes its tests, in the desktop and, after phase 5, in the extension.
 
-## M36 — Stacked branches and what a rewrite changed
+## M36 — Stacked branches and what a rewrite changed (done)
 
 The other local branches on the commits a rewrite makes again move with it, the plan says which, and one Undo takes
 them all back; and what a rebase, an amend or a force push changed is shown commit by commit, as `git range-diff`
