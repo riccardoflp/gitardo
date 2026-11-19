@@ -1334,7 +1334,9 @@ page, the Diff page and the page of a commit show a file stored with Git LFS by 
 page, **Store them with Git LFS in the next commit** and **Stop storing with Git LFS**. Phase 4 is built: the locks
 read when the page opens and on **Refresh**, never with the reads of the repository, the name of whoever locked a file,
 **Lock**, and **Unlock**, someone else's after the warning, tested against a server of the tests set as `lfs.url`.
-Phases 5 and 6 are not built yet.
+Phase 5 is built: whether git remembers resolutions, read with the repository, and **Remember how conflicts are
+resolved…** in the menu of the row of the repository shown and in Quick search, ticked while it is on. Phase 6 is not
+built yet.
 
 Exit: in a clone of a repository that stores `*.psd` with Git LFS, made without downloading, the File page of a `.psd`
 says it is not downloaded, with its size, and **Download** shows its content after; the page of a commit that changed

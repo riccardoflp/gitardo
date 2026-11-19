@@ -53,6 +53,8 @@ pub struct RepositoryState {
     /// Whether Git LFS is set up for the repository and the patterns it stores with it, with the version of Git LFS
     /// once the repository has patterns or is set up (`lfs.read-status`).
     pub lfs: crate::lfs::LfsStatus,
+    /// Whether git remembers how conflicts are resolved, and stages what it writes (`rerere.read-state`).
+    pub rerere: crate::rerere::RerereState,
 }
 
 impl RepositoryState {

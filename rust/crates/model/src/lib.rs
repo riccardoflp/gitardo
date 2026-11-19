@@ -33,6 +33,7 @@ pub mod reflog;
 pub mod refs;
 pub mod remote;
 pub mod repo;
+pub mod rerere;
 pub mod review;
 pub mod search;
 pub mod squash;

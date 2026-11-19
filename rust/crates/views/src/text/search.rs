@@ -297,5 +297,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::BlamePrevious => crate::text::blame::BLAME_BEFORE,
         QuickCommand::ToggleIgnoreWhitespace => crate::text::blame::TOGGLE_IGNORE_WHITESPACE,
         QuickCommand::ToggleEveryFile => crate::text::blame::TOGGLE_EVERY_FILE,
+        QuickCommand::RememberResolutions => crate::text::rerere::TURN_ON_COMMAND,
+        QuickCommand::StopRememberingResolutions => crate::text::rerere::TURN_OFF_COMMAND,
     }
 }

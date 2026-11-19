@@ -51,6 +51,9 @@ pub struct TabEntry {
     pub members: Vec<TabMemberEntry>,
     /// Whether the rows of its worktrees and its submodules are shown under its row.
     pub is_unfolded: bool,
+    /// Whether git remembers how conflicts are resolved in what it shows, known for the row shown
+    /// (`rerere.read-state`).
+    pub remembers_resolutions: Option<bool>,
 }
 
 /// The worktree or the submodule a row shows, when it is not the repository's own folder.
@@ -106,6 +109,9 @@ enum TabCommand {
     CopyPath,
     /// **Large files…** (`lfs.page`).
     LargeFiles,
+    /// **Remember how conflicts are resolved…**, or the same ticked, which turns it off (`rerere.turn-on`,
+    /// `rerere.turn-off`).
+    RememberResolutions,
 }
 
 /// The height of a row of **Repositories**: one line, its name and what it is on.
@@ -158,7 +164,8 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// The context menu of a row: **Close tab**, **Close other tabs**, then **Reveal in File Explorer** on the row shown,
-/// and **Copy path**, which copies the folder of what the row shows.
+/// and **Copy path**, which copies the folder of what the row shows; **Large files…**, and on the row shown **Remember
+/// how conflicts are resolved…**, ticked while git does.
 pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, response: &ui::Response) -> Option<Intent> {
     let mut entries = vec![
         MenuEntry::Item(icons::action(icons::CLOSE, words::CLOSE_TAB, TabCommand::Close)),
@@ -188,6 +195,18 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
             TabCommand::LargeFiles,
         )),
     ]);
+    if let Some(is_on) = tab.remembers_resolutions {
+        let label = if is_on {
+            crate::text::rerere::REMEMBERING
+        } else {
+            crate::text::rerere::REMEMBER
+        };
+        entries.push(MenuEntry::Item(icons::choice(
+            label,
+            TabCommand::RememberResolutions,
+            is_on,
+        )));
+    }
     match ui.context_menu(("tab menu", index), response, &entries)? {
         TabCommand::Close => Some(Intent::CloseTab(index)),
         TabCommand::CloseOthers => Some(Intent::CloseOtherTabs(index)),
@@ -197,7 +216,17 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
             None
         }
         TabCommand::LargeFiles => Some(Intent::LargeFiles(crate::lfs::LargeFilesIntent::OpenForTab(index))),
+        TabCommand::RememberResolutions => Some(remember_resolutions(tab.remembers_resolutions == Some(true))),
     }
+}
+
+/// **Remember how conflicts are resolved…**, which turns git's rerere on, or off when it is ticked.
+fn remember_resolutions(is_on: bool) -> Intent {
+    let feature = if is_on { "rerere.turn-off" } else { "rerere.turn-on" };
+    Intent::Feature(crate::feature::FeatureIntent::Run(
+        model::contract::FeatureId(feature),
+        model::contract::Target::Head,
+    ))
 }
 
 /// A name that does not fit cut at its start with `…`, so that its last part, the repository's own folder, stays.

@@ -27,6 +27,7 @@ pub mod patch;
 pub mod rail;
 pub mod rebase;
 pub mod repo;
+pub mod rerere;
 pub mod review;
 pub mod search;
 pub mod settings;

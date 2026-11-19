@@ -79,7 +79,9 @@ const WITHOUT_ICON: [(&str, &str, &str); 17] = [
 
 /// The operations offered in a menu that have no icon: they rewrite the history (rebase, reset, squash, split,
 /// fixup), or no icon of Lucide says them.
-const OPERATIONS_WITHOUT_ICON: [&str; 12] = [
+const OPERATIONS_WITHOUT_ICON: [&str; 14] = [
+    "rerere.turn-on",
+    "rerere.turn-off",
     "lfs.lock",
     "lfs.unlock",
     "rebase.onto",

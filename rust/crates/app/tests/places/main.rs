@@ -91,6 +91,7 @@ mod pointer;
 mod rail;
 mod rail_filter;
 mod rebase;
+mod rerere;
 mod review;
 mod review_cards;
 mod review_choose;

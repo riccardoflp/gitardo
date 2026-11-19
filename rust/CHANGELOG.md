@@ -13,6 +13,9 @@
   and on **Refresh**, never with the reads of the repository, and **The server of `<remote>` does not support locks.**
   when it has none. **Lock** in the menu of a file runs `git lfs lock`; **Unlock** runs `git lfs unlock`, with
   **Unlock anyway** when the file has changes not committed, and asks first for someone else's lock, who is not told.
+- **Remember how conflicts are resolved…** in the menu of the row of the repository shown, or in Quick search, turns
+  on git's rerere for the repository, asking whether git leaves the files it resolves as before for you to look at or
+  stages them; the entry is ticked while git remembers, and choosing it again turns it off, keeping what git recorded.
 - A file stored with Git LFS is never shown as the text of its pointer. Left as a pointer, as after a clone without
   Git LFS, the File page says **Stored with Git LFS, not downloaded** with its size and **Download**, which pulls it
   with `git lfs pull --include=<path>`; at a revision, its content is read from the store of the repository when it is

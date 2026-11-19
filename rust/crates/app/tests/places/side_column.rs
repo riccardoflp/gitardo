@@ -124,6 +124,7 @@ fn entry(name: &str, is_shown: bool) -> TabEntry {
         }),
         members: Vec::new(),
         is_unfolded: true,
+        remembers_resolutions: None,
     }
 }
 

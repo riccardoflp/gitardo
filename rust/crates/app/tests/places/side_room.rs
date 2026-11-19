@@ -127,6 +127,7 @@ fn long_entry(name: &str, branch: &str) -> TabEntry {
         }),
         members: Vec::new(),
         is_unfolded: true,
+        remembers_resolutions: None,
     }
 }
 

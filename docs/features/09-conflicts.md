@@ -1758,9 +1758,15 @@ it writes.
 
 Acceptance:
 
-- [ ] With `git config rerere.enabled true`, it is on; with `false`, off, even with an `rr-cache` folder.
-- [ ] With nothing set and an `rr-cache` folder in the git folder, it is on; with neither, off.
-- [ ] `git config rerere.autoUpdate true` reads as staging what it writes.
+- [x] With `git config rerere.enabled true`, it is on; with `false`, off, even with an `rr-cache` folder.
+- [x] With nothing set and an `rr-cache` folder in the git folder, it is on; with neither, off.
+- [x] `git config rerere.autoUpdate true` reads as staging what it writes.
+
+- As built, the two keys are read by one `git config --type=bool --get-regexp ^rerere\.(enabled|autoupdate)$`, in its
+  own thread with the other reads of the repository, at each read: one process, like the read of Git LFS beside it.
+  The folder `rr-cache` is found without starting git, in the common git folder that the file `commondir` of a
+  linked worktree names, where `git rev-parse --git-path rr-cache` would find it. The state also says whether the
+  configuration sets `rerere.autoUpdate`, for `rerere.turn-off`.
 
 ### `rerere.turn-on` — Remember how conflicts are resolved
 
@@ -1788,10 +1794,15 @@ Turns on, for this repository, git's recording of the resolutions of conflicts a
 
 Acceptance:
 
-- [ ] With the first answer it runs `git config --local rerere.enabled true` alone, and the entry of the menu is
+- [x] With the first answer it runs `git config --local rerere.enabled true` alone, and the entry of the menu is
       ticked after.
-- [ ] With the second it runs both commands.
-- [ ] Backing out of the question runs nothing.
+- [x] With the second it runs both commands.
+- [x] Backing out of the question runs nothing.
+
+- As built, the entry is in the menu of the row shown, whose state is read; on another row it is not, since its
+  repository is not read. Quick search lists **Remember How Conflicts Are Resolved…** and **Stop Remembering How
+  Conflicts Are Resolved** at all times, and the one that does not apply refuses with what is so. Turned on in a
+  repository where the user's own configuration turns it on already, it refuses: nothing is to be done.
 
 ### `rerere.turn-off` — Stop remembering how conflicts are resolved
 
@@ -1811,8 +1822,8 @@ Turns git's recording of resolutions off for this repository; what it recorded s
 
 Acceptance:
 
-- [ ] It runs `git config --local rerere.enabled false`, and the next conflict git resolved before stays marked.
-- [ ] The folder `rr-cache` is not deleted (Q1203).
+- [x] It runs `git config --local rerere.enabled false`, and the next conflict git resolved before stays marked.
+- [x] The folder `rr-cache` is not deleted (Q1203).
 
 ### `rerere.read-resolved` — The files git resolved as before
 
