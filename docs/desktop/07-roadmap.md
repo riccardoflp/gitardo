@@ -1369,7 +1369,12 @@ extension.
    the **Gitardo Repositories** view, all run by the engine. Cards: the cards of the first five phases, in the
    extension.
 
-Nothing is built yet.
+Built so far: the fifth phase, before the others. The menu of the row of the repository shown in **Repositories** has
+**Clean up…**, whose question says the room the repository takes as `git count-objects -v` reads it, then runs
+`git gc`; its message says the room before, not after (Q1455). **Look after it in the background…** is ticked while
+`maintenance.repo` in the user's configuration lists the repository, read with the state again only when that
+configuration changed, and sent to the extension as `isLookedAfter` (protocol 1.11); unticked it runs
+`git maintenance start` after its warning, ticked `git maintenance unregister`.
 
 Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
 in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save

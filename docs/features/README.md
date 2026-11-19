@@ -78,11 +78,11 @@ earns it.
 | [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built | Host only |
 | [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built | Host only |
 | [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Built | Host only |
-| [`upkeep.read-size`](01-repositories.md#upkeepread-size--the-size-of-a-repository) | The size of a repository | Read | Specified | Planned |
-| [`upkeep.clean-up`](01-repositories.md#upkeepclean-up--clean-up-a-repository) | Clean up a repository | Operation | Specified | Planned |
-| [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Specified | Planned |
-| [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Specified | Planned |
-| [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Specified | Planned |
+| [`upkeep.read-size`](01-repositories.md#upkeepread-size--the-size-of-a-repository) | The size of a repository | Read | Built | Planned |
+| [`upkeep.clean-up`](01-repositories.md#upkeepclean-up--clean-up-a-repository) | Clean up a repository | Operation | Built | Planned |
+| [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Built | Planned |
+| [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Built | Planned |
+| [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Built | Planned |
 
 ## Graph
 

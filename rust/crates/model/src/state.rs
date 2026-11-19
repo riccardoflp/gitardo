@@ -59,6 +59,8 @@ pub struct RepositoryState {
     /// The tracked files git is told not to look at, by hand: not those a sparse checkout leaves out
     /// (`changes.read-skipped`).
     pub skipped: Vec<SkippedFile>,
+    /// Whether git's scheduled maintenance looks after the repository (`upkeep.read-background`).
+    pub is_looked_after: bool,
 }
 
 impl RepositoryState {

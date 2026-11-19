@@ -89,7 +89,8 @@ with VS Code's own commands, so it sends none of them yet; they travel as every 
 version adds what milestone M38 needs
 ([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)):
 `skipped` in `RepositoryState`, the tracked files git is told not to look at, and `locked` in `Worktree`, the reason
-a worktree is locked.
+a worktree is locked; and, for milestone M40, `isLookedAfter` in `RepositoryState`, whether git's scheduled
+maintenance looks after the repository.
 
 ## Transport
 
@@ -698,7 +699,8 @@ The fields are those of `model`; this section says only what the JSON adds or le
   "rebase" | "cherryPick" | "revert" | "patch" | … | null`, `rebaseStop: RebaseStop | null`, `bisect: Bisect | null`,
   `submodules: Submodule[]`, `shallow: CommitId[]` (1.11), the commits whose parents were not fetched, empty when the
   repository is not shallow (`repo.read-shallow`), `skipped: { path, skipWorktree, assumeUnchanged }[]` (1.11), the
-  tracked files git is told not to look at by hand, not those a sparse checkout leaves out (`changes.read-skipped`).
+  tracked files git is told not to look at by hand, not those a sparse checkout leaves out (`changes.read-skipped`),
+  `isLookedAfter: boolean` (1.11), whether git's scheduled maintenance looks after it (`upkeep.read-background`).
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,

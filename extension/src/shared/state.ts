@@ -234,6 +234,8 @@ export interface RepositoryState {
    * not list them yet (`changes.skipped-list` is Planned in the extension).
    */
   skipped?: { path: string; skipWorktree: boolean; assumeUnchanged: boolean }[];
+  /** Whether git's scheduled maintenance looks after the repository (protocol 1.11, `upkeep.read-background`). */
+  isLookedAfter?: boolean;
 }
 
 /** Who made a commit, or committed it, and when. */

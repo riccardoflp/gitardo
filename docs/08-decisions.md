@@ -5468,6 +5468,9 @@ asked while it is planned; each is built as it says until the maintainer answers
   added, for this and for the other operations that write a file?
 - **Q1452** — `worktree.lock`: the rows of the worktrees in **Repositories** have no context menu, so **Lock…** and
   **Unlock** are only in the Worktrees list. Should those rows get the menu of a worktree, as the Worktrees list has it?
+- **Q1455** — `upkeep.clean-up`: the message after says the room the repository took, not the room it takes after
+  `git gc`, since a plan cannot read once its steps ended; and Quick search has no **Clean Up the Repository…** yet.
+  Should a plan get a follow-up that reads the size again, and Quick search the entry?
 - **Q1453** — `worktree.unlock`: **Lock…** after **Unlock** does not propose the reason the worktree had, since git
   forgets it. Should the window keep the reason of each worktree it unlocked, while it is open, to propose it again?
 - **Q1454** — `worktree.locked`: in the extension, the rows of the **Gitardo Repositories** view do not draw the lock

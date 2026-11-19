@@ -41,6 +41,11 @@
   folder is gone says `missing, locked`. **Remove…** and **Rename…** on a locked worktree say its reason first, then
   unlock it, **Rename…** locking it again in its new folder; **Prune missing worktrees** is not offered while the only
   missing worktree is locked; **Clean up branches…** lists the branch of a locked worktree unticked.
+- **Clean up…** in the menu of the row of the repository shown in **Repositories** says the room the repository takes,
+  `app takes 1.2 GB: 830 MB in 3 packs, and 45,210 loose objects in 380 MB.`, warns of what git deletes, then runs
+  `git gc`. **Look after it in the background…** in the same menu registers the repository for git's scheduled
+  maintenance with `git maintenance start`, after saying that git is then scheduled on the computer; it is ticked while
+  git looks after the repository, and ticked it runs `git maintenance unregister`, leaving the others registered.
 
 ## 1.2.0 - 2026-11-18
 

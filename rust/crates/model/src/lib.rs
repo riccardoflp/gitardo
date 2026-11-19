@@ -42,6 +42,7 @@ pub mod tasks;
 pub mod terminal;
 pub mod trail;
 pub mod trust;
+pub mod upkeep;
 pub mod worktree;
 pub mod worktree_setup;
 

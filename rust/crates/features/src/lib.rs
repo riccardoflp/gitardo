@@ -47,6 +47,7 @@ pub mod tag;
 pub mod tasks;
 pub mod trust;
 pub mod undo;
+pub mod upkeep;
 pub mod worktree;
 pub mod worktree_setup;
 
@@ -56,7 +57,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 174] = [
+pub const OPERATIONS: [(FeatureId, Operation); 177] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -215,6 +216,9 @@ pub const OPERATIONS: [(FeatureId, Operation); 174] = [
     (FeatureId("worktree.prune"), worktree::prune),
     (FeatureId("worktree.lock"), worktree::lock),
     (FeatureId("worktree.unlock"), worktree::unlock),
+    (FeatureId("upkeep.clean-up"), upkeep::clean_up),
+    (FeatureId("upkeep.start-background"), upkeep::start_background),
+    (FeatureId("upkeep.stop-background"), upkeep::stop_background),
     (FeatureId("worktree.remove"), worktree::remove),
     (FeatureId("worktree.rename"), worktree::rename),
     (FeatureId("worktree.reveal"), worktree::reveal),

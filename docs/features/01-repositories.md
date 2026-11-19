@@ -887,7 +887,9 @@ that folder. Each row and each chevron takes the keyboard with `Tab`, `Enter` or
 the screen reader its name and whether it is the one shown, or whether its rows are unfolded. The **×** of a row is on
 the row under the pointer and the row shown, and stays while the pointer is on it, the row still lit as a row under
 the pointer; a middle click closes it; its context menu has **Close tab** and **Close other tabs**
-(`repo.close-tab`), **Reveal in the file manager** and **Copy path**. Its tooltip is the folder of what it
+(`repo.close-tab`), **Reveal in the file manager** and **Copy path**, and, on the row shown while nothing runs in
+it, **Clean up…** (`upkeep.clean-up`) and **Look after it in the background…**, ticked while git's maintenance looks
+after the repository (`upkeep.start-background`, `upkeep.stop-background`). Its tooltip is the folder of what it
 shows. A name too long for the row is cut at its start with `…`, so that the name of the repository's own folder
 stays. When the rows do not fit the height of the section, it scrolls.
 
@@ -1488,8 +1490,9 @@ room it takes before and after.
 
 - **Kind**: Operation
 - **Function**: `features::upkeep::clean_up(context, answers) -> Outcome`
-- **Entry points**: **Clean up…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`);
-  Quick search, **Clean Up the Repository…**.
+- **Entry points**: **Clean up…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`),
+  on the row shown alone, since an operation runs on the repository the views show; Quick search, **Clean Up the
+  Repository…**, is not there yet (Q1455).
 - **Offered when**: no operation of Gitardo runs in the repository.
 - **Reads**: `upkeep.read-size`.
 - **Plan**: `git gc` (Q1220).
@@ -1497,8 +1500,9 @@ room it takes before and after.
   older than 90 days, are deleted for good, as git's settings of `gc` say.** The question says, above it, the room the
   repository takes: **`<repository>` takes 1.2 GB: 830 MB in 3 packs, and 45,210 loose objects in 380 MB.**
 - **Undo**: Impossible: what git deletes is not kept.
-- **After**: reads the size again and says **Cleaned up `<repository>`: 1.2 GB, now 640 MB.** It runs with what is
-  running in the status bar and in the Activity tab (`activity.status-bar`), as long as it takes.
+- **After**: says **Cleaned up `<repository>`, which took 1.2 GB.**: the size after is not read again yet, since a
+  plan has no step after it that reads (Q1455). It runs with what is running in the status bar and in the Activity
+  tab (`activity.status-bar`), as long as it takes.
 - **Refuses**: git's message when another `git gc` runs in the repository.
 - **Uses**: `upkeep.read-size`, `repo.tabs`, `activity.status-bar`.
 - **Extension**: planned: **Clean Up…** in the context menu of a row of the **Gitardo Repositories** view

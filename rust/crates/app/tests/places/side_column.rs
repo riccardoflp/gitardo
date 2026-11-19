@@ -123,6 +123,7 @@ fn entry(name: &str, is_shown: bool) -> TabEntry {
             is_stale: false,
         }),
         members: Vec::new(),
+        looked_after: None,
         is_unfolded: true,
     }
 }

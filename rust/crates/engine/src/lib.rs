@@ -28,6 +28,7 @@ mod steps;
 mod tasks;
 pub mod timeline;
 pub mod undo;
+mod upkeep;
 
 pub use activity::{Activities, ActivityEntry, ActivityGuard, ActivityReport, EndedActivity, ProgressReporter};
 pub use clock::{Clock, FixedClock};

@@ -161,6 +161,7 @@ struct Parts {
     submodules: Vec<model::submodule::Submodule>,
     shallow: Shallow,
     skipped: Vec<model::state::SkippedFile>,
+    is_looked_after: bool,
 }
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
@@ -197,14 +198,10 @@ fn read_parts(
             folder: location.folder.clone(),
         };
         let shallow = scope.spawn(move || read_shallow(git, &shallow_request));
-        let skipped_request = crate::read::changes::SkippedRequest {
-            git_folder: location.git_folder.clone(),
-            before: before.skipped.clone(),
-        };
-        let skipped = scope.spawn(move || crate::read::changes::read_skipped(git, &skipped_request));
+        let kept = scope.spawn(|| read_kept(git, location, before));
         let operation = operation::read_operation(&location.git_folder);
         let (worktrees, mut counted) = joined(worktrees)?;
-        let skipped = joined(skipped)?;
+        let (skipped, background) = joined(kept)?;
         let parts = Parts {
             references: joined(references)?,
             head: Head {
@@ -223,10 +220,34 @@ fn read_parts(
             submodules: joined(submodules)?,
             shallow: joined(shallow)?,
             skipped: skipped.files.clone(),
+            is_looked_after: background.is_registered,
         };
         counted.skipped = Some(skipped);
+        counted.background = Some(background);
         Ok((parts, counted))
     })
+}
+
+/// The reads kept from the read before while what they read did not change: the files hidden from git, while the index
+/// did not change (`changes.read-skipped`), and whether git's maintenance looks after the repository, while the user's
+/// configuration did not (`upkeep.read-background`).
+fn read_kept(
+    git: &Git,
+    location: &Location,
+    before: &CountedWorktrees,
+) -> Result<(crate::read::changes::SkippedRead, crate::read::upkeep::BackgroundRead), GitError> {
+    let skipped_request = crate::read::changes::SkippedRequest {
+        git_folder: location.git_folder.clone(),
+        before: before.skipped.clone(),
+    };
+    let background_request = crate::read::upkeep::BackgroundRequest {
+        folder: location.folder.clone(),
+        before: before.background.clone(),
+    };
+    Ok((
+        crate::read::changes::read_skipped(git, &skipped_request)?,
+        crate::read::upkeep::read_background_kept(git, &background_request)?,
+    ))
 }
 
 /// The state, from where the repository is and what each read found. The worktree read counts what this read found
@@ -265,6 +286,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         submodules: parts.submodules,
         shallow: parts.shallow,
         skipped: parts.skipped,
+        is_looked_after: parts.is_looked_after,
     }
 }
 

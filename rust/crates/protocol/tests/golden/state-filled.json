@@ -137,5 +137,6 @@
       "skipWorktree": true,
       "assumeUnchanged": false
     }
-  ]
+  ],
+  "isLookedAfter": true
 }

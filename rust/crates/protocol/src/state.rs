@@ -50,6 +50,9 @@ pub struct StateJson {
     /// The tracked files git is told not to look at, by hand (since 1.11).
     #[serde(default)]
     pub skipped: Vec<SkippedFileJson>,
+    /// Whether git's scheduled maintenance looks after the repository (since 1.11).
+    #[serde(default)]
+    pub is_looked_after: bool,
 }
 
 /// What is checked out.

@@ -51,6 +51,9 @@ pub struct TabEntry {
     pub members: Vec<TabMemberEntry>,
     /// Whether the rows of its worktrees and its submodules are shown under its row.
     pub is_unfolded: bool,
+    /// Whether git's scheduled maintenance looks after its repository, as its last read says
+    /// (`upkeep.read-background`); none on a row not shown, whose repository is not read here.
+    pub looked_after: Option<bool>,
 }
 
 /// The worktree or the submodule a row shows, when it is not the repository's own folder.
@@ -110,6 +113,11 @@ enum TabCommand {
     Reveal,
     /// **Copy path**.
     CopyPath,
+    /// **Clean up…** (`upkeep.clean-up`).
+    CleanUp,
+    /// **Look after it in the background…**, unticked (`upkeep.start-background`), or ticked
+    /// (`upkeep.stop-background`).
+    LookAfter,
 }
 
 /// The height of a row of **Repositories**: one line, its name and what it is on.
@@ -185,6 +193,25 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
         worktree_words::COPY_PATH,
         TabCommand::CopyPath,
     )));
+    // The upkeep runs on the repository the views show, and so is offered on its row alone (`upkeep.clean-up`).
+    if tab.is_shown && !tab.is_running {
+        entries.push(MenuEntry::Separator);
+        entries.push(MenuEntry::Item(icons::action(
+            icons::DELETE,
+            words::CLEAN_UP,
+            TabCommand::CleanUp,
+        )));
+        entries.push(MenuEntry::Item(icons::choice(
+            words::LOOK_AFTER,
+            TabCommand::LookAfter,
+            tab.looked_after == Some(true),
+        )));
+    }
+    let run = |feature| {
+        let run =
+            crate::feature::FeatureIntent::Run(model::contract::FeatureId(feature), model::contract::Target::Head);
+        Some(Intent::Feature(run))
+    };
     match ui.context_menu(("tab menu", index), response, &entries)? {
         TabCommand::Close => Some(Intent::CloseTab(index)),
         TabCommand::CloseOthers => Some(Intent::CloseOtherTabs(index)),
@@ -193,6 +220,9 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
             ui.copy_to_clipboard(tab.folder.clone());
             None
         }
+        TabCommand::CleanUp => run("upkeep.clean-up"),
+        TabCommand::LookAfter if tab.looked_after == Some(true) => run("upkeep.stop-background"),
+        TabCommand::LookAfter => run("upkeep.start-background"),
     }
 }
 

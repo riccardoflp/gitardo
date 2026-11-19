@@ -68,6 +68,7 @@ impl From<&RepositoryState> for StateJson {
                     assume_unchanged: file.how.is_assumed_unchanged(),
                 })
                 .collect(),
+            is_looked_after: state.is_looked_after,
         }
     }
 }

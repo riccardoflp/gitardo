@@ -40,6 +40,9 @@ pub struct CountedWorktrees {
     counted: BTreeMap<PathBuf, (GitFolderStamp, Option<usize>)>,
     /// The files hidden from git the read found.
     pub(crate) skipped: Option<crate::read::changes::SkippedRead>,
+    /// Whether git's maintenance looks after the repository, with the stamp of the user's configuration it was read
+    /// from (`upkeep.read-background`).
+    pub(crate) background: Option<crate::read::upkeep::BackgroundRead>,
 }
 
 impl CountedWorktrees {

@@ -102,6 +102,7 @@ fn repository() -> RepositoryState {
         submodules: Vec::new(),
         shallow: model::state::Shallow::default(),
         skipped: Vec::new(),
+        is_looked_after: false,
     }
 }
 

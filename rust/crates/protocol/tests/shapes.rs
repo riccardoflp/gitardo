@@ -104,6 +104,7 @@ fn repository() -> RepositoryState {
             path: String::from("config/local.json"),
             how: model::state::Skipped::Worktree,
         }],
+        is_looked_after: true,
     }
 }
 

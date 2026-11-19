@@ -65,6 +65,11 @@ pub const OPEN_TAB_TITLE: &str = "Open a repository in a tab";
 pub const CLOSE_TAB: &str = "Close tab";
 /// The entry of the menu of a tab that closes the others.
 pub const CLOSE_OTHER_TABS: &str = "Close other tabs";
+/// **Clean up…** in the menu of the row of the repository shown (`upkeep.clean-up`).
+pub const CLEAN_UP: &str = "Clean up\u{2026}";
+/// **Look after it in the background…** in the menu of the row of the repository shown, ticked while git's
+/// maintenance looks after it (`upkeep.start-background`, `upkeep.stop-background`).
+pub const LOOK_AFTER: &str = "Look after it in the background\u{2026}";
 /// The tooltip of the **▾** of a tab, which lists its worktrees and its submodules (`repo.group-tabs`).
 pub const TAB_MEMBERS: &str = "Worktrees and submodules";
 /// What is put between the name of a tab and the name of the worktree or the submodule it shows.

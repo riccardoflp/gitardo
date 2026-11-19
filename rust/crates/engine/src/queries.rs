@@ -76,6 +76,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             crate::new_repository::answer(git, query)
         }
         Query::IgnoredBy { .. } | Query::ExcludeFile => crate::ignoring::answer(git, query),
+        Query::RepositorySize => crate::upkeep::answer(git),
         Query::SetupTakes(requests) => setup_takes(git, requests),
         Query::PathStatuses { paths } => path_statuses(git, paths),
         Query::FileNames { path } => history::file_names(git, path),
@@ -329,7 +330,7 @@ pub(crate) fn describe(query: &Query) -> String {
         | Query::TakenNames { .. }
         | Query::RepositoryAround { .. }
         | Query::DefaultBranch { .. } => crate::new_repository::describe(query),
-        Query::IgnoredBy { .. } | Query::ExcludeFile => crate::ignoring::describe(query),
+        Query::IgnoredBy { .. } | Query::ExcludeFile | Query::RepositorySize => crate::upkeep::describe(query),
         Query::FileNames { path } => history::describe_file_names(path),
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),

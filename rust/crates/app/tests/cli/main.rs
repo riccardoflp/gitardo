@@ -31,6 +31,7 @@ mod sync;
 mod sync_all;
 mod tag;
 mod undo;
+mod upkeep;
 mod worktree;
 mod worktree_setup;
 
