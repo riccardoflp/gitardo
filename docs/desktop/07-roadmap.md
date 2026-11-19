@@ -1017,6 +1017,11 @@ window first, the extension last.
    The README of each app and its CHANGELOG say what is new. Cards: `help.guide`, `help.choose-cards`,
    `help.question`, `help.ask`, `help.read-answer`, `help.page`, `help.show-me`, Built in the extension.
 
+Built so far: phase 1. The guide is about 430 KB for the two apps, about 480 cards in the desktop's and 470 in the
+extension's; its index is one line a card. `model::help::guide` reads it at each call into slices of the file rather
+than once for the program, which rule R3.3 forbids, and its tests are in `xtask`, where it is made, which the check
+of the catalog now counts.
+
 Exit: with an AI provider set, typing *how do I put my changes aside* in Quick search offers **Ask Gitardo: "how do I
 put my changes aside"**, whose page answers with **Stash changes…** in the context menu of the draft and a button
 **Stash Changes** that asks what Quick search's asks; *how do I squash my last three commits?*, asked in Italian, is

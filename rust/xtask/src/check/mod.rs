@@ -65,6 +65,7 @@ pub fn problems(workspace: &Workspace) -> Vec<Problem> {
     found.extend(unsafe_code::check(workspace));
     found.extend(shape::check(workspace));
     found.extend(pointer::check(workspace));
+    found.extend(crate::guide::check(workspace));
     found.sort();
     found
 }

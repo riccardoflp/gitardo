@@ -10,11 +10,13 @@ this catalog, with the words of the controls as they are on screen and a button 
 What the model is told of Gitardo: for each feature the app that asks has, where it is and what it says, from its card.
 
 - **Kind**: Derivation
-- **Function**: `model::help::guide(app: App) -> &'static Guide`
+- **Function**: `model::help::guide(app: App) -> Guide`
 - **Extension**: the engine's, with `App::Extension`: the guide of the extension, through `help.ask`.
 
 The guide is the file `crates/model/src/help/guide.txt`, made by `cargo xtask guide` from the cards of
-`docs/features/` and held in the engine with `include_str!`; `guide` reads it once into a `Guide` and keeps it. Each
+`docs/features/` and held in the engine with `include_str!`; `guide` reads it into a `Guide` whose parts are slices of the file, and the
+one who asks keeps it. It is not read once and kept for the program: rule R3.3 has no lazily initialized singleton,
+and reading it is a scan of its lines that copies none of them. Each
 card of the catalog is in the guide of an app when its status in that app, in the index of the catalog, is **Built**
 or **Seen**; the cards of this file are left out. For each, the guide has:
 

@@ -700,7 +700,7 @@ earns it.
 
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
-| [`help.guide`](20-help.md#helpguide--the-guide-of-the-features) | The guide of the features | Derivation | Specified | Planned |
+| [`help.guide`](20-help.md#helpguide--the-guide-of-the-features) | The guide of the features | Derivation | Built | Planned |
 | [`help.choose-cards`](20-help.md#helpchoose-cards--which-cards-answer-a-question) | Which cards answer a question | Derivation | Specified | Planned |
 | [`help.question`](20-help.md#helpquestion--what-is-sent-to-answer-a-question) | What is sent to answer a question | Derivation | Specified | Planned |
 | [`help.ask`](20-help.md#helpask--ask-a-question) | Ask a question | Read | Specified | Planned |

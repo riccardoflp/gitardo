@@ -63,6 +63,12 @@ pub fn read(workspace: &Workspace) -> Catalog {
             catalog
                 .tests
                 .extend(names.into_iter().map(|(line, name)| (relative.to_owned(), line, name)));
+        } else if relative.starts_with("xtask/") && is_rust(file) {
+            // The guide of Ask Gitardo is made here, so the tests of `help.guide` are here too.
+            let names = feature_test_names(&code_only(text));
+            catalog
+                .tests
+                .extend(names.into_iter().map(|(line, name)| (relative.to_owned(), line, name)));
         }
     }
     catalog
