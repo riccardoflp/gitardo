@@ -230,7 +230,7 @@ fn reveal_of(
 }
 
 /// What the head of the card shows.
-fn head_of<'a>(state: &DetailsState<'_>, (read, is_stash): (&'a ReadDetails, bool)) -> Head<'a> {
+fn head_of<'a>(state: &DetailsState<'a>, (read, is_stash): (&'a ReadDetails, bool)) -> Head<'a> {
     let detail = &read.detail;
     Head {
         title: &read.title,
@@ -242,6 +242,7 @@ fn head_of<'a>(state: &DetailsState<'_>, (read, is_stash): (&'a ReadDetails, boo
         read: detail,
         files: (detail.files.len(), state.layout),
         is_stash,
+        signature: state.signature.filter(|read| read.is_shown()),
     }
 }
 

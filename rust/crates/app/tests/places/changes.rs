@@ -257,6 +257,7 @@ fn changes_pane__the_identity_line_reads_name_and_email_or_no_identity_configure
         folded: &std::collections::BTreeSet::new(),
         commit: views::changes::CommitBox::default(),
         identity: &model::state::Identity::default(),
+        options: Box::default(),
         is_running: false,
         wants_focus: false,
         on_click: model::changes::OpenOnClick::File,

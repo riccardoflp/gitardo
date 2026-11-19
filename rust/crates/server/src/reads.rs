@@ -4,12 +4,14 @@
 //! its git is given the token that `$/cancel` cancels, and it is logged as a read with how long it took. Nothing here
 //! changes the repository.
 
+mod commit_box;
 mod commits;
 mod conflicts;
 mod files;
 mod graph;
 mod hosting;
 mod repository;
+mod tags;
 
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
@@ -118,6 +120,9 @@ fn read(reading: &Reading<'_>, method: &str, params: Value) -> Result<Value, Res
         methods::HOSTING_DETECT => hosting::detect(reading),
         methods::HOSTING_WEB_LINK => hosting::web_link(reading, &parameters(params)?),
         methods::WATCH_CHANGES => files::changes_to_read(reading, parameters(params)?),
+        methods::DETAILS_SIGNATURE => commit_box::signature(reading, &parameters(params)?),
+        methods::COMMIT_AUTHORS => commit_box::authors(reading),
+        methods::TAG_REMOTE_TAGS => tags::remote_tags(reading, parameters(params)?),
         _ => Err(ResponseError::new(
             codes::METHOD_NOT_FOUND,
             format!("Gitardo's engine has no method named {method}."),

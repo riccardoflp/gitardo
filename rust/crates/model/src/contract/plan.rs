@@ -318,6 +318,9 @@ pub enum FollowUp {
     RunTasks(Box<crate::tasks::TasksToRun>),
     /// Stop tasks that run in the Tasks tab (`tasks.stop`).
     StopTasks(Vec<crate::tasks::TaskReference>),
+    /// Change the marks of the tags a remote lacks as the operation changed the tags on it, without asking it again
+    /// (`tag.remote-marks`).
+    TagsOnRemote(Box<crate::tag::TagsOnRemote>),
 }
 
 /// A setting the host writes in the user's settings.

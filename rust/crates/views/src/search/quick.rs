@@ -98,6 +98,8 @@ pub enum QuickCommand {
     ShowChanges,
     /// **Create branch…** (`branch.create`).
     CreateBranch,
+    /// **Create branch with no history…** (`branch.create-orphan`).
+    CreateBranchWithNoHistory,
     /// **Fetch** (`sync.fetch`).
     Fetch,
     /// **Push** (`sync.push`).
@@ -112,6 +114,12 @@ pub enum QuickCommand {
     BrowseReflog,
     /// **Clean up branches** (`branch.clean-up`).
     CleanUpBranches,
+    /// **Set upstream of the current branch…** (`branch.set-upstream`).
+    SetUpstream,
+    /// **Check tags on the remote**, for the remote of `remote.default` (`tag.remote-marks`).
+    CheckTags,
+    /// **Push tags…** (`tag.push-all`).
+    PushTags,
     /// **Manage remotes** (`remote.manage`).
     ManageRemotes,
     /// **Switch Worktree…** (`worktree.switch`).
@@ -166,7 +174,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 56] = [
+    pub const ALL: [QuickCommand; 60] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -203,6 +211,7 @@ impl QuickCommand {
         QuickCommand::ToggleIgnoreWhitespace,
         QuickCommand::ToggleEveryFile,
         QuickCommand::CreateBranch,
+        QuickCommand::CreateBranchWithNoHistory,
         QuickCommand::Fetch,
         QuickCommand::Push,
         QuickCommand::StashChanges,
@@ -210,6 +219,9 @@ impl QuickCommand {
         QuickCommand::Compare,
         QuickCommand::BrowseReflog,
         QuickCommand::CleanUpBranches,
+        QuickCommand::SetUpstream,
+        QuickCommand::CheckTags,
+        QuickCommand::PushTags,
         QuickCommand::ManageRemotes,
         QuickCommand::SwitchWorktree,
         QuickCommand::CreateWorktree,
@@ -233,6 +245,7 @@ impl QuickCommand {
             || matches!(
                 self,
                 QuickCommand::ShowStashes
+                    | QuickCommand::CheckTags
                     | QuickCommand::ReviewConflicts
                     | QuickCommand::ShowFiles
                     | QuickCommand::SearchInFiles
@@ -264,10 +277,13 @@ impl QuickCommand {
     pub fn operation(self) -> Option<&'static str> {
         match self {
             QuickCommand::CreateBranch => Some("branch.create"),
+            QuickCommand::CreateBranchWithNoHistory => Some("branch.create-orphan"),
             QuickCommand::Fetch => Some("sync.fetch"),
             QuickCommand::Push => Some("sync.push"),
             QuickCommand::StashChanges => Some("stash.push"),
             QuickCommand::CleanUpBranches => Some("branch.clean-up"),
+            QuickCommand::SetUpstream => Some("branch.set-upstream"),
+            QuickCommand::PushTags => Some("tag.push-all"),
             QuickCommand::ManageRemotes => Some("remote.manage"),
             QuickCommand::AddSubmodule => Some("submodule.add"),
             QuickCommand::Compare => Some("compare.choose"),

@@ -28,6 +28,10 @@ pub(super) const AUTHOR_AND_DATE_SHARE: f32 = 1.0 / 3.0;
 /// are seen; with less room only `+N` is shown.
 const SHORTENED_LEAST: f32 = 3.0;
 
+/// The marks of the tags a remote lacks and the commit whose labels are drawn, for the icons and the tooltip of the
+/// label of a tag (`tag.remote-marks`); none before a check, and on the page of a commit.
+pub(crate) type TagsAt<'a> = Option<(&'a model::tag::TagMarks, &'a CommitId)>;
+
 /// A label as a pill: its words, its icons and how it is filled, or the count of the labels not shown.
 pub(super) struct Pill<'a> {
     /// Its words.
@@ -90,13 +94,13 @@ pub(super) struct Room {
 /// as many whole as fit, in their order, and the count of the others, `+3`; when not even the first fits whole beside
 /// the count, the first shortened to the room left beside it, when that is at least `least`; else the count alone;
 /// none when not even that fits.
-pub(super) fn fitted_pills(
-    labels: &[Label],
-    room: Room,
+pub(super) fn fitted_pills<'a>(
+    labels: &'a [Label],
+    (room, at): (Room, TagsAt<'_>),
     width_of: impl Fn(&Pill<'_>, Option<usize>) -> f32,
-) -> FittedLabels<'_> {
-    let fit = |named: usize| -> FittedLabels<'_> {
-        let pills: Vec<Fitted<'_>> = counted_pills(labels, named)
+) -> FittedLabels<'a> {
+    let fit = |named: usize| -> FittedLabels<'a> {
+        let pills: Vec<Fitted<'a>> = counted_pills(labels, named, at)
             .into_iter()
             .enumerate()
             .map(|(place, pill)| {
@@ -170,7 +174,8 @@ pub(super) fn row_labels(
         least: SHORTENED_LEAST * ui.badge_height(),
         gap,
     };
-    let fitted = fitted_pills(labels, fit, |pill, label| {
+    let at = state.tag_marks.map(|marks| (marks, row.commit));
+    let fitted = fitted_pills(labels, (fit, at), |pill, label| {
         let follows = label.and_then(|label| labels.get(label));
         ui.badge_width(&pill.badge(row.color)) + follows.map_or(0.0, |label| badge_room(ui, state, label, row.color))
     });
@@ -298,8 +303,8 @@ fn ask_list(
 }
 
 /// The pills of the first labels of a commit, then the count of the others when there are some.
-pub(super) fn counted_pills(labels: &[Label], named: usize) -> Vec<Pill<'_>> {
-    let mut pills: Vec<Pill<'_>> = labels.iter().take(named).map(pill).collect();
+pub(super) fn counted_pills<'a>(labels: &'a [Label], named: usize, at: TagsAt<'_>) -> Vec<Pill<'a>> {
+    let mut pills: Vec<Pill<'a>> = labels.iter().take(named).map(|label| pill(label, at)).collect();
     if let Some(rest) = labels.get(named..).filter(|rest| !rest.is_empty()) {
         pills.push(Pill {
             text: Cow::Owned(format!("+{}", rest.len())),
@@ -312,8 +317,8 @@ pub(super) fn counted_pills(labels: &[Label], named: usize) -> Vec<Pill<'_>> {
     pills
 }
 
-/// The pill of a label.
-pub(super) fn pill(label: &Label) -> Pill<'_> {
+/// The pill of a label; the label of a tag with the mark of the remote checked after its icon, and its tooltip.
+pub(super) fn pill<'a>(label: &'a Label, at: TagsAt<'_>) -> Pill<'a> {
     let (icons, tooltip): (&'static [Icon], Option<String>) = match &label.kind {
         LabelKind::Branch {
             worktree: Some(folder), ..
@@ -324,7 +329,11 @@ pub(super) fn pill(label: &Label) -> Pill<'_> {
         LabelKind::Branch { upstream: Some(_), .. } => (&[crate::icons::BRANCH, crate::icons::REMOTE], None),
         LabelKind::Head | LabelKind::Branch { .. } => (&[], None),
         LabelKind::RemoteBranch => (&[crate::icons::REMOTE], None),
-        LabelKind::Tag => (&[crate::icons::TAG], None),
+        LabelKind::Tag => {
+            let mark = at.and_then(|(marks, commit)| crate::tag::remote_marks_view(Some(marks), (&label.name, commit)));
+            let (icon, tooltip) = mark.unzip();
+            (crate::tag::label_icons(icon), tooltip)
+        }
         LabelKind::Stash { .. } => (&[crate::icons::STASH], None),
         LabelKind::Bisect(mark) => crate::bisect::marks_view(*mark),
     };
@@ -352,7 +361,7 @@ pub(crate) fn label_fill(label: &Label) -> BadgeFill {
 pub(crate) fn draw_labels(ui: &mut Ui<'_>, rect: Rect, (labels, color): (&[Label], usize)) {
     let gap = ui.theme().sizes.spacing.medium;
     let mut x = rect.x;
-    for pill in &counted_pills(labels, labels.len()) {
+    for pill in &counted_pills(labels, labels.len(), None) {
         let badge = pill.badge(color);
         let width = ui.badge_width(&badge).min((rect.right() - x).max(0.0));
         if width < rect.height {

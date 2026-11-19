@@ -4,16 +4,17 @@
 use std::path::{Path, PathBuf};
 
 use git::read::commit_page::{PatchRequest, read_patch};
-use git::read::details::{CommitRequest, read_commit};
+use git::read::details::{CommitRequest, read_commit, read_signature};
 use git::read::graph::read_position;
 use git::read::repo::{RepositoriesRequest, read_repositories};
 use git::read::search::{read_matches, read_revision};
+use git::read::tag::{RemoteTagsRequest, read_remote_tags};
 use git::{CancelToken, Git};
 use model::commit_page::PatchLines;
 use model::details::CommitDetail;
 
 use crate::store::search::{SearchJob, SearchResult};
-use crate::store::{Found, Job, JobKind, Message};
+use crate::store::{Found, Job, JobId, JobKind, Message};
 
 /// Runs a job, cancelled through its token, and gives `send` the message of its result: the reads of the timeline
 /// give one for each page, as git prints them.
@@ -55,6 +56,13 @@ pub fn messages(job: &Job, cancel: &CancelToken) -> Vec<Message> {
 }
 
 /// The message of the result of a job that answers once.
+/// The tags a remote has and those of the repository, asked of the remote with what git says when it cannot be asked
+/// (`tag.read-remote-tags`).
+fn remote_tags_read(job: JobId, folder: &Path, request: &RemoteTagsRequest, cancel: &CancelToken) -> Message {
+    let result = read_remote_tags(&Git::new(folder).with_cancel(cancel.clone()), request);
+    Message::RemoteTagsRead(job, result.map_err(|error| error.to_string()))
+}
+
 fn answer(job: &Job, cancel: &CancelToken) -> Message {
     match &job.kind {
         JobKind::FindRepositories { folders } => Message::RepositoriesFound {
@@ -65,6 +73,12 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: read_commit(&Git::new(folder).with_cancel(cancel.clone()), request)
                 .map(|detail| detail.map(Box::new))
+                .map_err(|error| error.to_string()),
+        },
+        JobKind::ReadRemoteTags { folder, request } => remote_tags_read(job.id, folder, request, cancel),
+        JobKind::ReadSignature { folder, request } => Message::SignatureRead {
+            job: job.id,
+            result: read_signature(&Git::new(folder).with_cancel(cancel.clone()), request)
                 .map_err(|error| error.to_string()),
         },
         JobKind::ReadCommitPage { folder, commit } => Message::CommitPageRead {
@@ -112,10 +126,15 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
     }
 }
 
-/// The message of a read of the Files page, of a blame, of the conflicts counted, of the page of new worktrees, or of
-/// the files git ignores among those not saved.
+/// The message of a read of the authors of the history, of the Files page, of a blame, of the conflicts counted, of the
+/// page of new worktrees, or of the files git ignores among those not saved.
 fn files_read(job: &Job, cancel: &CancelToken) -> Message {
     match &job.kind {
+        JobKind::ReadAuthors { folder, request } => Message::AuthorsRead {
+            job: job.id,
+            result: git::read::commit::read_authors(&Git::new(folder).with_cancel(cancel.clone()), request)
+                .map_err(|error| error.to_string()),
+        },
         JobKind::ReadBlame { folder, job: blame } => Message::BlameRead {
             job: job.id,
             result: super::blame::read_blame(folder, blame, cancel),

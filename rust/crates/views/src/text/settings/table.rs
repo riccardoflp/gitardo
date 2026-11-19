@@ -222,6 +222,16 @@ pub(super) const FIRST: [SettingInfo; 29] = [
         kind: SettingKind::Toggle,
     },
     SettingInfo {
+        key: "commit.signOff",
+        title: "Add Signed-off-by to every commit",
+        section: Some(SettingsSection::PullAndCommits),
+        description: "Add Signed-off-by starts ticked in the options of each commit.",
+        default: "false",
+        is_repository: true,
+        is_experimental: false,
+        kind: SettingKind::Toggle,
+    },
+    SettingInfo {
         key: "submodules.updateOnCheckout",
         title: "Update submodules on checkout",
         section: Some(SettingsSection::PullAndCommits),

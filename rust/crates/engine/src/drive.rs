@@ -23,6 +23,7 @@ use crate::tasks::TaskSteps;
 use crate::undo::{Journal, journal_after};
 
 mod answers;
+mod remote_tags;
 mod tokens;
 
 use answers::check_answer;
@@ -246,6 +247,9 @@ impl Engine {
                 }
                 Outcome::Read(key, Query::AiModels { settings, key: typed }) => {
                     answers.insert(key, Answer::AiModels(self.ai_models(settings, typed)));
+                }
+                Outcome::Read(key, query @ Query::RemoteTags { .. }) => {
+                    answers.insert(key, self.remote_tags(feature, &query).map_err(EngineError::Query)?);
                 }
                 Outcome::Read(key, query) => {
                     let started = Instant::now();

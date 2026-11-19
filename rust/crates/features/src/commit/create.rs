@@ -37,7 +37,11 @@ pub fn create(context: &Context, answers: &Answers) -> Outcome {
     if stages_all {
         steps.push(Step::git(folder.clone(), ["add", "--all"]));
     }
-    steps.push(Step::git(folder, ["commit", "-m", message]));
+    let options = model::commit::option_arguments(&super::options_of(answers), &context.repository.signing, message);
+    let mut arguments: Vec<std::ffi::OsString> = vec!["commit".into()];
+    arguments.extend(options);
+    arguments.extend(["-m".into(), message.into()]);
+    steps.push(Step::git(folder, arguments));
     let title_line = message.lines().next().unwrap_or(message);
     Outcome::Run(Plan {
         title: Text::from(format!("Commit \"{title_line}\"")),

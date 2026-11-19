@@ -49,6 +49,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::EmptyStop => rewrite::read_empty_stop(git).map(Answer::EmptyStop),
         Query::Line { commit } => rebase::read_line(git, &LineRequest { commit: commit.clone() }).map(Answer::Line),
         Query::Messages { commits } => rebase::read_messages(git, commits).map(Answer::Messages),
+        Query::GitVersion | Query::StackedBranches { .. } => crate::stacking::answer(git, query),
         Query::Pushed { commit } => {
             rebase::read_pushed(git, &PushedRequest { commit: commit.clone() }).map(Answer::Names)
         }
@@ -81,6 +82,10 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::FileNames { path } => history::file_names(git, path),
         Query::CommittedLines(query) => history::committed_lines(git, query),
         Query::Blame(query) => history::blame(git, query),
+        Query::RemoteTags { remote } => {
+            let request = git::read::tag::RemoteTagsRequest { remote: remote.clone() };
+            git::read::tag::read_remote_tags(git, &request).map(Answer::RemoteTags)
+        }
     }
 }
 
@@ -304,8 +309,8 @@ pub(crate) fn describe(query: &Query) -> String {
         ),
         Query::Line { commit } => describe_line(commit),
         Query::Messages { commits } => describe_messages(commits),
-        Query::Pushed { commit } => describe_pushed(commit),
-        Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
+        Query::GitVersion | Query::StackedBranches { .. } => crate::stacking::describe(query),
+        Query::Pushed { .. } | Query::CommitFiles { .. } => describe_commit_reads(query),
         Query::FormatPatch { commits } => describe_format_patch(commits),
         Query::PatchCheck { patch } => describe_patch_check(patch),
         Query::FileContents { path } => format!("read {}", path.display()),
@@ -324,6 +329,23 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
+        Query::RemoteTags { remote } => describe_remote_tags(remote),
+    }
+}
+
+/// The commands that ask a remote for its tags and read those of the repository (`tag.read-remote-tags`).
+fn describe_remote_tags(remote: &str) -> String {
+    format!("git ls-remote --tags --refs {remote}, git for-each-ref --format=%(objectname)%00%(refname)%00 refs/tags")
+}
+
+/// The commands that read what a rewrite needs of a commit: the remote branches that have it, the files it changes.
+fn describe_commit_reads(query: &Query) -> String {
+    match query {
+        Query::Pushed { commit } => {
+            git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
+        }
+        Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
+        _ => String::new(), // Only these two come here.
     }
 }
 

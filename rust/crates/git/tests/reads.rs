@@ -17,10 +17,14 @@ mod github;
 mod golden;
 #[path = "reads/hosting.rs"]
 mod hosting;
+#[path = "reads/remote_tags.rs"]
+mod remote_tags;
 #[path = "reads/remotes_and_stashes.rs"]
 mod remotes_and_stashes;
 #[path = "reads/repositories.rs"]
 mod repositories;
+#[path = "reads/stacked.rs"]
+mod stacked;
 #[path = "reads/submodules.rs"]
 mod submodules;
 #[path = "reads/summary.rs"]

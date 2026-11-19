@@ -6,6 +6,7 @@ mod branch_onto;
 mod continue_edit;
 mod interactive;
 mod onto;
+pub(crate) mod stack;
 
 pub use branch_onto::{BRANCH, branch_onto, dropped};
 pub use continue_edit::continue_edit;

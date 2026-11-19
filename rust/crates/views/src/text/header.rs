@@ -64,6 +64,8 @@ pub const VIEW: &str = "View";
 pub const REFRESH: &str = "Refresh";
 /// **Branch** in **…**: create a branch at `HEAD`.
 pub const BRANCH: &str = "Branch";
+/// **Create branch with no history…** in **…** and in Quick search (`branch.create-orphan`).
+pub const BRANCH_WITH_NO_HISTORY: &str = "Create branch with no history\u{2026}";
 /// **Stash** in **…**: stash all changes.
 pub const STASH: &str = "Stash";
 /// **Manage remotes…** in **…** (`remote.manage`).
@@ -81,6 +83,12 @@ pub const SHOW_ACTIVITY: &str = "Click to show Activity in the bottom panel.";
 #[must_use]
 pub fn detached_at(short_hash: &str) -> String {
     format!("detached at {short_hash}")
+}
+
+/// The branch of the header while it has no commit: `site (no commits yet)` (`branch.create-orphan`).
+#[must_use]
+pub fn no_commits_on(branch: &str) -> String {
+    format!("{branch} ({NO_COMMITS_YET})")
 }
 
 /// How far the branch checked out is from its upstream: `↑2 ↓0`.

@@ -18,6 +18,8 @@ mod submodules;
 #[cfg(test)]
 mod submodules_tests;
 #[cfg(test)]
+mod tags_tests;
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod worktree_tests;
@@ -82,6 +84,9 @@ pub struct ReferencesState<'a> {
     pub stashes: StashesShown<'a>,
     /// The repository on GitHub and its pull requests, in the tooltips and the menus of the branches.
     pub github: crate::github::GitHubShown<'a>,
+    /// What the last **Check tags on `<remote>`** said of the tags, as Gitardo's own operations changed it since; none
+    /// before the first check (`tag.remote-marks`).
+    pub tag_marks: Option<&'a model::tag::TagMarks>,
 }
 
 /// The filter box at the top of the rail.

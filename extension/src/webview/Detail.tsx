@@ -7,6 +7,7 @@ import { ActionButtons, Check, FileRow, type FileAction, type FileMark } from '.
 import { FileTree, toggled } from './FileTree';
 import { useMenu } from './ContextMenu';
 import { Icon } from './Icon';
+import { SignatureLine, useSignature } from './Signature';
 import { act, fileMenu } from './menus';
 import { fullDate, shortHash } from './util';
 import { loadUiState, post, saveUiState } from './vscode';
@@ -126,6 +127,8 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
   const id = detail?.id ?? hash;
   const author = detail?.author ?? null;
   const committer = detail?.committer ?? null;
+  // Asked once the details are drawn, so that they never wait for it; the uncommitted changes have none.
+  const signature = useSignature(hash, Boolean(detail) && !worktree);
   const source: DiffSource = worktree
     ? { kind: 'worktree' }
     : { kind: 'commit', hash, parent: detail?.parents[0] ?? null };
@@ -264,6 +267,7 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
                   {shortHash(id)} <Icon name="copy" />
                 </button>
               </dd>
+              <SignatureLine signature={signature} />
               {detail.parents.length > 0 && (
                 <>
                   <dt>{detail.parents.length > 1 ? 'Parents' : 'Parent'}</dt>

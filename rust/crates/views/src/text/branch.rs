@@ -17,6 +17,22 @@ pub const REMOVE_WORKTREE_AND_DELETE_BRANCH: &str = "Remove worktree and delete 
 pub const CHECK_OUT_TAG: &str = "Check out tag (detached)";
 /// **Push tag** in the menu of a tag (`tag.push`).
 pub const PUSH_TAG: &str = "Push tag";
+/// The entry that deletes a tag from one of several remotes, asked which (`tag.delete-remote`).
+pub const DELETE_FROM_A_REMOTE: &str = "Delete from a remote\u{2026}";
+/// The entry that deletes a tag here and from one of several remotes, asked which.
+pub const DELETE_HERE_AND_FROM_A_REMOTE: &str = "Delete here and from a remote\u{2026}";
+
+/// The entry that deletes a tag from the remote: **Delete from origin**.
+#[must_use]
+pub fn delete_from(remote: &str) -> String {
+    format!("Delete from {remote}")
+}
+
+/// The entry that deletes a tag from the remote, then here: **Delete here and from origin**.
+#[must_use]
+pub fn delete_here_and_from(remote: &str) -> String {
+    format!("Delete here and from {remote}")
+}
 /// **Create tag here…** in the menu of a commit (`tag.create`).
 pub const CREATE_TAG_HERE: &str = "Create tag here\u{2026}";
 /// **Check out commit (detached)** in the menu of a commit (`branch.checkout-detached`).

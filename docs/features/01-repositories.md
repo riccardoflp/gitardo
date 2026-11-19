@@ -464,6 +464,10 @@ failing in git's words.
   (R9.5).
 - **Extension**: the engine reads it for itself, under the extension as under the window.
 
+As built, a feature asks for it with `Query::GitVersion`; the engine keeps what it read for as long as it runs, and
+answers `GitVersion(None)` when the line is of another form or git does not start, which the feature takes as a git too
+old for it. `UPDATE_REFS_VERSION` in `model::rebase` is the first version a feature needs (R9.5).
+
 Acceptance:
 
 - [ ] `git version 2.53.0.windows.1` gives 2.53.0.

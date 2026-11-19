@@ -132,6 +132,7 @@ impl Fixture {
             hover: None,
             hover_left_at: None,
             label_list: None,
+            tag_marks: None,
             label_list_closed_at: None,
             rail_hover: None,
             dropped: None,

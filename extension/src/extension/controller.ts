@@ -20,6 +20,7 @@ import {
 import { submoduleFolder } from '../shared/submodules';
 import { subjectAndBody } from '../shared/message';
 import { checkedOutBranch, operationName, worktreeBranch } from '../shared/state';
+import { checkedMarks, followMarks, type TagMarks } from '../shared/tagMarks';
 import { groupRepositories } from '../shared/repositoryGroups';
 import { pruneScope } from '../shared/scope';
 import { Activity } from './activity';
@@ -64,6 +65,7 @@ import {
   refreshVSCodeGit,
   worktreesFolder,
 } from './actions';
+import { pickCoAuthors } from './coAuthors';
 import { ConflictReviewTab } from './conflictReview';
 import { INDEX, contentUri, proposalUri } from './content';
 import { githubSession } from './github';
@@ -315,6 +317,10 @@ export class Controller implements vscode.Disposable {
   /** Whether this VS Code has the Agents window, which is looked up once: it comes and goes with VS Code itself. */
   private agentsWindow?: Promise<boolean>;
   private readonly views = new Map<vscode.Webview, ViewKind>();
+  /** The read of the signature each view waits for, cancelled when it asks for another (`details.signature`). */
+  private readonly signatureReads = new Map<vscode.Webview, AbortController>();
+  /** What the last **Check tags on `<remote>`** of each repository said, by its folder, until VS Code is closed (`tag.remote-marks`). */
+  private readonly tagMarks = new Map<string, TagMarks>();
   /** The tabs of the commits, by repository and hash, and the repository each is of: not always the one being shown. */
   private readonly commitTabs = new Map<string, vscode.WebviewPanel>();
   /** The tabs of the comparisons, by their webview. */
@@ -392,7 +398,7 @@ export class Controller implements vscode.Disposable {
       vscode.workspace.onDidRenameFiles(schedule('files were renamed')),
       vscode.window.onDidChangeWindowState((window) => window.focused && this.focusGot()),
       vscode.workspace.onDidChangeConfiguration((event) => {
-        const sections = ['gitardo.conflicts', 'gitardo.pull', 'gitardo.worktrees', 'gitardo.branches', 'gitardo.graph', 'git.branchSortOrder'];
+        const sections = ['gitardo.conflicts', 'gitardo.pull', 'gitardo.worktrees', 'gitardo.branches', 'gitardo.graph', 'gitardo.commit', 'git.branchSortOrder'];
         if (sections.some((section) => event.affectsConfiguration(section))) {
           // They can change what is listed: the commits are read again (Q442), and those that are the same stay (Q781).
           this.engineGraph.readAgain();
@@ -442,6 +448,7 @@ export class Controller implements vscode.Disposable {
       listener.dispose();
       rows?.dispose();
       this.views.delete(webview);
+      this.signatureReads.delete(webview);
       this.colored.delete(webview);
       this.iconed.delete(webview);
       this.setFocused(webview, false);
@@ -549,6 +556,8 @@ export class Controller implements vscode.Disposable {
           resolveWithAI: this.resolveWithAI(),
           home: this.homeOf(read.root),
           keepOpen: keepOpen(),
+          signOff: vscode.workspace.getConfiguration('gitardo').get('commit.signOff') === true,
+          tagMarks: this.tagMarks.get(read.root) ?? null,
         }));
         this.setState(shown);
         for (const resolve of waiting.splice(0)) resolve();
@@ -1922,6 +1931,7 @@ export class Controller implements vscode.Disposable {
         .then((choice) => choice && vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.conflicts.autoResolve'));
       return;
     }
+    if (action.kind === 'checkTags') return this.checkTags(state, repo);
     try {
       if (await hostAction(action, state)) return;
     } catch (error) {
@@ -2092,6 +2102,32 @@ export class Controller implements vscode.Disposable {
     });
   }
 
+  /**
+   * **Check tags on `<remote>`**: the remote of `remote.default` asked for its tags by the engine, and the tags it lacks
+   * marked in the references and on the labels until VS Code is closed (`tag.remote-marks`).
+   */
+  private async checkTags(state: RepoState, repo: Repository): Promise<void> {
+    const remote = state.remotes.includes('origin') ? 'origin' : state.remotes[0];
+    if (!remote) {
+      void vscode.window.showWarningMessage('Gitardo: this repository has no remote.');
+      return;
+    }
+    if (!reads.available) return sayEngineMissing();
+    try {
+      const title = `Gitardo: asking ${remote} for its tags`;
+      const comparison = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title }, () => reads.remoteTags(repo, remote));
+      this.markTags(repo.root, checkedMarks(comparison, state.tags));
+    } catch (error) {
+      void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
+    }
+  }
+
+  /** Keeps the marks of the tags of a repository, and shows them while it is the one shown. */
+  private markTags(root: string, marks: TagMarks): void {
+    this.tagMarks.set(root, marks);
+    if (this.state && samePath(this.state.root, root)) this.setState({ ...this.state, tagMarks: marks });
+  }
+
   /** Carries out what a plan of the engine leaves for the host before the repository is read again. */
   private async followUpsBeforeRead(followUps: FollowUp[], run: { feature: string; target: Target; repo: Repository }): Promise<void> {
     for (const [index, followUp] of followUps.entries()) {
@@ -2136,6 +2172,13 @@ export class Controller implements vscode.Disposable {
         case 'fillCommitMessage':
           if (String(followUp.message)) this.post({ type: 'commitMessage', message: String(followUp.message) });
           break;
+        // A tag made, pushed or deleted from a remote changes its mark without asking the remote again (`tag.remote-marks`).
+        case 'tagsOnRemote': {
+          const marks = this.tagMarks.get(run.repo.root);
+          const changed = { remote: (followUp.remote as string | null) ?? null, pushed: followUp.pushed as string[], notPushed: followUp.notPushed as string[] };
+          if (marks) this.markTags(run.repo.root, followMarks(marks, changed, this.state?.tags ?? []));
+          break;
+        }
         default:
           break;
       }
@@ -2507,6 +2550,14 @@ export class Controller implements vscode.Disposable {
     await this.runOnEngine([{ feature: 'identity.switch', target: { kind: 'head' } }], repo, { choices: { 'identity-pick': [editList] } });
   }
 
+  /** Asks for the co-authors of the next commit, the authors of the history read as the pick opens, and gives them to the box. */
+  private async pickCoAuthors(repo: Repository, chosen: string[], webview: vscode.Webview): Promise<void> {
+    const authors = reads.authors(repo);
+    const email = this.state?.root === repo.root ? this.state.identity.email : null;
+    const picked = await pickCoAuthors(authors, email, Array.isArray(chosen) ? chosen : []);
+    if (picked) this.post({ type: 'coAuthors', coAuthors: picked }, webview);
+  }
+
   /** Opens the setting that lists the identities to commit as. */
   private async openIdentities(): Promise<void> {
     await vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.identities');
@@ -2816,6 +2867,18 @@ export class Controller implements vscode.Disposable {
         const detail = (repo && (await reads.commitDetail(repo, message.hash).catch(() => null))) ?? null;
         return this.post({ type: 'detail', hash: message.hash, detail }, webview);
       }
+      case 'getSignature': {
+        // The read of the commit selected before is no longer waited for: going down the commits reads the last alone.
+        this.signatureReads.get(webview)?.abort();
+        const reading = new AbortController();
+        this.signatureReads.set(webview, reading);
+        const signature = (repo && (await reads.signature(repo, message.hash, reading.signal).catch(() => null))) ?? null;
+        if (reading.signal.aborted) return;
+        this.signatureReads.delete(webview);
+        return this.post({ type: 'signature', hash: message.hash, signature }, webview);
+      }
+      case 'pickCoAuthors':
+        return repo && this.pickCoAuthors(repo, message.chosen, webview);
       case 'getPatch': {
         const detail = repo && (await reads.commitDetail(repo, message.hash).catch(() => null));
         const patch = (repo && detail && (await reads.commitPatch(repo, detail).catch(() => null))) ?? null;

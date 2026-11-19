@@ -25,14 +25,19 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "branch.checkout-detached"
         | "tag.checkout"
         | "submodule.update-to-recorded" => super::CHECK_OUT,
-        "branch.create" | "stash.branch" => super::CREATE_BRANCH,
+        "branch.create" | "branch.create-orphan" | "stash.branch" => super::CREATE_BRANCH,
         "tag.create" => super::TAG,
         "branch.rename" | "worktree.rename" | "message.edit" => super::RENAME,
-        "branch.delete" | "branch.clean-up" | "tag.delete" | "remote.delete-branch" | "stash.drop" => super::DELETE,
+        "branch.delete"
+        | "branch.clean-up"
+        | "tag.delete"
+        | "tag.delete-remote"
+        | "remote.delete-branch"
+        | "stash.drop" => super::DELETE,
         "sync.sync" => super::SYNC,
         "sync.fetch" => super::FETCH,
         "sync.pull" | "sync.pull-with" | "branch.fast-forward" | "submodule.update-to-latest" => super::PULL,
-        "sync.push" | "sync.push-force-with-lease" | "sync.push-force" | "tag.push" => super::PUSH,
+        "sync.push" | "sync.push-force-with-lease" | "sync.push-force" | "tag.push" | "tag.push-all" => super::PUSH,
         "merge.into-current" | "merge.choose-way" => super::MERGE,
         "cherry-pick.commit" | "selection.cherry-pick" => super::CHERRY_PICK,
         "revert.commit" | "undo.last" | "changes.discard" | "changes.discard-all" | "settings.reset" => super::UNDO,
@@ -55,7 +60,7 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "hosting.load-merge-requests"
         | "hosting.checkout-pull-request" => super::PULL_REQUEST,
         "reflog.browse" | "file-history.file" | "file-history.folder" | "file-history.lines" => super::HISTORY,
-        "remote.manage" => super::REMOTE,
+        "remote.manage" | "branch.set-upstream" => super::REMOTE,
         "blame.toggle-file" | "blame.previous" => super::BLAME,
         "blame.open-line-commit" => super::OPEN_AS_PAGE,
         "blame.reveal-line-commit" => super::TIMELINE,

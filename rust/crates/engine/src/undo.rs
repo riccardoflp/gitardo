@@ -259,6 +259,29 @@ mod tests {
     }
 
     #[test]
+    fn undo_journal__a_branch_with_no_history_is_an_entry_that_holds_until_its_first_commit() {
+        let before = at('a');
+        let mut unborn = RepositoryState::default();
+        unborn.head.branch = Some(String::from("refs/heads/site"));
+        let record = UndoRecord::BranchWithNoHistory {
+            name: String::from("site"),
+            before: before.head.clone(),
+        };
+        let journal = journal_after(
+            &Journal::new(),
+            Some(&plan(Undo::Journal(record.clone()))),
+            &before,
+            &unborn,
+        );
+        assert_eq!(journal.newest().map(|entry| &entry.record), Some(&record));
+        assert_eq!(journal_after(&journal, None, &unborn, &unborn).entries().len(), 1);
+        // Its first commit, made in a terminal, moved HEAD: Undo then goes by the reflog.
+        let mut committed = unborn.clone();
+        committed.head.commit = Some(commit('c'));
+        assert!(journal_after(&journal, None, &unborn, &committed).is_empty());
+    }
+
+    #[test]
     fn undo_journal__keeps_at_most_fifty_entries() {
         let mut journal = Journal::new();
         for index in 0..MOST_ENTRIES + 5 {

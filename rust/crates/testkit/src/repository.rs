@@ -8,6 +8,10 @@ use std::process::Command;
 use crate::environment::{CommitDate, Environment, IDENTITY_EMAIL, IDENTITY_NAME, Place};
 use crate::folder::TemporaryFolder;
 
+mod signing;
+
+pub use signing::SigningKey;
+
 /// The file that [`Repository::conflict`] changes on both sides.
 pub const CONFLICT_FILE: &str = "conflict.txt";
 

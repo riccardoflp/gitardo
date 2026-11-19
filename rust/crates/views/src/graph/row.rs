@@ -117,6 +117,7 @@ fn awaited_row(ui: &mut Ui<'_>, context: &RowContext<'_>, awaited: super::state:
         trace: None,
         hover: None,
         label_list: None,
+        tag_marks: None,
         found: &[],
         dims_others: false,
         dropped: None,

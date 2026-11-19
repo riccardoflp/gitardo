@@ -3,7 +3,7 @@
 use super::Icon;
 
 /// Every icon, in the order of the enumeration.
-pub(super) const ALL: [Icon; 90] = [
+pub(super) const ALL: [Icon; 94] = [
     Icon::ChevronRight,
     Icon::ChevronDown,
     Icon::ChevronUp,
@@ -24,6 +24,8 @@ pub(super) const ALL: [Icon; 90] = [
     Icon::CreateBranch,
     Icon::Tag,
     Icon::Cloud,
+    Icon::NotOnRemote,
+    Icon::DifferentOnRemote,
     Icon::Commit,
     Icon::OpenAsPage,
     Icon::Merge,
@@ -94,10 +96,12 @@ pub(super) const ALL: [Icon; 90] = [
     Icon::Reveal,
     Icon::Unfold,
     Icon::Sliders,
+    Icon::Shield,
+    Icon::Users,
 ];
 
 /// Each icon with its name in Lucide's set and its SVG file as Lucide publishes it, in the order of the enumeration.
-const OUTLINES: [(Icon, &str, &str); 90] = [
+const OUTLINES: [(Icon, &str, &str); 94] = [
     (
         Icon::ChevronRight,
         "chevron-right",
@@ -146,6 +150,16 @@ const OUTLINES: [(Icon, &str, &str); 90] = [
     ),
     (Icon::Tag, "tag", include_str!("../../icons/lucide/tag.svg")),
     (Icon::Cloud, "cloud", include_str!("../../icons/lucide/cloud.svg")),
+    (
+        Icon::NotOnRemote,
+        "cloud-off",
+        include_str!("../../icons/lucide/cloud-off.svg"),
+    ),
+    (
+        Icon::DifferentOnRemote,
+        "cloud-alert",
+        include_str!("../../icons/lucide/cloud-alert.svg"),
+    ),
     (
         Icon::Commit,
         "git-commit-horizontal",
@@ -408,6 +422,8 @@ const OUTLINES: [(Icon, &str, &str); 90] = [
         "sliders-horizontal",
         include_str!("../../icons/lucide/sliders-horizontal.svg"),
     ),
+    (Icon::Shield, "shield", include_str!("../../icons/lucide/shield.svg")),
+    (Icon::Users, "users", include_str!("../../icons/lucide/users.svg")),
 ];
 
 /// The place of an icon in [`OUTLINES`], which is that of its variant.

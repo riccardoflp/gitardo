@@ -162,6 +162,17 @@ pub enum Query {
         /// The commit.
         commit: CommitId,
     },
+    /// The version of git, read once for each engine (`repo.read-git-version`). The answer is
+    /// [`super::Answer::GitVersion`].
+    GitVersion,
+    /// The other local branches on the commits a rebase makes again, and git's `rebase.updateRefs`
+    /// (`rebase.read-stacked-branches`). The answer is [`super::Answer::Stacked`].
+    StackedBranches {
+        /// What the rebase starts from, or `None` from the root.
+        base: Option<String>,
+        /// The branch rewritten, or the commit of a detached `HEAD`.
+        tip: String,
+    },
     /// The whole messages of commits (`git log -1 --format=%B <hash>`). The answer is [`super::Answer::Messages`], in
     /// the same order.
     Messages {
@@ -290,6 +301,12 @@ pub enum Query {
     FolderLinks {
         /// The top folders of the worktrees, one for `worktree.remove`, those picked for `branch.clean-up`.
         worktrees: Vec<std::path::PathBuf>,
+    },
+    /// The tags a remote has, asked of the remote over the network, and those of the repository
+    /// (`tag.read-remote-tags`), for `tag.push-all`. The answer is [`super::Answer::RemoteTags`].
+    RemoteTags {
+        /// The remote, by its name.
+        remote: String,
     },
 }
 

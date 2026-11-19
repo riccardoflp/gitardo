@@ -51,7 +51,8 @@ fn repo_no_repository__running_git_init_and_check_again_shows_the_new_repository
     let data = ViewData::new(&state, Vec::new(), super::support::NOW);
     assert_eq!(
         data.window_state(&state).header.place.and_then(|place| place.head),
-        Some(HeadName::Branch("main"))
+        Some(HeadName::Unborn("main")),
+        "the header says main (no commits yet)"
     );
 }
 

@@ -29,6 +29,9 @@ pub struct StateJson {
     pub remotes: Vec<String>,
     /// Who commits are made as.
     pub identity: IdentityJson,
+    /// How git's configuration signs commits (`commit.read-signing`, 1.13); as git does not sign when left out.
+    #[serde(default)]
+    pub signing: SigningJson,
     /// Git's `branch.sort`, when it is set.
     pub branch_sort: Option<String>,
     /// The subjects of the last entries of the reflog of `HEAD`, newest first.
@@ -157,6 +160,31 @@ pub struct IdentityJson {
     pub name: Option<String>,
     /// `user.email`.
     pub email: Option<String>,
+}
+
+/// How git's configuration signs commits (`commit.read-signing`).
+#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SigningJson {
+    /// Whether every commit is signed: `commit.gpgSign`.
+    pub signs_every_commit: bool,
+    /// The kind of signature: `gpg.format`.
+    pub kind: SigningKindJson,
+    /// The key it signs with: `user.signingKey`; none when it is not set.
+    pub key: Option<String>,
+}
+
+/// The kind of signature git makes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SigningKindJson {
+    /// `openpgp`, the kind when `gpg.format` is not set.
+    #[default]
+    Openpgp,
+    /// `x509`.
+    X509,
+    /// `ssh`.
+    Ssh,
 }
 
 /// What is not committed.

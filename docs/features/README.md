@@ -56,7 +56,7 @@ earns it.
 | [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built | Built |
 | [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Specified | Planned |
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
-| [`repo.read-git-version`](01-repositories.md#reporead-git-version--read-the-version-of-git) | Read the version of git | Read | Specified | Planned |
+| [`repo.read-git-version`](01-repositories.md#reporead-git-version--read-the-version-of-git) | Read the version of git | Read | Built | Planned |
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Built | Built |
 | [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Built | Built |
 | [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Built | Built |
@@ -190,9 +190,9 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`details.read-commit`](04-details-and-commit-page.md#detailsread-commit--read-the-details-of-a-commit) | Read the details of a commit | Read | Built | Built |
-| [`details.read-signature`](04-details-and-commit-page.md#detailsread-signature--read-the-signature-of-a-commit) | Read the signature of a commit | Read | Specified | Planned |
+| [`details.read-signature`](04-details-and-commit-page.md#detailsread-signature--read-the-signature-of-a-commit) | Read the signature of a commit | Read | Built | Built |
 | [`details.show`](04-details-and-commit-page.md#detailsshow--details-of-the-selected-commit) | Details of the selected commit | View | Built | Built |
-| [`details.signature`](04-details-and-commit-page.md#detailssignature--the-signature-of-a-commit) | The signature of a commit | View | Specified | Planned |
+| [`details.signature`](04-details-and-commit-page.md#detailssignature--the-signature-of-a-commit) | The signature of a commit | View | Built | Built |
 | [`details.message-title`](04-details-and-commit-page.md#detailsmessage-title--the-title-of-a-message) | The title of a message | Derivation | Built | Built |
 | [`details.message-unwrap`](04-details-and-commit-page.md#detailsmessage-unwrap--lines-of-a-message-put-back-together) | Lines of a message put back together | Derivation | Built | Built |
 | [`details.show-more`](04-details-and-commit-page.md#detailsshow-more--show-more-of-a-long-message) | Show more of a long message | View | Built | Built |
@@ -238,11 +238,11 @@ earns it.
 | [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Built | Built |
 | [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Built | Built |
 | [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built | Built |
-| [`commit.options`](05-changes-and-commit.md#commitoptions--the-options-of-a-commit) | The options of a commit | View | Specified | Planned |
-| [`commit.option-arguments`](05-changes-and-commit.md#commitoption-arguments--the-arguments-of-the-options-of-a-commit) | The arguments of the options of a commit | Derivation | Specified | Planned |
-| [`commit.read-signing`](05-changes-and-commit.md#commitread-signing--read-how-git-signs-commits) | Read how git signs commits | Read | Specified | Planned |
-| [`commit.read-authors`](05-changes-and-commit.md#commitread-authors--read-the-authors-of-the-history) | Read the authors of the history | Read | Specified | Planned |
-| [`commit.co-authors`](05-changes-and-commit.md#commitco-authors--choose-the-co-authors-of-a-commit) | Choose the co-authors of a commit | View | Specified | Planned |
+| [`commit.options`](05-changes-and-commit.md#commitoptions--the-options-of-a-commit) | The options of a commit | View | Built | Built |
+| [`commit.option-arguments`](05-changes-and-commit.md#commitoption-arguments--the-arguments-of-the-options-of-a-commit) | The arguments of the options of a commit | Derivation | Built | Built |
+| [`commit.read-signing`](05-changes-and-commit.md#commitread-signing--read-how-git-signs-commits) | Read how git signs commits | Read | Built | Built |
+| [`commit.read-authors`](05-changes-and-commit.md#commitread-authors--read-the-authors-of-the-history) | Read the authors of the history | Read | Built | Built |
+| [`commit.co-authors`](05-changes-and-commit.md#commitco-authors--choose-the-co-authors-of-a-commit) | Choose the co-authors of a commit | View | Built | Built |
 | [`commit.prepared-message`](05-changes-and-commit.md#commitprepared-message--the-message-git-prepared) | The message git prepared | Read | Built | Built |
 | [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built | Built |
 | [`commit.read-draft-diff`](05-changes-and-commit.md#commitread-draft-diff--the-diff-a-draft-is-written-from) | The diff a draft is written from | Read | Built | Built |
@@ -267,7 +267,7 @@ earns it.
 | [`branch.checkout-remote-and-rebase`](06-branches-tags-remotes.md#branchcheckout-remote-and-rebase--check-out-a-branch-and-rebase-it-onto-its-remote-branch) | Check out a branch and rebase it onto its remote branch | Operation | Built | Built |
 | [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit) | Check out a commit | Operation | Built | Built |
 | [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Built | Built |
-| [`branch.create-orphan`](06-branches-tags-remotes.md#branchcreate-orphan--create-a-branch-with-no-history) | Create a branch with no history | Operation | Specified | Planned |
+| [`branch.create-orphan`](06-branches-tags-remotes.md#branchcreate-orphan--create-a-branch-with-no-history) | Create a branch with no history | Operation | Built | Built |
 | [`branch.format-name`](06-branches-tags-remotes.md#branchformat-name--expand-the-format-of-branch-names) | Expand the format of branch names | Derivation | Built | Built |
 | [`branch.name-from-format`](06-branches-tags-remotes.md#branchname-from-format--ask-for-the-parts-of-the-format) | Ask for the parts of the format | Derivation | Built | Built |
 | [`branch.validate-name`](06-branches-tags-remotes.md#branchvalidate-name--what-git-does-not-take-as-a-name) | What git does not take as a name | Derivation | Built | Built |
@@ -276,18 +276,18 @@ earns it.
 | [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Built | Built |
 | [`branch.clean-up`](06-branches-tags-remotes.md#branchclean-up--clean-up-branches) | Clean up branches | Operation | Built | Built |
 | [`branch.fast-forward`](06-branches-tags-remotes.md#branchfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Built | Built |
-| [`branch.set-upstream`](06-branches-tags-remotes.md#branchset-upstream--set-or-change-the-upstream-of-a-branch) | Set or change the upstream of a branch | Operation | Specified | Planned |
-| [`branch.unset-upstream`](06-branches-tags-remotes.md#branchunset-upstream--stop-tracking-the-upstream) | Stop tracking the upstream | Operation | Specified | Planned |
+| [`branch.set-upstream`](06-branches-tags-remotes.md#branchset-upstream--set-or-change-the-upstream-of-a-branch) | Set or change the upstream of a branch | Operation | Built | Built |
+| [`branch.unset-upstream`](06-branches-tags-remotes.md#branchunset-upstream--stop-tracking-the-upstream) | Stop tracking the upstream | Operation | Built | Built |
 | [`branch.pane`](06-branches-tags-remotes.md#branchpane--the-branch-rail-its-buttons-and-its-comparison) | The branch rail, its buttons and its comparison | View | Built | Built |
 | [`branch.read-log`](06-branches-tags-remotes.md#branchread-log--read-the-commits-of-what-is-checked-out) | Read the commits of what is checked out | Read | Built | Built |
 | [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Built | Built |
 | [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Built | Built |
-| [`tag.read-remote-tags`](06-branches-tags-remotes.md#tagread-remote-tags--read-the-tags-a-remote-has) | Read the tags a remote has | Read | Specified | Planned |
-| [`tag.compare-remote`](06-branches-tags-remotes.md#tagcompare-remote--which-tags-a-remote-lacks) | Which tags a remote lacks | Derivation | Specified | Planned |
-| [`tag.remote-marks`](06-branches-tags-remotes.md#tagremote-marks--the-tags-a-remote-lacks-marked) | The tags a remote lacks, marked | View | Specified | Planned |
-| [`tag.push-all`](06-branches-tags-remotes.md#tagpush-all--push-the-tags-a-remote-lacks) | Push the tags a remote lacks | Operation | Specified | Planned |
+| [`tag.read-remote-tags`](06-branches-tags-remotes.md#tagread-remote-tags--read-the-tags-a-remote-has) | Read the tags a remote has | Read | Built | Built |
+| [`tag.compare-remote`](06-branches-tags-remotes.md#tagcompare-remote--which-tags-a-remote-lacks) | Which tags a remote lacks | Derivation | Built | Built |
+| [`tag.remote-marks`](06-branches-tags-remotes.md#tagremote-marks--the-tags-a-remote-lacks-marked) | The tags a remote lacks, marked | View | Built | Built |
+| [`tag.push-all`](06-branches-tags-remotes.md#tagpush-all--push-the-tags-a-remote-lacks) | Push the tags a remote lacks | Operation | Built | Built |
 | [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Built | Built |
-| [`tag.delete-remote`](06-branches-tags-remotes.md#tagdelete-remote--delete-a-tag-from-a-remote) | Delete a tag from a remote | Operation | Specified | Planned |
+| [`tag.delete-remote`](06-branches-tags-remotes.md#tagdelete-remote--delete-a-tag-from-a-remote) | Delete a tag from a remote | Operation | Built | Built |
 | [`tag.checkout`](06-branches-tags-remotes.md#tagcheckout--check-out-a-tag) | Check out a tag | Operation | Built | Built |
 | [`remote.read-remotes`](06-branches-tags-remotes.md#remoteread-remotes--read-the-remotes) | Read the remotes | Read | Built | Built |
 | [`remote.default`](06-branches-tags-remotes.md#remotedefault--the-remote-a-new-upstream-or-a-tag-goes-to) | The remote a new upstream or a tag goes to | Derivation | Built | Built |
@@ -329,7 +329,7 @@ earns it.
 | [`rebase.branch-onto`](07-history-rewriting.md#rebasebranch-onto--rebase-another-local-branch-onto-a-commit) | Rebase another local branch onto a commit | Operation | Built | Built |
 | [`rebase.find-line-before-head`](07-history-rewriting.md#rebasefind-line-before-head--the-line-of-commits-an-interactive-rebase-can-rewrite) | The line of commits an interactive rebase can rewrite | Derivation | Built | Built |
 | [`rebase.read-pushed`](07-history-rewriting.md#rebaseread-pushed--where-a-commit-was-pushed) | Where a commit was pushed | Read | Built | Built |
-| [`rebase.read-stacked-branches`](07-history-rewriting.md#rebaseread-stacked-branches--the-other-branches-on-the-commits-a-rewrite-makes-again) | The other branches on the commits a rewrite makes again | Read | Specified | Planned |
+| [`rebase.read-stacked-branches`](07-history-rewriting.md#rebaseread-stacked-branches--the-other-branches-on-the-commits-a-rewrite-makes-again) | The other branches on the commits a rewrite makes again | Read | Built | Planned |
 | [`rebase.update-refs`](07-history-rewriting.md#rebaseupdate-refs--which-branches-move-with-a-rewrite) | Which branches move with a rewrite | Derivation | Specified | Planned |
 | [`rebase.todo-page`](07-history-rewriting.md#rebasetodo-page--the-interactive-rebase-page) | The interactive rebase page | View | Built | Built |
 | [`rebase.build-todo-list`](07-history-rewriting.md#rebasebuild-todo-list--the-todo-list-of-an-interactive-rebase) | The todo list of an interactive rebase | Derivation | Built | Built |

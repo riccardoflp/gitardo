@@ -181,6 +181,7 @@ impl ViewData {
             large_diff: super::diff_page::large_question(state),
             large_merge: super::merge_page::large_question(state),
             close_file: super::file_page::close_question(state),
+            co_authors: super::co_authors::picker_state(state),
             caption: state.caption,
         }
     }
@@ -352,6 +353,7 @@ impl ViewData {
             hover: timeline.hover.as_ref(),
             hover_left_at: timeline.hover_left_at,
             label_list: timeline.label_list.as_ref(),
+            tag_marks: state.shown_folder().and_then(|folder| state.rail.tag_marks.get(folder)),
             label_list_closed_at: timeline.label_list_closed_at,
             rail_hover: None,
             switches: state.settings.switches,
@@ -407,7 +409,8 @@ fn checked_out_upstream(repository: &RepositoryState) -> Option<(u32, u32)> {
 /// What `HEAD` is, as the branch of the header names it.
 fn head_name(repository: &RepositoryState) -> HeadName<'_> {
     match (repository.checked_out_branch(), &repository.head.commit) {
-        (Some(branch), _) => HeadName::Branch(branch),
+        (Some(branch), Some(_)) => HeadName::Branch(branch),
+        (Some(branch), None) => HeadName::Unborn(branch),
         (None, Some(commit)) => HeadName::Detached(commit.short()),
         (None, None) => HeadName::NoCommits,
     }

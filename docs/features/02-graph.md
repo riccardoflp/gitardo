@@ -158,14 +158,15 @@ before the others when the room is short, the branch last; **Search**, which ope
 **Sync** with the number of commits to pull and to push, `↓3 ↑2`, which a click runs: a fetch, a pull, then a push of
 what is ahead (`sync.sync`), and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; the
 menu of the view (`graph.view-menu`), with every switch of the timeline; and **…** (`graph.more-menu`), with the
-actions alone, which has **Refresh**, **Branch**, which creates a branch at `HEAD`, **Stash**, which stashes
+actions alone, which has **Refresh**, **Branch**, which creates a branch at `HEAD`, **Create branch with no history…**
+(`branch.create-orphan`), **Stash**, which stashes
 all changes, and **Undo**, none of which is a button of the header. The button of the branches shown (`filter.picker`)
 and the search (`search.box`) are at the top of the timeline; what is running is in the status bar, and **Activity** in
 the bar of views ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)). Each entry says in its
 tooltip what it runs: **Sync: git fetch, git pull, git push**, **Fetch: git fetch --all --prune**, **Push: git push**,
 **Stash: git stash push --include-untracked**. When the window is narrow the header keeps its icons and gives up its
-words. While an operation runs, the entries that change something are disabled. **Branch** and **Undo** are disabled
-before the first commit, and **Stash** also while there is nothing to stash.
+words. While an operation runs, the entries that change something are disabled. **Branch**, **Create branch with no
+history…** and **Undo** are disabled before the first commit, and **Stash** also while there is nothing to stash.
 
 Acceptance:
 
@@ -186,7 +187,8 @@ window, always shown ([D56](../08-decisions.md#d56--a-side-column-of-repositorie
 - **Uses**: `repo.name-repositories`, `repo.tabs`, `repo.group-tabs`.
 
 As `graph.toolbar` says: the repository, the worktree or the submodule when it is not the repository's own folder, and
-the branch checked out, `gitardo › login › feature/login-page`, the repository opening the list of the repositories
+the branch checked out, `gitardo › login › feature/login-page`, or `site (no commits yet)` while the branch has no
+commit (`branch.create-orphan`), the repository opening the list of the repositories
 open and the worktree the list of the repository, its worktrees and its submodules. The header that holds them is a bar on the ground of the window, across its
 whole width on the right of the bar of views, above the side column and the pages.
 
@@ -530,6 +532,7 @@ own dash.
 | Branch; create a branch | `git-branch`, `git-branch-plus` |
 | Tag; create a tag | `tag` |
 | Remote | `cloud` |
+| A tag a remote does not have; one it has under another object | `cloud-off`, `cloud-alert` |
 | Commit; open a commit as a page | `git-commit-horizontal`, `maximize-2` |
 | Merge; cherry-pick | `git-merge`, `cherry` |
 | Compare; swap the two sides | `git-compare-arrows`, `arrow-left-right` |
@@ -573,6 +576,7 @@ own dash.
 | Check out a branch, a tag or a commit | `log-in` |
 | Open in a new window; reveal a folder in the file manager of the system | `app-window`, `folder-open` |
 | The logo of Gitardo, at the top left of the window | the extension's `gitardo.svg`, not Lucide's |
+| The signature of a commit, and signing one; the co-authors of a commit | `shield`, `users` |
 
 Acceptance:
 
@@ -648,8 +652,8 @@ timeline, which are in the menu of the view (`graph.view-menu`,
 
 In this order, separated in groups:
 
-1. **Refresh** (`repo.schedule-reads`); **Branch** (`branch.create` at `HEAD`), **Stash** (`stash.push`), **Undo**
-   (`undo.last`).
+1. **Refresh** (`repo.schedule-reads`); **Branch** (`branch.create` at `HEAD`), **Create branch with no history…**
+   (`branch.create-orphan`), **Stash** (`stash.push`), **Undo** (`undo.last`).
 2. **Compare branches, tags or commits…** (`compare.choose`), **Go to commit…** (`search.go-to-commit`), **History of
    the active file** (`file-history.file`) of the File page in front, which says to open a file when none is,
    **Reflog** (`reflog.browse`), **Clean up branches…** (`branch.clean-up`), **Apply patch…** (`patch.apply`),
@@ -1831,8 +1835,8 @@ worktrees, the tags and the submodules: in lists that fold, on the left of the w
   it is narrowed to its icons.
 - **Uses**: `refs.filter`, `refs.scope-line`, `refs.sort`, `refs.recent`, `refs.favorite`, `filter.show-only`,
   `filter.show-all`, `graph.show-in-graph`,
-  `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `drag.drop`, `branch.`, `tag.`, `stash.`,
-  `worktree.`, `submodule.`.
+  `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `drag.drop`, `tag.remote-marks`, `branch.`, `tag.`,
+  `stash.`, `worktree.`, `submodule.`.
 - **Extension**: the references beside the graph and in the Branches view (`RefsTree` in `src/webview/RefsTree.tsx`).
   They list what their own filter lists (`refs.listed`), whatever the graph is narrowed to, the branches it leaves out
   dimmed (`filter.list-too`). A click on a branch selects its tip in the graph and narrows nothing, as it did before;
@@ -1869,7 +1873,10 @@ worktrees, the tags and the submodules: in lists that fold, on the left of the w
   dragged onto the timeline (`drag.drop`).
 - A right click opens the menu of the reference (`branch.`, `remote.`, `tag.`, `stash.`, `worktree.`, `submodule.`); a
   right click on the title of a list, or its **…**, opens the list's own menu. The Worktrees list has **Create
-  worktree…** on its title and **…** with what concerns worktrees; the Submodules list **Add submodule…**.
+  worktree…** on its title and **…** with what concerns worktrees; the Submodules list **Add submodule…**; the Tags
+  list, in a repository with a remote, **Check tags on `<remote>`** and **Push tags…** after the order of its tags.
+- Once a remote was checked, a tag it lacks has the mark of `tag.remote-marks` after its name and in its tooltip, and
+  the count of the Tags list says how many it lacks, `24 · 2 not on origin`.
 
 Acceptance:
 

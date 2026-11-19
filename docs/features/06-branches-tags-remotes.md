@@ -327,7 +327,15 @@ code: its first commit has no parent.
 - **Uses**: `branch.validate-name`, `repo.read-state`, `commit.create`, `undo.journal`, `undo.last`.
 
 `git switch --orphan` empties the working tree of the tracked files, which `HEAD` keeps; `git checkout --orphan` keeps
-the working tree and the index, so that every file is staged as new on the branch. A worktree of its own with no
+the working tree and the index, so that every file is staged as new on the branch.
+
+As built: the header says `site (no commits yet)`, which a repository before its first commit now says of its branch
+too. The operation is refused before the first commit of the repository, "There is no commit yet: the first commit made
+here has no parent already.", since its branch has no history already and Undo would have nothing to check out again;
+**Create branch with no history…** in **…** is then disabled, as **Branch** is. The timeline draws the first commit of
+the branch in the lane the history of the other branches then takes, with no line between them: it has no parent, and
+`graph.lanes` gives a lane of its own only to what waits for one. The Undo is destructive, as every Undo from the journal
+that moves `HEAD` is, with its title for a warning. A worktree of its own with no
 history (`git worktree add --orphan`, git 2.42) is not offered (Q1127).
 
 Acceptance:
@@ -702,7 +710,11 @@ counted ahead of or behind.
 - **Uses**: `remote.default`, `branch.ref-argument`, `branch.unset-upstream`, `graph.labels`, `refs.tree`.
 
 A branch whose remote branch does not exist yet gets its upstream from its first push (`sync.push`), which is not
-offered here (Q1110). A remote branch is what the last fetch saw: one pushed by someone else since is fetched first
+offered here (Q1110).
+
+As built, the sentence of the placeholder is the line under the title of the search, which has no placeholder of its
+own; the upstream it has, picked again, runs a plan of no step titled `<branch> follows <upstream> already`. Quick
+search runs it on the branch checked out, and refuses with **Check out a branch first.** on a detached `HEAD`. A remote branch is what the last fetch saw: one pushed by someone else since is fetched first
 (`sync.fetch`).
 
 Acceptance:
@@ -905,10 +917,14 @@ commits it fetches, but never says which tags of this repository the remote lack
   - The tags of the repository, with the same objects:
     `git for-each-ref --format=%(objectname)%00%(refname)%00 refs/tags`.
 - **Uses**: `activity.track`, which says **Asking `<remote>` for its tags** while it runs for more than half a second.
-- **Extension**: the engine's read, asked by the extension as it asks the pull requests (`src/engine/reads.ts`).
+- **Extension**: the engine's read, `read/tag.read-remote-tags` (protocol 1.13), asked by the extension as it asks the
+  pull requests (`reads.remoteTags` in `src/engine/reads.ts`), only for **Check tags on `<remote>`**.
 
 It reaches the remote over the network, so it runs only when the user asks for something that needs it
 (`tag.remote-marks`, `tag.push-all`), never with the reads of the repository (Q1114).
+
+As built, the read gives `RemoteTags`: the name of the remote, its tags (`there`) and those of the repository (`here`),
+each with its object, so that `tag.compare-remote` is given both from one read.
 
 Acceptance:
 
@@ -925,7 +941,7 @@ and the tags only the remote has.
 - **Kind**: Derivation
 - **Function**: `model::tag::compare_remote(here: &[TagObject], there: &RemoteTags) -> TagComparison`
 - **Uses**: `tag.read-remote-tags`; by `tag.remote-marks`, `tag.push-all` and `tag.delete-remote`.
-- **Extension**: the engine's, with the read.
+- **Extension**: the engine's, given with the read: `read/tag.read-remote-tags` answers with the comparison.
 
 Rules:
 
@@ -949,7 +965,7 @@ Once a remote was asked for its tags, those it lacks are marked in the branch ra
 made here and never pushed is seen before it is missed.
 
 - **Kind**: View
-- **Function**: `views::tag::remote_marks_view(state: &TagMarks, ui: &mut Ui) -> Vec<Intent>`
+- **Function**: `views::tag::remote_marks_view(state: Option<&TagMarks>, tag: (&str, &CommitId)) -> Option<(Icon, String)>`
 - **Entry points**: **Check tags on `<remote>`** in the **…** of the **Tags** list of the branch rail, and **Check tags
   on the remote** in Quick search, for the remote of `remote.default`; the marks then show in the **Tags** list and on
   the labels of the timeline.
@@ -973,6 +989,14 @@ What it shows:
   `<remote>`** asks again.
 - Nothing is asked of a remote, and nothing is marked, before **Check tags on `<remote>`** is chosen.
 
+As built, the function gives the mark of one tag, its icon and its tooltip, which the branch rail and the labels draw;
+the marks are `model::tag::TagMarks`, kept by the window for each repository, and the operations on tags say what they
+changed with the follow-up `TagsOnRemote` (`tag.create`, `tag.push`, `tag.push-all`, `tag.delete-remote`), which the
+marks of the remote checked follow. A tag the check did not know is not pushed, and a tag pushed at another commit than
+the one it is at now is different there, so that a tag made or moved since needs no follow-up. On a label the mark is
+the second icon, after the tag's and before its name, since a label draws its icons before its words; its tooltip is
+the label's. **Push tags…** is in the **…** before any check too, since it asks the remote itself.
+
 Acceptance:
 
 - [ ] Before **Check tags on origin**, no tag is marked, and nothing is asked of the remote.
@@ -982,6 +1006,13 @@ Acceptance:
 - [ ] A tag made here after the check is marked as not pushed.
 - [ ] `v1` moved here after it was pushed is marked `origin has another tag of this name`.
 - [ ] Extension: after **Check tags on origin**, the references beside the graph mark the tag that is not pushed.
+
+As built in the extension, the marks are kept by the controller for each repository until VS Code is closed and sent
+with the state (`tagMarks`), and follow the follow-up `tagsOnRemote` (`src/shared/tagMarks.ts`). The Codicons have
+neither `cloud-off` nor `cloud-alert`, so a tag not pushed has `cloud-upload` and one different there `warning`, in the
+badge of its row in `RefsTree` and among the icons of its label, with the same tooltips. **Gitardo: Check Tags on
+Remote** in the Command Palette asks too, and the **…** of the Tags list has the entries of `remoteTagsEntries`
+(`src/webview/menus.ts`).
 
 ### `tag.push-all` — Push the tags a remote lacks
 
@@ -1013,6 +1044,11 @@ Sends to a remote the tags it does not have, every one or those ticked, in one p
 - **Refuses**: before the pick, "`<remote>` has every tag of this repository." when it lacks none; "No tags
   selected." when the pick is accepted with nothing ticked; "This repository has no remote." with **Add remote…**
   (`remote.add`).
+
+As built, the tags of the remote are read before the pick by a query of the engine, `Query::RemoteTags`, which the
+engine answers as it answers the others, tracked as an activity that says **Asking `<remote>` for its tags**. A pick of
+several has no entry that cannot be ticked, nor a placeholder: the tags the remote has under another object are said in
+the detail of the pick, `origin has another tag of this name, which is not pushed: v1.`, and are not listed.
 - **Uses**: `tag.read-remote-tags`, `tag.compare-remote`, `tag.remote-marks`, `remote.default`, `remote.add`,
   `tag.push`, `tag.delete-remote`.
 
@@ -1077,6 +1113,10 @@ Deletes a tag on a remote, for everyone, and here too when asked: what `tag.dele
 - **Uses**: `tag.delete`, `tag.push`, `tag.remote-marks`, `tag.compare-remote`, `remote.default`.
 
 Acceptance:
+
+As built, the entries are offered whenever the repository has a remote: the marks of `tag.remote-marks` are not built
+yet, so the menu of a tag the check found the remote lacks still has them, and its acceptance line waits for them.
+**Delete here and from…** gives the answer `here` with the run, which the command line never asks.
 
 - [ ] **Delete from origin** on `v1` asks, also with `commandPreview` set to `off`, then runs
       `git push origin --delete refs/tags/v1`; `origin` no longer has `v1`, and this repository still has it.

@@ -4,6 +4,7 @@
  * is VS Code's own (`hostAction` of `src/extension/actions.ts`), or one there is nothing to run for.
  */
 
+import type { CommitOptions } from '../shared/commitOptions';
 import type { Action, MergeMode, PullAction, RebaseStep, RepoState, SyncAction } from '../shared/protocol';
 import { isHome } from '../shared/refs';
 import { worktreeBranch } from '../shared/state';
@@ -32,6 +33,21 @@ function files(paths: string[]): Target {
 const text = (value: string): Answer => ({ kind: 'text', text: value });
 
 /**
+ * The options of the commit box as the answers of `commit.create` and `commit.amend` (`commit.options`), which the
+ * engine turns into the arguments of `git commit` (`commit.option-arguments`): **Sign this commit** only while it
+ * differs from where it started, which is how git's configuration signs; the others only when ticked.
+ */
+export function optionAnswers(options: CommitOptions | undefined, start: CommitOptions | undefined): Record<string, Answer> {
+  if (!options) return {};
+  const answers: Record<string, Answer> = {};
+  if (start && options.sign !== start.sign) answers.sign = { kind: 'flag', value: options.sign };
+  if (options.signOff) answers['sign-off'] = { kind: 'flag', value: true };
+  if (options.skipHooks) answers['skip-hooks'] = { kind: 'flag', value: true };
+  if (options.coAuthors.length) answers['co-authors'] = { kind: 'choices', identifiers: options.coAuthors };
+  return answers;
+}
+
+/**
  * The runs of the engine that take the place of an action, in order, each ended before the next starts; none when the
  * action is not one the engine runs yet.
  */
@@ -47,6 +63,13 @@ export function engineRuns(
     // Branches.
     case 'createBranch':
       return [{ feature: 'branch.create', target: targetOf(action.at, state) }];
+    case 'createBranchWithNoHistory':
+      return [{ feature: 'branch.create-orphan', target: { kind: 'head' } }];
+    case 'setUpstream':
+      // On the branch checked out, from the Command Palette, the target is `HEAD`, which the engine takes as that branch.
+      return [{ feature: 'branch.set-upstream', target: action.name ? { kind: 'branch', name: action.name } : { kind: 'head' } }];
+    case 'unsetUpstream':
+      return [{ feature: 'branch.unset-upstream', target: { kind: 'branch', name: action.name } }];
 
     // Undo.
     case 'undo':
@@ -71,7 +94,13 @@ export function engineRuns(
         ? [{ feature: 'changes.discard', target: files(action.paths) }]
         : [{ feature: 'changes.discard-all', target: { kind: 'head' } }];
     case 'commit':
-      return [{ feature: action.amend ? 'commit.amend' : 'commit.create', target: { kind: 'head' }, answers: { message: text(action.message) } }];
+      return [
+        {
+          feature: action.amend ? 'commit.amend' : 'commit.create',
+          target: { kind: 'head' },
+          answers: { message: text(action.message), ...optionAnswers(action.options, action.start) },
+        },
+      ];
 
     // Stashes.
     case 'stashPush':
@@ -104,6 +133,10 @@ export function engineRuns(
       return [{ feature: 'tag.delete', target: { kind: 'tag', name: action.name } }];
     case 'pushTag':
       return [{ feature: 'tag.push', target: { kind: 'tag', name: action.name } }];
+    case 'pushTags':
+      return [{ feature: 'tag.push-all', target: { kind: 'head' } }];
+    case 'deleteTagOnRemote':
+      return [{ feature: 'tag.delete-remote', target: { kind: 'tag', name: action.name }, answers: action.here ? { here: { kind: 'flag', value: true } } : {} }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
     case 'merge':
       if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];

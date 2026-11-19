@@ -115,10 +115,11 @@ fn active_file_history(active_file: Option<crate::file_view::FilePageId>) -> Int
     }
 }
 
-/// **Branch**, **Stash** and **Undo**, each disabled while an operation runs and when it has nothing to work on.
+/// **Branch**, **Create branch with no history…**, **Stash** and **Undo**, each disabled while an operation runs and when it has nothing to work on.
 fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
     [
         (words::BRANCH, "branch.create", menu.has_commits),
+        (words::BRANCH_WITH_NO_HISTORY, "branch.create-orphan", menu.has_commits),
         (words::STASH, "stash.push", menu.can_stash),
         (words::UNDO, "undo.last", menu.has_commits),
     ]

@@ -171,6 +171,12 @@ fn words(kind: &JobKind) -> (Text, Text) {
                 Text::from(activity::OPENING_WORKSPACE),
             );
         }
+        JobKind::ReadRemoteTags { request, .. } => {
+            return (
+                Text::from(activity::asking_for_tags(&request.remote)),
+                Text::from(activity::CHECKING_TAGS),
+            );
+        }
         JobKind::Search(search) => {
             let cause = match search {
                 SearchJob::Matches { .. } => search_words::SEARCHING_HISTORY,
@@ -185,6 +191,8 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadCommits { folder, .. } => (folder, activity::LOADING_MORE_COMMITS),
         JobKind::ReadTimeline { folder, .. } => (folder, activity::NARROWING_TIMELINE),
         JobKind::ReadDetails { folder, .. } => (folder, activity::SHOWING_DETAILS),
+        JobKind::ReadSignature { folder, .. } => (folder, activity::CHECKING_SIGNATURE),
+        JobKind::ReadAuthors { folder, .. } => (folder, activity::READING_AUTHORS),
         JobKind::ReadCommitPage { folder, .. } => (folder, activity::OPENING_COMMIT_PAGE),
         JobKind::ReadDiff { folder, .. } => (folder, activity::COMPUTING_DIFF),
         JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } => (folder, activity::OPENING_FILE),

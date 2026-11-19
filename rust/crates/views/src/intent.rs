@@ -239,6 +239,8 @@ pub enum RailIntent {
     CloseListFilter,
     /// What is typed in the box of the filter of the rail.
     TypeInListFilter(String),
+    /// **Check tags on `<remote>`**: ask the remote for its tags and mark those it lacks (`tag.remote-marks`).
+    CheckTags(String),
 }
 
 /// Something asked of the branches the timeline shows.

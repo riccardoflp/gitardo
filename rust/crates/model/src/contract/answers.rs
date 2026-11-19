@@ -62,6 +62,10 @@ pub enum Answer {
     EmptyStop(Option<super::EmptyStop>),
     /// The parents of a commit and the line from it up to `HEAD` (`Query::Line`).
     Line(crate::rebase::LineToHead),
+    /// The version of git, none when `git --version` said something of another form (`Query::GitVersion`).
+    GitVersion(Option<crate::rebase::GitVersion>),
+    /// The branches of a stack over the commits a rebase makes again (`Query::StackedBranches`).
+    Stacked(crate::rebase::StackedBranches),
     /// The whole messages of commits, in the order asked.
     Messages(Vec<String>),
     /// Commits as one patch made by `git format-patch`, oldest first (`patch.read-format-patch`).
@@ -100,6 +104,8 @@ pub enum Answer {
     AiModels(crate::ai::AiModels),
     /// The open pull requests of the main remote, or why they were not read (`hosting.read-pull-request-list`).
     PullList(crate::hosting::PullList),
+    /// The tags a remote has and those of the repository (`tag.read-remote-tags`).
+    RemoteTags(crate::tag::RemoteTags),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

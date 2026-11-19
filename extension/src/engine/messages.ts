@@ -17,8 +17,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17); 1.10 has `read/repo.worktree-summary`, what the
  * folders of the rows of the Repositories view are on, with `repository/summaries` and `repository/folderChanged`
  * (milestone M22); 1.11 has `read/help.ask`, a question of VS Code's Chat to Ask Gitardo, and `features` in
- * `host/languageModel`, the titles of the features its answer may name (milestone M31), the validation of the number
- * of a pull request and the host question of the token of a GitLab (milestone M37).
+ * `host/languageModel`, the titles of the features its answer may name (milestone M31), how git signs commits in the
+ * state, `read/details.read-signature` and `read/commit.read-authors` (milestone M34), `read/tag.read-remote-tags`
+ * with the follow-up `tagsOnRemote` (milestone M35), the validation of the number of a pull request and the host
+ * question of the token of a GitLab (milestone M37).
  */
 export const PROTOCOL = '1.11';
 
@@ -275,6 +277,10 @@ export const ReadMethod = {
   searchMatches: 'read/search.read-matches',
   // Version 1.8, milestone M15.
   watchChanges: 'read/repo.watch-changes',
+  // Version 1.13, milestone M34.
+  signature: 'read/details.read-signature',
+  authors: 'read/commit.read-authors',
+  remoteTags: 'read/tag.read-remote-tags',
 } as const;
 
 /** The notification of a page of `read/graph.read-commits` asked with `stream`, as it is read (1.8). */

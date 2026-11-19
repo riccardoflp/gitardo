@@ -5,12 +5,16 @@ use std::collections::HashMap;
 
 mod line;
 mod rows;
+mod stacked;
 mod todo;
+mod update_refs;
 
 pub use line::{LineCommit, LineToHead, commits_after, subject_of};
 pub use rows::{TodoRow, read_todo_rows, write_todo_rows};
+pub use stacked::{GitVersion, NeededVersion, StackedBranch, StackedBranches, UPDATE_REFS_VERSION};
 pub(crate) use todo::body_of;
 pub use todo::{Reword, TodoAction, TodoList, TodoStep, build_todo_list};
+pub use update_refs::{UpdateRefs, UpdateRefsInput, update_refs};
 
 use crate::CommitId;
 use crate::commit::Commit;

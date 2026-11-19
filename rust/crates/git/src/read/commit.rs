@@ -6,6 +6,9 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
+use model::commit::{Author, SigningConfig, SigningKind, authors_of, is_true};
+
+use crate::read::fields::read_or_nothing;
 use crate::read::repo::read_location;
 use crate::{Git, GitError};
 
@@ -59,6 +62,103 @@ pub fn draft_diff_arguments(request: &DraftDiffRequest) -> Vec<&'static str> {
 pub fn read_draft_diff(git: &Git, request: &DraftDiffRequest) -> Result<String, GitError> {
     let diff = git.run_read(&draft_diff_arguments(request))?;
     Ok(String::from_utf8_lossy(&diff).into_owned())
+}
+
+/// Which configuration: the one git reads in the folder it runs in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SigningRequest;
+
+/// `git config -z --get-regexp ^(commit\.gpgsign|gpg\.format|user\.signingkey)$`: each key and its value, from every
+/// file of the configuration in the order git reads them; the exit code 1 when none is set.
+#[must_use]
+pub fn signing_arguments(_request: &SigningRequest) -> Vec<&'static str> {
+    vec![
+        "config",
+        "-z",
+        "--get-regexp",
+        r"^(commit\.gpgsign|gpg\.format|user\.signingkey)$",
+    ]
+}
+
+/// How git signs commits, from what [`signing_arguments`] printed. A key set in several files takes the value git
+/// reads last, as git does; a key with no value at all, printed without a line break, is true.
+#[must_use]
+pub fn parse_signing(output: &[u8]) -> SigningConfig {
+    let text = String::from_utf8_lossy(output);
+    let mut signing = SigningConfig::default();
+    for record in text.split('\0').filter(|record| !record.is_empty()) {
+        let (key, value) = match record.split_once('\n') {
+            Some((key, value)) => (key, Some(value)),
+            None => (record, None),
+        };
+        match key.to_ascii_lowercase().as_str() {
+            "commit.gpgsign" => signing.signs_every_commit = is_true(value),
+            "gpg.format" => signing.kind = SigningKind::of_format(value.unwrap_or_default()),
+            "user.signingkey" => signing.key = value.map(str::to_owned).filter(|key| !key.is_empty()),
+            // The pattern asks for these three keys alone.
+            _ => {}
+        }
+    }
+    signing
+}
+
+/// Whether git's configuration signs every commit, in which kind and with which key, read with the state of the
+/// repository.
+///
+/// Feature: commit.read-signing
+///
+/// # Errors
+///
+/// When git cannot be started or fails otherwise than finding none of the keys.
+pub fn read_signing(git: &Git, request: &SigningRequest) -> Result<SigningConfig, GitError> {
+    let arguments: Vec<std::ffi::OsString> = signing_arguments(request).into_iter().map(Into::into).collect();
+    Ok(read_or_nothing(git, &arguments)?.map_or_else(SigningConfig::default, |output| parse_signing(&output)))
+}
+
+/// Which history: every branch, remote branch and tag of the repository git runs in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct AuthorsRequest;
+
+/// How many commits are read at most, the newest first, so that a long history answers at once.
+pub const AUTHORS_READ: usize = 10_000;
+
+/// `git log -z --format=%aN%x1f%aE --max-count=10000 --branches --remotes --tags`: the name and the email of the author
+/// of each commit, the newest first, as the repository's `.mailmap` says them.
+#[must_use]
+pub fn authors_arguments(_request: &AuthorsRequest) -> Vec<String> {
+    vec![
+        String::from("log"),
+        String::from("-z"),
+        String::from("--format=%aN%x1f%aE"),
+        format!("--max-count={AUTHORS_READ}"),
+        String::from("--branches"),
+        String::from("--remotes"),
+        String::from("--tags"),
+    ]
+}
+
+/// The authors of what [`authors_arguments`] printed: one for each email, without regard to case, named as their
+/// latest commit says, the one with the most commits first.
+#[must_use]
+pub fn parse_authors(output: &[u8]) -> Vec<Author> {
+    let text = String::from_utf8_lossy(output);
+    let commits = text
+        .split('\0')
+        .map(|record| record.trim_start_matches('\n'))
+        .filter_map(|record| record.split_once('\u{1f}'))
+        .filter(|(_, email)| !email.is_empty());
+    authors_of(commits)
+}
+
+/// The people who made commits in the repository, with how many each made, for choosing co-authors.
+///
+/// Feature: commit.read-authors
+///
+/// # Errors
+///
+/// When the folder is not in a repository, or git cannot be started or fails.
+pub fn read_authors(git: &Git, request: &AuthorsRequest) -> Result<Vec<Author>, GitError> {
+    Ok(parse_authors(&git.run_read(&authors_arguments(request))?))
 }
 
 /// The message in a file of the git folder; none when the file is not there or holds only blanks.

@@ -56,7 +56,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 167] = [
+pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -66,9 +66,12 @@ pub const OPERATIONS: [(FeatureId, Operation); 167] = [
     ),
     (FeatureId("branch.clean-up"), branch::clean_up),
     (FeatureId("branch.create"), branch::create),
+    (FeatureId("branch.create-orphan"), branch::create_orphan),
     (FeatureId("branch.delete"), branch::delete),
     (FeatureId("branch.fast-forward"), branch::fast_forward),
     (FeatureId("branch.rename"), branch::rename),
+    (FeatureId("branch.set-upstream"), branch::set_upstream),
+    (FeatureId("branch.unset-upstream"), branch::unset_upstream),
     (FeatureId("changes.discard"), changes::discard),
     (FeatureId("changes.discard-all"), changes::discard_all),
     (FeatureId("changes.save"), changes::save),
@@ -88,7 +91,9 @@ pub const OPERATIONS: [(FeatureId, Operation); 167] = [
     (FeatureId("tag.checkout"), tag::checkout),
     (FeatureId("tag.create"), tag::create),
     (FeatureId("tag.delete"), tag::delete),
+    (FeatureId("tag.delete-remote"), tag::delete_remote),
     (FeatureId("tag.push"), tag::push),
+    (FeatureId("tag.push-all"), tag::push_all),
     (FeatureId("undo.last"), undo::last),
     // Remotes, sync and stashes.
     (FeatureId("sync.pull"), sync::pull),

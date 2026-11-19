@@ -49,6 +49,51 @@
   others of wlroots); on GNOME, whose compositor offers neither, and on X11, the clipboard of X11 as before.
 - On Linux a right click on the title bar opens the menu of the window of the desktop, where the pointer is: the
   compositor's on Wayland, and the window manager's on X11 (`_GTK_SHOW_WINDOW_MENU`, which GNOME and Xfce read).
+- **Check tags on origin**, in the **…** of the **Tags** list of the branch rail and, as **Check tags on the remote**,
+  in Quick search, asks the remote which tags it has, and marks those it lacks: a cloud struck through after the name
+  of a tag not on it, `Not on origin` in its tooltip, and a cloud with an exclamation mark for a tag it has under
+  another object; on the labels of the timeline too. The count of the list says `· 2 not on origin`. The marks stay
+  while the window is open and follow what Gitardo does to the tags: a tag made is not on the remote, one pushed is,
+  one deleted from the remote is not any more. Nothing is asked of a remote before the check.
+- **Push tags…**, in the **…** of the **Tags** list and in Quick search, asks the remote for its tags and lists those
+  it lacks, newest first, all ticked: `git push origin --tags` when all are pushed, else each tag named. A tag the
+  remote has under another object is said in the detail of the list, not pushed.
+- Rebasing a branch onto another, or a branch dropped on a commit, moves with it the other local branches on the commits
+  it makes again, a stack of branches each started from the one under it: `git rebase --update-refs`, and what is said
+  after names them. A branch checked out in another worktree stays, and so do all of them with a git older than 2.38;
+  the rebase then asks first and says which stay and why. The setting `rebase.updateRefs`, in the settings files,
+  turns it off or on whatever git's own setting says.
+- **Create branch with no history…**, in Quick search and in **…** after **Branch**, starts a branch whose first commit
+  has no parent: **Start with no files** takes the tracked files out of the working tree and leaves the untracked ones,
+  **Keep the files, staged** stages every file as new. Undo right after checks out again what was checked out before.
+  Until its first commit the header says `site (no commits yet)`, as it now says of the branch of a repository with no
+  commit.
+- The menu of a tag has **Delete from origin** and **Delete here and from origin** after **Delete**, or **Delete from a
+  remote…** and **Delete here and from a remote…** with several remotes, which ask which. They warn first, delete the
+  tag on the remote with the tag named in full, so that a branch of its name there stays, and, here too, only once the
+  remote took it away.
+- The menu of a local branch, in the branch rail and on its label, has **Set upstream…** for a branch that follows
+  nothing, or **Change upstream…** and **Stop tracking `<upstream>`** for one that follows a remote branch, gone or
+  not; Quick search has **Set upstream of the current branch…**. The search lists the remote branches of the
+  branch's name first, those of `origin` before the others, and says which is the **current upstream**; a remote
+  branch is named in full when a local branch has its name.
+- The inspector and the page of a commit say whether the commit is signed, on a line **Signature** under **Commit**,
+  with a shield in the color of what git said: **Good** and by whom, the three kinds of good signature git doubts,
+  **Bad**, **Cannot be checked**, or **Signed, not checked** for a commit signed with SSH while no allowed signers are
+  set. Its tooltip has the kind of signature, the key, its fingerprint and its trust. The signature is checked once the
+  details are shown, for the commit selected alone; a commit not signed has no line.
+- **Commit options**, a button beside **Commit** and **Amend**, opens a menu with **Sign this commit**, ticked to start
+  when git signs every commit, **Add Signed-off-by** and **Skip the hooks**, for the next commit alone: once it is
+  made, they are back where they start. Each repository keeps its own while the window is open. While one differs
+  from where it starts, a line under the commit box says so, such as `Not signed · Hooks skipped`, and its tooltip has
+  the arguments added to `git commit`. When git signs with SSH or X.509 and has no key, **Sign this commit** cannot be
+  ticked and **Switch identity…** is beside it. The new setting `commit.signOff` (User, Repository) ticks **Add
+  Signed-off-by** to start.
+- **Co-authors…**, in the menu of **Commit options**, opens **Co-authors of this commit**: the authors of the history,
+  the one with the most commits first and without the identity that commits, found by name or email as they are
+  typed, each with its email and its commits; `Name <email>` typed adds someone who never committed. `Enter` keeps the
+  ticks, `Escape` leaves the co-authors as they were. The next commit ends with a `Co-authored-by` line for each, and
+  the menu lists them, each with × to take it away.
 
 ## 1.2.0 - 2026-11-18
 

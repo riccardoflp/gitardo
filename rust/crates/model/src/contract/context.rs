@@ -109,6 +109,9 @@ pub struct FeatureSettings {
     pub pull_rebase: bool,
     /// `pull.autostash`: **Pull** adds `--autostash`.
     pub pull_autostash: bool,
+    /// `rebase.updateRefs`: whether a rebase moves the other branches of a stack with it; none when it is not set,
+    /// and git's own setting decides (`rebase.update-refs`).
+    pub rebase_update_refs: Option<bool>,
     /// `identities`: the names and emails to choose from when switching identity, in their order.
     pub identities: Vec<IdentityProfile>,
     /// `cherryPick.recordOrigin`: cherry-picks end their message with `(cherry picked from commit …)`, as `-x` does.
@@ -226,6 +229,7 @@ impl Default for FeatureSettings {
             branch_open_in: OpenIn::Checkout,
             pull_rebase: true,
             pull_autostash: true,
+            rebase_update_refs: None,
             identities: Vec::new(),
             cherry_pick_record_origin: false,
             conflicts_auto_resolve: false,

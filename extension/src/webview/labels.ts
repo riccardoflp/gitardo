@@ -2,6 +2,7 @@ import { unpushedCommits, type Ahead } from '../shared/graph';
 import type { RepoState } from '../shared/protocol';
 import { nameOnRemote, pullOf, pushedName, worktreeOf } from '../shared/refs';
 import { stashName, upstreamBranch, upstreamName } from '../shared/state';
+import { remoteMark } from '../shared/tagMarks';
 import type { Label } from './CommitList';
 
 /**
@@ -38,7 +39,7 @@ export function buildLabels(state: RepoState): Map<string, Label[]> {
     const pull = state.hosting && !tracked.has(remote.name) ? pullFor(nameOnRemote(remote.name, state)) : undefined;
     add(remote.commit, { kind: 'remote', name: remote.name, pull });
   }
-  for (const tag of state.tags) add(tag.commit, { kind: 'tag', name: tag.name });
+  for (const tag of state.tags) add(tag.commit, { kind: 'tag', name: tag.name, mark: remoteMark(state.tagMarks, tag) ?? undefined });
   for (const stash of state.stashes) add(stash.commit, { kind: 'stash', name: stashName(stash) });
   if (state.bisect) {
     const { good, bad, skipped } = state.bisect;

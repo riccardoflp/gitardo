@@ -1108,7 +1108,7 @@ gives the file its old line, which `Ctrl+Z` takes back; a selection across two c
 both in one `git apply`, which the Command log shows with its patch; staging two lines of an untracked file adds it to
 the index with those two lines; the cards of the milestone are Built in the desktop.
 
-## M34 — The signature of a commit, and the options of the commit box
+## M34 — The signature of a commit, and the options of the commit box (done)
 
 The inspector and the tab of a commit say whether it is signed and whether the signature holds; the commit box signs
 or does not sign a commit, adds `Signed-off-by` and co-authors, and skips the hooks, for one commit
@@ -1131,7 +1131,24 @@ their tests passing. Desktop first: the extension gets the line of the signature
    a `--trailer` for each co-author chosen, and none for one the message names already. Cards:
    `commit.read-authors`, `commit.co-authors`, `commit.option-arguments`.
 
-Nothing is built yet.
+Done: the three phases in Gitardo Desktop, then in the extension
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)): the line
+**Signature** in the details beside the graph and in the tab of a commit, read with `read/details.read-signature`
+after the details and the read before cancelled; **Commit options** beside **Commit** in the commit box of **Gitardo
+Changes**, with the line under the box and the setting `gitardo.commit.signOff`; the co-authors in a quick pick of many,
+the authors read with `read/commit.read-authors`. How git signs comes with the state (`signing`). The protocol is 1.13
+for these, and the co-authors given in `feature/run` are known from its first call, as a flag is. The extension's icons
+are Codicons: `shield` for the signature, `settings` for **Commit options**.
+Phase 1 is built: the line **Signature** of the inspector and of the page of a commit, read once the details are
+drawn, the read before cancelled when another commit is selected, and tested with commits signed by an SSH key made
+for each test. The object of the commit is read first, where the plan read it only after `N` (the card says why).
+Phase 2 is built: how git signs, read with the state; the button **Commit options** beside **Commit** and its menu
+with **Sign this commit**, **Add Signed-off-by** and **Skip the hooks**; their arguments, given to `commit.create` and
+`commit.amend` as answers the command line never asks; the line under the box; the setting `commit.signOff`; each
+repository keeping its own options until its next commit. What an entry signs with, or adds, is its tooltip, not a line
+under it (the card of `commit.options` says why). Phase 3 is built: the authors of the history, read when the picker
+**Co-authors of this commit** opens and stopped when it closes first; an author typed as `Name <email>`; a `--trailer`
+for each co-author. The picker shows eight people at most, and typing finds the others (the card says why).
 
 Exit: in a repository signing with an SSH key whose allowed signers are set, selecting a commit signed shows
 **Signature** `Good` with the signer, and one not signed shows no such line; without the allowed signers, the same
@@ -1141,7 +1158,7 @@ commit whose message ends with the three lines, once each; **Skip the hooks** co
 fails, and the next commit runs it; the cards of the milestone are Built in the desktop, and the snapshots of the
 menu and of the line of a signature match in each theme.
 
-## M35 — Upstreams, tags on remotes and new roots
+## M35 — Upstreams, tags on remotes and new roots (done)
 
 The upstream of a local branch set, changed and taken away; which tags a remote has, the ones it lacks marked, pushed
 in one go, and a tag deleted from a remote as well as here; a branch started with no history
@@ -1173,7 +1190,33 @@ last in the extension.
    Command Palette, and the marks of the tags drawn in `RefsTree` and on the labels; each card *Built* in the
    extension with its `Extension:` lines tested. Cards: every card above.
 
-Nothing is built yet.
+Phase 1 is built: **Set upstream…**, **Change upstream…** and **Stop tracking `<upstream>`** in the menu of a local
+branch, on its label and in the branch rail, and **Set upstream of the current branch…** in Quick search.
+Phase 2 is built: `git ls-remote --tags --refs` read with the tags of the repository, and the comparison of the two
+(`tag.read-remote-tags`, `tag.compare-remote`); **Check tags on `<remote>`** in the **…** of the Tags list and **Check
+tags on the remote** in Quick search, which ask the remote on a worker, the marks `cloud-off` and `cloud-alert` after
+the names in the branch rail and among the icons of the labels, and the count of the Tags list, `· 1 not on origin`
+(`tag.remote-marks`, `refs.tree`). The operations on tags say what they changed of the tags on a remote with the
+follow-up `TagsOnRemote`, which the marks follow without asking the remote again.
+Phase 3 is built: **Delete from `<remote>`** and **Delete here and from `<remote>`** in the menu of a tag
+(`tag.delete-remote`); **Push tags…** in the **…** of the Tags list and in Quick search (`tag.push-all`), which asks
+the remote for its tags before its pick with a query of the engine, `Query::RemoteTags`, tracked as an activity. A pick
+of several has no entry that cannot be ticked, so the tags the remote has under another object are said in its detail
+rather than listed apart.
+Phase 4 is built: **Create branch with no history…** in Quick search and in **…** after **Branch**, the question of what
+the working tree keeps, Undo from the journal back to what was checked out before, and the header that names the branch
+with **no commits yet** (`branch.create-orphan`, `undo.journal`, `graph.where`).
+Phase 5 is built for what the desktop has: **Set upstream…**, **Change upstream…** and **Stop tracking `<upstream>`** in
+the menu of a local branch (`trackingEntries` in `src/webview/menus.ts`), **Delete from `<remote>`** and **Delete here
+and from `<remote>`** in the menu of a tag (`deleteOnRemoteEntries`), **Gitardo: Set Upstream of the Current Branch…**
+and **Gitardo: Create Branch with No History…** in the Command Palette, the second also in the **…** of the Branches
+view, each run on the engine; then **Check tags on `<remote>`** and **Push tags…** in the **…** of the Tags list of the
+references and of the Branches view (`remoteTagsEntries`), **Gitardo: Check Tags on Remote** and **Gitardo: Push
+Tags…** in the Command Palette, and the marks in `RefsTree` and on the labels, Codicons `cloud-upload` and `warning`
+since the Codicons have no `cloud-off` nor `cloud-alert`. Protocol 1.13 has `read/tag.read-remote-tags` and the
+follow-up `tagsOnRemote`.
+
+Done: every card of the milestone is Built in both apps.
 
 Exit: in a repository whose `feature` follows nothing and whose `origin` has `feature` and `release`, **Set upstream…**
 on `feature` lists `origin/feature` first, and once picked the branch rail says how far `feature` is from it;
@@ -1220,6 +1263,13 @@ their tests passing; the first five in Gitardo Desktop, the last in the extensio
    the setting `gitardo.rebase.updateRefs`; the tab of what a rewrite changed, beside the comparison, with the entries
    of the menus, **Compare First** in the modal dialog of a force push and **See What Changed** on the messages after an
    operation. Cards: every card above.
+
+Phase 1 is built: `git --version` read once for each engine (`Query::GitVersion`), and the branches on the commits a
+rebase makes again with the worktree of each and git's `rebase.updateRefs` (`Query::StackedBranches`).
+Phase 2 is built in part: the decision (`model::rebase::update_refs`), Gitardo's setting `rebase.updateRefs` read from
+the settings files, and `--update-refs` or `--no-update-refs` on `rebase.onto` and `rebase.branch-onto`, with the note
+when a branch stays and what is said after. The `update-ref` lines of Gitardo's own todo lists, `fixup.commit`, the
+interactive rebase page and the entry of the settings page (Q1400) are not built yet; nor are phases 3 to 6.
 
 Nothing is built yet.
 

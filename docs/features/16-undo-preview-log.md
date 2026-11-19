@@ -175,7 +175,8 @@ Acceptance:
 ### `undo.journal` — Remember what Undo needs
 
 The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of
-it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, the commit of a stash, the
+it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, what was checked out before a
+branch with no history (`branch.create-orphan`, whose move git writes in no reflog), the commit of a stash, the
 files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD`
 is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that
 cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes

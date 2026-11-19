@@ -21,6 +21,8 @@ export interface MenuItem {
   checked?: boolean;
   /** Shown, but not to be chosen now: the hint says why. */
   disabled?: boolean;
+  /** The tooltip, which finishes the thought of the label. */
+  title?: string;
 }
 
 /** Falsy entries are dropped, so menus can be written with `condition && item`. */
@@ -121,6 +123,7 @@ function Menu({ menu, onClose }: { menu: OpenState; onClose(): void }) {
             aria-checked={item.checked}
             className={item.danger ? 'danger' : undefined}
             disabled={item.disabled}
+            title={item.title}
             onClick={() => {
               onClose();
               item.run();

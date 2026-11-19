@@ -2,6 +2,7 @@
 //! a commit.
 
 mod line;
+mod stacked;
 
 use std::ffi::OsString;
 use std::fs;
@@ -16,6 +17,10 @@ use crate::{Git, GitError};
 pub use line::{
     LineRequest, commit_files_arguments, line_arguments, message_arguments, parents_arguments, parse_commit_files,
     parse_line, parse_parents, read_commit_files, read_line, read_messages,
+};
+pub use stacked::{
+    StackedRequest, local_branches_arguments, made_again_arguments, parse_local_branches, parse_made_again,
+    parse_update_refs, read_stacked_branches, update_refs_arguments,
 };
 
 /// The commit whose remote branches to read.

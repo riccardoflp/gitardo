@@ -9,6 +9,7 @@ mod files;
 mod head;
 mod message;
 mod rows;
+mod signature;
 
 use std::collections::BTreeSet;
 
@@ -30,6 +31,7 @@ pub(crate) use files::{
 pub(crate) use head::{outdent, shown_parents};
 pub use message::{MessageState, SHOWN_LINES, show_more};
 pub(crate) use rows::{commit_list, compare_file};
+pub use signature::{SignatureRead, SignatureState, signature_view};
 
 /// What the inspector shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -52,6 +54,8 @@ pub struct DetailsState<'a> {
     pub in_place: Option<crate::compare::InPlaceState<'a>>,
     /// The file whose diff is shown beside the inspector, which it marks (`diff.beside-inspector`).
     pub shown_file: Option<ShownFile<'a>>,
+    /// The signature of the commit shown (`details.signature`); none for the draft, a stash, or before it is asked.
+    pub signature: Option<SignatureRead<'a>>,
 }
 
 /// The file whose diff the Diff page beside the inspector shows.

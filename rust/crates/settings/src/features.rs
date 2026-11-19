@@ -30,9 +30,9 @@ pub fn sort_order(lookup: &mut Lookup) -> Option<SortOrder> {
 }
 
 /// The settings the operations read: `commandPreview`, `branches.format`, `branches.inputs`, `branches.openIn`,
-/// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash`, `cherryPick.recordOrigin`,
-/// `conflicts.autoResolve`, `conflicts.ai`, `editor.external`, `blame.enabled`, `blame.ignoreWhitespaceAndMoves`,
-/// `fileBlame.everyFile` and `hosting.selfHosted`.
+/// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash`, `rebase.updateRefs`,
+/// `cherryPick.recordOrigin`, `conflicts.autoResolve`, `conflicts.ai`, `editor.external`, `blame.enabled`,
+/// `blame.ignoreWhitespaceAndMoves`, `fileBlame.everyFile` and `hosting.selfHosted`.
 pub fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
     let defaults = FeatureSettings::default();
     let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
@@ -63,6 +63,7 @@ pub fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         pull_autostash: lookup
             .boolean(keys::PULL_AUTOSTASH, Scope::UserAndRepository)
             .unwrap_or(defaults.pull_autostash),
+        rebase_update_refs: lookup.boolean(keys::REBASE_UPDATE_REFS, Scope::UserAndRepository),
         identities: lookup
             .first((keys::IDENTITIES, Scope::User), identity_profiles)
             .unwrap_or(defaults.identities),

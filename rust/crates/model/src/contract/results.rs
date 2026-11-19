@@ -102,6 +102,25 @@ impl Answers {
         }
     }
 
+    /// The version of git read under a key: `Some(None)` when git said something of another form, which a feature
+    /// takes as a git too old for it.
+    #[must_use]
+    pub fn git_version(&self, key: AnswerKey) -> Option<Option<&crate::rebase::GitVersion>> {
+        match self.get(key)? {
+            Answer::GitVersion(version) => Some(version.as_ref()),
+            _ => None, // Any other kind of answer is no version.
+        }
+    }
+
+    /// The branches of a stack read under a key.
+    #[must_use]
+    pub fn stacked(&self, key: AnswerKey) -> Option<&crate::rebase::StackedBranches> {
+        match self.get(key)? {
+            Answer::Stacked(stacked) => Some(stacked),
+            _ => None, // Any other kind of answer is no stack.
+        }
+    }
+
     /// The messages read under a key.
     #[must_use]
     pub fn messages(&self, key: AnswerKey) -> Option<&[String]> {

@@ -4,6 +4,7 @@ use std::ffi::OsString;
 
 use model::changes::pathspec;
 use model::contract::{Context, Danger, FollowUp, JournalEntry, Plan, Step, Text, Undo, UndoRecord};
+use model::state::Head;
 
 /// The plan that takes back the operation of an entry of the journal.
 pub(super) fn plan(context: &Context, entry: &JournalEntry) -> Plan {
@@ -38,6 +39,21 @@ pub(super) fn plan(context: &Context, entry: &JournalEntry) -> Plan {
     }
 }
 
+/// `git checkout <branch>` back to the branch checked out before, or `git checkout --detach <hash>` back to the commit
+/// that was.
+fn back_to(before: &Head) -> Vec<OsString> {
+    let branch = before
+        .branch
+        .as_deref()
+        .and_then(|full| full.strip_prefix("refs/heads/"));
+    match (branch, &before.commit) {
+        (Some(branch), _) => vec![OsString::from("checkout"), OsString::from(branch)],
+        (None, Some(commit)) => ["checkout", "--detach", commit.as_str()].map(OsString::from).to_vec(),
+        // The branch with no history is refused before the first commit, so that `HEAD` was always somewhere.
+        (None, None) => Vec::new(),
+    }
+}
+
 /// What the entry did, in words, and the arguments of the git command that takes it back.
 fn what_and_arguments(entry: &JournalEntry) -> (String, Vec<OsString>) {
     let words = |list: &[&str]| list.iter().map(OsString::from).collect::<Vec<_>>();
@@ -45,6 +61,10 @@ fn what_and_arguments(entry: &JournalEntry) -> (String, Vec<OsString>) {
         UndoRecord::BranchDeleted { name, commit } => (
             format!("the deletion of branch {name}"),
             words(&["branch", name, commit.as_str()]),
+        ),
+        UndoRecord::BranchWithNoHistory { name, before } => (
+            format!("the creation of branch {name} with no history"),
+            back_to(before),
         ),
         UndoRecord::BranchCreated { name } => {
             (format!("the creation of branch {name}"), words(&["branch", "-D", name]))

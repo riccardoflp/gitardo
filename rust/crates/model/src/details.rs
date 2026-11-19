@@ -1,11 +1,13 @@
 //! The details of a commit: what the details beside the graph, the Stashes pane and the page of a commit show of one
 //! commit, and its files laid out under their directories.
 
+mod signature;
 mod tree;
 
 use crate::state::FileChange;
 use crate::{CommitId, Timestamp};
 
+pub use signature::{CommitSignature, SignatureKind, SignatureVerdict};
 pub use tree::{FilePath, TreeNode, file_tree};
 
 /// The subject the uncommitted changes have when they are shown as a commit.

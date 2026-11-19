@@ -126,3 +126,97 @@ pub fn with_count(heading: &str, count: usize) -> String {
 pub fn renamed_from(original: &str) -> String {
     format!("\u{2190} {original}")
 }
+
+/// The button beside **Commit** that opens the options of the next commit (`commit.options`).
+pub const COMMIT_OPTIONS: &str = "Commit options";
+/// The option that signs the next commit.
+pub const SIGN_THIS_COMMIT: &str = "Sign this commit";
+/// What **Sign this commit** says when git has no key to sign with.
+pub const NO_SIGNING_KEY: &str = "No key to sign with: set one with Switch identity\u{2026}";
+/// The option that adds `Signed-off-by` to the next commit.
+pub const ADD_SIGNED_OFF_BY: &str = "Add Signed-off-by";
+/// The entry that opens the picker of the co-authors (`commit.co-authors`).
+pub const CO_AUTHORS: &str = "Co-authors\u{2026}";
+/// The tooltip of a co-author listed in the menu.
+pub const REMOVE_CO_AUTHOR: &str = "Remove from the co-authors";
+/// The option that skips the hooks of the next commit.
+pub const SKIP_THE_HOOKS: &str = "Skip the hooks";
+/// The title of the picker of the co-authors (`commit.co-authors`).
+pub const CO_AUTHORS_TITLE: &str = "Co-authors of this commit";
+/// What the empty box of the picker of the co-authors shows.
+pub const TYPE_A_CO_AUTHOR: &str = "Type a name, or Name <email> to add someone";
+/// The button that keeps the co-authors ticked.
+pub const SET_CO_AUTHORS: &str = "Set co-authors";
+/// What the picker says while the authors of the history are read.
+pub const READING_AUTHORS: &str = "Reading the authors\u{2026}";
+
+/// The entry that adds someone typed as a co-author: **Add Dee <dee@example.com>**.
+#[must_use]
+pub fn add_co_author(name: &str, email: &str) -> String {
+    format!("Add {name} <{email}>")
+}
+
+/// The line under an author of the history: `ben@example.com · 3 commits`.
+#[must_use]
+pub fn author_detail(email: &str, commits: usize) -> String {
+    let noun = if commits == 1 { "commit" } else { "commits" };
+    format!("{email} \u{b7} {commits} {noun}")
+}
+
+/// What **Skip the hooks** does.
+pub const SKIP_THE_HOOKS_TOOLTIP: &str = "Commit without running the pre-commit and commit-msg hooks";
+
+/// What **Sign this commit** signs with: `With the SSH key ~/.ssh/id_ed25519.pub`, `With the OpenPGP key
+/// 3AA5C34371567BD2`, or the key of the email of the identity when none is set.
+#[must_use]
+pub fn signs_with(signing: &model::commit::SigningConfig) -> String {
+    use model::commit::SigningKind;
+    let kind = match signing.kind {
+        SigningKind::OpenPgp => "OpenPGP",
+        SigningKind::X509 => "X.509",
+        SigningKind::Ssh => "SSH",
+    };
+    match signing.key.as_deref() {
+        Some(key) => format!("With the {kind} key {key}"),
+        None => format!("With the {kind} key of your email"),
+    }
+}
+
+/// The parts of the line under the commit box, in the order of the menu: whether the commit is signed, `Signed-off-by`,
+/// the co-authors and the hooks skipped; each part only while its option differs from where it starts.
+#[must_use]
+pub fn options_said(parts: &OptionsSaid<'_>) -> String {
+    let mut said: Vec<String> = Vec::new();
+    if let Some(is_signed) = parts.sign {
+        said.push(String::from(if is_signed { "Signed" } else { "Not signed" }));
+    }
+    if let Some(is_signed_off) = parts.sign_off {
+        said.push(String::from(if is_signed_off {
+            "Signed-off-by"
+        } else {
+            "No Signed-off-by"
+        }));
+    }
+    match parts.co_authors {
+        [] => {}
+        [one] => said.push(format!("With {one}")),
+        [first, rest @ ..] => said.push(format!("With {first}, +{}", rest.len())),
+    }
+    if parts.skips_hooks {
+        said.push(String::from("Hooks skipped"));
+    }
+    said.join(" \u{b7} ")
+}
+
+/// What the line under the commit box says, each part none while it is as it starts.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OptionsSaid<'a> {
+    /// Whether the commit is signed, when it differs from git's configuration.
+    pub sign: Option<bool>,
+    /// Whether `Signed-off-by` is added, when it differs from `commit.signOff`.
+    pub sign_off: Option<bool>,
+    /// The names of the co-authors chosen.
+    pub co_authors: &'a [&'a str],
+    /// Whether the hooks are skipped.
+    pub skips_hooks: bool,
+}

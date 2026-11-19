@@ -69,6 +69,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     if branch.is_checked_out {
         let mut entries = vec![create];
         entries.extend(link);
+        entries.extend(upstream_entries(state, branch));
         entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
         return entries;
     }
@@ -90,6 +91,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
         entries.extend(merge_entries(state, &branch.commit, target));
         entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
         entries.extend(link);
+        entries.extend(upstream_entries(state, branch));
         entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
         entries.extend(changing);
         return entries;
@@ -109,8 +111,43 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     entries.extend(merge_entries(state, &branch.commit, target));
     entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
     entries.extend(link);
+    entries.extend(upstream_entries(state, branch));
     entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
     entries.push(OperationEntry::runs(rail_words::DELETE, "branch.delete", target()));
+    entries
+}
+
+/// **Set upstream…** for a branch that follows nothing, or **Change upstream…** and **Stop tracking `<upstream>`** for
+/// one that follows a remote branch, gone or not; none while the repository has no remote branch to follow.
+fn upstream_entries(state: &model::state::RepositoryState, branch: &Branch) -> Vec<OperationEntry> {
+    let target = || Target::Branch(branch.name.clone());
+    let Some(upstream) = &branch.upstream else {
+        if state.remote_branches.is_empty() {
+            return Vec::new();
+        }
+        return vec![OperationEntry::runs(
+            rail_words::SET_UPSTREAM,
+            "branch.set-upstream",
+            target(),
+        )];
+    };
+    let short = upstream
+        .reference
+        .strip_prefix("refs/remotes/")
+        .unwrap_or(&upstream.reference);
+    let mut entries = Vec::new();
+    if !state.remote_branches.is_empty() {
+        entries.push(OperationEntry::runs(
+            rail_words::CHANGE_UPSTREAM,
+            "branch.set-upstream",
+            target(),
+        ));
+    }
+    entries.push(OperationEntry::runs(
+        rail_words::stop_tracking(short),
+        "branch.unset-upstream",
+        target(),
+    ));
     entries
 }
 
@@ -196,8 +233,34 @@ pub(crate) fn tag_entries(menus: ReferenceMenus<'_>, tag: &Tag) -> Vec<Operation
         entries.push(OperationEntry::runs(words::PUSH_TAG, "tag.push", target()));
     }
     entries.push(OperationEntry::runs(rail_words::DELETE, "tag.delete", target()));
+    entries.extend(delete_remote_entries(&state.remotes, target()));
     entries
 }
+
+/// **Delete from `<remote>`** and **Delete here and from `<remote>`** for the remote of `remote.default`, or, with
+/// several remotes, **Delete from a remote…** and **Delete here and from a remote…**, which ask which; none without a
+/// remote (`tag.delete-remote`).
+fn delete_remote_entries(remotes: &[String], target: Target) -> Vec<OperationEntry> {
+    let Some(remote) = model::remote::default(remotes) else {
+        return Vec::new();
+    };
+    let (from, here_and_from) = if remotes.len() == 1 {
+        (words::delete_from(&remote), words::delete_here_and_from(&remote))
+    } else {
+        (
+            String::from(words::DELETE_FROM_A_REMOTE),
+            String::from(words::DELETE_HERE_AND_FROM_A_REMOTE),
+        )
+    };
+    let here = Answers::new().with(DELETE_HERE, model::contract::Answer::Flag(true));
+    vec![
+        OperationEntry::runs(from, "tag.delete-remote", target.clone()),
+        OperationEntry::runs_with(here_and_from, "tag.delete-remote", target, here),
+    ]
+}
+
+/// The answer of `tag.delete-remote` that deletes the tag here too.
+const DELETE_HERE: model::contract::AnswerKey = model::contract::AnswerKey("here");
 
 /// The operations of a commit of the timeline: a branch or a tag made there; the commit checked out on a detached
 /// `HEAD`, merged or cherry-picked unless it is the one checked out; reverted; the branch checked out reset to it; and

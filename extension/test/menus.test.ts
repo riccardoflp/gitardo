@@ -15,12 +15,14 @@ const {
   canSquash,
   changesMenu,
   commitMenu,
+  deleteOnRemoteEntries,
   dropMenu,
   openBranch,
   openRemoteBranch,
   remoteBranchMenu,
   repositoryRowMenu,
   selectionMenu,
+  trackingEntries,
   worktreeMenu,
 } = await import('../src/webview/menus');
 
@@ -191,6 +193,32 @@ describe('menus of remote branches', () => {
     // Its folder is gone: there is nothing to open, and the double click opens the commit.
     const missing = { ...repoThere, worktrees: [worktree({}), { ...there, isMissing: true }] } as RepoState;
     expect(openRemoteBranch(ref, missing)).toBeUndefined();
+  });
+});
+
+describe('upstreams and tags on remotes', () => {
+  it('sets the upstream of a branch that follows nothing, and changes or stops tracking one that follows a remote branch', () => {
+    const upstream = upstreamOf('origin/work', { ahead: 0, behind: 0 });
+    expect(labels(trackingEntries(branchAt('work', 'bbb', { isCheckedOut: false }), { remotes: ['origin'] }))).toEqual(['Set upstream…']);
+    expect(labels(trackingEntries(branchAt('work', 'bbb', { isCheckedOut: false }), { remotes: [] }))).toEqual([]);
+    expect(labels(trackingEntries(branchAt('work', 'bbb', { isCheckedOut: false, upstream }), { remotes: ['origin'] }))).toEqual([
+      'Change upstream…',
+      'Stop tracking origin/work',
+    ]);
+    posted.length = 0;
+    const stop = trackingEntries(branchAt('work', 'bbb', { isCheckedOut: false, upstream }), { remotes: ['origin'] })[1];
+    if (stop && stop !== 'separator') stop.run();
+    expect(posted).toEqual([{ type: 'action', action: { kind: 'unsetUpstream', name: 'work' } }]);
+  });
+
+  it('deletes a tag from the one remote by its name, or from a remote asked which, and here too', () => {
+    expect(labels(deleteOnRemoteEntries('v1', { remotes: ['origin'] }))).toEqual(['Delete from origin', 'Delete here and from origin']);
+    expect(labels(deleteOnRemoteEntries('v1', { remotes: ['origin', 'upstream'] }))).toEqual(['Delete from a remote…', 'Delete here and from a remote…']);
+    expect(deleteOnRemoteEntries('v1', { remotes: [] })).toEqual([]);
+    posted.length = 0;
+    const both = deleteOnRemoteEntries('v1', { remotes: ['origin'] })[1];
+    if (both && both !== 'separator') both.run();
+    expect(posted).toEqual([{ type: 'action', action: { kind: 'deleteTagOnRemote', name: 'v1', here: true } }]);
   });
 });
 

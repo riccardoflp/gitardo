@@ -21,6 +21,7 @@ mod push;
 mod rebase;
 mod remote;
 mod rewrite;
+mod stack;
 mod stash;
 mod state;
 mod submodule;

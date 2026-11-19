@@ -239,6 +239,10 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     // keyboard the key is bound to this, for VS Code to run something other than the search of the editor behind them.
     command('gitardo.find', () => {}),
     command('gitardo.createBranch', () => controller.action({ kind: 'createBranch', at: 'HEAD' })),
+    command('gitardo.createBranchWithNoHistory', () => controller.action({ kind: 'createBranchWithNoHistory' })),
+    command('gitardo.setUpstream', () => controller.action({ kind: 'setUpstream', name: '' })),
+    command('gitardo.pushTags', () => controller.action({ kind: 'pushTags' })),
+    command('gitardo.checkTags', () => controller.action({ kind: 'checkTags' })),
     command('gitardo.createWorktree', () => controller.action({ kind: 'worktreeAdd' })),
     command('gitardo.switchWorktree', () => controller.command('switchWorktree')),
     command('gitardo.worktreeSetup', () => controller.command('worktreeSetup')),

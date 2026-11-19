@@ -48,6 +48,7 @@ pub(super) fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> 
             now,
         },
         github: super::github::shown(state),
+        tag_marks: state.rail.tag_marks.get(&read.folder),
     }
 }
 

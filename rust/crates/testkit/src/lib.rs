@@ -34,4 +34,4 @@ pub use error::Error;
 pub use golden::assert_golden;
 pub use random::Random;
 pub use remote::Remote;
-pub use repository::{CONFLICT_BRANCH, CONFLICT_FILE, Repository};
+pub use repository::{CONFLICT_BRANCH, CONFLICT_FILE, Repository, SigningKey};

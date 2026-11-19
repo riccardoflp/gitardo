@@ -71,6 +71,7 @@ fn worktree_branch_in_another_worktree__the_rail_and_the_timeline_mark_it_and_it
     };
     let (lists, colors) = (RailLists::default(), HashMap::new());
     let state = ReferencesState {
+        tag_marks: None,
         repository: &repository,
         references: &references,
         lists: &lists,
@@ -149,6 +150,7 @@ fn worktree_section__a_worktree_whose_branch_has_an_open_pull_request_shows_it_a
     };
     let (references, lists, colors) = (References::default(), RailLists::default(), HashMap::new());
     let state = ReferencesState {
+        tag_marks: None,
         repository: &repository,
         references: &references,
         lists: &lists,

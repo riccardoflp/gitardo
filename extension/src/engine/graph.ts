@@ -122,6 +122,8 @@ export async function graphState(
     resolveWithAI: false,
     home: null,
     keepOpen: false,
+    signOff: false,
+    tagMarks: null,
   };
 }
 

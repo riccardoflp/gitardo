@@ -3,7 +3,7 @@
 use model::branch::{RefKind, RefNames, ref_argument};
 use model::contract::{Answers, Context, Danger, Outcome, Plan, Step, Target, Text, Undo};
 
-use super::{current_name, refuse};
+use super::{current_name, refuse, stack};
 
 /// Rebases what is checked out onto the commit, branch, remote branch or tag it was invoked on: `git rebase <onto>`,
 /// a reference named in full when another kind has its short name. When it stops on a conflict, the repository is left
@@ -11,7 +11,7 @@ use super::{current_name, refuse};
 ///
 /// Feature: rebase.onto
 #[must_use]
-pub fn onto(context: &Context, _answers: &Answers) -> Outcome {
+pub fn onto(context: &Context, answers: &Answers) -> Outcome {
     if !context.repository.has_commit() {
         return refuse("There is no commit checked out to rebase.");
     }
@@ -45,23 +45,33 @@ pub fn onto(context: &Context, _answers: &Answers) -> Outcome {
         | Target::TaskGroups(_)
         | Target::Task(_) => return refuse("Choose a commit or a branch to rebase onto."),
     };
-    Outcome::Run(Plan {
+    let tip = match (context.repository.checked_out_branch(), &context.repository.head.commit) {
+        (Some(branch), _) => branch.to_owned(),
+        (None, commit) => commit.as_ref().map(ToString::to_string).unwrap_or_default(),
+    };
+    let decided = match stack::decide(context, answers, (&argument, &tip)) {
+        Ok(decided) => decided,
+        Err(read) => return *read,
+    };
+    let mut arguments = vec!["rebase"];
+    arguments.extend(decided.option);
+    arguments.push(argument.as_str());
+    let plan = Plan {
         title: Text::from(format!("Rebase {} onto {said}", current_name(context))),
-        steps: vec![Step::git(
-            context.repository.folder.clone(),
-            ["rebase", argument.as_str()],
-        )],
+        steps: vec![Step::git(context.repository.folder.clone(), arguments)],
         danger: Danger::None,
         undo: Undo::ByReflog,
         after: Vec::new(),
         on_failure: Vec::new(),
-    })
+    };
+    Outcome::Run(stack::with_stack(plan, &decided, (current_name(context), &said)))
 }
 
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
     use super::onto;
+    use crate::rebase::stack::no_stack;
     use crate::testing::{branch, commit, context, lines, plan, state, tag};
     use model::Timestamp;
     use model::contract::{Answers, Outcome, Target, Undo};
@@ -78,7 +88,7 @@ mod tests {
         });
         let plan = plan(onto(
             &context(state, Target::RemoteBranch(String::from("origin/main"))),
-            &Answers::new(),
+            &no_stack(Answers::new()),
         ));
         assert_eq!(lines(&plan), ["git rebase origin/main"]);
         assert_eq!(plan.title.as_str(), "Rebase main onto origin/main");
@@ -87,7 +97,10 @@ mod tests {
 
     #[test]
     fn rebase_onto__a_commit_by_its_full_hash() {
-        let plan = plan(onto(&context(state(), Target::Commit(commit('b'))), &Answers::new()));
+        let plan = plan(onto(
+            &context(state(), Target::Commit(commit('b'))),
+            &no_stack(Answers::new()),
+        ));
         assert_eq!(lines(&plan), [format!("git rebase {}", commit('b'))]);
         assert_eq!(plan.title.as_str(), "Rebase main onto bbbbbbb");
     }
@@ -99,7 +112,7 @@ mod tests {
         state.tags.push(tag("release", 'c'));
         let plan = plan(onto(
             &context(state, Target::Branch(String::from("release"))),
-            &Answers::new(),
+            &no_stack(Answers::new()),
         ));
         assert_eq!(lines(&plan), ["git rebase refs/heads/release"]);
         assert!(matches!(
@@ -109,5 +122,34 @@ mod tests {
             ),
             Outcome::Refuse(_)
         ));
+    }
+
+    #[test]
+    fn rebase_update_refs__gitardo_s_setting_off_over_git_s_on_runs_no_update_refs_and_asks_first() {
+        use crate::rebase::stack::STACKED;
+        use model::contract::{Answer, Danger};
+        use model::rebase::{StackedBranch, StackedBranches};
+        let mut context = context(state(), Target::Branch(String::from("main")));
+        context.settings.rebase_update_refs = Some(false);
+        let stacked = StackedBranches {
+            branches: ["p1", "p2"]
+                .map(|name| StackedBranch {
+                    name: name.to_owned(),
+                    commit: commit('c'),
+                    worktree: None,
+                })
+                .to_vec(),
+            update_refs: Some(true),
+        };
+        let answers = no_stack(Answers::new()).with(STACKED, Answer::Stacked(stacked));
+        let plan = plan(onto(&context, &answers));
+        assert_eq!(lines(&plan), ["git rebase --no-update-refs main"]);
+        let Danger::Confirm(note) = &plan.danger else {
+            panic!("it asks first")
+        };
+        assert!(
+            note.as_str().ends_with("`p1` and `p2` stay on the old commits."),
+            "{note}"
+        );
     }
 }

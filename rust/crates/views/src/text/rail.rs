@@ -23,6 +23,8 @@ pub const STASHES: &str = "Stashes";
 pub const WORKTREES: &str = "Worktrees";
 /// The list of the tags.
 pub const TAGS: &str = "Tags";
+/// **Push tags…** in the **…** of the Tags list (`tag.push-all`).
+pub const PUSH_TAGS: &str = "Push tags\u{2026}";
 /// The list of the submodules.
 pub const SUBMODULES: &str = "Submodules";
 /// A local branch whose upstream was deleted.
@@ -57,6 +59,16 @@ pub const CREATE_WORKTREE: &str = "Create worktree\u{2026}";
 pub const ADD_SUBMODULE: &str = "Add submodule\u{2026}";
 /// **Rename…** in the menu of a local branch.
 pub const RENAME: &str = "Rename\u{2026}";
+/// The entry that makes a local branch with no upstream follow a remote branch (`branch.set-upstream`).
+pub const SET_UPSTREAM: &str = "Set upstream\u{2026}";
+/// The entry that makes a local branch follow another remote branch than it does.
+pub const CHANGE_UPSTREAM: &str = "Change upstream\u{2026}";
+
+/// The entry that makes a local branch follow nothing (`branch.unset-upstream`): **Stop tracking origin/feature**.
+#[must_use]
+pub fn stop_tracking(upstream: &str) -> String {
+    format!("Stop tracking {upstream}")
+}
 /// **Delete** in the menu of a local branch or a tag.
 pub const DELETE: &str = "Delete";
 /// **Delete from remote** in the menu of a remote branch (`remote.delete-branch`).
@@ -70,6 +82,30 @@ pub const SHOW_IN_TIMELINE: &str = "Show in the timeline";
 #[must_use]
 pub fn remote_title(remote: &str) -> String {
     remote.to_uppercase()
+}
+
+/// **Check tags on `<remote>`** in the **…** of the Tags list (`tag.remote-marks`).
+#[must_use]
+pub fn check_tags_on(remote: &str) -> String {
+    format!("Check tags on {remote}")
+}
+
+/// The tooltip of the mark of a tag a remote does not have: `Not on origin`.
+#[must_use]
+pub fn not_on(remote: &str) -> String {
+    format!("Not on {remote}")
+}
+
+/// The tooltip of the mark of a tag a remote has under another object.
+#[must_use]
+pub fn other_tag_on(remote: &str) -> String {
+    format!("{remote} has another tag of this name")
+}
+
+/// What follows the count of the Tags list while some tags are not on the remote checked: `· 2 not on origin`.
+#[must_use]
+pub fn not_on_count(count: usize, remote: &str) -> String {
+    format!("\u{b7} {count} not on {remote}")
 }
 
 /// **Show all `<n>`…** under the first 100 entries of a list.

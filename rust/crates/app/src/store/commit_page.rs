@@ -77,6 +77,8 @@ pub struct CommitPage {
     pub reveal: Option<(u64, PageTarget)>,
     /// A number that changes whenever what it lists changes.
     pub version: u64,
+    /// The signature of its commit, read once its commit is (`details.signature`).
+    pub signature: Option<super::signature::SignatureCheck>,
 }
 
 /// Opens the page of a commit of a repository, or shows the one it has: there is never a second page for the same
@@ -120,6 +122,7 @@ pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect>
         tree: Vec::new(),
         reveal: None,
         version: 0,
+        signature: None,
     });
     super::pages::show_page(state, Page::Commit(id));
     let mut effects = vec![Effect::Start(job)];
@@ -164,7 +167,16 @@ pub fn page_read(
             PageReadState::Failed
         }
     };
-    Vec::new()
+    let asked = matches!(page.read, PageReadState::Read(_)) && !page.is_stash;
+    let (id, folder, commit) = (page.id, page.folder.clone(), page.commit.clone());
+    if !asked {
+        return Vec::new();
+    }
+    let (check, effect) = super::signature::check(state, folder, commit);
+    if let Some(page) = state.commit_pages.pages.iter_mut().find(|page| page.id == id) {
+        page.signature = Some(check);
+    }
+    vec![effect]
 }
 
 /// Forgets the pages closed, and cancels the reads of their commits.
@@ -329,5 +341,10 @@ pub fn page_state(state: &State, id: CommitPageId) -> Option<CommitPageState<'_>
         lane,
         reveal: page.reveal,
         version: page.version,
+        signature: if page.is_stash {
+            None
+        } else {
+            super::signature::shown(page.signature.as_ref())
+        },
     })
 }

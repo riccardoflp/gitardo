@@ -73,6 +73,10 @@ pub(crate) const TAG: Icon = Icon::Tag;
 
 /// Remote.
 pub(crate) const REMOTE: Icon = Icon::Cloud;
+/// A tag a remote does not have (`tag.remote-marks`).
+pub(crate) const NOT_ON_REMOTE: Icon = Icon::NotOnRemote;
+/// A tag a remote has under another object (`tag.remote-marks`).
+pub(crate) const DIFFERENT_ON_REMOTE: Icon = Icon::DifferentOnRemote;
 
 /// Commit.
 pub(crate) const COMMIT: Icon = Icon::Commit;
@@ -293,9 +297,15 @@ pub(crate) const UNFOLD: Icon = Icon::Unfold;
 /// How the timeline is shown: the menu of the view of the header (`graph.view-menu`).
 pub(crate) const VIEW_MENU: Icon = Icon::Sliders;
 
+/// The signature of a commit (`details.signature`), and signing one (`commit.options`).
+pub(crate) const SIGNATURE: Icon = Icon::Shield;
+
+/// The co-authors of a commit (`commit.options`, `commit.co-authors`).
+pub(crate) const CO_AUTHORS: Icon = Icon::Users;
+
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 92] = [
+pub(crate) const MEANINGS: [(&str, Icon); 96] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -332,6 +342,8 @@ pub(crate) const MEANINGS: [(&str, Icon); 92] = [
     ("Create a branch", CREATE_BRANCH),
     ("Tag; create a tag", TAG),
     ("Remote", REMOTE),
+    ("A tag a remote does not have", NOT_ON_REMOTE),
+    ("A tag a remote has under another object", DIFFERENT_ON_REMOTE),
     ("Commit", COMMIT),
     ("Open a commit as a page", OPEN_AS_PAGE),
     ("Merge", MERGE),
@@ -412,4 +424,6 @@ pub(crate) const MEANINGS: [(&str, Icon); 92] = [
     ("Reveal a folder in the file manager of the system", REVEAL),
     ("Unfold: show again the commits a merge brought in", UNFOLD),
     ("How the timeline is shown: the menu of the view", VIEW_MENU),
+    ("The signature of a commit, and signing one", SIGNATURE),
+    ("The co-authors of a commit", CO_AUTHORS),
 ];

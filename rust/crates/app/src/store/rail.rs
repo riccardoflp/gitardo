@@ -39,6 +39,9 @@ pub struct Rail {
     pub listed: Option<BranchesShown>,
     /// The list of the filter of the rail, while it is open (`refs.list-filter`).
     pub list_filter: Option<ListFilterPicker>,
+    /// What the last **Check tags on `<remote>`** of each repository said of its tags, by the folder of the
+    /// repository, kept while the window is open and changed by Gitardo's own operations on tags (`tag.remote-marks`).
+    pub tag_marks: std::collections::BTreeMap<std::path::PathBuf, model::tag::TagMarks>,
 }
 
 /// The list of the filter of the rail, open.
@@ -139,6 +142,7 @@ pub fn reduce_rail(state: &mut State, intent: RailIntent) -> Vec<Effect> {
             state.rail.list_filter = None;
             Vec::new()
         }
+        RailIntent::CheckTags(remote) => super::tag_marks::check(state, remote),
         RailIntent::TypeInListFilter(typed) => {
             if let Some(picker) = &mut state.rail.list_filter {
                 picker.typed = typed;

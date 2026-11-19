@@ -16,6 +16,7 @@ import {
 import { stashName, upstreamName, worktreeBranch } from '../shared/state';
 import { listedRefs, scopeLabel, scopeRefs, toggleScopeRef } from '../shared/scope';
 import { submoduleDepth, submoduleStatus, submoduleStatusText } from '../shared/submodules';
+import { notPushedWords, remoteMark } from '../shared/tagMarks';
 import { useMenu, type MenuEntry } from './ContextMenu';
 import { Icon } from './Icon';
 import { endDrag, startDrag, type DragSource } from './drag';
@@ -27,6 +28,7 @@ import {
   remoteBranchMenu,
   stashMenu,
   submoduleMenu,
+  remoteTagsEntries,
   tagMenu,
   worktreeMenu,
   worktreesMenu,
@@ -158,8 +160,16 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
     });
   };
 
-  /** `optional` is a section that is not there at all while it has nothing to list. */
-  const section = (id: SectionId, title: string, icon: string, all: Item[], optional = false, actions: SectionAction[] = []): ReactNode => {
+  /** `optional` is a section that is not there at all while it has nothing to list; `note` follows its count. */
+  const section = (
+    id: SectionId,
+    title: string,
+    icon: string,
+    all: Item[],
+    optional = false,
+    actions: SectionAction[] = [],
+    note?: string | null,
+  ): ReactNode => {
     if (sections && !sections.includes(id)) return null;
     if (optional && !all.length) return null;
     // The names that match best come first: `main` before `origin/main` before `maintenance`.
@@ -178,7 +188,10 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
             <Icon name={open ? 'chevron-down' : 'chevron-right'} />
             <Icon name={icon} />
             <span className="grow">{title}</span>
-            <span className="count">{needle ? `${items.length} of ${all.length}` : all.length}</span>
+            <span className="count">
+              {needle ? `${items.length} of ${all.length}` : all.length}
+              {note && ` ${note}`}
+            </span>
           </button>
           {actions.map((action) => (
             <button
@@ -336,6 +349,8 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
       ],
     },
   ];
+  // The order of the tags, then what concerns the tags of a remote (`tag.remote-marks`, `tag.push-all`).
+  const tagsActions = (): SectionAction[] => [{ ...sorting('tags')[0], menu: () => [...sorting('tags')[0].menu!(), ...remoteTagsEntries(state)] }];
   // Only the names that are listed here count towards having a filter.
   const shown = (id: SectionId, count: number) => (!sections || sections.includes(id) ? count : 0);
   const names =
@@ -387,15 +402,21 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
         'tag',
         state.tags
           .filter((ref) => listedHere(`refs/tags/${ref.name}`))
-          .map((ref) => ({
-            key: ref.name,
-            hash: ref.commit,
-            ref: `refs/tags/${ref.name}`,
-            label: ref.name,
-            menu: () => tagMenu(ref, state, onCompare, onReveal),
-          })),
+          .map((ref) => {
+            const mark = remoteMark(state.tagMarks, ref);
+            return {
+              key: ref.name,
+              hash: ref.commit,
+              ref: `refs/tags/${ref.name}`,
+              label: ref.name,
+              title: mark ? `${ref.name}\n${mark.title}` : undefined,
+              badge: mark ? { icon: mark.icon, tone: 'moved' as const, text: mark.title } : undefined,
+              menu: () => tagMenu(ref, state, onCompare, onReveal),
+            };
+          }),
         !!state.listed,
-        sorting('tags'),
+        tagsActions(),
+        notPushedWords(state.tagMarks, state.tags),
       )}
       {section(
         'stashes',

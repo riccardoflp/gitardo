@@ -72,6 +72,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
     let file_blame = file_blame_look(&mut lookup);
     let word_wrap = word_wrap(&mut lookup);
     let markdown_open_as_preview = lookup.boolean(keys::MARKDOWN_OPEN_AS_PREVIEW, Scope::User);
+    let commit_sign_off = lookup.boolean(keys::COMMIT_SIGN_OFF, Scope::UserAndRepository);
     let terminal = terminal_choice(&mut lookup);
     let values = lookup.written_values();
     Settings {
@@ -89,6 +90,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
         open_on_click,
         word_wrap,
         markdown_open_as_preview: markdown_open_as_preview.unwrap_or(defaults.markdown_open_as_preview),
+        commit_sign_off: commit_sign_off.unwrap_or(defaults.commit_sign_off),
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         keep_open: keep_open.unwrap_or(defaults.keep_open),
         page_size,

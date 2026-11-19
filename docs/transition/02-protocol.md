@@ -80,7 +80,7 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
-Version 1.11 adds what milestones M31 and M37 needed. For M31
+Version 1.11 adds what milestones M31, M34, M35 and M37 needed. For M31
 ([D76](../08-decisions.md#d76--ask-gitardo-how-to-do-something-answered-from-the-catalog)): `read/help.ask`, a question
 of VS Code's Chat to Ask Gitardo, a read that takes no repository and asks the model chosen in the Chat
 ([Ask Gitardo](#ask-gitardo)); the purpose `help` of `host/languageModel`; and `features` in its parameters, the
@@ -92,6 +92,17 @@ in, one of `branches` taken too (`hosting.checkout-pull-request`); the host ques
 (`hosting.token`); the reads `read/hosting.detect-remote`, the hosting service of the main remote, and
 `read/hosting.web-link`, the address of a page of it; and the merge requests of a GitLab in
 `read/github.read-pull-requests` (`hosting.read-merge-requests`).
+For M34
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)):
+`signing` in `RepositoryState`, how git's configuration signs commits; `read/details.read-signature`, what git says of
+the signature of a commit; and `read/commit.read-authors`, the people who made commits, for the co-authors of the
+commit box. The co-authors given to `commit.create` and `commit.amend` in `feature/run` (`co-authors`, `choices`) are known
+from the first call, as a `flag` is, since no question asks them. An older extension leaves the field out and asks
+none of the reads. For M35
+([D80](../08-decisions.md#d80--upstreams-set-and-taken-away-the-tags-of-a-remote-checked-branches-with-no-history-proposed)):
+`read/tag.read-remote-tags`, the tags of a remote asked of it and compared with those of the repository, and the
+follow-up `tagsOnRemote`, what an operation on tags changed of them on a remote; an older extension asks no such read
+and leaves the follow-up unknown, as it does any other.
 
 ## Transport
 
@@ -347,6 +358,9 @@ change the repository and run at the same time as each other and as an operation
 | `read/reflog.read` | `{ reference: string, count: number }` | `ReflogPosition[]` | `reflog.read` |
 | `read/remote.read-remotes` | — | `{ name, url }[]` | `remote.read-remotes` |
 | `read/identity.read` | — | `{ identity: { name, email }, localKeys: string[] }` | `identity.read` |
+| `read/details.read-signature` | `{ commit }` | `{ verdict: "good" \| "goodUnknownValidity" \| "goodExpired" \| "goodExpiredKey" \| "goodRevokedKey" \| "bad" \| "cannotCheck" \| "signedNotChecked" \| "notSigned", kind: "openpgp" \| "x509" \| "ssh" \| null, signer, key, fingerprint, trust }` | `details.read-signature` (1.11) |
+| `read/commit.read-authors` | — | `{ authors: { name, email, commits }[] }` | `commit.read-authors` (1.11) |
+| `read/tag.read-remote-tags` | `{ remote }` | `{ remote, tags: { name, onRemote: "pushed" \| "differentThere" \| "notPushed" }[], onlyThere: string[] }`, asked of the remote over the network | `tag.read-remote-tags`, `tag.compare-remote` (1.11) |
 | `read/submodule.read-list` | — | `Submodule[]` | `submodule.read-list` |
 | `read/worktree.read-folder-links` | `{ worktree }` | `{ paths: string[] }` | `worktree.read-folder-links` |
 | `read/worktree-setup.read-ignored` | `{ worktree }` | `IgnoredEntry[]` | `worktree-setup.read-ignored` |
@@ -615,6 +629,7 @@ cannot cross (an answer of the engine's own reads, such as a list of names) is l
 | `EditFile` | extension | an editor of that file at that line |
 | `OpenFileDiff` | extension | VS Code's diff editor or the Flow Diff |
 | `TrustFolder`, `ForgetTrustedFolders` | not sent | VS Code's workspace trust (Q396) |
+| `TagsOnRemote` (1.11) | extension | `{ remote, pushed, notPushed }`, `remote` null for a tag made here: the marks of the tags (`tag.remote-marks`) follow it when that remote is the one checked |
 | `WriteSetting` (1.6, Q399) | extension | `WorkspaceConfiguration.update` in the user's settings, `{ key, value }` by the desktop's name, `value` null to remove it; `ai.model` and `ai.effort` are `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400) |
 
 ## Undo and the journal
@@ -723,7 +738,7 @@ The fields are those of `model`; this section says only what the JSON adds or le
 - **`RepositoryState`** (`model/src/state.rs`): `folder`, `gitFolder`, `head: { commit: CommitId | null, branch:
   string | null }` (the full name, `refs/heads/main`), `branches: Branch[]`, `remoteBranches: RemoteBranch[]`,
   `tags: Tag[]`, `stashes: Stash[]`, `worktrees: Worktree[]`, `remotes: string[]`, `identity: { name, email }`,
-  `branchSort: string | null`, `reflogSubjects: string[]`, `workingTree: WorkingTree`, `operation: "merge" |
+  `signing: { signsEveryCommit: boolean, kind: "openpgp" | "x509" | "ssh", key: string | null }` (1.11), `branchSort: string | null`, `reflogSubjects: string[]`, `workingTree: WorkingTree`, `operation: "merge" |
   "rebase" | "cherryPick" | "revert" | "patch" | … | null`, `rebaseStop: RebaseStop | null`, `bisect: Bisect | null`,
   `submodules: Submodule[]`.
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,

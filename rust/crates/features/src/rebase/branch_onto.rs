@@ -7,7 +7,7 @@ use model::contract::{
     Undo,
 };
 
-use super::refuse;
+use super::{refuse, stack};
 
 /// The local branch to rebase, by its short name: what was dropped on the commit.
 pub const BRANCH: AnswerKey = AnswerKey("branch");
@@ -60,14 +60,22 @@ pub fn branch_onto(context: &Context, answers: &Answers) -> Outcome {
     if other_worktree(state, name).is_some() {
         return refuse(&format!("{name} is checked out in another worktree: rebase it there."));
     }
-    Outcome::Run(Plan {
+    let decided = match stack::decide(context, answers, (onto.as_str(), name)) {
+        Ok(decided) => decided,
+        Err(read) => return *read,
+    };
+    let mut arguments = vec!["rebase"];
+    arguments.extend(decided.option);
+    arguments.extend([onto.as_str(), name]);
+    let plan = Plan {
         title: Text::from(format!("Rebase {name} onto {}", onto.short())),
-        steps: vec![Step::git(state.folder.clone(), ["rebase", onto.as_str(), name])],
+        steps: vec![Step::git(state.folder.clone(), arguments)],
         danger: Danger::None,
         undo: Undo::ByReflog,
         after: Vec::new(),
         on_failure: Vec::new(),
-    })
+    };
+    Outcome::Run(stack::with_stack(plan, &decided, (name, onto.short())))
 }
 
 /// The answers of a branch dropped on a commit: the branch to rebase.
@@ -89,7 +97,10 @@ mod tests {
         let mut state = state();
         state.branches.push(branch("feature", 'c', false));
         let context = context(state, Target::Commit(commit('b')));
-        let plan = plan(branch_onto(&context, &dropped("feature")));
+        let plan = plan(branch_onto(
+            &context,
+            &crate::rebase::stack::no_stack(dropped("feature")),
+        ));
         assert_eq!(lines(&plan), [format!("git rebase {} feature", commit('b'))]);
         assert_eq!(plan.title.as_str(), "Rebase feature onto bbbbbbb");
         let QuestionKind::Pick { choices } = question(branch_onto(&context, &Answers::new())).kind else {

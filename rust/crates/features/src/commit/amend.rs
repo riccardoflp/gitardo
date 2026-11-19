@@ -22,18 +22,21 @@ pub fn amend(context: &Context, answers: &Answers) -> Outcome {
     };
     let message = message.trim();
     let folder = context.repository.folder.clone();
-    let (step, title) = if message.is_empty() {
-        (
-            Step::git(folder, ["commit", "--amend", "--no-edit"]),
-            String::from("Amend the last commit"),
-        )
+    let mut arguments: Vec<std::ffi::OsString> = vec!["commit".into(), "--amend".into()];
+    arguments.extend(model::commit::option_arguments(
+        &super::options_of(answers),
+        &context.repository.signing,
+        message,
+    ));
+    let title = if message.is_empty() {
+        arguments.push("--no-edit".into());
+        String::from("Amend the last commit")
     } else {
+        arguments.extend(["-m".into(), message.into()]);
         let title_line = message.lines().next().unwrap_or(message);
-        (
-            Step::git(folder, ["commit", "--amend", "-m", message]),
-            format!("Amend the last commit as \"{title_line}\""),
-        )
+        format!("Amend the last commit as \"{title_line}\"")
     };
+    let step = Step::git(folder, arguments);
     Outcome::Run(Plan {
         title: Text::from(title),
         steps: vec![step],

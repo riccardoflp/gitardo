@@ -14,6 +14,8 @@ use crate::read::fields::{arguments, commit_id, timestamp, unexpected};
 use crate::read::repo::{parse_status, status_arguments};
 use crate::{Git, GitError};
 
+pub use crate::read::signature::{SignatureRequest, read_signature};
+
 /// What is being read, for the errors.
 const WHAT: &str = "the details of a commit";
 

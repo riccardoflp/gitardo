@@ -14,6 +14,7 @@ mod pages;
 mod reads;
 mod select;
 mod tabs;
+mod tags;
 mod worktree_counts;
 
 use std::path::{Path, PathBuf};
@@ -68,6 +69,9 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::Search(_)
             | JobKind::ReadDetails { .. }
             | JobKind::ReadCommitPage { .. }
+            | JobKind::ReadSignature { .. }
+            | JobKind::ReadRemoteTags { .. }
+            | JobKind::ReadAuthors { .. }
             | JobKind::ReadDiff { .. }
             | JobKind::ReadMerge { .. }
             | JobKind::ReadFile { .. }
@@ -166,8 +170,40 @@ fn answer_asking(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[Pat
 }
 
 /// What a list of the files of the Files page, a read of the page of new worktrees, a question of the files git
-/// ignores, a blame, an image or a diagram gives in these tests: nothing.
+/// ignores, a blame, the signature of a commit, the authors of the history, the conflicts counted, an image or a diagram gives in these tests: nothing.
+/// The answer to a check of the tags of a remote, which these tests do not ask.
+fn remote_tags_not_read(job: JobId, kind: &JobKind) -> Option<Message> {
+    let JobKind::ReadRemoteTags { .. } = kind else {
+        return None;
+    };
+    Some(Message::RemoteTagsRead(
+        job,
+        Err(String::from("not read in these tests")),
+    ))
+}
+
 fn not_listed(job: JobId, kind: &JobKind) -> Message {
+    if let JobKind::CountConflicts { .. } = kind {
+        return Message::ConflictsCounted {
+            job,
+            result: Err(String::from("not read in these tests")),
+        };
+    }
+    if let JobKind::ReadAuthors { .. } = kind {
+        return Message::AuthorsRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        };
+    }
+    if let Some(message) = remote_tags_not_read(job, kind) {
+        return message;
+    }
+    if let JobKind::ReadSignature { .. } = kind {
+        return Message::SignatureRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        };
+    }
     if let JobKind::ReadBlame { .. } = kind {
         return Message::BlameRead {
             job,
@@ -255,16 +291,16 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             job,
             result: Err(String::from("not read in these tests")),
         },
-        JobKind::CountConflicts { .. } => Message::ConflictsCounted {
-            job,
-            result: Err(String::from("not read in these tests")),
-        },
-        JobKind::ReadFiles { .. }
+        JobKind::CountConflicts { .. }
+        | JobKind::ReadFiles { .. }
         | JobKind::FileSearch { .. }
         | JobKind::ReadNewWorktrees { .. }
         | JobKind::ReadIgnored { .. }
         | JobKind::ReadImage { .. }
         | JobKind::ReadBlame { .. }
+        | JobKind::ReadSignature { .. }
+        | JobKind::ReadRemoteTags { .. }
+        | JobKind::ReadAuthors { .. }
         | JobKind::DrawDiagram { .. } => not_listed(job, kind),
     }
 }

@@ -69,6 +69,10 @@ pub enum Icon {
     Tag,
     /// A cloud: a remote. Lucide's `cloud`.
     Cloud,
+    /// A cloud struck through: a tag a remote does not have. Lucide's `cloud-off`.
+    NotOnRemote,
+    /// A cloud with an exclamation mark: a tag a remote has under another object. Lucide's `cloud-alert`.
+    DifferentOnRemote,
     /// A ring on a line: a commit. Lucide's `git-commit-horizontal`.
     Commit,
     /// Two arrows to opposite corners: open as a page. Lucide's `maximize-2`.
@@ -210,6 +214,10 @@ pub enum Icon {
     /// Three sliders on their rails: how the timeline is shown, the menu of the view of the header. Lucide's
     /// `sliders-horizontal`.
     Sliders,
+    /// A shield: the signature of a commit, and signing one. Lucide's `shield`.
+    Shield,
+    /// Two people: the co-authors of a commit. Lucide's `users`.
+    Users,
     /// The logo of Gitardo: a branch leaving a line of two commits, as the extension draws it (`window.brand`). Not one
     /// of Lucide's, so not in [`Icon::ALL`].
     Logo,

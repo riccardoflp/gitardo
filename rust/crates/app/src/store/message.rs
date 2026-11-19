@@ -101,6 +101,23 @@ pub enum Message {
         /// What was read, none for a commit that is not in the repository, or what git said when the read failed.
         result: Result<Option<Box<(CommitDetail, PatchLines)>>, String>,
     },
+    /// A job that read the authors of the history for the picker of the co-authors is done (`commit.read-authors`).
+    AuthorsRead {
+        /// The job.
+        job: JobId,
+        /// The authors, or what git said when the read failed.
+        result: Result<Vec<model::commit::Author>, String>,
+    },
+    /// A job that asked a remote for its tags is done, with the tags of the remote and of the repository, or what git
+    /// said when the remote could not be asked (`tag.read-remote-tags`, `tag.remote-marks`).
+    RemoteTagsRead(JobId, Result<model::tag::RemoteTags, String>),
+    /// A job that read the signature of a commit shown is done (`details.read-signature`).
+    SignatureRead {
+        /// The job.
+        job: JobId,
+        /// What git said of the signature, or what git said when the read failed.
+        result: Result<model::details::CommitSignature, String>,
+    },
     /// A job that read and computed the diff of a file of a Diff page is done (`diff.page`).
     DiffRead {
         /// The job.
@@ -344,6 +361,28 @@ pub enum JobKind {
         folder: PathBuf,
         /// The commit, or the uncommitted changes.
         request: CommitRequest,
+    },
+    /// Reads the authors of the history for the picker of the co-authors (`commit.read-authors`).
+    ReadAuthors {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// Which history.
+        request: git::read::commit::AuthorsRequest,
+    },
+    /// Asks a remote for its tags, and reads those of the repository, for the marks of the tags it lacks
+    /// (`tag.read-remote-tags`, `tag.remote-marks`).
+    ReadRemoteTags {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// Which remote.
+        request: git::read::tag::RemoteTagsRequest,
+    },
+    /// Reads the signature of the commit of the inspector or of a page (`details.read-signature`).
+    ReadSignature {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// The commit.
+        request: git::read::details::SignatureRequest,
     },
     /// Reads the commit of a page, then the lines it changed (`commit-page.read-patch`).
     ReadCommitPage {

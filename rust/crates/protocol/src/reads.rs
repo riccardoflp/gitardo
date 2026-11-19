@@ -7,6 +7,7 @@
 //! the types the card's function gives.
 
 mod bytes;
+mod commit_box;
 mod commits;
 mod compare;
 mod conflicts;
@@ -14,8 +15,10 @@ mod files;
 mod graph;
 mod hosting;
 mod repository;
+mod tags;
 
 pub use bytes::{BytesJson, NotBase64};
+pub use commit_box::{AuthorJson, AuthorsResult, CommitSignatureJson, SignatureParams, VerdictJson};
 pub use commits::{
     BranchLogJson, BranchLogParams, CommitAskedJson, CommitDetailJson, CommitDetailParams, CommitJson,
     CommitPatchParams, DiffLineJson, FilePatchJson, HunkJson, LineKindJson, PatchJson, RevisionParams, RevisionResult,
@@ -46,6 +49,7 @@ pub use repository::{
     PatternTakeJson, PreparedMessageResult, PullRequestJson, PullRequestsJson, PullRequestsParams, ReflogParams,
     ReflogPositionJson, RemoteJson, SetupPreviewJson, SetupTakesParams, TakeRequestJson, TrackedJson, WorktreeParams,
 };
+pub use tags::{RemoteTagsParams, TagComparisonJson, TagOnRemoteJson, TagStandingJson};
 
 use model::CommitId;
 
@@ -130,11 +134,17 @@ pub mod methods {
     /// `repo.watch-changes`: which files of a burst ask for a read, those git ignores and those of nested worktrees
     /// left out (version 1.8).
     pub const WATCH_CHANGES: &str = "read/repo.watch-changes";
+    /// `details.read-signature`: what git says of the signature of a commit (version 1.11).
+    pub const DETAILS_SIGNATURE: &str = "read/details.read-signature";
+    /// `commit.read-authors`: the people who made commits in the repository (version 1.11).
+    pub const COMMIT_AUTHORS: &str = "read/commit.read-authors";
+    /// `tag.read-remote-tags`: the tags of a remote, compared with those of the repository (version 1.11).
+    pub const TAG_REMOTE_TAGS: &str = "read/tag.read-remote-tags";
     /// The notification of a page of `read/graph.read-commits` asked with `stream`, as it is read (version 1.8).
     pub const GRAPH_ROWS: &str = "read/graph.rows";
 
-    /// Every read of version 1.8, in the order of the table of the protocol.
-    pub const ALL: [&str; 38] = [
+    /// Every read of version 1.11, in the order of the table of the protocol.
+    pub const ALL: [&str; 40] = [
         GRAPH_COMMITS,
         GRAPH_POSITION,
         SEARCH_MATCHES,
@@ -173,6 +183,9 @@ pub mod methods {
         COMMON_FOLDER,
         PREPARED_MESSAGE,
         WATCH_CHANGES,
+        DETAILS_SIGNATURE,
+        COMMIT_AUTHORS,
+        TAG_REMOTE_TAGS,
     ];
 
     /// The host question `read/github.read-pull-requests` asks: the token of GitHub that VS Code keeps.

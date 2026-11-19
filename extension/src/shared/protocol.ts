@@ -2,8 +2,10 @@ import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
 import type { Hosting, HostingService } from './hosting';
 import type { RepositoryRow, ShownParts } from './repositories';
+import type { TagMarks } from './tagMarks';
 import type { Choice, ConflictRef, ConflictReview } from './resolution';
-import type { CommitDetail, FileChange, RepositoryState } from './state';
+import type { CommitOptions } from './commitOptions';
+import type { CommitDetail, CommitSignature, FileChange, RepositoryState } from './state';
 import type { SetupPatterns, SetupPreview, SetupTarget, WorktreeSetupInfo } from './worktreeSetup';
 
 // The state and the details of a commit are the engine's shapes, from stage 6.
@@ -214,6 +216,10 @@ export interface RepoState extends RepoParts {
    * says (`repo.keep-open`).
    */
   keepOpen: boolean;
+  /** Whether **Add Signed-off-by** starts ticked for each commit, as `gitardo.commit.signOff` says. */
+  signOff: boolean;
+  /** What the last **Check tags on `<remote>`** said of the tags, as Gitardo's operations changed it; null before it (`tag.remote-marks`). */
+  tagMarks: TagMarks | null;
 }
 
 /** The commits of what is checked out, for the view that lists them apart from the graph. */
@@ -480,7 +486,15 @@ export type Action =
   | { kind: 'reset'; hash: string }
   | { kind: 'createTag'; at: string }
   | { kind: 'deleteTag'; name: string }
+  | { kind: 'deleteTagOnRemote'; name: string; here: boolean }
+  | { kind: 'setUpstream'; name: string }
+  | { kind: 'unsetUpstream'; name: string }
+  | { kind: 'createBranchWithNoHistory' }
   | { kind: 'pushTag'; name: string }
+  /** **Push tags…**: the tags the remote lacks, ticked in a pick (`tag.push-all`). */
+  | { kind: 'pushTags' }
+  /** **Check tags on `<remote>`**: asks the remote of `remote.default` for its tags and marks those it lacks (`tag.remote-marks`). */
+  | { kind: 'checkTags' }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }
@@ -495,7 +509,8 @@ export type Action =
    * `discard` and `discardAll` leave what is staged alone.
    */
   | { kind: 'discardChanges'; paths?: string[] }
-  | { kind: 'commit'; message: string; amend: boolean }
+  /** With the options of the commit box, as they were ticked for this commit (`commit.options`). */
+  | { kind: 'commit'; message: string; amend: boolean; options?: CommitOptions; start?: CommitOptions }
   /** Folds the staged changes, or all changes when nothing is staged, into an earlier commit. `isRoot`: that commit has no parent. */
   | { kind: 'fixup'; hash: string; isRoot: boolean }
   /** Marks a commit for `git bisect`, starting one if needed. Without `hash` it marks the commit being tested. */
@@ -517,6 +532,10 @@ export type HostMessage =
   /** The commits of what is checked out, for the view that asked. */
   | { type: 'log'; log: BranchLog }
   | { type: 'detail'; hash: string; detail: CommitDetail | null }
+  /** What git says of the signature of a commit shown, read after its details; null when it could not be read. */
+  | { type: 'signature'; hash: string; signature: CommitSignature | null }
+  /** The co-authors chosen in the quick pick of **Co-authors…**, each `Name <email>`. */
+  | { type: 'coAuthors'; coAuthors: string[] }
   /** What a commit changed, file by file in the order of its details. Null when git and the list of files disagree. */
   | { type: 'patch'; hash: string; patch: FilePatch[] | null }
   | { type: 'comparison'; comparison: Comparison }
@@ -608,6 +627,10 @@ export type WebviewMessage =
   | { type: 'getLog'; limit: number }
   | { type: 'getDetail'; hash: string }
   | { type: 'getPatch'; hash: string }
+  /** Asks what git says of the signature of a commit shown; a read asked before it is cancelled. */
+  | { type: 'getSignature'; hash: string }
+  /** Opens the quick pick of the co-authors of the next commit, those chosen already ticked. */
+  | { type: 'pickCoAuthors'; chosen: string[] }
   /** Opens a commit in an editor tab of its own, or shows the tab it already has. */
   | { type: 'openCommit'; hash: string }
   /** Selects a commit in the graph, opening the graph for it. */

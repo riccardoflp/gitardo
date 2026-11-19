@@ -28,6 +28,17 @@ pub const LOADING_MORE_COMMITS: &str = "Loading more commits";
 pub const NARROWING_TIMELINE: &str = "Showing other branches";
 /// What asks for a read of the details of a commit: a row of the timeline was selected.
 pub const SHOWING_DETAILS: &str = "Showing the details of a commit";
+/// What asks a remote for its tags: **Check tags on `<remote>`** (`tag.remote-marks`).
+pub const CHECKING_TAGS: &str = "Checking which tags the remote lacks";
+/// A remote asked for its tags: `Asking origin for its tags`.
+#[must_use]
+pub fn asking_for_tags(remote: &str) -> String {
+    format!("Asking {remote} for its tags")
+}
+/// Why the signature of a commit is checked: the inspector or the page of a commit shows it.
+pub const CHECKING_SIGNATURE: &str = "Checking the signature of a commit";
+/// The read of the authors of the history, for the picker of the co-authors.
+pub const READING_AUTHORS: &str = "Reading the authors of the history";
 /// What asks for a read of the commit of a page and its lines: the page was opened.
 pub const OPENING_COMMIT_PAGE: &str = "Opening the page of a commit";
 /// Why the diff of a file is read: a Diff page shows it.

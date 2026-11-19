@@ -74,3 +74,11 @@ fn a_text_that_is_not_json_sets_nothing_and_is_noted() {
         [problem] if problem.key.is_empty() && matches!(problem.reason, ProblemReason::Unreadable(_))
     ));
 }
+
+#[test]
+fn rebase_update_refs_is_read_from_either_file_and_is_none_when_not_set() {
+    let mut set = Lookup::parse(None, Some(r#"{ "rebase.updateRefs": false }"#));
+    assert_eq!(feature_settings(&mut set).rebase_update_refs, Some(false));
+    let mut not_set = Lookup::parse(Some("{}"), None);
+    assert_eq!(feature_settings(&mut not_set).rebase_update_refs, None);
+}

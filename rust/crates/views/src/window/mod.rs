@@ -95,6 +95,8 @@ pub struct WindowState<'a> {
     pub large_merge: Option<crate::merge_view::LargeMergeQuestion<'a>>,
     /// The question asked before closing the page of a file with edits not saved (`file-view.edit`).
     pub close_file: Option<crate::file_view::CloseQuestion<'a>>,
+    /// The picker of the co-authors of the next commit, while it is open (`commit.co-authors`).
+    pub co_authors: Option<crate::changes::CoAuthorsState<'a>>,
     /// The title bar, which the header bar is when the window draws it (`window.title-bar`).
     pub caption: CaptionState,
 }
@@ -335,6 +337,9 @@ fn dialogs(state: &WindowState<'_>, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) 
     }
     if let Some(question) = &state.close_file {
         intents.extend(crate::file_view::close_question_view(question, ui));
+    }
+    if let Some(picker) = &state.co_authors {
+        intents.extend(crate::changes::co_authors_view(picker, ui));
     }
     match &state.feature {
         Some(FeatureDialog::Question(question)) => intents.extend(question_view(question, ui)),

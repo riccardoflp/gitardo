@@ -195,3 +195,72 @@ fn branch_clean_up__says_so_when_there_is_nothing_to_clean_up() {
         ended.errors
     );
 }
+
+/// A repository whose `origin` has `feature` and `release`, and whose local `feature` follows nothing.
+fn feature_with_remote() -> (Repository, Remote) {
+    let repository = repository();
+    let remote = Remote::new(&repository);
+    for name in ["feature", "release"] {
+        let _made = repository.git(&["branch", name]);
+        let _pushed = repository.git(&["push", "--quiet", "origin", name]);
+    }
+    let _deleted = repository.git(&["branch", "-D", "release"]);
+    (repository, remote)
+}
+
+/// The upstream of a local branch, or nothing.
+fn upstream_of(repository: &Repository, branch: &str) -> String {
+    let mut command = repository.command("git");
+    let _arguments = command.args(["rev-parse", "--abbrev-ref", &format!("{branch}@{{upstream}}")]);
+    let Ok(output) = command.output() else {
+        panic!("git does not start");
+    };
+    String::from_utf8_lossy(&output.stdout).trim().to_owned()
+}
+
+#[test]
+fn branch_set_upstream__set_then_changed_makes_the_branch_follow_the_remote_branch_picked() {
+    let (repository, _remote) = feature_with_remote();
+    let ended = cli_done(
+        &repository,
+        &[
+            "--target",
+            "branch:feature",
+            "branch.set-upstream",
+            "upstream=origin/feature",
+        ],
+    );
+    assert!(
+        ended
+            .out
+            .contains("> git branch --set-upstream-to=origin/feature feature"),
+        "{}",
+        ended.out
+    );
+    assert_eq!(upstream_of(&repository, "feature"), "origin/feature");
+    let _ended = cli_done(
+        &repository,
+        &[
+            "--target",
+            "branch:feature",
+            "branch.set-upstream",
+            "upstream=origin/release",
+        ],
+    );
+    assert_eq!(upstream_of(&repository, "feature"), "origin/release");
+}
+
+#[test]
+fn branch_unset_upstream__leaves_the_branch_following_nothing_and_the_remote_branch_listed() {
+    let (repository, _remote) = feature_with_remote();
+    let _set = repository.git(&["branch", "--set-upstream-to=origin/feature", "feature"]);
+    let ended = cli_done(&repository, &["--target", "branch:feature", "branch.unset-upstream"]);
+    assert!(
+        ended.out.contains("> git branch --unset-upstream feature"),
+        "{}",
+        ended.out
+    );
+    assert_eq!(upstream_of(&repository, "feature"), "");
+    let listed = repository.git(&["branch", "--remotes"]);
+    assert!(listed.contains("origin/feature"), "{listed}");
+}
