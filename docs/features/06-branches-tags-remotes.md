@@ -702,7 +702,11 @@ counted ahead of or behind.
 - **Uses**: `remote.default`, `branch.ref-argument`, `branch.unset-upstream`, `graph.labels`, `refs.tree`.
 
 A branch whose remote branch does not exist yet gets its upstream from its first push (`sync.push`), which is not
-offered here (Q1110). A remote branch is what the last fetch saw: one pushed by someone else since is fetched first
+offered here (Q1110).
+
+As built, the sentence of the placeholder is the line under the title of the search, which has no placeholder of its
+own; the upstream it has, picked again, runs a plan of no step titled `<branch> follows <upstream> already`. Quick
+search runs it on the branch checked out, and refuses with **Check out a branch first.** on a detached `HEAD`. A remote branch is what the last fetch saw: one pushed by someone else since is fetched first
 (`sync.fetch`).
 
 Acceptance:

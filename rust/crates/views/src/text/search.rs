@@ -265,6 +265,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::Compare => "Compare Branches, Tags or Commits\u{2026}",
         QuickCommand::BrowseReflog => "Browse reflog",
         QuickCommand::CleanUpBranches => "Clean up branches",
+        QuickCommand::SetUpstream => "Set upstream of the current branch\u{2026}",
         QuickCommand::ManageRemotes => "Manage remotes",
         QuickCommand::SwitchWorktree => "Switch Worktree\u{2026}",
         QuickCommand::CreateWorktree => "Create Worktree\u{2026}",

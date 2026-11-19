@@ -69,6 +69,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     if branch.is_checked_out {
         let mut entries = vec![create];
         entries.extend(link);
+        entries.extend(upstream_entries(state, branch));
         entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
         return entries;
     }
@@ -90,6 +91,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
         entries.extend(merge_entries(state, &branch.commit, target));
         entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
         entries.extend(link);
+        entries.extend(upstream_entries(state, branch));
         entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
         entries.extend(changing);
         return entries;
@@ -109,8 +111,43 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     entries.extend(merge_entries(state, &branch.commit, target));
     entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
     entries.extend(link);
+    entries.extend(upstream_entries(state, branch));
     entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
     entries.push(OperationEntry::runs(rail_words::DELETE, "branch.delete", target()));
+    entries
+}
+
+/// **Set upstream…** for a branch that follows nothing, or **Change upstream…** and **Stop tracking `<upstream>`** for
+/// one that follows a remote branch, gone or not; none while the repository has no remote branch to follow.
+fn upstream_entries(state: &model::state::RepositoryState, branch: &Branch) -> Vec<OperationEntry> {
+    let target = || Target::Branch(branch.name.clone());
+    let Some(upstream) = &branch.upstream else {
+        if state.remote_branches.is_empty() {
+            return Vec::new();
+        }
+        return vec![OperationEntry::runs(
+            rail_words::SET_UPSTREAM,
+            "branch.set-upstream",
+            target(),
+        )];
+    };
+    let short = upstream
+        .reference
+        .strip_prefix("refs/remotes/")
+        .unwrap_or(&upstream.reference);
+    let mut entries = Vec::new();
+    if !state.remote_branches.is_empty() {
+        entries.push(OperationEntry::runs(
+            rail_words::CHANGE_UPSTREAM,
+            "branch.set-upstream",
+            target(),
+        ));
+    }
+    entries.push(OperationEntry::runs(
+        rail_words::stop_tracking(short),
+        "branch.unset-upstream",
+        target(),
+    ));
     entries
 }
 

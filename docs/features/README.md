@@ -276,8 +276,8 @@ earns it.
 | [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Built | Built |
 | [`branch.clean-up`](06-branches-tags-remotes.md#branchclean-up--clean-up-branches) | Clean up branches | Operation | Built | Built |
 | [`branch.fast-forward`](06-branches-tags-remotes.md#branchfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Built | Built |
-| [`branch.set-upstream`](06-branches-tags-remotes.md#branchset-upstream--set-or-change-the-upstream-of-a-branch) | Set or change the upstream of a branch | Operation | Specified | Planned |
-| [`branch.unset-upstream`](06-branches-tags-remotes.md#branchunset-upstream--stop-tracking-the-upstream) | Stop tracking the upstream | Operation | Specified | Planned |
+| [`branch.set-upstream`](06-branches-tags-remotes.md#branchset-upstream--set-or-change-the-upstream-of-a-branch) | Set or change the upstream of a branch | Operation | Built | Planned |
+| [`branch.unset-upstream`](06-branches-tags-remotes.md#branchunset-upstream--stop-tracking-the-upstream) | Stop tracking the upstream | Operation | Built | Planned |
 | [`branch.pane`](06-branches-tags-remotes.md#branchpane--the-branch-rail-its-buttons-and-its-comparison) | The branch rail, its buttons and its comparison | View | Built | Built |
 | [`branch.read-log`](06-branches-tags-remotes.md#branchread-log--read-the-commits-of-what-is-checked-out) | Read the commits of what is checked out | Read | Built | Built |
 | [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Built | Built |

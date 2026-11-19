@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The menu of a local branch, in the branch rail and on its label, has **Set upstream…** for a branch that follows
+  nothing, or **Change upstream…** and **Stop tracking `<upstream>`** for one that follows a remote branch, gone or
+  not; Quick search has **Set upstream of the current branch…**. The search lists the remote branches of the
+  branch's name first, those of `origin` before the others, and says which is the **current upstream**; a remote
+  branch is named in full when a local branch has its name.
 - The inspector and the page of a commit say whether the commit is signed, on a line **Signature** under **Commit**,
   with a shield in the color of what git said: **Good** and by whom, the three kinds of good signature git doubts,
   **Bad**, **Cannot be checked**, or **Signed, not checked** for a commit signed with SSH while no allowed signers are

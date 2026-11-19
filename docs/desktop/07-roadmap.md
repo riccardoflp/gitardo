@@ -1143,7 +1143,8 @@ last in the extension.
    Command Palette, and the marks of the tags drawn in `RefsTree` and on the labels; each card *Built* in the
    extension with its `Extension:` lines tested. Cards: every card above.
 
-Nothing is built yet.
+Phase 1 is built: **Set upstream…**, **Change upstream…** and **Stop tracking `<upstream>`** in the menu of a local
+branch, on its label and in the branch rail, and **Set upstream of the current branch…** in Quick search.
 
 Exit: in a repository whose `feature` follows nothing and whose `origin` has `feature` and `release`, **Set upstream…**
 on `feature` lists `origin/feature` first, and once picked the branch rail says how far `feature` is from it;

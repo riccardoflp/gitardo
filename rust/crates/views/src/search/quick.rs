@@ -107,6 +107,8 @@ pub enum QuickCommand {
     BrowseReflog,
     /// **Clean up branches** (`branch.clean-up`).
     CleanUpBranches,
+    /// **Set upstream of the current branch…** (`branch.set-upstream`).
+    SetUpstream,
     /// **Manage remotes** (`remote.manage`).
     ManageRemotes,
     /// **Switch Worktree…** (`worktree.switch`).
@@ -157,7 +159,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 53] = [
+    pub const ALL: [QuickCommand; 54] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -200,6 +202,7 @@ impl QuickCommand {
         QuickCommand::Compare,
         QuickCommand::BrowseReflog,
         QuickCommand::CleanUpBranches,
+        QuickCommand::SetUpstream,
         QuickCommand::ManageRemotes,
         QuickCommand::SwitchWorktree,
         QuickCommand::CreateWorktree,
@@ -256,6 +259,7 @@ impl QuickCommand {
             QuickCommand::Push => Some("sync.push"),
             QuickCommand::StashChanges => Some("stash.push"),
             QuickCommand::CleanUpBranches => Some("branch.clean-up"),
+            QuickCommand::SetUpstream => Some("branch.set-upstream"),
             QuickCommand::ManageRemotes => Some("remote.manage"),
             QuickCommand::AddSubmodule => Some("submodule.add"),
             QuickCommand::Compare => Some("compare.choose"),

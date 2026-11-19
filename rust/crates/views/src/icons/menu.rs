@@ -52,7 +52,7 @@ fn history_icon(feature: &str) -> Option<Icon> {
         "stash.pop" => super::POP,
         "github.open-pull-request" | "github.load-pull-requests" => super::PULL_REQUEST,
         "reflog.browse" | "file-history.file" | "file-history.folder" | "file-history.lines" => super::HISTORY,
-        "remote.manage" => super::REMOTE,
+        "remote.manage" | "branch.set-upstream" => super::REMOTE,
         "blame.toggle-file" | "blame.previous" => super::BLAME,
         "blame.open-line-commit" => super::OPEN_AS_PAGE,
         "blame.reveal-line-commit" => super::TIMELINE,

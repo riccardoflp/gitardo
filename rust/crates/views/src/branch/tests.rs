@@ -3,6 +3,7 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
 mod bisect;
+mod upstream;
 
 use std::path::PathBuf;
 
@@ -44,7 +45,7 @@ fn branch(name: &str, at: char, (ahead, behind): (u32, u32)) -> Branch {
 /// `main` checked out at `a`; `feature` at `b`, two commits behind `origin/feature`; `topic` at `c`, one ahead of
 /// `origin/topic` and two behind; `linked` checked out in another worktree with nothing to commit; the tags `v1` at
 /// `a` and `v0` at `b`; the remote `origin`.
-fn repository() -> RepositoryState {
+pub(super) fn repository() -> RepositoryState {
     let remote = |name: &str, at| RemoteBranch {
         name: format!("origin/{name}"),
         remote: String::from("origin"),
@@ -104,7 +105,7 @@ fn labels(entries: &[OperationEntry]) -> Vec<String> {
 }
 
 /// The entries of a local branch of the repository, by its name.
-fn of_branch(repository: &RepositoryState, open_in: OpenIn, name: &str) -> Vec<String> {
+pub(super) fn of_branch(repository: &RepositoryState, open_in: OpenIn, name: &str) -> Vec<String> {
     let branch = repository.branches.iter().find(|branch| branch.name == name);
     labels(&branch.map_or_default(|branch| branch_entries(menus(repository, open_in), branch)))
 }
@@ -114,7 +115,12 @@ fn branch_checkout__the_menu_of_the_branch_checked_out_has_no_check_out_entry() 
     let repository = repository();
     assert_eq!(
         of_branch(&repository, OpenIn::Checkout, "main"),
-        ["Create branch here\u{2026}", "Rename\u{2026}"]
+        [
+            "Create branch here\u{2026}",
+            "Change upstream\u{2026}",
+            "Stop tracking origin/main",
+            "Rename\u{2026}"
+        ]
     );
 }
 
@@ -133,6 +139,8 @@ fn branch_checkout__the_menu_of_a_branch_another_worktree_has_has_its_entries_an
             "Merge into main",
             "Merge into main\u{2026}",
             "Rebase main onto this",
+            "Change upstream\u{2026}",
+            "Stop tracking origin/linked",
             "Rename branch\u{2026}",
             "Rename worktree\u{2026}",
             "Remove worktree\u{2026}",

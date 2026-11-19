@@ -57,6 +57,16 @@ pub const CREATE_WORKTREE: &str = "Create worktree\u{2026}";
 pub const ADD_SUBMODULE: &str = "Add submodule\u{2026}";
 /// **Rename…** in the menu of a local branch.
 pub const RENAME: &str = "Rename\u{2026}";
+/// The entry that makes a local branch with no upstream follow a remote branch (`branch.set-upstream`).
+pub const SET_UPSTREAM: &str = "Set upstream\u{2026}";
+/// The entry that makes a local branch follow another remote branch than it does.
+pub const CHANGE_UPSTREAM: &str = "Change upstream\u{2026}";
+
+/// The entry that makes a local branch follow nothing (`branch.unset-upstream`): **Stop tracking origin/feature**.
+#[must_use]
+pub fn stop_tracking(upstream: &str) -> String {
+    format!("Stop tracking {upstream}")
+}
 /// **Delete** in the menu of a local branch or a tag.
 pub const DELETE: &str = "Delete";
 /// **Delete from remote** in the menu of a remote branch (`remote.delete-branch`).

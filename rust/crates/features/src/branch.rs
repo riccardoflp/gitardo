@@ -12,6 +12,7 @@ mod fast_forward;
 mod rename;
 pub(crate) mod submodules;
 pub(crate) mod target;
+mod upstream;
 
 pub use checkout::checkout;
 pub(crate) use checkout::checkout_plan;
@@ -23,3 +24,4 @@ pub use create::create;
 pub use delete::delete;
 pub use fast_forward::fast_forward;
 pub use rename::rename;
+pub use upstream::{UPSTREAM, set_upstream, unset_upstream};
