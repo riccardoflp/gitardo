@@ -2102,6 +2102,45 @@ the tree of the Files page the files left as pointers at each read (`git lfs ls-
 Q1190); rerere on in every repository Gitardo opens (it changes what git writes in the files at the next conflicts);
 `git rerere diff`, which runs the system's `diff` and prints for people.
 
+## D85 — Notes in the details of a commit, archives of a commit, and the upkeep of a repository from its row (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M40; the details proposed while planning.*
+
+Three things of git that Gitardo had nothing of: the notes a commit can be given after it was made, which `git log`
+shows and the inspector did not; saving the files of a commit as a zip or a tar.gz, for someone who does not use git;
+and the upkeep of a repository, how much room it takes, cleaning it up, and git's own maintenance in the background.
+
+- **Notes, read and shown.** The notes of the reference git uses, `refs/notes/commits` unless `core.notesRef` names
+  another, are listed with `git notes list` with the reads of the repository when that reference moved, and the text
+  of a commit's note is read with `git cat-file blob` (`note.read`). It is shown under the message in the inspector and
+  in the page of a commit, as it was written (`note.show`).
+- **Notes, written.** **Add note…**, **Edit note…** and **Remove note** run `git notes add -f -F -`, the text on
+  standard input, and `git notes remove` (`note.edit`, `note.remove`). Git keeps a reflog for the references of notes as
+  for branches, so **Undo** puts the reference back where it was.
+- **Notes, fetched and pushed on demand.** Git does not fetch nor push notes, and Gitardo does not change the
+  refspecs of a remote: **Fetch notes** and **Push notes** are in the menu of a remote (`note.fetch`, `note.push`). A
+  fetch that git refuses because both sides have new notes offers **Merge the notes**, with
+  `git notes merge --strategy=cat_sort_uniq`. Whether they should follow every fetch and push is asked (Q1213).
+- **Archives.** **Save as archive…** on a commit, a branch, a remote branch or a tag asks every file or one folder,
+  zip or tar.gz, the folder inside the archive, and where to save it in the system's save dialog, as **Save as
+  patch…** asks it; then `git archive -o` (`archive.save`). What git leaves out by `export-ignore` is left out.
+- **Upkeep, in the menu of the row of the repository** in **Repositories**, where the things of a repository as a
+  whole are, rather than on a page of its own: **Clean up…** says the room the repository takes (`git count-objects
+  -v`) in its question, runs `git gc`, and says the room after (`upkeep.read-size`, `upkeep.clean-up`); **Look after it
+  in the background…** registers it for git's scheduled maintenance with `git maintenance start`, ticked while it is
+  registered, and unticking it runs `git maintenance unregister` (`upkeep.read-background`,
+  `upkeep.start-background`, `upkeep.stop-background`).
+
+The extension gets every card in the last phase of the milestone: the note in the details beside the graph and in the
+tab of a commit, the entries of notes and of archives in the context menus of the graph and of the Branches view, and
+the entries of upkeep in the menu of a row of the **Gitardo Repositories** view (D70).
+
+Rejected: a page about the repository, with its size, its upkeep and its settings of git (the menu of its row holds
+the three entries; asked, Q1221); `git gc --aggressive` and `--prune=now` (slower for little, and `--prune=now` can
+delete what another git running at the same time has just written); `git maintenance stop` when a repository is
+unregistered (it ends the schedule of every repository); the notes of the other references `notes.displayRef` names
+(asked, Q1210); refspecs of notes added to the configuration of a remote; a mark on the rows of the timeline for the
+commits with a note (asked, Q1211).
 
 ## Open questions
 
@@ -5445,3 +5484,42 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1205** — `lfs.show-in-pages`: the content of a file stored with Git LFS is diffed as text, or said binary. Should
   an image stored with Git LFS be shown as images are, once the window shows images?
 
+### Of notes, archives and upkeep, from Q1210
+
+Questions of milestone M40 ([D85](#d85--notes-in-the-details-of-a-commit-archives-of-a-commit-and-the-upkeep-of-a-repository-from-its-row-proposed)),
+asked while it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1210** — `note.read`: only the notes of the reference git uses are read, `refs/notes/commits` unless
+  `core.notesRef` names another. `git log` also shows those of the references `notes.displayRef` names. Should those be
+  shown too, each under the name of its reference?
+- **Q1211** — `note.show`: the rows of the timeline have no mark for a commit with a note. Should they have one, a
+  small icon at the end of the message, or the note in the tooltip of the row?
+- **Q1212** — `note.show`: a note is shown as it was written, its lines kept, where the lines of a message are joined
+  (`details.message-unwrap`). Should notes be joined the same way?
+- **Q1213** — `note.fetch`, `note.push`: notes are fetched and pushed only on demand. Should **Fetch** and **Push**
+  bring the notes too when the remote has some, or a setting say so, or the refspec of notes be added to a remote?
+- **Q1214** — `note.fetch`: notes that both sides changed are merged with the strategy `cat_sort_uniq`, which keeps
+  every line of both once. Should the user choose instead between ours, theirs and both?
+- **Q1215** — `note.edit`, `note.remove`, `note.fetch`: **Undo** puts the reference of notes back from its reflog,
+  where the other operations take back what moved `HEAD` or a branch. Should Undo take back notes, or say that they are
+  not taken back?
+- **Q1216** — `note.edit`: a note stays with the commit it was given to, and git leaves it behind when the commit is
+  amended or rebased, unless `notes.rewriteRef` names the reference. Should Gitardo set it, so that notes follow their
+  commits through **Amend**, **Edit message** and rebases?
+- **Q1217** — `archive.save`: zip by default on Windows and tar.gz elsewhere; the folder inside the archive is
+  `<repository>-<name>/`; the dialog starts in the folder that holds the repository. Are those the defaults wanted?
+- **Q1218** — `archive.save`: the files stored with Git LFS are put in the archive as their pointers, as `git archive`
+  does. Should their content go in, when it is downloaded, which `git archive` cannot do?
+- **Q1219** — `archive.save`: an archive is of a commit. Should the working tree be archived too, with what is not
+  committed?
+- **Q1220** — `upkeep.clean-up`: it runs `git gc`. Should it run `git maintenance run` with the tasks of git's
+  maintenance instead, or offer a thorough clean-up (`--aggressive`) beside it?
+- **Q1221** — `upkeep.read-size`: the size is said only in the question of **Clean up…** and after it. Should it be in
+  the tooltip of the row of the repository, or on a page about the repository?
+- **Q1222** — `upkeep.stop-background`: unregistering the last repository leaves git scheduled on the system, doing
+  nothing. Should Gitardo run `git maintenance stop` then?
+- **Q1223** — `upkeep.start-background`: git's scheduled maintenance fetches each remote every hour into hidden
+  references, which the graph does not show. Should the window say, on the row of the repository, that it is looked
+  after in the background?
+- **Q1224** — `upkeep.clean-up`: in the extension it is in the menu of the rows of the **Gitardo Repositories** view.
+  Should it be in the Command Palette too, on the repository shown?

@@ -1319,6 +1319,43 @@ and met again by the same merge is said **Resolved as before**, **Show what git 
 git wrote, and **Forget this resolution…** marks the conflict again; every card of the milestone passes its tests, and
 the snapshots of the page and of a file not downloaded match in each theme.
 
+## M40 — Notes, archives and upkeep
+
+The notes of commits shown under their messages, written, removed, fetched and pushed; a commit, a branch or a tag saved
+as a zip or a tar.gz; and the upkeep of a repository from the menu of its row: the room it takes, **Clean up…**, and
+git's maintenance in the background
+([D85](../08-decisions.md#d85--notes-in-the-details-of-a-commit-archives-of-a-commit-and-the-upkeep-of-a-repository-from-its-row-proposed)).
+Asked by the maintainer with M38 and M39. Built in six phases, each one commit or more, each ending with its cards
+built and their tests passing; the first five are Gitardo Desktop's, and the sixth brings the milestone to the
+extension.
+
+1. **Notes read and shown.** The commits with a note listed with the reads of the repository when the reference of
+   notes moved, the text of the note of the commit shown, and the block **Note** under the message in the inspector and
+   in the page of a commit. Cards: `note.read`, `note.show`, `details.show`, `commit-page.view`.
+2. **Notes written.** **Add note…**, **Edit note…** and **Remove note**, each taken back by **Undo** from the reflog
+   of the reference of notes. Cards: `note.edit`, `note.remove`, `undo.last`.
+3. **Notes fetched and pushed.** **Fetch notes** and **Push notes** in the menu of a remote, and **Merge the notes**
+   when git refuses a fetch. Cards: `note.fetch`, `note.push`.
+4. **Archives.** **Save as archive…** on a commit, a branch, a remote branch and a tag, with every file or one folder,
+   zip or tar.gz, the folder inside the archive and the save dialog. Cards: `archive.save`.
+5. **Upkeep.** In the menu of the row of a repository: **Clean up…**, its question with the room the repository takes
+   and its message with the room after; **Look after it in the background…**, ticked while git's maintenance has it.
+   Cards: `upkeep.read-size`, `upkeep.clean-up`, `upkeep.read-background`, `upkeep.start-background`,
+   `upkeep.stop-background`, `repo.tabs`.
+6. **In the extension.** The note in the details beside the graph and in the tab of a commit, the entries of notes and
+   archives in the context menus of the graph and of the Branches view, and those of upkeep in the menu of a row of
+   the **Gitardo Repositories** view, all run by the engine. Cards: the cards of the first five phases, in the
+   extension.
+
+Nothing is built yet.
+
+Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
+in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save
+as archive…** on a tag writes a zip whose files are those of the tag under one folder; **Clean up…** on a repository
+says the room it takes, runs `git gc` and says the room after; **Look after it in the background…** registers it, and
+unticking it unregisters it; the same in the extension; every card of the milestone passes its tests, and the
+snapshots of the block **Note** match in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

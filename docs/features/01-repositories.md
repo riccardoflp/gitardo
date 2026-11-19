@@ -1436,3 +1436,125 @@ Acceptance:
 - [ ] A folder unticked is no longer trusted, in this window and in `state.json`, and the folders still ticked stay
       trusted.
 - [ ] With no folder trusted, it says **No folder is trusted.** and asks nothing.
+
+## Upkeep
+
+How much room a repository takes, cleaning it up, and having git look after it in the background, from the context
+menu of its row in **Repositories**, where the things of a repository as a whole are
+([D85](../08-decisions.md#d85--notes-in-the-details-of-a-commit-archives-of-a-commit-and-the-upkeep-of-a-repository-from-its-row-proposed)).
+
+### `upkeep.read-size` — The size of a repository
+
+How much room the objects of a repository take, loose and packed, and how much of it git could put away.
+
+- **Kind**: Read
+- **Function**: `git::read::upkeep::read_size(git: &Git, request: &SizeRequest) -> Result<RepositorySize, GitError>`
+- **Reads**: `git count-objects -v`, lines `<key>: <value>`: `count` and `size`, the loose objects and their KiB;
+  `in-pack`, `packs` and `size-pack`, the objects packed, the packs and their KiB; `prune-packable`, the loose objects
+  that are in a pack too; `garbage` and `size-garbage`, the files of the object folder that are not objects. Without
+  `-H`, whose sizes are for people. It runs when asked, never with the reads of the repository.
+- **Uses**: by `upkeep.clean-up`.
+- **Extension**: read by the engine for the question of `upkeep.clean-up`: planned.
+
+Acceptance:
+
+- [ ] The output `count: 29`, `size: 1`, `in-pack: 1200`, `packs: 2`, `size-pack: 5120` gives 29 loose objects of
+      1 KiB and 1,200 packed in 2 packs of 5 MiB.
+- [ ] A key it does not know is left aside.
+
+### `upkeep.clean-up` — Clean up a repository
+
+Packs the loose objects of a repository and deletes those nothing has reached for a long time, with `git gc`, saying the
+room it takes before and after.
+
+- **Kind**: Operation
+- **Function**: `features::upkeep::clean_up(context, answers) -> Outcome`
+- **Entry points**: **Clean up…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`);
+  Quick search, **Clean Up the Repository…**.
+- **Offered when**: no operation of Gitardo runs in the repository.
+- **Reads**: `upkeep.read-size`.
+- **Plan**: `git gc` (Q1220).
+- **Danger**: Confirm, because **Commits that no branch, tag or reflog has reached for two weeks, and reflog entries
+  older than 90 days, are deleted for good, as git's settings of `gc` say.** The question says, above it, the room the
+  repository takes: **`<repository>` takes 1.2 GB: 830 MB in 3 packs, and 45,210 loose objects in 380 MB.**
+- **Undo**: Impossible: what git deletes is not kept.
+- **After**: reads the size again and says **Cleaned up `<repository>`: 1.2 GB, now 640 MB.** It runs with what is
+  running in the status bar and in the Activity tab (`activity.status-bar`), as long as it takes.
+- **Refuses**: git's message when another `git gc` runs in the repository.
+- **Uses**: `upkeep.read-size`, `repo.tabs`, `activity.status-bar`.
+- **Extension**: planned: **Clean Up…** in the context menu of a row of the **Gitardo Repositories** view
+  (`repositoryRowMenu`), its question in a modal dialog, sending `feature/run` of `upkeep.clean-up` to the engine.
+
+Acceptance:
+
+- [ ] On a repository with loose objects, it asks with the size and the warning, then runs `git gc`, and says the size
+      after, smaller.
+- [ ] With `commandPreview` set to `off`, it still asks.
+- [ ] Cancelling runs nothing.
+
+### `upkeep.read-background` — Whether git looks after a repository in the background
+
+Whether the repository is among those git's scheduled maintenance looks after.
+
+- **Kind**: Read
+- **Function**: `git::read::upkeep::read_background(git: &Git, request: &BackgroundRequest) -> Result<bool, GitError>`
+- **Reads**: `git config --global --get-all maintenance.repo`, the repositories registered, each compared with the
+  folder of this one as git writes it (absolute, with `/`); none set reads as none registered.
+- **Uses**: `repo.read-state`, with which it runs, again only when the user's configuration changed.
+- **Extension**: read by the engine for the menu of the row: planned.
+
+Acceptance:
+
+- [ ] After `git maintenance start` in the repository, it reads as looked after; after
+      `git maintenance unregister`, not.
+- [ ] A folder written with `\` by another program is compared as the same folder.
+
+### `upkeep.start-background` — Have git look after a repository in the background
+
+Registers the repository for git's scheduled maintenance, which fetches in the background into hidden references,
+packs and checks the repository each hour, day and week, so that it stays quick without a clean-up by hand.
+
+- **Kind**: Operation
+- **Function**: `features::upkeep::start_background(context, answers) -> Outcome`
+- **Entry points**: **Look after it in the background…** in the context menu of the row of a repository in
+  **Repositories**, unticked.
+- **Offered when**: the repository is not registered (`upkeep.read-background`).
+- **Plan**: `git maintenance start`, which registers the repository in the user's configuration of git, sets its
+  `maintenance.strategy` to `incremental`, and schedules git in the system's scheduler (the Task Scheduler on Windows,
+  launchd on macOS, systemd timers or cron on Linux) when it is not scheduled yet.
+- **Danger**: Confirm, because **Git is scheduled to run in the background on this computer, every hour, for each
+  repository registered.**
+- **Undo**: Not taken back by Undo: **Look after it in the background**, ticked, unregisters it
+  (`upkeep.stop-background`).
+- **After**: the entry of the menu is ticked.
+- **Refuses**: git's message when the system's scheduler refuses, as without the rights to it.
+- **Uses**: `upkeep.read-background`, `upkeep.stop-background`, `repo.tabs`.
+- **Extension**: planned: **Look After It in the Background…** in the context menu of a row of the **Gitardo
+  Repositories** view, sending `feature/run` of `upkeep.start-background` to the engine.
+
+Acceptance:
+
+- [ ] It asks with the warning, then runs `git maintenance start`, and `git config --global --get-all
+      maintenance.repo` lists the repository after.
+- [ ] The entry is ticked once the repository is read again.
+
+### `upkeep.stop-background` — Stop having git look after a repository
+
+Takes the repository out of those git's scheduled maintenance looks after; the others stay as they are.
+
+- **Kind**: Operation
+- **Function**: `features::upkeep::stop_background(context, answers) -> Outcome`
+- **Entry points**: **Look after it in the background**, ticked, in the context menu of the row of a repository in
+  **Repositories**.
+- **Offered when**: the repository is registered.
+- **Plan**: `git maintenance unregister`. The schedule of the system stays for the other repositories registered;
+  `git maintenance stop`, which ends it for all of them, is not run (Q1222).
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: `upkeep.start-background` registers it again.
+- **Uses**: `upkeep.read-background`, `upkeep.start-background`.
+- **Extension**: planned, with `upkeep.start-background`.
+
+Acceptance:
+
+- [ ] It runs `git maintenance unregister`; the repository is no longer listed, and the entry is unticked.
+- [ ] Another repository registered stays registered.

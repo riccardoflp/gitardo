@@ -229,3 +229,53 @@ Acceptance:
 - [x] **Skip** leaves that commit out and goes on with the next.
 - [x] **Abort** goes back to where the branch was before the patch, after asking.
 - [x] The Merge page of a file in conflict names its sides **The branch checked out** and **The patch being applied**.
+
+## Archives
+
+Saving the files of a commit, a branch or a tag as one zip or tar.gz file, as they are at that commit, without the
+history: to hand a version to someone who does not use git
+([D85](../08-decisions.md#d85--notes-in-the-details-of-a-commit-archives-of-a-commit-and-the-upkeep-of-a-repository-from-its-row-proposed)).
+
+### `archive.save` — Save as an archive…
+
+Saves the files of a commit, or of one folder of it, in a zip or a tar.gz file the user chooses.
+
+- **Kind**: Operation
+- **Function**: `features::archive::save(context, answers) -> Outcome`
+- **Entry points**: **Save as archive…** in the context menu of a commit in the timeline, and of a branch, a remote
+  branch or a tag in the branch rail and on its label in the timeline; Quick search, **Save as Archive…**, which asks
+  the commit first as **Open Commit as a Page…** asks it (`commit-page.open`).
+- **Offered when**: on a commit, a branch, a remote branch or a tag; not on the draft nor on a stash.
+- **Asks**:
+  1. **What the archive holds**: **Every file** (the default) or **One folder…**, which asks the folder among those of
+     the commit (`git ls-tree -r -d --name-only -z <commit>`), in a search of folders.
+  2. **Format**: **Zip** or **tar.gz**; zip by default on Windows, tar.gz elsewhere (Q1217).
+  3. **Folder inside the archive**, a text whose default is `<repository>-<name>/`, the name being the branch or the
+     tag with `/` turned into `-`, or the short hash; empty puts the files at the top of the archive.
+  4. Where to save it, in the system's save dialog titled **Save `<name>` as an archive**, filtered to the format,
+     starting in the folder that holds the repository with the name `<repository>-<name>.zip` (or `.tar.gz`).
+- **Plan**: `git archive --format=zip --prefix=<folder inside> -o <file> <commit>`, with `--format=tar.gz` for a
+  tar.gz, without `--prefix` when the folder inside is empty, and `-- <folder>` at its end for one folder; the commit
+  of a branch or a tag is named by its full name (`refs/heads/<branch>`, `refs/tags/<tag>`), as a branch and a tag can
+  share a name.
+- **Danger**: None: the save dialog asked before writing over a file.
+- **Undo**: Impossible: the file saved is outside what Undo takes back; delete it to take it back.
+- **After**: says **Saved `<file>`** with **Reveal in the file manager**.
+- **Uses**: `commit-page.open`, `compare.resolve-revision`.
+- **Extension**: planned: **Save as Archive…** in the context menu of a commit, a branch, a remote branch or a tag in
+  the graph and in the Branches view, the questions in VS Code's pickers and its save dialog, sending `feature/run` of
+  `archive.save` to the engine.
+
+What git puts in it, and Gitardo says nothing of: the files of the commit, not the changes of the working tree; not the
+files `.gitattributes` marks `export-ignore`; the files stored with Git LFS as their pointers (Q1218); a submodule as an
+empty folder.
+
+Acceptance:
+
+- [ ] **Save as archive…** on the tag `v1.2.0`, with the defaults on Windows, proposes `<parent>/app-v1.2.0.zip` and
+      runs `git archive --format=zip --prefix=app-v1.2.0/ -o <file> refs/tags/v1.2.0`; the zip holds the files of
+      that commit under `app-v1.2.0/`.
+- [ ] **One folder…** with `docs` adds `-- docs`, and the archive holds only the files of `docs`.
+- [ ] **tar.gz** gives a file `tar -tzf` lists.
+- [ ] With the folder inside the archive left empty it runs without `--prefix`, and the files are at its top.
+- [ ] Cancelling the dialog writes nothing; the log has the `git archive` command once it is saved.
