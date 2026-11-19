@@ -87,3 +87,35 @@ fn tag_push__pushes_the_tag_to_origin() {
     );
     assert_eq!(remote.git(&["tag", "--list"]), "v1.0.0\n");
 }
+
+/// A repository whose `origin` has the tag `v1`, made here.
+fn with_v1_pushed() -> (Repository, Remote) {
+    let repository = repository();
+    let remote = Remote::new(&repository);
+    repository.tag("v1");
+    let _pushed = repository.git(&["push", "--quiet", "origin", "refs/tags/v1"]);
+    (repository, remote)
+}
+
+#[test]
+fn tag_delete_remote__delete_from_origin_asks_then_the_remote_loses_v1_and_this_repository_keeps_it() {
+    let (repository, remote) = with_v1_pushed();
+    let asked = cli(&repository, &["--target", "tag:v1", "tag.delete-remote"]);
+    assert_eq!(asked.code, Some(2), "it warns first: {}", asked.out);
+    let ended = cli_done(&repository, &["--yes", "--target", "tag:v1", "tag.delete-remote"]);
+    assert!(
+        ended.out.contains("> git push origin --delete refs/tags/v1"),
+        "{}",
+        ended.out
+    );
+    assert_eq!(remote.git(&["tag", "--list"]), "");
+    assert_eq!(repository.git(&["tag", "--list"]), "v1\n");
+}
+
+#[test]
+fn tag_delete_remote__a_branch_of_the_name_of_the_tag_on_origin_is_left_there() {
+    let (repository, remote) = with_v1_pushed();
+    let _pushed = repository.git(&["push", "--quiet", "origin", "main:refs/heads/v1"]);
+    let _ended = cli_done(&repository, &["--yes", "--target", "tag:v1", "tag.delete-remote"]);
+    assert_eq!(remote.git(&["branch", "--list", "v1"]).trim(), "v1");
+}

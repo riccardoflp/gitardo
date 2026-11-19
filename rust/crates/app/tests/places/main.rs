@@ -114,6 +114,7 @@ mod support;
 mod sync_stash;
 mod tab_operations;
 mod tabs;
+mod tag_remote;
 mod tasks;
 mod tasks_depend;
 mod tasks_exchange;

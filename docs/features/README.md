@@ -287,7 +287,7 @@ earns it.
 | [`tag.remote-marks`](06-branches-tags-remotes.md#tagremote-marks--the-tags-a-remote-lacks-marked) | The tags a remote lacks, marked | View | Specified | Planned |
 | [`tag.push-all`](06-branches-tags-remotes.md#tagpush-all--push-the-tags-a-remote-lacks) | Push the tags a remote lacks | Operation | Specified | Planned |
 | [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Built | Built |
-| [`tag.delete-remote`](06-branches-tags-remotes.md#tagdelete-remote--delete-a-tag-from-a-remote) | Delete a tag from a remote | Operation | Specified | Planned |
+| [`tag.delete-remote`](06-branches-tags-remotes.md#tagdelete-remote--delete-a-tag-from-a-remote) | Delete a tag from a remote | Operation | Built | Planned |
 | [`tag.checkout`](06-branches-tags-remotes.md#tagcheckout--check-out-a-tag) | Check out a tag | Operation | Built | Built |
 | [`remote.read-remotes`](06-branches-tags-remotes.md#remoteread-remotes--read-the-remotes) | Read the remotes | Read | Built | Built |
 | [`remote.default`](06-branches-tags-remotes.md#remotedefault--the-remote-a-new-upstream-or-a-tag-goes-to) | The remote a new upstream or a tag goes to | Derivation | Built | Built |

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The menu of a tag has **Delete from origin** and **Delete here and from origin** after **Delete**, or **Delete from a
+  remote…** and **Delete here and from a remote…** with several remotes, which ask which. They warn first, delete the
+  tag on the remote with the tag named in full, so that a branch of its name there stays, and, here too, only once the
+  remote took it away.
 - The menu of a local branch, in the branch rail and on its label, has **Set upstream…** for a branch that follows
   nothing, or **Change upstream…** and **Stop tracking `<upstream>`** for one that follows a remote branch, gone or
   not; Quick search has **Set upstream of the current branch…**. The search lists the remote branches of the

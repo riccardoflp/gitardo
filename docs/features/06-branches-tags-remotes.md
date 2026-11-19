@@ -1085,6 +1085,10 @@ Deletes a tag on a remote, for everyone, and here too when asked: what `tag.dele
 
 Acceptance:
 
+As built, the entries are offered whenever the repository has a remote: the marks of `tag.remote-marks` are not built
+yet, so the menu of a tag the check found the remote lacks still has them, and its acceptance line waits for them.
+**Delete here and from…** gives the answer `here` with the run, which the command line never asks.
+
 - [ ] **Delete from origin** on `v1` asks, also with `commandPreview` set to `off`, then runs
       `git push origin --delete refs/tags/v1`; `origin` no longer has `v1`, and this repository still has it.
 - [ ] **Delete here and from origin** runs that push, then `git tag -d v1`.
