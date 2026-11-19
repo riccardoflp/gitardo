@@ -121,6 +121,15 @@ impl Answers {
         }
     }
 
+    /// The last rewrite of a reference read under a key: `Some(None)` when it has none.
+    #[must_use]
+    pub fn last_rewrite(&self, key: AnswerKey) -> Option<Option<&crate::range_diff::Rewrite>> {
+        match self.get(key)? {
+            Answer::LastRewrite(rewrite) => Some(rewrite.as_ref()),
+            _ => None, // Any other kind of answer is no rewrite.
+        }
+    }
+
     /// The messages read under a key.
     #[must_use]
     pub fn messages(&self, key: AnswerKey) -> Option<&[String]> {

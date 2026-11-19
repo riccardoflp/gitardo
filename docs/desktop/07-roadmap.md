@@ -1218,7 +1218,11 @@ choice of three, **Move them**, **Leave them** and **As git says** (Q1400).
 Phase 3 is built: the journal entry of a rewrite keeps each branch it moved (`UndoRecord::Rewrite`), and Undo resets
 the branch rewritten by its reflog, then puts the others back in one `git update-ref --stdin`
 (`model::contract::moved_branches`), leaving out and naming a branch moved since. A rewrite that stopped and was
-continued goes back by the reflog alone (Q1425). Phases 4 to 6 are not built yet.
+continued goes back by the reflog alone (Q1425).
+Phase 4 is built: rule R9.3 names `git range-diff`, the last rewrite of a branch or a remote branch from its reflog
+(`Query::LastRewrite`), the ranges compared (`model::range_diff::ranges`), and the pairs read with the count of each
+line and the subjects now (`git::read::range_diff::read_pairs`), tested on output recorded in
+`crates/git/tests/golden/range-diff`. Phases 5 and 6 are not built yet.
 
 Nothing is built yet.
 

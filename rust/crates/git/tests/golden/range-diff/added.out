@@ -1,0 +1,5 @@
+1:  7c00397dd1b2445e952af147d75d41feb9527f0b = 1:  3c6e730e2340a64c61ac6b88346c0629aab13c55 Add the parser
+2:  00a28a1f827c35f63875b35d34b45709a4bfacd5 = 2:  16d24935d50317cec2c4e9fcd45380a602baa124 Add the lexer
+3:  e9d5a83126de9060e005fd8efc7d2ea82c29dafe = 3:  1400eaa3f187f9b9b197a746fc1317d3ca6e7ecd Add the checker
+4:  923dc46644c6817e6587d2c36e6e8786a45511be < -:  ---------------------------------------- Add the printer
+-:  ---------------------------------------- > 4:  dbb1576c1cc3c6fa5b0b5f2fcb4f1243fafca281 Add the tests

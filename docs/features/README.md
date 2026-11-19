@@ -345,9 +345,9 @@ earns it.
 | [`fixup.commit`](07-history-rewriting.md#fixupcommit--add-changes-to-an-earlier-commit) | Add changes to an earlier commit | Operation | Built | Built |
 | [`drag.list-drop-entries`](07-history-rewriting.md#draglist-drop-entries--what-a-drop-offers) | What a drop offers | Derivation | Built | Built |
 | [`drag.drop`](07-history-rewriting.md#dragdrop--drag-a-commit-or-a-branch-onto-the-timeline) | Drag a commit or a branch onto the timeline | View | Built | Built |
-| [`range-diff.read-last-rewrite`](07-history-rewriting.md#range-diffread-last-rewrite--read-what-a-branch-was-before-it-was-rewritten) | Read what a branch was before it was rewritten | Read | Specified | Planned |
-| [`range-diff.ranges`](07-history-rewriting.md#range-diffranges--the-two-lines-of-commits-compared) | The two lines of commits compared | Derivation | Specified | Planned |
-| [`range-diff.read-pairs`](07-history-rewriting.md#range-diffread-pairs--read-what-a-rewrite-changed-commit-by-commit) | Read what a rewrite changed, commit by commit | Read | Specified | Planned |
+| [`range-diff.read-last-rewrite`](07-history-rewriting.md#range-diffread-last-rewrite--read-what-a-branch-was-before-it-was-rewritten) | Read what a branch was before it was rewritten | Read | Built | Planned |
+| [`range-diff.ranges`](07-history-rewriting.md#range-diffranges--the-two-lines-of-commits-compared) | The two lines of commits compared | Derivation | Built | Planned |
+| [`range-diff.read-pairs`](07-history-rewriting.md#range-diffread-pairs--read-what-a-rewrite-changed-commit-by-commit) | Read what a rewrite changed, commit by commit | Read | Built | Planned |
 | [`range-diff.compare`](07-history-rewriting.md#range-diffcompare--see-what-a-rewrite-changed) | See what a rewrite changed | Operation | Specified | Planned |
 | [`range-diff.page`](07-history-rewriting.md#range-diffpage--what-a-rewrite-changed-commit-by-commit) | What a rewrite changed, commit by commit | View | Specified | Planned |
 

@@ -15,6 +15,8 @@ mod file_search;
 mod github;
 #[path = "reads/golden.rs"]
 mod golden;
+#[path = "reads/range_diff.rs"]
+mod range_diff;
 #[path = "reads/remote_tags.rs"]
 mod remote_tags;
 #[path = "reads/remotes_and_stashes.rs"]

@@ -1307,6 +1307,10 @@ Rules:
 - A reference with none of these among its 50 last moves gives nothing; so does a move whose commit before is no longer
   in the repository.
 
+As built, a feature asks for it with `Query::LastRewrite { reference }`, the full name of the reference. A reference
+with no reflog, or none at all, gives nothing; an amend says whether the commit before has a parent, read with
+`git rev-parse --verify --quiet <before>^`, and so does the check that the commit before is still there.
+
 Acceptance:
 
 - [ ] After `git rebase main` on `feature`, it gives the tip before, the tip after and the commit of `main` it was onto.
@@ -1359,8 +1363,11 @@ what changed in it, a commit added, a commit dropped.
 - **Reads**:
   - how many commits each line has, `git rev-list --count <range> --` for each; more than 1,000 on either side are
     not compared (Q1138);
-  - `git range-diff --no-color --no-notes --abbrev=<length of a full hash> <ranges>`, the ranges of `range-diff.ranges`;
-  - the subject of each commit named, `git log --no-walk=unsorted -z --format=%H%x00%s <hashes> --`.
+  - `git range-diff --no-color --no-notes --abbrev=64 <ranges>`, the ranges of `range-diff.ranges`: git takes a length
+    past that of its hashes as the whole hash, 40 characters or 64;
+  - the subject of each commit named, `git log --no-walk=unsorted --stdin -z --format=%H%x00%s`, the hashes given on its
+    standard input, as there may be more than a command line holds: on the line of a pair git writes the subject of
+    the commit before, and the page shows the one now.
 - **Uses**: `range-diff.ranges`, `activity.track`, which says **Comparing the commits of `<branch>`** while it runs for
   more than half a second.
 - **Extension**: the engine's, asked by the tab of `range-diff.page`.
@@ -1371,6 +1378,11 @@ missing on one side written `-` with a line of `-` in place of its hash; the mar
 (added, only now) or `<` (dropped, only before). The lines after a pair that start with four spaces are its diff of
 diffs: with the four spaces taken off, each starts with the mark of the outer diff (a space, `-` before, `+` now), then
 the line of the diff it is in, under headings `## Commit message ##`, `## <path> ##` and `## Metadata ##`.
+
+As built, a heading is written with a space before it, as a line of the diff it is in, and each part also starts a hunk
+of the outer diff, `@@ Commit message`, `@@ <path>`. A pair changed in its message, or in what it changes, has a line
+of `-` or `+` under that heading or in that hunk; a heading with no line changed under it, there to give the lines
+around, does not count.
 
 Acceptance:
 

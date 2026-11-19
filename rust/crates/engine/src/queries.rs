@@ -4,6 +4,7 @@ use git::read::branch;
 use git::read::diff::{DiffRequest, FileVersion, VersionRequest, read_sides};
 use git::read::identity::{IdentityRequest, read_identity};
 use git::read::merge::{PredictedConflictsRequest, read_predicted_conflicts};
+use git::read::range_diff::{self, LastRewriteRequest};
 use git::read::rebase::{self, LineRequest, PushedRequest};
 use git::read::reflog::{ReflogRequest, read_entries};
 use git::read::remote::{RemotesRequest, read_remotes};
@@ -50,6 +51,9 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::Line { commit } => rebase::read_line(git, &LineRequest { commit: commit.clone() }).map(Answer::Line),
         Query::Messages { commits } => rebase::read_messages(git, commits).map(Answer::Messages),
         Query::GitVersion | Query::StackedBranches { .. } => crate::stacking::answer(git, query),
+        Query::LastRewrite { reference } => {
+            range_diff::read_last_rewrite(git, &last_rewrite_request(reference)).map(Answer::LastRewrite)
+        }
         Query::Pushed { commit } => {
             rebase::read_pushed(git, &PushedRequest { commit: commit.clone() }).map(Answer::Names)
         }
@@ -302,6 +306,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::Line { commit } => describe_line(commit),
         Query::Messages { commits } => describe_messages(commits),
         Query::GitVersion | Query::StackedBranches { .. } => crate::stacking::describe(query),
+        Query::LastRewrite { reference } => describe_last_rewrite(reference),
         Query::Pushed { .. } | Query::CommitFiles { .. } => describe_commit_reads(query),
         Query::FormatPatch { commits } => describe_format_patch(commits),
         Query::PatchCheck { patch } => describe_patch_check(patch),
@@ -410,5 +415,17 @@ fn describe_patch_check(patch: &model::patch::PatchInput) -> String {
     match patch {
         model::patch::PatchInput::File(file) => format!("git apply --check --3way -- {}", file.display()),
         model::patch::PatchInput::Text(_) => String::from("git apply --check --3way"),
+    }
+}
+
+/// The command that reads the last rewrite of a reference.
+fn describe_last_rewrite(reference: &str) -> String {
+    git::command_line(&range_diff::last_rewrite_arguments(&last_rewrite_request(reference)))
+}
+
+/// The request of the last rewrite of a reference.
+fn last_rewrite_request(reference: &str) -> LastRewriteRequest {
+    LastRewriteRequest {
+        reference: reference.to_owned(),
     }
 }

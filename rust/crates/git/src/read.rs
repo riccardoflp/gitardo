@@ -25,6 +25,7 @@ pub mod log_records;
 pub mod merge;
 pub mod merge_view;
 pub mod patch;
+pub mod range_diff;
 pub mod rebase;
 pub mod reflog;
 pub mod remote;
