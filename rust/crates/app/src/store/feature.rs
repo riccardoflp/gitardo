@@ -483,6 +483,7 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             (blamed @ (FollowUp::ShowBlame(_) | FollowUp::HideBlame(..) | FollowUp::OpenFile(_)), _) => {
                 effects.extend(super::blame::carry_out(state, blamed));
             }
+            (FollowUp::TagsOnRemote(changed), Some(folder)) => super::tag_marks::follow(state, &folder, &changed),
             (tasks @ (FollowUp::RunTasks(_) | FollowUp::StopTasks(_)), _) => {
                 effects.extend(super::tasks_tab::carry_out(state, tasks));
             }

@@ -119,3 +119,44 @@ fn tag_delete_remote__a_branch_of_the_name_of_the_tag_on_origin_is_left_there() 
     let _ended = cli_done(&repository, &["--yes", "--target", "tag:v1", "tag.delete-remote"]);
     assert_eq!(remote.git(&["branch", "--list", "v1"]).trim(), "v1");
 }
+
+#[test]
+fn tag_push_all__with_v1_on_origin_the_tags_made_here_are_pushed_with_tags_and_origin_has_the_three() {
+    let (repository, remote) = with_v1_pushed();
+    repository.tag("v2");
+    repository.tag("v3");
+    let ended = cli_done(&repository, &["tag.push-all", "tags=v2,v3"]);
+    assert!(ended.out.contains("> git push origin --tags"), "{}", ended.out);
+    assert_eq!(remote.git(&["tag", "--list"]), "v1\nv2\nv3\n");
+}
+
+#[test]
+fn tag_push_all__v3_unticked_pushes_v2_named_in_full() {
+    let (repository, remote) = with_v1_pushed();
+    repository.tag("v2");
+    repository.tag("v3");
+    let ended = cli_done(&repository, &["tag.push-all", "tags=v2"]);
+    assert!(ended.out.contains("> git push origin refs/tags/v2"), "{}", ended.out);
+    assert_eq!(remote.git(&["tag", "--list"]), "v1\nv2\n");
+}
+
+#[test]
+fn tag_push_all__v1_moved_here_is_not_pushed_and_the_others_are_named_in_full() {
+    let (mut repository, remote) = with_v1_pushed();
+    let _second = repository.commit("Change a", &[("a.txt", "a, again")]);
+    let _moved = repository.git(&["tag", "--force", "v1"]);
+    repository.tag("v2");
+    let ended = cli_done(&repository, &["tag.push-all", "tags=v2"]);
+    assert!(ended.out.contains("> git push origin refs/tags/v2"), "{}", ended.out);
+    let on_origin = remote.git(&["rev-parse", "refs/tags/v1"]);
+    assert_ne!(on_origin, repository.git(&["rev-parse", "refs/tags/v1"]));
+}
+
+#[test]
+fn tag_push_all__with_every_tag_on_origin_it_says_so_and_pushes_nothing() {
+    let (repository, _remote) = with_v1_pushed();
+    let ended = cli(&repository, &["tag.push-all"]);
+    let said = format!("{}{}", ended.out, ended.errors);
+    assert!(said.contains("origin has every tag of this repository."), "{said}");
+    assert!(!said.contains("> git push"), "{said}");
+}

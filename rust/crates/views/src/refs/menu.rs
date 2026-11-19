@@ -41,6 +41,32 @@ pub(super) enum ListCommand {
     Run(&'static str),
     /// The operation at a place among those of the list, from [`list_operations`].
     Operation(usize),
+    /// **Check tags on `<remote>`**, for the remote of `remote.default` (`tag.remote-marks`).
+    CheckTags,
+}
+
+/// What the menu of the Tags list is told: the remote **Check tags on** asks, from `remote.default`, none without a
+/// remote; and whether **Push tags…** is offered: before any check, or while the remote checked lacks a tag.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub(super) struct TagsMenu {
+    /// The remote of `remote.default`.
+    pub(super) remote: Option<String>,
+    /// **Check tags on `<remote>`**.
+    pub(super) check: String,
+    /// Whether **Push tags…** is in the menu.
+    pub(super) offers_push: bool,
+}
+
+/// What the menu of the Tags list is told of the repository and of the marks of its tags.
+pub(super) fn tags_menu(state: &ReferencesState<'_>) -> TagsMenu {
+    let remote = model::remote::default(&state.repository.remotes);
+    let tags = &state.references.tags;
+    let lacks_one = state.tag_marks.is_none_or(|marks| marks.not_pushed(tags) > 0);
+    TagsMenu {
+        offers_push: remote.is_some() && !tags.is_empty() && lacks_one,
+        check: remote.as_deref().map(words::check_tags_on).unwrap_or_default(),
+        remote,
+    }
 }
 
 /// The menu of a reference of the rail, with the operations of the reference, from [`operations`].
@@ -168,15 +194,39 @@ pub(super) fn list_operations(state: &ReferencesState<'_>, list: &RailList) -> V
 }
 
 /// The menu of a list, none for a list that has none: the order of the local branches, of each remote and of the
-/// tags, checked as it is; the operations of the Worktrees list, from [`list_operations`]; and **Add submodule…**.
+/// tags, checked as it is; the operations of the Worktrees list, from [`list_operations`]; **Add submodule…**; and,
+/// in the Tags list of a repository with a remote, **Check tags on `<remote>`** and **Push tags…** (`tag.remote-marks`,
+/// `tag.push-all`).
 pub(super) fn list_menu<'t>(
     list: &RailList,
-    order: SortOrder,
+    (order, tags): (SortOrder, &'t TagsMenu),
     operations: &'t [OperationEntry],
 ) -> Vec<MenuEntry<'t, ListCommand>> {
     let sort = |label, by| MenuEntry::Item(icons::choice(label, ListCommand::Sort(by), order == by));
     match list {
-        RailList::Local | RailList::Remote(_) | RailList::Tags => vec![
+        RailList::Tags => {
+            let mut entries = vec![
+                sort(words::SORT_BY_NAME, SortOrder::Name),
+                sort(words::SORT_BY_DATE, SortOrder::Date),
+            ];
+            if tags.remote.is_some() {
+                entries.push(MenuEntry::Separator);
+                entries.push(MenuEntry::Item(icons::action(
+                    icons::READ_AGAIN,
+                    &tags.check,
+                    ListCommand::CheckTags,
+                )));
+                if tags.offers_push {
+                    entries.push(MenuEntry::Item(icons::operation_item(
+                        words::PUSH_TAGS,
+                        "tag.push-all",
+                        ListCommand::Run("tag.push-all"),
+                    )));
+                }
+            }
+            entries
+        }
+        RailList::Local | RailList::Remote(_) => vec![
             sort(words::SORT_BY_NAME, SortOrder::Name),
             sort(words::SORT_BY_DATE, SortOrder::Date),
         ],

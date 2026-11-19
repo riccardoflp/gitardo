@@ -78,6 +78,10 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::FileNames { path } => history::file_names(git, path),
         Query::CommittedLines(query) => history::committed_lines(git, query),
         Query::Blame(query) => history::blame(git, query),
+        Query::RemoteTags { remote } => {
+            let request = git::read::tag::RemoteTagsRequest { remote: remote.clone() };
+            git::read::tag::read_remote_tags(git, &request).map(Answer::RemoteTags)
+        }
     }
 }
 
@@ -321,7 +325,13 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
+        Query::RemoteTags { remote } => describe_remote_tags(remote),
     }
+}
+
+/// The commands that ask a remote for its tags and read those of the repository (`tag.read-remote-tags`).
+fn describe_remote_tags(remote: &str) -> String {
+    format!("git ls-remote --tags --refs {remote}, git for-each-ref --format=%(objectname)%00%(refname)%00 refs/tags")
 }
 
 /// The commands that read what a rewrite needs of a commit: the remote branches that have it, the files it changes.

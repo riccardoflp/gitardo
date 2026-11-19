@@ -111,6 +111,10 @@ pub enum QuickCommand {
     CleanUpBranches,
     /// **Set upstream of the current branch…** (`branch.set-upstream`).
     SetUpstream,
+    /// **Check tags on the remote**, for the remote of `remote.default` (`tag.remote-marks`).
+    CheckTags,
+    /// **Push tags…** (`tag.push-all`).
+    PushTags,
     /// **Manage remotes** (`remote.manage`).
     ManageRemotes,
     /// **Switch Worktree…** (`worktree.switch`).
@@ -161,7 +165,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 55] = [
+    pub const ALL: [QuickCommand; 57] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -206,6 +210,8 @@ impl QuickCommand {
         QuickCommand::BrowseReflog,
         QuickCommand::CleanUpBranches,
         QuickCommand::SetUpstream,
+        QuickCommand::CheckTags,
+        QuickCommand::PushTags,
         QuickCommand::ManageRemotes,
         QuickCommand::SwitchWorktree,
         QuickCommand::CreateWorktree,
@@ -227,6 +233,7 @@ impl QuickCommand {
             || matches!(
                 self,
                 QuickCommand::ShowStashes
+                    | QuickCommand::CheckTags
                     | QuickCommand::ReviewConflicts
                     | QuickCommand::ShowFiles
                     | QuickCommand::SearchInFiles
@@ -264,6 +271,7 @@ impl QuickCommand {
             QuickCommand::StashChanges => Some("stash.push"),
             QuickCommand::CleanUpBranches => Some("branch.clean-up"),
             QuickCommand::SetUpstream => Some("branch.set-upstream"),
+            QuickCommand::PushTags => Some("tag.push-all"),
             QuickCommand::ManageRemotes => Some("remote.manage"),
             QuickCommand::AddSubmodule => Some("submodule.add"),
             QuickCommand::Compare => Some("compare.choose"),

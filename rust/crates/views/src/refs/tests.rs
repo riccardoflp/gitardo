@@ -58,9 +58,9 @@ fn tag(name: &str) -> Tag {
 }
 
 /// Everything the rail is drawn from, owned.
-struct Rail {
-    repository: RepositoryState,
-    references: References,
+pub(super) struct Rail {
+    pub(super) repository: RepositoryState,
+    pub(super) references: References,
     lists: RailLists,
     colors: HashMap<String, usize>,
     favorites: Vec<String>,
@@ -71,7 +71,7 @@ struct Rail {
 }
 
 impl Rail {
-    fn new(branches: &[&str], remotes: &[&str], tags: &[&str]) -> Rail {
+    pub(super) fn new(branches: &[&str], remotes: &[&str], tags: &[&str]) -> Rail {
         let references = References {
             branches: branches.iter().map(|name| branch(name)).collect(),
             remote_branches: remotes.iter().map(|name| remote(name)).collect(),
@@ -106,8 +106,9 @@ impl Rail {
         }
     }
 
-    fn state(&self) -> ReferencesState<'_> {
+    pub(super) fn state(&self) -> ReferencesState<'_> {
         ReferencesState {
+            tag_marks: None,
             repository: &self.repository,
             references: &self.references,
             lists: &self.lists,

@@ -526,6 +526,7 @@ own dash.
 | Branch; create a branch | `git-branch`, `git-branch-plus` |
 | Tag; create a tag | `tag` |
 | Remote | `cloud` |
+| A tag a remote does not have; one it has under another object | `cloud-off`, `cloud-alert` |
 | Commit; open a commit as a page | `git-commit-horizontal`, `maximize-2` |
 | Merge; cherry-pick | `git-merge`, `cherry` |
 | Compare; swap the two sides | `git-compare-arrows`, `arrow-left-right` |
@@ -1813,8 +1814,8 @@ worktrees, the tags and the submodules: in lists that fold, on the left of the w
   it is narrowed to its icons.
 - **Uses**: `refs.filter`, `refs.scope-line`, `refs.sort`, `refs.recent`, `refs.favorite`, `filter.show-only`,
   `filter.show-all`, `graph.show-in-graph`,
-  `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `drag.drop`, `branch.`, `tag.`, `stash.`,
-  `worktree.`, `submodule.`.
+  `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `drag.drop`, `tag.remote-marks`, `branch.`, `tag.`,
+  `stash.`, `worktree.`, `submodule.`.
 - **Extension**: the references beside the graph and in the Branches view (`RefsTree` in `src/webview/RefsTree.tsx`).
   They list what their own filter lists (`refs.listed`), whatever the graph is narrowed to, the branches it leaves out
   dimmed (`filter.list-too`). A click on a branch selects its tip in the graph and narrows nothing, as it did before;
@@ -1851,7 +1852,10 @@ worktrees, the tags and the submodules: in lists that fold, on the left of the w
   dragged onto the timeline (`drag.drop`).
 - A right click opens the menu of the reference (`branch.`, `remote.`, `tag.`, `stash.`, `worktree.`, `submodule.`); a
   right click on the title of a list, or its **…**, opens the list's own menu. The Worktrees list has **Create
-  worktree…** on its title and **…** with what concerns worktrees; the Submodules list **Add submodule…**.
+  worktree…** on its title and **…** with what concerns worktrees; the Submodules list **Add submodule…**; the Tags
+  list, in a repository with a remote, **Check tags on `<remote>`** and **Push tags…** after the order of its tags.
+- Once a remote was checked, a tag it lacks has the mark of `tag.remote-marks` after its name and in its tooltip, and
+  the count of the Tags list says how many it lacks, `24 · 2 not on origin`.
 
 Acceptance:
 

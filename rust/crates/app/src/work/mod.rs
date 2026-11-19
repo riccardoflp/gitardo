@@ -171,6 +171,12 @@ fn words(kind: &JobKind) -> (Text, Text) {
                 Text::from(activity::OPENING_WORKSPACE),
             );
         }
+        JobKind::ReadRemoteTags { request, .. } => {
+            return (
+                Text::from(activity::asking_for_tags(&request.remote)),
+                Text::from(activity::CHECKING_TAGS),
+            );
+        }
         JobKind::Search(search) => {
             let cause = match search {
                 SearchJob::Matches { .. } => search_words::SEARCHING_HISTORY,

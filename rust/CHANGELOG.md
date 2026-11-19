@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Check tags on origin**, in the **…** of the **Tags** list of the branch rail and, as **Check tags on the remote**,
+  in Quick search, asks the remote which tags it has, and marks those it lacks: a cloud struck through after the name
+  of a tag not on it, `Not on origin` in its tooltip, and a cloud with an exclamation mark for a tag it has under
+  another object; on the labels of the timeline too. The count of the list says `· 2 not on origin`. The marks stay
+  while the window is open and follow what Gitardo does to the tags: a tag made is not on the remote, one pushed is,
+  one deleted from the remote is not any more. Nothing is asked of a remote before the check.
+- **Push tags…**, in the **…** of the **Tags** list and in Quick search, asks the remote for its tags and lists those
+  it lacks, newest first, all ticked: `git push origin --tags` when all are pushed, else each tag named. A tag the
+  remote has under another object is said in the detail of the list, not pushed.
 - Rebasing a branch onto another, or a branch dropped on a commit, moves with it the other local branches on the commits
   it makes again, a stack of branches each started from the one under it: `git rebase --update-refs`, and what is said
   after names them. A branch checked out in another worktree stays, and so do all of them with a git older than 2.38;

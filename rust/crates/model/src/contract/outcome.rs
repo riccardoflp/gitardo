@@ -287,6 +287,12 @@ pub enum Query {
         /// The top folders of the worktrees, one for `worktree.remove`, those picked for `branch.clean-up`.
         worktrees: Vec<std::path::PathBuf>,
     },
+    /// The tags a remote has, asked of the remote over the network, and those of the repository
+    /// (`tag.read-remote-tags`), for `tag.push-all`. The answer is [`super::Answer::RemoteTags`].
+    RemoteTags {
+        /// The remote, by its name.
+        remote: String,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

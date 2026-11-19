@@ -1,8 +1,11 @@
 //! `tag.delete-remote`: deletes a tag on a remote, for everyone, and here too when asked.
 
 use model::contract::{
-    Answer, AnswerKey, Answers, Choice, Context, Danger, Outcome, Plan, Question, QuestionKind, Step, Text, Undo,
+    Answer, AnswerKey, Answers, Choice, Context, Danger, FollowUp, Outcome, Plan, Question, QuestionKind, Step, Text,
+    Undo,
 };
+
+use model::tag::TagsOnRemote;
 
 use crate::branch::target::{self, refuse};
 
@@ -61,7 +64,10 @@ pub fn delete_remote(context: &Context, answers: &Answers) -> Outcome {
             "A push changes the remote, which Undo does not take back. While the tag is still here, Push tag sends it \
              again.",
         )),
-        after: Vec::new(),
+        after: vec![FollowUp::TagsOnRemote(Box::new(TagsOnRemote::not_pushed(
+            Some(&remote),
+            vec![name.to_owned()],
+        )))],
         on_failure: Vec::new(),
     })
 }

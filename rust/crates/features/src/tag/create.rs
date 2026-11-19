@@ -1,8 +1,11 @@
 //! `tag.create`: puts a tag on a commit, a lightweight one, or an annotated one with a message.
 
 use model::contract::{
-    AnswerKey, Answers, Context, Danger, Outcome, Plan, Question, QuestionKind, Step, Target, Text, Undo, Validation,
+    AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Question, QuestionKind, Step, Target, Text, Undo,
+    Validation,
 };
+
+use model::tag::TagsOnRemote;
 
 use crate::branch::target::refuse;
 
@@ -44,7 +47,10 @@ pub fn create(context: &Context, answers: &Answers) -> Outcome {
         undo: Undo::Impossible(Text::from(
             "Not taken back by Undo, since nothing moved HEAD: delete the tag instead.",
         )),
-        after: Vec::new(),
+        after: vec![FollowUp::TagsOnRemote(Box::new(TagsOnRemote::not_pushed(
+            None,
+            vec![name.to_owned()],
+        )))],
         on_failure: Vec::new(),
     })
 }

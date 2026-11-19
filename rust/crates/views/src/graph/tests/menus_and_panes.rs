@@ -213,7 +213,7 @@ fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_no
             .collect::<Vec<_>>()
     };
 
-    let all = fitted_pills(&labels, room(1_000.0), width_of);
+    let all = fitted_pills(&labels, (room(1_000.0), None), width_of);
     assert_eq!(
         words(&all),
         ["main", "feature", "origin/main", "origin/feature", "v1.0"]
@@ -221,7 +221,7 @@ fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_no
     assert!((all.width - 500.0).abs() < 0.01);
     assert!(!all.hides_some);
 
-    let some = fitted_pills(&labels, room(200.0), width_of);
+    let some = fitted_pills(&labels, (room(200.0), None), width_of);
     assert_eq!(words(&some), ["main", "feature", "+3"]);
     assert!(some.width <= 200.0);
     assert!(some.hides_some);
@@ -231,7 +231,7 @@ fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_no
         "the list says them"
     );
 
-    let shortened = fitted_pills(&labels[2..], room(120.0), width_of);
+    let shortened = fitted_pills(&labels[2..], (room(120.0), None), width_of);
     assert_eq!(words(&shortened), ["origin/main", "+2"]);
     assert!(
         shortened
@@ -240,10 +240,10 @@ fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_no
             .is_some_and(|pill| (pill.width - 70.0).abs() < 0.01)
     );
 
-    let count = fitted_pills(&labels, room(50.0), width_of);
+    let count = fitted_pills(&labels, (room(50.0), None), width_of);
     assert_eq!(words(&count), ["+5"]);
 
-    let none = fitted_pills(&labels, room(30.0), width_of);
+    let none = fitted_pills(&labels, (room(30.0), None), width_of);
     assert!(none.pills.is_empty(), "not even the count fits");
     assert!(none.width.abs() < 0.01);
 }

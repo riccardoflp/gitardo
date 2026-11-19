@@ -10,7 +10,7 @@ use ui::{
 
 use super::ReferencesState;
 use super::entry::entry_row;
-use super::menu::{ListCommand, list_menu, list_operations};
+use super::menu::{ListCommand, list_menu, list_operations, tags_menu};
 use super::rows::{Entry, ListHead, RailRow};
 use super::stashes::{StashesRow, empty_height, is_of_stashes, stashes_view};
 use super::submodules::{SubmodulesRow, is_of_submodules, section};
@@ -197,13 +197,18 @@ fn list_icon(list: &RailList) -> Icon {
     }
 }
 
-/// The count of a list: how many it lists, or `<matches> of <all>` while something is typed and it is not empty.
-fn count_words(head: &ListHead) -> String {
-    if head.is_typed && head.all > 0 {
+/// The count of a list: how many it lists, or `<matches> of <all>` while something is typed and it is not empty; for
+/// the Tags list, then how many tags the remote checked lacks, `24 · 2 not on origin` (`tag.remote-marks`).
+fn count_words(head: &ListHead, state: &ReferencesState<'_>) -> String {
+    let count = if head.is_typed && head.all > 0 {
         words::matches_of(head.matches, head.all)
     } else {
         head.all.to_string()
-    }
+    };
+    let not_pushed = (head.list == RailList::Tags)
+        .then(|| crate::tag::not_pushed_words(state.tag_marks, &state.references.tags))
+        .flatten();
+    not_pushed.map_or(count.clone(), |words| format!("{count} {words}"))
 }
 
 /// The icon of a list of **Kept aside**, in the narrow layout.
@@ -235,7 +240,8 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
     let menu_key = ("list menu", &head.list);
     let operations = list_operations(context.state, &head.list);
-    let entries = list_menu(&head.list, context.state.sort, &operations);
+    let tags = tags_menu(context.state);
+    let entries = list_menu(&head.list, (context.state.sort, &tags), &operations);
     let is_menu_open = ui.is_menu_open(menu_key);
     if response.contains_pointer || is_menu_open {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
@@ -255,7 +261,7 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
             ui.open_menu(menu_key, MenuAnchor::Below(rect));
         }
     }
-    let count = count_words(head);
+    let count = count_words(head, context.state);
     let (kind, tone) = if is_kept {
         (TextKind::Body, Tone::Normal)
     } else {
@@ -281,6 +287,9 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     }
     match ui.menu(menu_key, &entries) {
         Some(ListCommand::Operation(index)) => intents.extend(crate::branch::chosen(&operations, index)),
+        Some(ListCommand::CheckTags) => {
+            intents.extend(tags.remote.map(|remote| Intent::Rail(RailIntent::CheckTags(remote))));
+        }
         command => intents.extend(command.and_then(list_command_intent)),
     }
     intents
@@ -294,6 +303,7 @@ fn list_command_intent(command: ListCommand) -> Option<Intent> {
             model::contract::FeatureId(feature),
             model::contract::Target::Head,
         ))),
-        ListCommand::Operation(_) => None, // A place among the operations is run by the caller.
+        // A place among the operations, and the remote of a check, are the caller's.
+        ListCommand::Operation(_) | ListCommand::CheckTags => None,
     }
 }

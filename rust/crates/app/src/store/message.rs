@@ -108,6 +108,9 @@ pub enum Message {
         /// The authors, or what git said when the read failed.
         result: Result<Vec<model::commit::Author>, String>,
     },
+    /// A job that asked a remote for its tags is done, with the tags of the remote and of the repository, or what git
+    /// said when the remote could not be asked (`tag.read-remote-tags`, `tag.remote-marks`).
+    RemoteTagsRead(JobId, Result<model::tag::RemoteTags, String>),
     /// A job that read the signature of a commit shown is done (`details.read-signature`).
     SignatureRead {
         /// The job.
@@ -365,6 +368,14 @@ pub enum JobKind {
         folder: PathBuf,
         /// Which history.
         request: git::read::commit::AuthorsRequest,
+    },
+    /// Asks a remote for its tags, and reads those of the repository, for the marks of the tags it lacks
+    /// (`tag.read-remote-tags`, `tag.remote-marks`).
+    ReadRemoteTags {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// Which remote.
+        request: git::read::tag::RemoteTagsRequest,
     },
     /// Reads the signature of the commit of the inspector or of a page (`details.read-signature`).
     ReadSignature {

@@ -181,11 +181,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         FollowUp::OpenFile(file) => writeln!(out, "Open {} at line {}", file.blame.path, file.line)?,
         FollowUp::EditFile(path, line) => writeln!(out, "Open {path} at line {line}")?,
         FollowUp::OpenFileDiff(sides) => {
-            writeln!(
-                out,
-                "Compare {} of {} with {}",
-                sides.path, sides.right.name, sides.left.name
-            )?;
+            let (path, right, left) = (&sides.path, &sides.right.name, &sides.left.name);
+            writeln!(out, "Compare {path} of {right} with {left}")?;
         }
         FollowUp::ShowFolder(folder) => writeln!(out, "Show {} in this window", folder.display())?,
         FollowUp::OfferRun(offered) => writeln!(out, "Next: {} ({})", offered.label, offered.feature.0)?,
@@ -213,7 +210,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         | FollowUp::CheckBisect
         | FollowUp::RememberInputs(_)
         | FollowUp::RunTasks(_)
-        | FollowUp::StopTasks(_) => {}
+        | FollowUp::StopTasks(_)
+        | FollowUp::TagsOnRemote(_) => {}
     }
     Ok(())
 }

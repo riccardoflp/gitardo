@@ -52,6 +52,9 @@ pub struct HistoryState<'a> {
     pub hover_left_at: Option<Duration>,
     /// The list of all the labels of a commit, while it is open (`graph.label-overflow`).
     pub label_list: Option<&'a super::label_overflow::LabelList>,
+    /// What the last **Check tags on `<remote>`** said of the tags, for the marks on their labels; none before it
+    /// (`tag.remote-marks`).
+    pub tag_marks: Option<&'a model::tag::TagMarks>,
     /// When the list of the labels was closed last, so that it does not open again from where the pointer rested
     /// since before.
     pub label_list_closed_at: Option<Duration>,

@@ -16,6 +16,7 @@ pub fn job_done(message: &Message) -> Option<JobId> {
         | Message::DetailsRead { job, .. }
         | Message::CommitPageRead { job, .. }
         | Message::SignatureRead { job, .. }
+        | Message::RemoteTagsRead(job, _)
         | Message::AuthorsRead { job, .. } => Some(*job),
         Message::RepositoryRead { job, result, .. } => {
             let follows = result

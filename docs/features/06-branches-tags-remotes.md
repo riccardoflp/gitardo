@@ -964,7 +964,7 @@ Once a remote was asked for its tags, those it lacks are marked in the branch ra
 made here and never pushed is seen before it is missed.
 
 - **Kind**: View
-- **Function**: `views::tag::remote_marks_view(state: &TagMarks, ui: &mut Ui) -> Vec<Intent>`
+- **Function**: `views::tag::remote_marks_view(state: Option<&TagMarks>, tag: (&str, &CommitId)) -> Option<(Icon, String)>`
 - **Entry points**: **Check tags on `<remote>`** in the **…** of the **Tags** list of the branch rail, and **Check tags
   on the remote** in Quick search, for the remote of `remote.default`; the marks then show in the **Tags** list and on
   the labels of the timeline.
@@ -987,6 +987,14 @@ What it shows:
   **Push tags…**, pushed; deleted from the remote, not pushed. A fetch leaves the marks as they are; **Check tags on
   `<remote>`** asks again.
 - Nothing is asked of a remote, and nothing is marked, before **Check tags on `<remote>`** is chosen.
+
+As built, the function gives the mark of one tag, its icon and its tooltip, which the branch rail and the labels draw;
+the marks are `model::tag::TagMarks`, kept by the window for each repository, and the operations on tags say what they
+changed with the follow-up `TagsOnRemote` (`tag.create`, `tag.push`, `tag.push-all`, `tag.delete-remote`), which the
+marks of the remote checked follow. A tag the check did not know is not pushed, and a tag pushed at another commit than
+the one it is at now is different there, so that a tag made or moved since needs no follow-up. On a label the mark is
+the second icon, after the tag's and before its name, since a label draws its icons before its words; its tooltip is
+the label's. **Push tags…** is in the **…** before any check too, since it asks the remote itself.
 
 Acceptance:
 
@@ -1028,6 +1036,11 @@ Sends to a remote the tags it does not have, every one or those ticked, in one p
 - **Refuses**: before the pick, "`<remote>` has every tag of this repository." when it lacks none; "No tags
   selected." when the pick is accepted with nothing ticked; "This repository has no remote." with **Add remote…**
   (`remote.add`).
+
+As built, the tags of the remote are read before the pick by a query of the engine, `Query::RemoteTags`, which the
+engine answers as it answers the others, tracked as an activity that says **Asking `<remote>` for its tags**. A pick of
+several has no entry that cannot be ticked, nor a placeholder: the tags the remote has under another object are said in
+the detail of the pick, `origin has another tag of this name, which is not pushed: v1.`, and are not listed.
 - **Uses**: `tag.read-remote-tags`, `tag.compare-remote`, `tag.remote-marks`, `remote.default`, `remote.add`,
   `tag.push`, `tag.delete-remote`.
 

@@ -1,6 +1,7 @@
 //! `tag.push`: sends a tag to the remote.
 
-use model::contract::{Answers, Context, Danger, Outcome, Plan, Step, Text, Undo};
+use model::contract::{Answers, Context, Danger, FollowUp, Outcome, Plan, Step, Text, Undo};
+use model::tag::TagsOnRemote;
 
 use crate::branch::target::{self, refuse};
 
@@ -26,7 +27,10 @@ pub fn push(context: &Context, _answers: &Answers) -> Outcome {
         )],
         danger: Danger::None,
         undo: Undo::Impossible(Text::from("A push changes the remote, which Undo does not take back.")),
-        after: Vec::new(),
+        after: vec![FollowUp::TagsOnRemote(Box::new(TagsOnRemote::pushed(
+            &remote,
+            vec![name.to_owned()],
+        )))],
         on_failure: Vec::new(),
     })
 }

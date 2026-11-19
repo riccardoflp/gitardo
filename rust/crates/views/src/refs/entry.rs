@@ -265,6 +265,11 @@ pub(super) fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, mark
                 ));
             }
         }
+        Entry::Tag(tag) => {
+            if let Some((_, said)) = crate::tag::remote_marks_view(state.tag_marks, (&tag.name, &tag.commit)) {
+                lines.push(said);
+            }
+        }
         _ => {}
     }
     if marks.is_dimmed {
@@ -339,7 +344,7 @@ fn draw_entry(ui: &mut Ui<'_>, context: Context<'_, '_>, (entry, marks): (&Entry
             let _ = ui.label(parts.rest(), &Label::new(&branch.name).tone(tone));
         }
         Entry::Worktree(worktree) => worktree_row(ui, context.state, (worktree, marks), rect),
-        _ => kept_entry(ui, entry, marks, rect),
+        _ => kept_entry(ui, context.state, (entry, marks), rect),
     }
 }
 
@@ -415,8 +420,9 @@ pub(super) fn branch_stands(branch: &Branch) -> Option<String> {
     })
 }
 
-/// An entry of a list kept aside, or of the tags: its icon and its name under the title of its list.
-fn kept_entry(ui: &mut Ui<'_>, entry: &Entry<'_>, marks: Marks, rect: Rect) {
+/// An entry of a list kept aside, or of the tags: its icon and its name under the title of its list, and after the name
+/// of a tag the mark of the remote checked (`tag.remote-marks`).
+fn kept_entry(ui: &mut Ui<'_>, state: &ReferencesState<'_>, (entry, marks): (&Entry<'_>, Marks), rect: Rect) {
     let theme = *ui.theme();
     let indent = indent(&theme);
     let shown = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
@@ -428,6 +434,11 @@ fn kept_entry(ui: &mut Ui<'_>, entry: &Entry<'_>, marks: Marks, rect: Rect) {
         _ => icons::SUBMODULE,
     };
     ui.icon_in(parts.left(theme.sizes.icon), icon, Tone::Muted);
+    if let Entry::Tag(tag) = entry
+        && let Some((mark, _)) = crate::tag::remote_marks_view(state.tag_marks, (&tag.name, &tag.commit))
+    {
+        ui.icon_in(parts.right(theme.sizes.icon), mark, Tone::Warning);
+    }
     let text = entry.name();
     let kind = if entry.is_current() {
         TextKind::Strong

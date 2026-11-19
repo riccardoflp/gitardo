@@ -102,6 +102,8 @@ pub enum Answer {
     Token(Option<crate::github::Token>),
     /// The models the AI provider listed, or why it did not (`ai.choose-model`).
     AiModels(crate::ai::AiModels),
+    /// The tags a remote has and those of the repository (`tag.read-remote-tags`).
+    RemoteTags(crate::tag::RemoteTags),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

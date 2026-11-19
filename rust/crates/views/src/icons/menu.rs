@@ -37,7 +37,7 @@ fn history_icon(feature: &str) -> Option<Icon> {
         "sync.sync" => super::SYNC,
         "sync.fetch" => super::FETCH,
         "sync.pull" | "sync.pull-with" | "branch.fast-forward" | "submodule.update-to-latest" => super::PULL,
-        "sync.push" | "sync.push-force-with-lease" | "sync.push-force" | "tag.push" => super::PUSH,
+        "sync.push" | "sync.push-force-with-lease" | "sync.push-force" | "tag.push" | "tag.push-all" => super::PUSH,
         "merge.into-current" | "merge.choose-way" => super::MERGE,
         "cherry-pick.commit" | "selection.cherry-pick" => super::CHERRY_PICK,
         "revert.commit" | "undo.last" | "changes.discard" | "changes.discard-all" | "settings.reset" => super::UNDO,

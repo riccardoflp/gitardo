@@ -3,7 +3,7 @@
 use super::Icon;
 
 /// Every icon, in the order of the enumeration.
-pub(super) const ALL: [Icon; 92] = [
+pub(super) const ALL: [Icon; 94] = [
     Icon::ChevronRight,
     Icon::ChevronDown,
     Icon::ChevronUp,
@@ -24,6 +24,8 @@ pub(super) const ALL: [Icon; 92] = [
     Icon::CreateBranch,
     Icon::Tag,
     Icon::Cloud,
+    Icon::NotOnRemote,
+    Icon::DifferentOnRemote,
     Icon::Commit,
     Icon::OpenAsPage,
     Icon::Merge,
@@ -99,7 +101,7 @@ pub(super) const ALL: [Icon; 92] = [
 ];
 
 /// Each icon with its name in Lucide's set and its SVG file as Lucide publishes it, in the order of the enumeration.
-const OUTLINES: [(Icon, &str, &str); 92] = [
+const OUTLINES: [(Icon, &str, &str); 94] = [
     (
         Icon::ChevronRight,
         "chevron-right",
@@ -148,6 +150,16 @@ const OUTLINES: [(Icon, &str, &str); 92] = [
     ),
     (Icon::Tag, "tag", include_str!("../../icons/lucide/tag.svg")),
     (Icon::Cloud, "cloud", include_str!("../../icons/lucide/cloud.svg")),
+    (
+        Icon::NotOnRemote,
+        "cloud-off",
+        include_str!("../../icons/lucide/cloud-off.svg"),
+    ),
+    (
+        Icon::DifferentOnRemote,
+        "cloud-alert",
+        include_str!("../../icons/lucide/cloud-alert.svg"),
+    ),
     (
         Icon::Commit,
         "git-commit-horizontal",

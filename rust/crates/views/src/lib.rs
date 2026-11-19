@@ -50,6 +50,7 @@ pub mod review;
 pub mod search;
 mod selection;
 pub mod settings;
+pub mod tag;
 pub mod tasks;
 pub mod terminal;
 pub mod text;

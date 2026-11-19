@@ -353,6 +353,7 @@ impl ViewData {
             hover: timeline.hover.as_ref(),
             hover_left_at: timeline.hover_left_at,
             label_list: timeline.label_list.as_ref(),
+            tag_marks: state.shown_folder().and_then(|folder| state.rail.tag_marks.get(folder)),
             label_list_closed_at: timeline.label_list_closed_at,
             rail_hover: None,
             switches: state.settings.switches,

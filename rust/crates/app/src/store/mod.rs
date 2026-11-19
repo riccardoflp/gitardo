@@ -39,6 +39,7 @@ mod signature;
 mod stashes;
 mod state;
 pub mod tabs;
+mod tag_marks;
 pub mod tasks_tab;
 pub mod terminals;
 #[cfg(test)]
@@ -158,6 +159,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
         Message::SignatureRead { job, result } => signature::signature_read(state, job, result),
+        Message::RemoteTagsRead(job, result) => tag_marks::remote_tags_read(state, job, result),
         Message::AuthorsRead { job, result } => co_authors::authors_read(state, job, result),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
@@ -181,10 +183,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         }
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
         Message::Caption(caption) => workspace::caption_changed(state, caption),
-        Message::ReadTook { line, took, time } => {
-            reads::read_took(state, (line, took, time));
-            Vec::new()
-        }
+        Message::ReadTook { line, took, time } => reads::read_took(state, (line, took, time)),
         message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
         Message::GitHub(message) => github::reduce(state, message),
         Message::Commands(message) => tasks_tab::reduce_commands(state, message),

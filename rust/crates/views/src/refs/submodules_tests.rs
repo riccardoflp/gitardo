@@ -68,6 +68,7 @@ fn listed(submodules: Vec<Submodule>) -> Option<Vec<String>> {
     let mut lists = RailLists::default();
     let _ = lists.turned.insert(RailList::Submodules);
     let state = ReferencesState {
+        tag_marks: None,
         repository: &repository,
         references: &references,
         lists: &lists,

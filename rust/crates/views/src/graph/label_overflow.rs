@@ -78,7 +78,10 @@ pub(crate) fn label_list_drawn(state: &LabelOverflow<'_, '_>, ui: &mut Ui<'_>) -
     let sizes = theme.sizes;
     let widest = labels
         .iter()
-        .map(|label| ui.badge_width(&pill(label).badge(color)) + badge_room(ui, history, label, color))
+        .map(|label| {
+            let at = history.tag_marks.map(|marks| (marks, &state.list.commit));
+            ui.badge_width(&pill(label, at).badge(color)) + badge_room(ui, history, label, color)
+        })
         .fold(0.0_f32, f32::max);
     let padding = sizes.spacing.small;
     let width = (widest + 2.0 * (sizes.spacing.medium + padding) + sizes.scrollbar).min(MOST_WIDTH);
@@ -183,7 +186,8 @@ fn listed_label(
         (row.rect.width - 2.0 * gap).max(0.0),
         row.rect.height,
     );
-    let drawn = ui.badge(place, &pill(label).badge(color));
+    let at = history.tag_marks.map(|marks| (marks, commit));
+    let drawn = ui.badge(place, &pill(label, at).badge(color));
     let end = place.right();
     let _next = after_label(
         ui,

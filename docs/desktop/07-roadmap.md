@@ -1152,12 +1152,17 @@ last in the extension.
 
 Phase 1 is built: **Set upstream…**, **Change upstream…** and **Stop tracking `<upstream>`** in the menu of a local
 branch, on its label and in the branch rail, and **Set upstream of the current branch…** in Quick search.
-Phase 2 is built in part: `git ls-remote --tags --refs` read with the tags of the repository, and the comparison of the
-two (`tag.read-remote-tags`, `tag.compare-remote`). The marks of the tags in the branch rail and on the labels, and
-**Check tags on `<remote>`** that asks for them (`tag.remote-marks`, `refs.tree`), are not built yet.
-Phase 3 is built in part: **Delete from `<remote>`** and **Delete here and from `<remote>`** in the menu of a tag
-(`tag.delete-remote`). **Push tags…** (`tag.push-all`) is not built yet: it reads the tags of the remote before its
-pick, which needs a query of the engine that reaches the network, and the marks it updates are not built either.
+Phase 2 is built: `git ls-remote --tags --refs` read with the tags of the repository, and the comparison of the two
+(`tag.read-remote-tags`, `tag.compare-remote`); **Check tags on `<remote>`** in the **…** of the Tags list and **Check
+tags on the remote** in Quick search, which ask the remote on a worker, the marks `cloud-off` and `cloud-alert` after
+the names in the branch rail and among the icons of the labels, and the count of the Tags list, `· 1 not on origin`
+(`tag.remote-marks`, `refs.tree`). The operations on tags say what they changed of the tags on a remote with the
+follow-up `TagsOnRemote`, which the marks follow without asking the remote again.
+Phase 3 is built: **Delete from `<remote>`** and **Delete here and from `<remote>`** in the menu of a tag
+(`tag.delete-remote`); **Push tags…** in the **…** of the Tags list and in Quick search (`tag.push-all`), which asks
+the remote for its tags before its pick with a query of the engine, `Query::RemoteTags`, tracked as an activity. A pick
+of several has no entry that cannot be ticked, so the tags the remote has under another object are said in its detail
+rather than listed apart.
 Phase 4 is built: **Create branch with no history…** in Quick search and in **…** after **Branch**, the question of what
 the working tree keeps, Undo from the journal back to what was checked out before, and the header that names the branch
 with **no commits yet** (`branch.create-orphan`, `undo.journal`, `graph.where`).

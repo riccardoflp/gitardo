@@ -73,6 +73,10 @@ pub(crate) const TAG: Icon = Icon::Tag;
 
 /// Remote.
 pub(crate) const REMOTE: Icon = Icon::Cloud;
+/// A tag a remote does not have (`tag.remote-marks`).
+pub(crate) const NOT_ON_REMOTE: Icon = Icon::NotOnRemote;
+/// A tag a remote has under another object (`tag.remote-marks`).
+pub(crate) const DIFFERENT_ON_REMOTE: Icon = Icon::DifferentOnRemote;
 
 /// Commit.
 pub(crate) const COMMIT: Icon = Icon::Commit;
@@ -301,7 +305,7 @@ pub(crate) const CO_AUTHORS: Icon = Icon::Users;
 
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 94] = [
+pub(crate) const MEANINGS: [(&str, Icon); 96] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -338,6 +342,8 @@ pub(crate) const MEANINGS: [(&str, Icon); 94] = [
     ("Create a branch", CREATE_BRANCH),
     ("Tag; create a tag", TAG),
     ("Remote", REMOTE),
+    ("A tag a remote does not have", NOT_ON_REMOTE),
+    ("A tag a remote has under another object", DIFFERENT_ON_REMOTE),
     ("Commit", COMMIT),
     ("Open a commit as a page", OPEN_AS_PAGE),
     ("Merge", MERGE),

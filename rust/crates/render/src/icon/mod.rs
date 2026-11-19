@@ -69,6 +69,10 @@ pub enum Icon {
     Tag,
     /// A cloud: a remote. Lucide's `cloud`.
     Cloud,
+    /// A cloud struck through: a tag a remote does not have. Lucide's `cloud-off`.
+    NotOnRemote,
+    /// A cloud with an exclamation mark: a tag a remote has under another object. Lucide's `cloud-alert`.
+    DifferentOnRemote,
     /// A ring on a line: a commit. Lucide's `git-commit-horizontal`.
     Commit,
     /// Two arrows to opposite corners: open as a page. Lucide's `maximize-2`.

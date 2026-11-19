@@ -182,8 +182,9 @@ pub fn watch(state: &mut State) -> Option<Effect> {
 }
 
 /// The debug line of a read of the repository that took a while, in the Command log at `log.level` `debug`.
-pub fn read_took(state: &mut State, (line, took, time): (String, Duration, Timestamp)) {
+pub fn read_took(state: &mut State, (line, took, time): (String, Duration, Timestamp)) -> Vec<Effect> {
     state.log.record_read(time, line, took);
+    Vec::new()
 }
 
 /// Tells the schedule an event and carries out what it asks.
