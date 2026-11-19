@@ -4,7 +4,7 @@
 use model::markdown::{Alignment, Block, CodeBlock, Item, Mark as ItemMark, Piece};
 use ui::{AccessRole, CodeSpan, Color, Image, Point, Rect, TextKind, TextStyle, Ui};
 
-use super::MarkdownState;
+use super::MarkdownContent;
 use super::diagram::{self, DiagramShown};
 use super::flow::{Place, flow};
 
@@ -207,12 +207,12 @@ pub(super) struct Column {
 }
 
 /// Lays out the blocks of a preview in a width, from the top.
-pub(super) fn lay_out(state: &MarkdownState<'_>, ui: &Ui<'_>, width: f32) -> Laid {
+pub(super) fn lay_out(content: &MarkdownContent, ui: &Ui<'_>, width: f32) -> Laid {
     let ink = Ink {
         ui,
-        images: &state.content.images,
-        code_colors: &state.content.code_colors,
-        diagrams: &state.content.diagrams,
+        images: &content.images,
+        code_colors: &content.code_colors,
+        diagrams: &content.diagrams,
         looks: Looks::of(ui),
     };
     let mut laid = Laid::default();
@@ -221,7 +221,7 @@ pub(super) fn lay_out(state: &MarkdownState<'_>, ui: &Ui<'_>, width: f32) -> Lai
         width,
         color: ink.looks.text,
     };
-    laid.height = blocks(&ink, &mut laid, &state.content.blocks, (column, 0.0));
+    laid.height = blocks(&ink, &mut laid, &content.blocks, (column, 0.0));
     laid
 }
 

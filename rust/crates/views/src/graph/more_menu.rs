@@ -1,6 +1,7 @@
 //! The **…** menu at the end of the header (`graph.more-menu`): the actions alone, in the groups of its card:
 //! **Refresh** and the operations at `HEAD`; the ways to what is not elsewhere in the header; **Switch identity…**;
-//! **Load pull requests from GitHub**; then **Settings** and **Theme…**. The switches of the timeline are in the menu
+//! **Load pull requests from GitHub**; then **Settings** and **Theme…**; then **Ask Gitardo…**, as the window has no
+//! Help menu (`help.page`). The switches of the timeline are in the menu
 //! of the view beside it (`graph.view-menu`, D68).
 
 use ui::{Button, ButtonKind, MenuEntry, Ui};
@@ -67,6 +68,8 @@ pub(crate) enum MoreCommand {
     Settings,
     /// **Theme…** (`settings.theme`).
     Theme,
+    /// **Ask Gitardo…** (`help.page`).
+    AskGitardo,
     /// **Branch**, **Stash** or **Undo**: the operation of the catalog it runs at `HEAD`.
     Operation(&'static str),
 }
@@ -88,6 +91,7 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
         Some(MoreCommand::ActiveFileHistory) => vec![active_file_history(state.active_file)],
         Some(MoreCommand::Settings) => vec![Intent::ShowPage(crate::page::Page::Settings)],
         Some(MoreCommand::Theme) => vec![Intent::PickTheme],
+        Some(MoreCommand::AskGitardo) => vec![Intent::Help(crate::help::HelpIntent::Open)],
         Some(MoreCommand::Operation(feature)) => vec![Intent::Feature(crate::feature::FeatureIntent::Run(
             model::contract::FeatureId(feature),
             model::contract::Target::Head,
@@ -178,7 +182,7 @@ fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEnt
 
 /// The entries of **…**, in the groups of the card: **Refresh**, **Branch**, **Stash** and **Undo**; the ways to the
 /// pages and **Select repository…**; **Switch identity…**; **Load pull requests from GitHub** when the main remote is
-/// on GitHub; then **Settings** and **Theme…**.
+/// on GitHub; then **Settings** and **Theme…**; then **Ask Gitardo…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = icons::action(icons::READ_AGAIN, words::REFRESH, MoreCommand::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
@@ -231,6 +235,12 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
         icons::APPEARANCE,
         crate::text::settings::THEME_ENTRY,
         MoreCommand::Theme,
+    )));
+    entries.push(MenuEntry::Separator);
+    entries.push(MenuEntry::Item(icons::action(
+        icons::DRAFTED,
+        crate::text::help::COMMAND,
+        MoreCommand::AskGitardo,
     )));
     entries
 }

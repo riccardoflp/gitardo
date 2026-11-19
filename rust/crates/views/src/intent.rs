@@ -125,6 +125,8 @@ pub enum Intent {
     Files(crate::files::FilesPageIntent),
     /// Something asked of the Search page (`file-search.page`).
     FileSearch(crate::file_search::FileSearchIntent),
+    /// Something asked of the Ask Gitardo page (`help.page`).
+    Help(crate::help::HelpIntent),
     /// An operation of the blame or of the history run on a File page, or the hover of its blame (`blame.file`,
     /// `blame.current-line`).
     Blame(crate::blame::BlameIntent),

@@ -124,6 +124,7 @@ fn text_view(
         gutter: 0,
         tab_width: state.tab_width,
         wrap: state.wrap,
+        has_line_numbers: true,
     };
     let answer = ui.code_editor("search preview editor", rect, &editor);
     answer.commands.iter().find_map(|command| match command {

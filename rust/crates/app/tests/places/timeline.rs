@@ -240,17 +240,17 @@ fn graph_more_menu__in_a_window_400_high_the_menu_opens_under_its_button_and_its
     let refresh = bounds(&tree, Role::MenuItem, "Refresh");
     assert!(refresh.y >= button.bottom(), "under its button: {refresh:?} {button:?}");
     assert!(
-        !super::support::has(&tree, Role::MenuItem, "Theme\u{2026}"),
+        !super::support::has(&tree, Role::MenuItem, "Ask Gitardo\u{2026}"),
         "the last entry is not shown yet"
     );
     let end = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::End), Modifiers::NONE));
     let _ = window.draw(&state, &[end]);
     let (_, tree) = window.draw(&state, &[]);
-    let theme = bounds(&tree, Role::MenuItem, "Theme\u{2026}");
-    assert!(theme.bottom() <= 400.0 - 8.0, "shown whole: {theme:?}");
+    let last = bounds(&tree, Role::MenuItem, "Ask Gitardo\u{2026}");
+    assert!(last.bottom() <= 400.0 - 8.0, "shown whole: {last:?}");
     let enter = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::Enter), Modifiers::NONE));
     let (intents, _) = window.draw(&state, &[enter]);
-    assert_eq!(intents, [Intent::PickTheme]);
+    assert_eq!(intents, [Intent::Help(views::help::HelpIntent::Open)]);
 }
 
 #[test]

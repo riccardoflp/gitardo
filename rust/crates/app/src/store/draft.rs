@@ -101,7 +101,7 @@ pub fn drafted(state: &mut State, ask: AskId, result: AiResult) -> Vec<Effect> {
             keep_message(&mut state.persisted.commit_messages, &drafting.folder, &message);
             vec![Effect::WritePersisted(state.persisted.clone())]
         }
-        Ok(AiReply::Conflict(_)) => Vec::new(),
+        Ok(AiReply::Conflict(_) | AiReply::Help { .. }) => Vec::new(),
         Err(failed) => {
             state.operations.said = Some(match failed.need {
                 Some(need) => copilot_said(need),

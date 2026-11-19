@@ -705,7 +705,7 @@ earns it.
 | [`help.question`](20-help.md#helpquestion--what-is-sent-to-answer-a-question) | What is sent to answer a question | Derivation | Built | Planned |
 | [`help.ask`](20-help.md#helpask--ask-a-question) | Ask a question | Read | Built | Planned |
 | [`help.read-answer`](20-help.md#helpread-answer--the-answer-read) | The answer, read | Derivation | Built | Planned |
-| [`help.page`](20-help.md#helppage--the-ask-gitardo-page) | The Ask Gitardo page | View | Specified | Planned |
+| [`help.page`](20-help.md#helppage--the-ask-gitardo-page) | The Ask Gitardo page | View | Built | Planned |
 | [`help.show-me`](20-help.md#helpshow-me--show-me) | Show me | Derivation | Specified | Planned |
 
 ## Large files

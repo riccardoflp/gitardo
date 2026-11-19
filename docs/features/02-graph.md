@@ -658,6 +658,7 @@ In this order, separated in groups:
 3. **Switch identity…** (`identity.switch`).
 4. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub.
 5. **Settings** (`settings.edit`), **Theme…** (`settings.theme`).
+6. **Ask Gitardo…** (`help.page`), which a Help menu would hold: the window has no menu bar (Q1351).
 
 **Theme…** stays here, though it changes how the window looks: it opens a picker rather than switching something on
 or off, and it is about the whole window, not the timeline (Q662).

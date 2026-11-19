@@ -78,6 +78,8 @@ pub(crate) struct PickerState {
     pub(crate) checked: BTreeSet<usize>,
     /// What was typed when the rows were last ranked.
     pub(crate) query: String,
+    /// Whether the last of the items is listed after those that match, whatever is typed.
+    pub(crate) has_last: bool,
 }
 
 /// The most rows a picker shows at once.
@@ -141,14 +143,55 @@ pub fn first_shown(lit: usize, first: usize, shown: usize, count: usize) -> usiz
     first.min(count.saturating_sub(shown))
 }
 
-/// The items that match a query, best first, with how each matched.
-pub(crate) fn ranked(items: &[PickerItem<'_>], query: &str) -> Vec<(usize, FuzzyMatch)> {
-    fuzzy::rank(query, items.iter().map(|item| item.label))
+/// The items that match a query, best first, with how each matched; when the last item is listed whatever is typed,
+/// it is not ranked and comes after them, with nothing of it matched.
+pub(crate) fn ranked(items: &[PickerItem<'_>], query: &str, has_last: bool) -> Vec<(usize, FuzzyMatch)> {
+    let ranked_count = if has_last {
+        items.len().saturating_sub(1)
+    } else {
+        items.len()
+    };
+    let mut rows = fuzzy::rank(query, items.iter().take(ranked_count).map(|item| item.label));
+    if has_last && !items.is_empty() {
+        rows.push((
+            ranked_count,
+            FuzzyMatch {
+                score: 0,
+                positions: Vec::new(),
+            },
+        ));
+    }
+    rows
 }
 
 impl Ui<'_> {
     /// Declares a picker, and returns what it was answered in the frame it was.
     pub fn picker(&mut self, key: impl Hash, picker: &Picker<'_>) -> Option<PickerAnswer> {
+        self.picker_ending_with(key, picker, None)
+    }
+
+    /// What is typed in the input box of the picker of a key, as the last frame left it; none before it is drawn.
+    pub fn picker_query(&mut self, key: impl Hash) -> Option<String> {
+        let input = self.id(key).with("query");
+        self.memory_view().input_text(input).map(str::to_owned)
+    }
+
+    /// Declares a picker with an item listed after those that match, whatever is typed, such as **Ask Gitardo:
+    /// "…"** in Quick search; choosing it answers with the place after the items. Returns what the picker was answered
+    /// in the frame it was.
+    pub fn picker_ending_with(
+        &mut self,
+        key: impl Hash,
+        picker: &Picker<'_>,
+        last: Option<PickerItem<'_>>,
+    ) -> Option<PickerAnswer> {
+        let mut items = picker.items.to_vec();
+        let has_last = last.is_some();
+        items.extend(last);
+        let picker = &Picker {
+            items: &items,
+            ..*picker
+        };
         let id = self.id(key);
         let input = id.with("query");
         let is_new = self.declare_overlay(id, &[input, id]);
@@ -161,9 +204,10 @@ impl Ui<'_> {
         if is_new {
             state.checked = picker.checked.iter().copied().collect();
         }
+        state.has_last = has_last;
         let query = self.memory_view().input_text(input).unwrap_or_default().to_owned();
         let mut answer = self.picker_keys(input, picker, &mut state);
-        let rect = self.picker_rect(picker, &state.query);
+        let rect = self.picker_rect(picker, &state);
         let drawn = self.layer(Layer::Popup, |ui| {
             ui.within(id, |ui| ui.draw_picker(rect, picker, &mut state))
         });
@@ -184,14 +228,16 @@ impl Ui<'_> {
     }
 
     /// Where a picker goes: at the top middle of the window, as high as the rows it shows.
-    fn picker_rect(&self, picker: &Picker<'_>, query: &str) -> Rect {
+    fn picker_rect(&self, picker: &Picker<'_>, state: &PickerState) -> Rect {
         let theme = self.theme();
         let window = self.window();
         let spacing = theme.sizes.spacing;
         let width = (theme.sizes.row_height * 28.0)
             .min(window.width - 2.0 * spacing.huge)
             .max(0.0);
-        let count = ranked(picker.items, query).len().clamp(1, SHOWN_ROWS);
+        let count = ranked(picker.items, &state.query, state.has_last)
+            .len()
+            .clamp(1, SHOWN_ROWS);
         let rows = crate::number::float_of_count(count) * theme.sizes.row_height;
         let height = crate::widget::metrics::control_height(theme) + 2.0 * spacing.small + spacing.small + rows;
         Rect::new(
@@ -204,7 +250,7 @@ impl Ui<'_> {
 
     /// The keys of a picker, read from its input box, before it is drawn.
     fn picker_keys(&mut self, input: WidgetId, picker: &Picker<'_>, state: &mut PickerState) -> Option<PickerAnswer> {
-        let rows = ranked(picker.items, &state.query);
+        let rows = ranked(picker.items, &state.query, state.has_last);
         let mut answer = None;
         let is_typed = !state.query.is_empty();
         for key in self.unclaimed_keys_of(input) {

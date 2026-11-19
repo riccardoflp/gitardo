@@ -41,7 +41,7 @@ pub fn questions(effects: &[Effect]) -> Vec<AiQuestion> {
 fn text_of(question: &AiQuestion) -> &str {
     match &question.work {
         AiWork::Conflict(request) => &request.question,
-        AiWork::Draft(_) => "",
+        AiWork::Draft(_) | AiWork::Help(_) => "",
     }
 }
 

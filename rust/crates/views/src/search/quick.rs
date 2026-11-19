@@ -42,6 +42,9 @@ pub enum QuickChoice {
     /// **Open Settings: <section>** or **Open Settings: <title>**: the settings page at a section or a setting
     /// (`settings.reveal`).
     Settings(crate::settings::SettingsAnchor),
+    /// **Ask Gitardo: "<what was typed>"**, the last entry when what is typed finds no command: the Ask Gitardo page,
+    /// with that question asked (`help.page`).
+    Ask(String),
 }
 
 /// A command of the catalog whose card names Quick search among its entry points.
@@ -89,6 +92,8 @@ pub enum QuickCommand {
     OpenSettings,
     /// **Welcome** (`welcome.page`).
     Welcome,
+    /// **Ask Gitardo…** (`help.page`).
+    AskGitardo,
     /// **Show changes** (`changes.page`).
     ShowChanges,
     /// **Create branch…** (`branch.create`).
@@ -157,7 +162,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 53] = [
+    pub const ALL: [QuickCommand; 54] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -179,6 +184,7 @@ impl QuickCommand {
         QuickCommand::ExportGroups,
         QuickCommand::OpenSettings,
         QuickCommand::Welcome,
+        QuickCommand::AskGitardo,
         QuickCommand::ShowChanges,
         QuickCommand::ShowFiles,
         QuickCommand::SearchInFiles,
@@ -312,8 +318,33 @@ pub fn quick_search_view(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<I
     intents
 }
 
-/// The picker of Quick search, and what was chosen in it.
+/// The entry **Ask Gitardo: "<what is typed>"**, when something is typed and it finds no command (`help.page`).
+fn ask_entry(state: &QuickSearchState<'_>, typed: &str) -> Option<QuickEntry> {
+    if typed.trim().is_empty() {
+        return None;
+    }
+    let commands = state
+        .entries
+        .iter()
+        .filter(|entry| matches!(entry.choice, QuickChoice::Command(_)))
+        .map(|entry| entry.label.as_str());
+    if !ui::fuzzy::rank(typed, commands).is_empty() {
+        return None;
+    }
+    Some(QuickEntry {
+        label: crate::text::help::ask_about(typed),
+        detail: crate::text::help::QUESTION.to_owned(),
+        choice: QuickChoice::Ask(typed.trim().to_owned()),
+    })
+}
+
+/// The picker of Quick search, and what was chosen in it; **Ask Gitardo: "…"** last when what is typed finds no
+/// command.
 fn picker(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
+    let typed = ui
+        .picker_query("quick search picker")
+        .unwrap_or_else(|| state.typed.to_owned());
+    let ask = ask_entry(state, &typed);
     let items: Vec<PickerItem<'_>> = state
         .entries
         .iter()
@@ -329,10 +360,18 @@ fn picker(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         query: state.typed,
         checked: &[],
     };
-    let intent = match ui.picker("quick search picker", &picker) {
-        Some(PickerAnswer::Chose(index)) => state.entries.get(index).map_or(SearchIntent::CloseQuick, |entry| {
-            SearchIntent::ChooseQuick(entry.choice.clone())
-        }),
+    let last = ask.as_ref().map(|entry| PickerItem {
+        label: &entry.label,
+        description: &entry.detail,
+    });
+    let intent = match ui.picker_ending_with("quick search picker", &picker, last) {
+        Some(PickerAnswer::Chose(index)) => state
+            .entries
+            .get(index)
+            .or_else(|| ask.as_ref().filter(|_| index == state.entries.len()))
+            .map_or(SearchIntent::CloseQuick, |entry| {
+                SearchIntent::ChooseQuick(entry.choice.clone())
+            }),
         Some(PickerAnswer::Cancelled) => SearchIntent::CloseQuick,
         // A picker of one item never answers with several.
         Some(PickerAnswer::ChoseMany(_)) | None => return Vec::new(),

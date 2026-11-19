@@ -18,6 +18,7 @@ pub mod files;
 pub mod filter;
 pub mod github;
 pub mod header;
+pub mod help;
 pub mod history;
 pub mod merge_view;
 pub mod pages;

@@ -5183,6 +5183,17 @@ planned and built; each is built as it says until the maintainer answers otherwi
 - **Q875** — `help.ask`: each question is two requests to the model, and with GitHub Copilot each request counts
   against the user's subscription (Q864). Should the first request be skipped when the question names a feature by its
   title, or be asked of a smaller model?
+- **Q1351** — `help.page`: the card put **Ask Gitardo…** in the Help menu, but the window has no menu bar, and its
+  title bar draws none (`window.title-bar`). It is the last entry of the **…** menu of the header, after **Theme…**,
+  in a group of its own. Should the window have a menu of help, with **Ask Gitardo…**, **Welcome** and the
+  documents, in the title bar or behind a **?** (Q867)?
+- **Q1352** — `help.page`: the card had the question cancelled from the status bar too, but its activity indicator
+  shows the Activity tab when clicked and cancels nothing that runs. **Stop** on the page cancels it. Should the
+  indicator, or the row of the Activity tab, offer **Cancel** for what can be cancelled: a question to the AI provider,
+  a read, a fetch?
+- **Q1353** — `help.page`: an input box of the window has one line, so the box that grows to 6 lines is the editor of
+  code, without its numbers of lines, in the font of code. Should the toolkit have a box of several lines in the font
+  of the text, for this box and for the message of a commit?
 
 ### Of cloning and creating a repository, and of a shallow clone, from Q1050
 

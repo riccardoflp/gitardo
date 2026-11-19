@@ -97,7 +97,9 @@ impl Ui<'_> {
         self.clip(whole, |ui| {
             let mut top = layout.text.y + first_top;
             for line in lines.clone() {
-                ui.line_number(layout, (line, top), line == caret_line);
+                if layout.numbers.width > 0.0 {
+                    ui.line_number(layout, (line, top), line == caret_line);
+                }
                 let pieces = rows.pieces(editor.buffer.line(line));
                 let last = pieces.len().saturating_sub(1);
                 for (index, piece) in pieces.into_iter().enumerate() {

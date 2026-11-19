@@ -100,14 +100,18 @@ pub fn next_page(state: &mut State) -> Vec<Effect> {
     }
 }
 
-/// Closes the page shown; the timeline shows in its place.
+/// Closes the page shown; the timeline shows in its place. Closing the Ask Gitardo page forgets its conversation
+/// (`help.page`).
 pub fn close_page(state: &mut State) -> Vec<Effect> {
+    let mut effects = Vec::new();
     if let Some(index) = state.pages.shown.take()
         && index < state.pages.open.len()
+        && state.pages.open.remove(index) == Page::Help
     {
-        let _closed = state.pages.open.remove(index);
+        effects.extend(super::help::forget(state));
     }
-    tick_timeline(state).into_iter().collect()
+    effects.extend(tick_timeline(state));
+    effects
 }
 
 /// Ticks **Open the timeline** on the Welcome page once the timeline shows a repository, and writes it down.

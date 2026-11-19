@@ -67,7 +67,7 @@ pub fn markdown_view(state: &MarkdownState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
     let rect = ui.current_clip();
     let padding = ui.theme().sizes.spacing.huge;
     let width = (rect.width - 2.0 * padding).max(1.0);
-    let laid = lay_out(state, ui, width);
+    let laid = lay_out(state.content, ui, width);
     let key = ("markdown preview", state.id);
     if let Some((serial, anchor)) = &state.content.reveal
         && let Some(top) = laid.anchor(anchor)
@@ -84,18 +84,53 @@ pub fn markdown_view(state: &MarkdownState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
         )));
     }
     ui.region(key, (rect, AccessRole::Region, words::PREVIEW_REGION), |ui| {
-        let (_, asked) = ui.scroll_area(key, rect, size, |ui, content| {
+        let (_, clicked) = ui.scroll_area(key, rect, size, |ui, content| {
             let origin = Point::new(content.x + padding, content.y + padding);
-            draw(state, &laid, ui, origin)
+            draw(&laid, ui, (state.id, origin))
         });
-        intents.extend(asked);
+        intents.extend(clicked.into_iter().map(|href| {
+            Intent::FileView(FileViewIntent::Page(
+                state.id,
+                FilePageIntent::Markdown(MarkdownIntent::OpenLink(href)),
+            ))
+        }));
     });
     let _ = ui.find_in_page(("find in markdown preview", state.id), rect);
     intents
 }
 
-/// Draws what is laid out from an origin, in sight only, and reports the clicks on its links.
-fn draw(state: &MarkdownState<'_>, laid: &Laid, ui: &mut Ui<'_>, origin: Point) -> Vec<Intent> {
+/// Markdown laid out as the preview of a file lays it out, as wide as its view gives, to be drawn where the view puts
+/// it: an answer of Ask Gitardo (`help.page`).
+#[derive(Debug)]
+pub struct LaidMarkdown(Laid);
+
+impl LaidMarkdown {
+    /// How high it is.
+    #[must_use]
+    pub fn height(&self) -> f32 {
+        self.0.height
+    }
+}
+
+/// Lays out Markdown in a width, as the preview of a file does, its images and diagrams those of the content.
+#[must_use]
+pub fn lay_out_markdown(content: &MarkdownContent, ui: &Ui<'_>, width: f32) -> LaidMarkdown {
+    LaidMarkdown(lay_out(content, ui, width))
+}
+
+/// Draws Markdown laid out from an origin, in sight only, as the preview of a file draws it, its widgets named under a
+/// key of the view, and gives the links clicked, each as the text writes it.
+pub fn draw_markdown(
+    laid: &LaidMarkdown,
+    key: impl std::hash::Hash + Copy,
+    ui: &mut Ui<'_>,
+    origin: Point,
+) -> Vec<String> {
+    draw(&laid.0, ui, (key, origin))
+}
+
+/// Draws what is laid out from an origin, in sight only, its widgets named under a key, and gives the links clicked.
+fn draw(laid: &Laid, ui: &mut Ui<'_>, (key, origin): (impl std::hash::Hash + Copy, Point)) -> Vec<String> {
     let clip = ui.current_clip();
     let mut intents = Vec::new();
     for (index, mark) in laid.marks.iter().enumerate() {
@@ -106,19 +141,15 @@ fn draw(state: &MarkdownState<'_>, laid: &Laid, ui: &mut Ui<'_>, origin: Point) 
         draw_mark(ui, mark, origin);
         if let Some(link) = link_of(mark) {
             let said = said_of(mark);
-            if is_clicked(ui, (state.id, index), bounds, &said) {
-                let href = laid.links.get(link).cloned().unwrap_or_default();
-                intents.push(Intent::FileView(FileViewIntent::Page(
-                    state.id,
-                    FilePageIntent::Markdown(MarkdownIntent::OpenLink(href)),
-                )));
+            if is_clicked(ui, (key, index), bounds, &said) {
+                intents.push(laid.links.get(link).cloned().unwrap_or_default());
             }
         }
     }
     for (index, (rect, role, text)) in laid.nodes.iter().enumerate() {
         let rect = moved(*rect, origin);
         if !rect.intersection(clip).is_empty() {
-            let id = ui.id(("markdown block", state.id, index));
+            let id = ui.id(("markdown block", key, index));
             ui.describe(id, rect, &Description::new(*role, text));
         }
     }
@@ -126,7 +157,7 @@ fn draw(state: &MarkdownState<'_>, laid: &Laid, ui: &mut Ui<'_>, origin: Point) 
 }
 
 /// Whether a link was clicked: a place to click, with the hand over it, named for the screen reader.
-fn is_clicked(ui: &mut Ui<'_>, key: (FilePageId, usize), rect: Rect, said: &str) -> bool {
+fn is_clicked(ui: &mut Ui<'_>, key: impl std::hash::Hash, rect: Rect, said: &str) -> bool {
     let id = ui.id(("markdown link", key));
     let response = ui.interact(id, rect, Sense::CLICK);
     ui.describe(id, rect, &Description::new(AccessRole::Button, said));

@@ -133,7 +133,7 @@ Sends the two requests of a question to the AI provider, and gives the answer as
 
 Nothing of the repository is read or sent: no path, no name of a branch, no message, no diff. With no `ai.provider`,
 the provider's model fails with no request sent, and `engine::help::said` gives the message of **Refuses**. The status bar says
-**asking Gitardo** while the requests run, and cancelling there, or **Stop** in the page, closes them.
+**asking Gitardo** while the requests run, and **Stop** in the page closes them; the status bar cancels nothing (Q1352).
 
 Acceptance:
 
@@ -178,8 +178,9 @@ Where the user asks how to do something, and reads the answers.
 
 - **Kind**: View
 - **Function**: `views::help::page_view(state: &HelpState, ui) -> Vec<Intent>`
-- **Entry points**: **Ask Gitardo…** in Quick search and in the Help menu; **Ask Gitardo: "\<what was typed\>"**, the
-  last entry of Quick search when what is typed finds no command, which opens the page with that question asked.
+- **Entry points**: **Ask Gitardo…** in Quick search and at the end of the **…** menu of the header, which holds what
+  a Help menu would, since the window has no menu bar (Q1351); **Ask Gitardo: "\<what was typed\>"**, the last entry
+  of Quick search when what is typed finds no command, which opens the page with that question asked.
 - **Refuses**: with no `ai.provider`, the page says *Set up an AI provider to ask how to do something.* with **Open the
   settings**, which opens the settings page at `ai.provider` (`settings.reveal`), and its box is disabled.
 - **Settings**: `ai.provider`.
@@ -199,6 +200,11 @@ the answer. The box at the foot has *Ask how to do something…* as its placehol
 becomes **Stop**, and *Looking for the features…* shows until the answer's first words. **New conversation** in the
 header of the page forgets the questions and the answers. A failure shows under its question, in the colors of an
 error, with **Try again**. Closing the page forgets the conversation.
+
+The conversation is the window's, not a tab's: the page shows the same questions from every tab. The box is an editor
+of the font of code without the numbers of its lines, since an input box of the window has one line (Q1353). While an
+answer comes, the status bar says **asking Gitardo**, as it says **drafting commit message**; its activity indicator
+cancels nothing, whatever runs, so **Stop** on the page is what cancels the question (Q1352).
 
 Acceptance:
 

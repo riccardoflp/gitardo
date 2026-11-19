@@ -1,5 +1,5 @@
-//! The questions to the AI provider of a window (`ai.resolve-conflicts`, `commit.draft-message`): each on a thread of
-//! its own, its key taken from the credential store, the text of its answer passed on as it comes, at most every
+//! The questions to the AI provider of a window (`ai.resolve-conflicts`, `commit.draft-message`, `help.ask`): each on a
+//! thread of its own, its key taken from the credential store, the text of its answer passed on as it comes, at most every
 //! 120 ms, and cancelled when it is not wanted any more.
 
 use std::collections::HashMap;
@@ -28,6 +28,10 @@ pub type AskId = u64;
 const DRAFTING: &str = "drafting commit message";
 /// Why.
 const DRAFTING_CAUSE: &str = "The sparkle of the commit box asked the AI provider for a message";
+/// What the Activity tab and the status bar say while Ask Gitardo is answered (`help.ask`).
+pub const ASKING_GITARDO: &str = "asking Gitardo";
+/// Why.
+const ASKING_GITARDO_CAUSE: &str = "A question was asked on the Ask Gitardo page";
 
 /// How often, at most, the text of an answer that comes is passed on.
 pub const PIECE_INTERVAL: Duration = Duration::from_millis(120);
@@ -39,6 +43,8 @@ pub enum AiWork {
     Conflict(ConflictRequest),
     /// The message of a commit (`commit.draft-message`).
     Draft(DraftJob),
+    /// How to do something with Gitardo (`help.ask`).
+    Help(engine::help::HelpRequest),
 }
 
 /// What the message of a commit is drafted from: the diff is read on the thread of the question.
@@ -72,6 +78,13 @@ pub enum AiReply {
     Conflict(ConflictReply),
     /// The message of a commit, cleaned (`commit.draft-message`).
     Draft(String),
+    /// The answer of Ask Gitardo (`help.ask`).
+    Help {
+        /// The answer read (`help.read-answer`).
+        answer: model::help::HelpAnswer,
+        /// The answer as the model wrote it, sent with the questions after it.
+        text: String,
+    },
 }
 
 /// Why a question has no answer.
@@ -168,9 +181,9 @@ impl Asking {
             .name(format!("question {}", question.id))
             .spawn(move || {
                 let id = question.id;
-                let _activity = matches!(question.work, AiWork::Draft(_)).then(|| {
+                let _activity = activity_words(&question.work).map(|(words, cause)| {
                     let started = model::Timestamp(seconds_now());
-                    activities.track(Text::from(DRAFTING), Text::from(DRAFTING_CAUSE), started)
+                    activities.track(Text::from(words), Text::from(cause), started)
                 });
                 let asked = Asked {
                     secrets: &secrets,
@@ -208,6 +221,16 @@ impl Drop for Asking {
         for cancel in lock(&self.running).values() {
             cancel.cancel();
         }
+    }
+}
+
+/// What the Activity tab and the status bar say of a question while it runs, and why: the draft of a message and Ask
+/// Gitardo; the conflicts say it on their cards.
+fn activity_words(work: &AiWork) -> Option<(&'static str, &'static str)> {
+    match work {
+        AiWork::Draft(_) => Some((DRAFTING, DRAFTING_CAUSE)),
+        AiWork::Help(_) => Some((ASKING_GITARDO, ASKING_GITARDO_CAUSE)),
+        AiWork::Conflict(_) => None,
     }
 }
 
@@ -285,6 +308,20 @@ fn work(work: &AiWork, model: &mut dyn LanguageModel, cancel: &Cancel, pieces: &
                 subjects: &job.subjects,
             };
             engine::ai::draft(model, &input, pieces).map(AiReply::Draft)
+        }
+        AiWork::Help(request) => {
+            let mut text = String::new();
+            let result = engine::help::ask(model, request, &mut |piece| {
+                text.push_str(piece);
+                pieces(piece);
+            });
+            return result.map(|answer| AiReply::Help { answer, text }).map_err(|error| {
+                let text = engine::help::said(&error);
+                AiFailed {
+                    text,
+                    ..AiFailed::from(error)
+                }
+            });
         }
     };
     result.map_err(AiFailed::from)

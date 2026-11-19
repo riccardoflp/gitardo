@@ -53,6 +53,7 @@ pub fn edit_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         focus: text.focus,
         tab_width: state.tab_width,
         wrap: state.wrap,
+        has_line_numbers: true,
     };
     let answer = ui.code_editor(("file editor", state.id), rect, &editor);
     let mut commands = answer.commands;

@@ -73,6 +73,8 @@ pub struct CodeEditor<'a> {
     pub tab_width: usize,
     /// What it does with a line longer than it is wide.
     pub wrap: LineWrap,
+    /// Whether the numbers of the lines are drawn before them: not in a box where a question is written.
+    pub has_line_numbers: bool,
 }
 
 /// Where an editor drew its parts, for a view that draws beside its lines or over its scroll bar.
@@ -204,13 +206,17 @@ impl Ui<'_> {
     }
 
     /// Where the parts of an editor go over its rectangle: the line numbers as wide as the largest, five digits at
-    /// least, then the room it keeps before the text, if any.
+    /// least, when it has them, then the room it keeps before the text, if any.
     fn code_layout(&self, rect: Rect, editor: &CodeEditor<'_>) -> Layout {
         let theme = self.theme();
         let style = self.text_style(TextKind::Code);
         let advance = self.measure("0000000000", style) / 10.0;
         let digits = editor.buffer.line_count().to_string().len().max(5);
-        let numbers_width = advance * number::float_of_count(digits) + 2.0 * theme.sizes.spacing.medium;
+        let numbers_width = if editor.has_line_numbers {
+            advance * number::float_of_count(digits) + 2.0 * theme.sizes.spacing.medium
+        } else {
+            0.0
+        };
         let gutter_width = if editor.gutter == 0 {
             0.0
         } else {

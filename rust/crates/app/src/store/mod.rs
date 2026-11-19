@@ -20,6 +20,7 @@ pub mod file_page;
 pub mod file_search;
 pub mod files_page;
 pub mod github;
+mod help;
 mod inspector;
 mod log_lines;
 mod merge_page;
@@ -419,6 +420,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             files_page::reduce_file_intent(state, intent)
         }
         Intent::Compare(intent) => compare::reduce(state, intent),
+        Intent::Help(intent) => help::reduce(state, intent),
         Intent::Review(intent) => review::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),
