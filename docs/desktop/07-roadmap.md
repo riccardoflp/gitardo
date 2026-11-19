@@ -1101,6 +1101,49 @@ commit whose message ends with the three lines, once each; **Skip the hooks** co
 fails, and the next commit runs it; the cards of the milestone are Built in the desktop, and the snapshots of the
 menu and of the line of a signature match in each theme.
 
+## M35 — Upstreams, tags on remotes and new roots
+
+The upstream of a local branch set, changed and taken away; which tags a remote has, the ones it lacks marked, pushed
+in one go, and a tag deleted from a remote as well as here; a branch started with no history
+([D80](../08-decisions.md#d80--upstreams-set-and-taken-away-the-tags-of-a-remote-checked-branches-with-no-history-proposed)).
+Asked by the maintainer among the Git operations Gitardo lacks: today an upstream comes only from a first push, a tag
+is deleted only here and pushed one at a time, and nothing starts a branch with no parent. Built in five phases, each
+one commit or more, each ending with its cards built and their tests passing; the first four in Gitardo Desktop, the
+last in the extension.
+
+1. **Upstreams.** **Set upstream…**, **Change upstream…** and **Stop tracking `<upstream>`** in the context menu of a
+   local branch and in Quick search; the pick of the remote branches, those of the branch's name first, the current
+   upstream marked; `git branch --set-upstream-to` and `git branch --unset-upstream`, the remote branch named in full
+   when it has a namesake. Cards: `branch.set-upstream`, `branch.unset-upstream`.
+2. **What a remote has of the tags.** `git ls-remote --tags --refs`, read when asked and never with the reads of the
+   repository; the tags here compared with it object by object; **Check tags on `<remote>`** in the **…** of the
+   **Tags** list, and the marks of the tags it lacks in the branch rail and on the labels, kept while the window is
+   open and updated by Gitardo's own operations on tags. Cards: `tag.read-remote-tags`, `tag.compare-remote`,
+   `tag.remote-marks`, `refs.tree`.
+3. **Tags pushed and deleted on a remote.** **Push tags…**, the pick of the tags the remote lacks, all ticked,
+   `git push <remote> --tags` or each tag named; **Delete from `<remote>`** and **Delete here and from `<remote>`**
+   beside **Delete**, `git push <remote> --delete refs/tags/<name>`, destructive. Cards: `tag.push-all`,
+   `tag.delete-remote`.
+4. **A branch with no history.** **Create branch with no history…** in Quick search and the **…** menu of the header,
+   with the question of what the working tree keeps, `git switch --orphan` or `git checkout --orphan`; Undo from the
+   journal; the timeline and the header while the branch has no commit. Cards: `branch.create-orphan`, `undo.journal`,
+   `graph.where`.
+5. **In the extension.** The entries in the menus of a branch and of a tag of the graph, the references and the
+   Branches view, **Check tags on `<remote>`** and **Push tags…** in the **…** of the Tags list, the commands of the
+   Command Palette, and the marks of the tags drawn in `RefsTree` and on the labels; each card *Built* in the
+   extension with its `Extension:` lines tested. Cards: every card above.
+
+Nothing is built yet.
+
+Exit: in a repository whose `feature` follows nothing and whose `origin` has `feature` and `release`, **Set upstream…**
+on `feature` lists `origin/feature` first, and once picked the branch rail says how far `feature` is from it;
+**Change upstream…** to `origin/release` makes **Pull** pull from it, and **Stop tracking origin/release** leaves
+`feature` with no upstream and `origin/release` listed; with `v1` pushed and `v2` made here, **Check tags on origin**
+marks `v2` alone, **Push tags…** pushes it and the mark goes; **Delete here and from origin** on `v1` asks with a
+warning and `v1` is gone from both; **Create branch with no history…** named `site`, with **Start with no files**,
+leaves only the untracked files in the working tree, its first commit has no parent, and Undo before that commit goes
+back to `main`; every card of the milestone passes its tests, in the desktop and, after phase 5, in the extension.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

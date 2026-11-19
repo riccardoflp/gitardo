@@ -1831,6 +1831,60 @@ signed would disagree); `Signed-off-by` written into the message box by Gitardo 
 it, once, at the end); trailers other than `Co-authored-by` (asked, Q1097); co-authors from GitHub's users (the
 authors of the history know the emails that repository uses, and no request leaves the machine).
 
+## D80 — Upstreams set and taken away, the tags of a remote checked, branches with no history (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M35; the details proposed while planning.*
+
+A branch gets an upstream only from its first push (`sync.push`, `git push --set-upstream`): one that should follow a
+branch of another remote, or a remote branch renamed, cannot be pointed at it without a terminal, and one whose
+upstream is gone keeps saying `gone`. A tag is deleted only here (`tag.delete`: "A remote that has it keeps it."),
+pushed one at a time (`tag.push`), and nothing says which tags a remote lacks. And no branch can be started with no
+history, as the branch of the pages of a site is. So:
+
+- **The upstream set, changed and taken away.** **Set upstream…**, **Change upstream…** and **Stop tracking
+  `<upstream>`** in the context menu of a local branch, in the branch rail and on its label, and in Quick search for
+  the branch checked out. The upstream is picked among the remote branches as of the last fetch, those of the
+  branch's name first, and set with `git branch --set-upstream-to=<remote branch> <branch>` (`branch.set-upstream`);
+  `git branch --unset-upstream <branch>` takes it away (`branch.unset-upstream`). Neither is taken back by Undo: they
+  change the configuration of the branch alone, as `branch.rename` does (Q1112).
+- **What a remote has of the tags is asked of the remote.** `git ls-remote --tags --refs <remote>`
+  (`tag.read-remote-tags`), compared object by object with the tags here (`tag.compare-remote`): a tag is pushed,
+  different there, not pushed, or only on the remote. It reaches the network, so it runs only when asked: by **Check
+  tags on `<remote>`** in the **…** of the **Tags** list, and by the operations that need it; never with the reads of
+  the repository, nor after a fetch (Q1114).
+- **A mark on the tags a remote lacks**, proposed, as the maintainer asked (`tag.remote-marks`): once a remote was
+  checked, the Lucide icon `cloud-off` after the name of a tag it lacks, in the branch rail and on the label,
+  `cloud-alert` on a tag it has under another object, and the count in the title of the list,
+  `Tags 24 · 2 not on origin`. The marks are those of the last check, kept while the window is open, and Gitardo's own
+  operations on tags update them without asking the remote again (Q1113).
+- **The tags a remote lacks, pushed in one go** (`tag.push-all`): **Push tags…** lists them, ticked; every one is
+  `git push <remote> --tags`, some are each named in full. `--tags` already sends only what the remote lacks, so "all
+  the tags" and "those not on the remote" are one command: the pick is there for a tag made here that should stay
+  here. A tag the remote has under another object is listed and cannot be ticked: nothing is forced (Q1116).
+- **A tag deleted from a remote** (`tag.delete-remote`): **Delete from `<remote>`** and **Delete here and from
+  `<remote>`** beside **Delete** in the menu of a tag, `git push <remote> --delete refs/tags/<name>`, then `git tag -d
+  <name>` for the second, after the push so that a refused push leaves the tag here. Destructive, as
+  `remote.delete-branch` is. `tag.delete` is unchanged (Q1117).
+- **A branch with no history** (`branch.create-orphan`): the name, then what the working tree keeps: **Start with no
+  files**, `git switch --orphan <name>`, which takes the tracked files out of the working tree and the index and
+  leaves the untracked ones, refused before git runs while a tracked file has changes, as git would refuse it; or
+  **Keep the files, staged**, `git checkout --orphan <name>`. Git writes no line in the reflog of `HEAD` for the move
+  to a branch with no commit, so Undo takes it back from the journal. Until its first commit the timeline shows the
+  other branches with nothing checked out, and the header names the branch with **No commits yet** (Q1126).
+
+In the extension every card is the engine's: the extension adds the entries to its menus (`branchMenu`, `tagMenu` in
+`src/webview/menus.ts`), to the Command Palette and to the **…** of the Tags list of the references, and draws the
+marks in `RefsTree`. The cards are *Planned* there, and brought in the last phase of M35.
+
+Rejected: an upstream typed as text (git tracks only a remote branch that a fetch made, and one not pushed yet gets
+its upstream from its first push, `sync.push`; Q1110); local branches among the upstreams to pick (git takes them, with
+`.` as the remote, but a **Pull** and a **Push** that stay in the repository surprise more than they help; Q1111);
+asking a remote for its tags at each fetch or each read (one more connection to each remote, and credentials asked
+again where the fetch asked them already; Q1114); `git fetch --prune-tags` to forget the tags deleted on a remote (it
+deletes the tags made here and never pushed too); a mark on every tag the remote has, rather than on those it lacks (a
+list of marks that says nothing); `--follow-tags` on every push (it sends annotated tags the user may not have meant
+to publish; Q1118); a worktree with no history, `git worktree add --orphan`, in this milestone (Q1127).
+
 
 ## Open questions
 
@@ -4940,4 +4994,53 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1100** — `commit.options`: **Skip the hooks** has no danger, and the commit runs without asking when
   `commandPreview` is `off`. Should a commit that skips the hooks always show its plan first, since a hook may be what
   keeps a secret out of the repository?
+
+### Of upstreams, the tags of a remote and branches with no history, from Q1110
+
+Questions of milestone M35 ([D80](#d80--upstreams-set-and-taken-away-the-tags-of-a-remote-checked-branches-with-no-history-proposed)),
+asked while it was planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1110** — `branch.set-upstream`: the pick lists the remote branches as of the last fetch, and a branch whose remote
+  branch does not exist yet gets its upstream from its first push. Should the pick end with **Push to `<remote>` as
+  `<branch>`…**, which runs the first push of `sync.push`?
+- **Q1111** — `branch.set-upstream`: local branches are not listed, though git lets a branch follow another local branch
+  (with `.` as its remote, which `branch.fast-forward` already reads). Should they be listed, after the remote
+  branches?
+- **Q1112** — `branch.set-upstream`, `branch.unset-upstream`: neither is taken back by Undo, as `branch.rename` is not.
+  Should the journal keep the upstream before, so that Undo right after sets it again or takes it away, as it deletes a
+  branch created only?
+- **Q1113** — `tag.remote-marks`: proposed, as the maintainer asked to be asked. Once a remote was checked, a tag it
+  lacks has `cloud-off` after its name, one it has under another object `cloud-alert`, and the title of the **Tags**
+  list counts them; nothing is marked before a check. Are the marks wanted, and is the count in the title?
+- **Q1114** — `tag.read-remote-tags`: the remote is asked for its tags only when the user asks for something that needs
+  them, never with a fetch, so the marks may be old. Should a fetch of that remote ask for its tags too, at the cost of
+  one more connection, and of credentials asked again where the remote asks for them?
+- **Q1115** — `tag.push-all`: with every tag the remote lacks ticked, the plan is `git push <remote> --tags`, which would
+  also send a tag made between the pick and the push. Should the tags always be named one by one, so that only those
+  shown are pushed?
+- **Q1116** — `tag.push-all`: a tag the remote has under another object is listed and cannot be ticked. Should it be
+  offered with `--force`, as a destructive plan that replaces the remote's tag for everyone?
+- **Q1117** — `tag.delete`: unchanged; its warning still says that a remote that has the tag keeps it, and **Delete here
+  and from `<remote>`** is a separate entry of the menu. Should the warning of **Delete** offer it as a second button
+  instead, when the remote is known to have the tag?
+- **Q1118** — `sync.push`: a push never sends tags. Should a setting add `--follow-tags`, which sends the annotated tags
+  on the commits pushed?
+- **Q1119** — `tag.push-all`, `tag.delete-remote`: with several remotes they ask which, the remote of `remote.default`
+  first. Should **Push tags…** also offer every remote at once?
+- **Q1120** — `tag.remote-marks`: only the remote of `remote.default` is checked, and the marks say what it lacks. With
+  several remotes, should the check ask which, and the tooltip say each remote that lacks the tag?
+- **Q1125** — `branch.create-orphan`: the pick of what the working tree keeps starts on **Start with no files**, what
+  `git switch --orphan` does and what a branch of the pages of a site wants. Should it start on **Keep the files,
+  staged** instead?
+- **Q1126** — `branch.create-orphan`: until its first commit the timeline lists the other branches with nothing checked
+  out, the header names the branch with **No commits yet**, and the uncommitted changes, if any, are the first row as
+  ever. Should the branch with no commit have a row of its own at the top of the timeline?
+- **Q1127** — `branch.create-orphan`: a worktree with no history, `git worktree add --orphan` (git 2.42), is not offered.
+  Should **Create worktree…** offer it, with the same question about the files?
+- **Q1128** — `branch.create-orphan`: checking out another branch while the branch with no commit is checked out makes
+  that branch go, since git has no reference for it until its first commit; nothing says so. Should that checkout
+  say it first?
+- **Q1129** — `branch.unset-upstream`: after it, **Push** pushes the branch as a first push, to the remote of
+  `remote.default` under its name, and makes that its upstream again without asking, as `sync.push` does for a new
+  branch. Should a push of a branch whose upstream was taken away ask first?
 

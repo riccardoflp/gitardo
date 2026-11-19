@@ -290,6 +290,58 @@ Acceptance:
       engine is not available on this system.** with **Show the log**, and no branch is created.
 - [ ] The same answers through `gitardo-cli` and through the extension give the same plan and the same repository.
 
+### `branch.create-orphan` — Create a branch with no history
+
+Starts a branch that shares no commit with the others, for the pages of a site or something kept apart from the
+code: its first commit has no parent.
+
+- **Kind**: Operation
+- **Function**: `features::branch::create_orphan(context, answers) -> Outcome`
+- **Entry points**: **Create branch with no history…** in Quick search, and in the **…** menu of the header after
+  **Branch**.
+- **Extension**: **Gitardo: Create Branch with No History…** in the Command Palette and in the **…** of the Branches
+  view, which send `feature/run` of `branch.create-orphan` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`); the name is asked in an input box checked with `question/validate` as it is typed,
+  the files in a quick pick. When the engine's binary is missing, it says so (D49).
+- **Offered when**: no merge, rebase, cherry-pick, revert, patch or bisect is under way.
+- **Asks**:
+  1. The name, in an input box titled **Create branch with no history** with the placeholder `site`; checked by
+     `branch.validate-name` and "A branch with that name already exists".
+  2. A pick titled **What the working tree keeps**: **Start with no files**, described **The tracked files leave the
+     working tree and the index; untracked and ignored files stay**, where the pick starts (Q1125); or **Keep the files,
+     staged**, described **The first commit holds the files as they are now**.
+- **Reads**: with **Start with no files**, whether a tracked file has changes not committed, from the state of the
+  repository (`repo.read-state`).
+- **Plan**: **Start with no files**: `git switch --orphan <name>`. **Keep the files, staged**:
+  `git checkout --orphan <name>`. No update of the submodules follows: the new branch records none.
+- **Danger**: None for **Keep the files, staged**; Confirm for **Start with no files**, because "The tracked files
+  leave the working tree. `<branch>` still has them, and gives them back when it is checked out again."
+- **Undo**: From the journal, since git writes no line in the reflog of `HEAD` for a move to a branch with no commit:
+  Undo right after, while nothing was committed on it, runs `git checkout <branch before>`, or
+  `git checkout --detach <hash>` when `HEAD` was detached; the new branch, which has no commit, is gone with it.
+- **After**: the timeline lists the other branches as before, nothing marked as checked out, and the header names
+  `<name>` with **No commits yet** (Q1126); the next commit (`commit.create`) is its first.
+- **Refuses**: *Finish or abort the `<operation>` first.*; *End the bisect first.*; with **Start with no files** while
+  a tracked file has changes not committed, before git is run: "Commit or stash the changes first: starting with no
+  files would take them out of the working tree."
+- **Uses**: `branch.validate-name`, `repo.read-state`, `commit.create`, `undo.journal`, `undo.last`.
+
+`git switch --orphan` empties the working tree of the tracked files, which `HEAD` keeps; `git checkout --orphan` keeps
+the working tree and the index, so that every file is staged as new on the branch. A worktree of its own with no
+history (`git worktree add --orphan`, git 2.42) is not offered (Q1127).
+
+Acceptance:
+
+- [ ] Name `site` and **Start with no files** run `git switch --orphan site`; the tracked files are gone from the
+      working tree, an untracked file is still there, and the header names `site` with **No commits yet**.
+- [ ] **Keep the files, staged** runs `git checkout --orphan site`, and every file is staged as added.
+- [ ] With a tracked file modified, **Start with no files** runs nothing and says why; **Keep the files, staged** runs.
+- [ ] The first commit made after it has no parent, and the timeline draws it apart from the other branches.
+- [ ] Undo right after, from `main`, runs `git checkout main`, and the files of `main` are back.
+- [ ] Typing `main` when `main` exists shows "A branch with that name already exists".
+- [ ] Extension: **Gitardo: Create Branch with No History…**, `site` and **Start with no files** run
+      `git switch --orphan site` in the engine, and the log has it.
+
 ### `branch.format-name` — Expand the format of branch names
 
 Makes the name of a new branch from `branches.format` and the values of its parts, and says what is wrong with a format
@@ -617,6 +669,88 @@ Acceptance:
 - [ ] Extension: with a clean worktree on `feature`, it runs `git -C <worktree> pull --ff-only --no-rebase
       --no-autostash up refs/heads/main`.
 
+### `branch.set-upstream` — Set or change the upstream of a branch
+
+Makes a local branch follow a remote branch, or another one than it follows: the one it pulls from, pushes to and is
+counted ahead of or behind.
+
+- **Kind**: Operation
+- **Function**: `features::branch::set_upstream(context, answers) -> Outcome`
+- **Entry points**: **Set upstream…** in the context menu of a local branch with no upstream, **Change upstream…** in
+  that of one with an upstream, gone or not, in the branch rail and on its label in the timeline; **Set upstream of
+  the current branch…** in Quick search.
+- **Extension**: the same entries in the context menu of a local branch in the references tree, the Branches view and
+  on its label in the graph (`branchMenu` and `upstreamEntries` in `src/webview/menus.ts`), each sending `feature/run`
+  of `branch.set-upstream` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`) with the
+  branch as its target; **Gitardo: Set Upstream of the Current Branch…** in the Command Palette. The pick is a quick
+  pick with a box to type in. When the engine's binary is missing, it says so (D49).
+- **Offered when**: the repository has a remote branch.
+- **Asks**: a search titled **Upstream of `<branch>`**, with the placeholder **The remote branch `<branch>` pulls from
+  and pushes to**: every remote branch as of the last fetch, those with the name of `<branch>` first, the one of
+  `remote.default` before the others, then by name. The upstream it has is in the list, described **current
+  upstream**, and picking it runs nothing. Local branches are not listed (Q1111).
+- **Plan**: `git branch --set-upstream-to=<remote branch> <branch>`, the remote branch by its short name, or
+  `refs/remotes/<remote>/<name>` when a local branch or a tag has that short name; the branch by its name, which git
+  reads as a branch alone (`refs/heads/<branch>` there would be taken for a branch of that name).
+- **Danger**: None.
+- **Undo**: Not taken back by Undo, which follows what moves `HEAD` (Q1112): **Change upstream…** sets the one before
+  again, and **Stop tracking** takes it away (`branch.unset-upstream`).
+- **After**: the branch is counted against its new upstream (`↑1 ↓2`), and **Pull**, **Push** and **Sync** go to it; its
+  label is combined with the upstream's when they have the same name and are at the same commit (`graph.labels`).
+- **Refuses**: when the remote branch picked is no longer there: "`<remote branch>` is no longer there: fetch, then
+  pick again."
+- **Uses**: `remote.default`, `branch.ref-argument`, `branch.unset-upstream`, `graph.labels`, `refs.tree`.
+
+A branch whose remote branch does not exist yet gets its upstream from its first push (`sync.push`), which is not
+offered here (Q1110). A remote branch is what the last fetch saw: one pushed by someone else since is fetched first
+(`sync.fetch`).
+
+Acceptance:
+
+- [ ] `feature` with no upstream and `origin/feature` fetched: **Set upstream…** lists `origin/feature` first, and
+      picking it runs `git branch --set-upstream-to=origin/feature feature`; the branch rail then says how far
+      `feature` is from it.
+- [ ] `main` following `origin/main`, changed to `upstream/main`, runs
+      `git branch --set-upstream-to=upstream/main main`, and **Pull** then pulls from `upstream`.
+- [ ] With a local branch named `origin/feature` too, it runs
+      `git branch --set-upstream-to=refs/remotes/origin/feature feature`.
+- [ ] The current upstream is listed as **current upstream**, and picking it runs nothing.
+- [ ] A branch whose upstream is gone has **Change upstream…**, and after it is no longer said to be `gone`.
+- [ ] A repository with no remote branch has neither entry.
+- [ ] Extension: **Set upstream…** on `work`, with `origin/work` picked, runs
+      `git branch --set-upstream-to=origin/work work` in the engine, and the references then say how far `work` is
+      from `origin/work`.
+
+### `branch.unset-upstream` — Stop tracking the upstream
+
+Makes a local branch follow nothing: it is no longer counted against a remote branch, and the remote branch stays.
+
+- **Kind**: Operation
+- **Function**: `features::branch::unset_upstream(context, answers) -> Outcome`
+- **Entry points**: **Stop tracking `<upstream>`** in the context menu of a local branch that has an upstream, gone or
+  not, under **Change upstream…**, in the branch rail and on its label in the timeline.
+- **Extension**: **Stop tracking `<upstream>`** in the same menus of the references tree, the Branches view and the
+  labels of the graph (`branchMenu` in `src/webview/menus.ts`), sending `feature/run` of `branch.unset-upstream` to
+  Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`). When the engine's binary is missing, it
+  says so (D49).
+- **Offered when**: the branch has an upstream.
+- **Plan**: `git branch --unset-upstream <branch>`.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: **Set upstream…** sets it again (`branch.set-upstream`).
+- **After**: the branch says nothing of an upstream in the branch rail, and its tooltip says `<branch> (no upstream)`;
+  its commits are no longer marked as not pushed (`graph.unpushed`); a label it shared with its upstream becomes two
+  (`graph.labels`); **Sync** asks to publish it, and **Push** pushes it as a first push (`sync.push`).
+- **Uses**: `branch.set-upstream`, `graph.unpushed`, `graph.labels`, `sync.push`, `sync.sync`.
+
+Acceptance:
+
+- [ ] On `feature` following `origin/feature`, it runs `git branch --unset-upstream feature`; the branch rail no
+      longer says `↑1` beside it, and `origin/feature` is still listed.
+- [ ] A branch whose upstream is gone has the entry, and after it is no longer said to be `gone`.
+- [ ] A branch with no upstream has no such entry.
+- [ ] Extension: **Stop tracking origin/work** on `work` runs `git branch --unset-upstream work` in the engine, and the
+      references then say nothing of an upstream for `work`.
+
 ### `branch.pane` — The branch rail, its buttons and its comparison
 
 The branch rail as one place, the legend and the filter of the timeline: its buttons, in the heading of **Branches** of
@@ -756,6 +890,142 @@ Acceptance:
 - [ ] Extension: **Push tag** on `v1` with the remotes `origin` and `backup` runs `git push origin refs/tags/v1`, and
       the remote then has the tag.
 
+### `tag.read-remote-tags` — Read the tags a remote has
+
+The tags of a remote, each with the object it names there, asked of the remote itself: a fetch brings the tags of the
+commits it fetches, but never says which tags of this repository the remote lacks.
+
+- **Kind**: Read
+- **Function**: `git::read::tag::read_remote_tags(git: &Git, request: &RemoteTagsRequest) -> Result<RemoteTags, GitError>`
+- **Reads**:
+  - `git ls-remote --tags --refs <remote>`, with `GIT_TERMINAL_PROMPT=0` so that git never asks in a terminal: one line
+    for each tag, the object, a tab and `refs/tags/<name>`. Git has no other form for it; a name cannot hold a tab or
+    a line break, so the line is read as it is. `--refs` leaves out the `^{}` lines, so that an annotated tag is the
+    object of the tag, not of its commit.
+  - The tags of the repository, with the same objects:
+    `git for-each-ref --format=%(objectname)%00%(refname)%00 refs/tags`.
+- **Uses**: `activity.track`, which says **Asking `<remote>` for its tags** while it runs for more than half a second.
+- **Extension**: the engine's read, asked by the extension as it asks the pull requests (`src/engine/reads.ts`).
+
+It reaches the remote over the network, so it runs only when the user asks for something that needs it
+(`tag.remote-marks`, `tag.push-all`), never with the reads of the repository (Q1114).
+
+Acceptance:
+
+- [ ] A remote with the lightweight tag `v1` and the annotated tag `v2` gives both, `v2` with the object of the tag,
+      as `git for-each-ref` gives it here.
+- [ ] A remote with no tag gives an empty list and no error.
+- [ ] A remote that cannot be reached gives an error with what git said, and no prompt of git shows.
+
+### `tag.compare-remote` — Which tags a remote lacks
+
+Sorts the tags of the repository against those of a remote: there as here, there under another object, or not there;
+and the tags only the remote has.
+
+- **Kind**: Derivation
+- **Function**: `model::tag::compare_remote(here: &[TagObject], there: &RemoteTags) -> TagComparison`
+- **Uses**: `tag.read-remote-tags`; by `tag.remote-marks`, `tag.push-all` and `tag.delete-remote`.
+- **Extension**: the engine's, with the read.
+
+Rules:
+
+- A tag here is **pushed** when the remote has a tag of its name naming the same object; **different there** when the
+  remote's tag of its name names another object (a tag moved, or made again, on one side); **not pushed** when the
+  remote has no tag of its name.
+- A tag of the remote with no tag of its name here is **only on the remote**.
+- Names are compared as they are, case included.
+
+Acceptance:
+
+- [ ] Here `v1` and `v2`, on the remote `v1` at the same object and `v3`: `v1` pushed, `v2` not pushed, `v3` only on
+      the remote.
+- [ ] `v1` deleted and made again here on another commit: different there.
+- [ ] An annotated tag made again with the same commit and another message: different there, its object being
+      another.
+
+### `tag.remote-marks` — The tags a remote lacks, marked
+
+Once a remote was asked for its tags, those it lacks are marked in the branch rail and on their labels, so that a tag
+made here and never pushed is seen before it is missed.
+
+- **Kind**: View
+- **Function**: `views::tag::remote_marks_view(state: &TagMarks, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: **Check tags on `<remote>`** in the **…** of the **Tags** list of the branch rail, and **Check tags
+  on the remote** in Quick search, for the remote of `remote.default`; the marks then show in the **Tags** list and on
+  the labels of the timeline.
+- **Extension**: **Check tags on `<remote>`** in the **…** of the Tags list of the references beside the graph and of
+  the Branches view; the marks are drawn in `RefsTree` (`src/webview/RefsTree.tsx`) and on the labels of the graph
+  (`src/webview/labels.ts`).
+- **Reads**: `tag.read-remote-tags` for that remote, then `tag.compare-remote`.
+- **Uses**: `tag.read-remote-tags`, `tag.compare-remote`, `remote.default`, `refs.tree`, `graph.labels`,
+  `tag.push-all`, `tag.push`, `tag.delete-remote`.
+
+What it shows:
+
+- A tag **not pushed** has the Lucide icon `cloud-off` after its name, in the branch rail and on its label, with the
+  tooltip `Not on <remote>`; a tag **different there** has `cloud-alert`, `<remote> has another tag of this name`.
+  A pushed tag has no mark (Q1113).
+- The title of the **Tags** list counts the tags not pushed after its own count, `Tags 24 · 2 not on origin`, and its
+  **…** has **Push tags…** (`tag.push-all`) while one is not pushed.
+- The marks are those of the last check, kept for the repository while the window is open. A tag Gitardo makes, pushes
+  or deletes since changes its mark without asking the remote again: made, not pushed; pushed by **Push tag** or
+  **Push tags…**, pushed; deleted from the remote, not pushed. A fetch leaves the marks as they are; **Check tags on
+  `<remote>`** asks again.
+- Nothing is asked of a remote, and nothing is marked, before **Check tags on `<remote>`** is chosen.
+
+Acceptance:
+
+- [ ] Before **Check tags on origin**, no tag is marked, and nothing is asked of the remote.
+- [ ] With `v1` pushed and `v2` made here, the check marks `v2` alone, in the branch rail and on its label, with the
+      tooltip `Not on origin`, and the title of the list says `· 1 not on origin`.
+- [ ] **Push tag** on `v2` takes its mark away without asking the remote again.
+- [ ] A tag made here after the check is marked as not pushed.
+- [ ] `v1` moved here after it was pushed is marked `origin has another tag of this name`.
+- [ ] Extension: after **Check tags on origin**, the references beside the graph mark the tag that is not pushed.
+
+### `tag.push-all` — Push the tags a remote lacks
+
+Sends to a remote the tags it does not have, every one or those ticked, in one push.
+
+- **Kind**: Operation
+- **Function**: `features::tag::push_all(context, answers) -> Outcome`
+- **Entry points**: **Push tags…** in the **…** of the **Tags** list of the branch rail; **Push tags…** in Quick
+  search.
+- **Extension**: **Push tags…** in the **…** of the Tags list of the references and of the Branches view, and
+  **Gitardo: Push Tags…** in the Command Palette, sending `feature/run` of `tag.push-all` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`); the pick is a quick pick of several. When the engine's
+  binary is missing, it says so (D49).
+- **Offered when**: the repository has a remote and a tag.
+- **Asks**:
+  1. With several remotes, a pick titled **Push tags to**, the remote of `remote.default` first.
+  2. A pick of several titled **Tags not on `<remote>`**, with the placeholder **The tags to push**: every tag the
+     remote lacks, newest commit first, each with the short hash and the subject of its commit, all ticked. The tags
+     the remote has under another object are listed after them, described **`<remote>` has another tag of this name**,
+     and cannot be ticked (Q1116).
+- **Reads**: `tag.read-remote-tags` for that remote, then `tag.compare-remote`.
+- **Plan**: when every tag the remote lacks is ticked and none is different there, `git push <remote> --tags`, which
+  sends every tag the remote lacks; otherwise `git push <remote> refs/tags/<name>…`, each ticked tag named in full, since
+  `--tags` would also send the tags different there, which the remote refuses, and fail the push (Q1115).
+- **Danger**: None: a push of tags only adds tags to the remote, git refusing to replace one it has.
+- **Undo**: Impossible: a push changes the remote, which Undo does not take back; `tag.delete-remote` deletes a tag
+  from it.
+- **After**: the tags pushed lose their mark (`tag.remote-marks`).
+- **Refuses**: before the pick, "`<remote>` has every tag of this repository." when it lacks none; "No tags
+  selected." when the pick is accepted with nothing ticked; "This repository has no remote." with **Add remote…**
+  (`remote.add`).
+- **Uses**: `tag.read-remote-tags`, `tag.compare-remote`, `tag.remote-marks`, `remote.default`, `remote.add`,
+  `tag.push`, `tag.delete-remote`.
+
+Acceptance:
+
+- [ ] With `v1` on `origin` and `v2` and `v3` made here, the pick lists `v2` and `v3`, ticked, and accepting it runs
+      `git push origin --tags`; `origin` has the three after.
+- [ ] Unticking `v3` runs `git push origin refs/tags/v2`.
+- [ ] With `v1` moved here after it was pushed, `v1` is listed apart and cannot be ticked, and the push names the
+      others in full rather than `--tags`.
+- [ ] With every tag on `origin`, no pick opens and the message says so.
+- [ ] Extension: **Push tags…** with every tag ticked runs `git push origin --tags` in the engine, and the log has it.
+
 ### `tag.delete` — Delete a tag
 
 Deletes a tag from this repository; a remote that has it keeps it.
@@ -777,6 +1047,45 @@ Acceptance:
 - [ ] The tag is still on the remote after: no push runs.
 - [ ] Extension: **Delete** on `to-delete` asks **Delete tag to-delete?** as a warning, whose detail says **A remote
       that has it keeps it.**, and the tag is gone once it runs.
+
+### `tag.delete-remote` — Delete a tag from a remote
+
+Deletes a tag on a remote, for everyone, and here too when asked: what `tag.delete` leaves on the remote.
+
+- **Kind**: Operation
+- **Function**: `features::tag::delete_remote(context, answers) -> Outcome`
+- **Entry points**: in the context menu of a tag, after **Delete**: **Delete from `<remote>`** and **Delete here and
+  from `<remote>`**, `<remote>` the one of `remote.default`; with several remotes, **Delete from a remote…** and
+  **Delete here and from a remote…**, which ask which.
+- **Extension**: the same entries in the context menu of a tag in the references, the Branches view and on its label in
+  the graph (`tagMenu` in `src/webview/menus.ts`), sending `feature/run` of `tag.delete-remote` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`), with the tag as its target and whether it is deleted
+  here too as the answer `here`; the warning is a modal dialog. When the engine's binary is missing, it says so (D49).
+- **Offered when**: the repository has a remote; and, when the tags of that remote were checked (`tag.remote-marks`),
+  the remote has the tag.
+- **Asks**: with several remotes, a pick titled **Delete `<name>` from**, the remote of `remote.default` first.
+- **Plan**: `git push <remote> --delete refs/tags/<name>`, the tag named in full so that a branch of its name on the
+  remote is not taken for it; with **here and from**, then `git tag -d <name>`, after the push, so that the tag stays
+  here when the remote refuses.
+- **Danger**: Destructive, because "This deletes the tag `<name>` on `<remote>` for everyone. Whoever fetched it keeps
+  it, and may push it again."; with **here and from**, followed by the sentence of `tag.delete`.
+- **Undo**: Impossible: a push changes the remote, which Undo does not take back. While the tag is still here,
+  **Push tag** sends it again (`tag.push`).
+- **After**: the tag, when it is still here, is marked as not on the remote (`tag.remote-marks`).
+- **On failure**: when the push fails (no network, a remote that refuses), `git tag -d` does not run.
+- **Refuses**: "This repository has no remote." when the last remote was removed since the menu was drawn.
+- **Uses**: `tag.delete`, `tag.push`, `tag.remote-marks`, `tag.compare-remote`, `remote.default`.
+
+Acceptance:
+
+- [ ] **Delete from origin** on `v1` asks, also with `commandPreview` set to `off`, then runs
+      `git push origin --delete refs/tags/v1`; `origin` no longer has `v1`, and this repository still has it.
+- [ ] **Delete here and from origin** runs that push, then `git tag -d v1`.
+- [ ] With a branch `v1` on `origin`, the branch is still there after.
+- [ ] When the push fails, `git tag -d` does not run, and the tag is still here.
+- [ ] Once the check found that `origin` lacks `v2`, the menu of `v2` has neither entry.
+- [ ] Extension: **Delete from origin** on `v1` asks with a warning, then runs `git push origin --delete refs/tags/v1`
+      in the engine.
 
 ### `tag.checkout` — Check out a tag
 
