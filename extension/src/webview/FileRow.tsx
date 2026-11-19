@@ -46,6 +46,8 @@ interface Props {
   unsaved?: boolean;
   /** Opens the context menu of the file. */
   onMenu?(event: MouseEvent): void;
+  /** What the row says under the pointer, in place of its path. */
+  title?: string;
 }
 
 const STATUS_TITLES: Record<string, string> = {
@@ -117,14 +119,30 @@ export function Check({ checked, mixed = false, label, title, disabled, onChange
   );
 }
 
-export function FileRow({ file, mark, onOpen, actions, extra, depth, onPick, picked, mixed, pickVerb = 'Select', pickTitle, pickDisabled, unsaved, onMenu }: Props) {
+export function FileRow({
+  file,
+  mark,
+  onOpen,
+  actions,
+  extra,
+  depth,
+  onPick,
+  picked,
+  mixed,
+  pickVerb = 'Select',
+  pickTitle,
+  pickDisabled,
+  unsaved,
+  onMenu,
+  title,
+}: Props) {
   const slash = file.path.lastIndexOf('/');
   return (
     <div className="file" style={depth === undefined ? undefined : { paddingLeft: 12 + depth * INDENT }} onContextMenu={onMenu}>
       {onPick && (
         <Check checked={!!picked} mixed={mixed} label={`${pickVerb} ${file.path}`} title={pickTitle} disabled={pickDisabled} onChange={onPick} />
       )}
-      <button className="file-open" title={fileTitle(file)} onClick={onOpen}>
+      <button className="file-open" title={title ?? fileTitle(file)} onClick={onOpen}>
         <Status file={file} mark={mark} />
         <FileIcon path={file.path} />
         <span className="name">{file.path.slice(slash + 1)}</span>

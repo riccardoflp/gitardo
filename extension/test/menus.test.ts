@@ -13,10 +13,13 @@ const {
   canFormatPatch,
   canReword,
   canSquash,
+  changedFileMenu,
   changesMenu,
   commitMenu,
   deleteOnRemoteEntries,
   dropMenu,
+  hiddenFileMenu,
+  hiddenGroupMenu,
   lockTitle,
   remoteNotesEntries,
   openBranch,
@@ -545,5 +548,59 @@ describe('the pull requests of the hosting services in the menus of branches (ho
     const pull = { ...merge, service: 'gitHub' as const };
     expect(labels(remoteBranchMenu(ref, repo(on('gitHub'), { feature: pull }), () => {}))).toContain('Check out pull request #12');
     expect(labels(remoteBranchMenu(ref, repo(on('gitHub')), () => {})).some((label) => label.startsWith('Check out pull'))).toBe(false);
+  });
+});
+
+describe('menus of the files of the Gitardo Changes view', () => {
+  const file = (kind: 'modified' | 'deleted' | 'added' = 'modified') => ({ path: 'config/local.json', originalPath: null, kind });
+  const chosen = (entries: ReturnType<typeof branchMenu>, label: string) => {
+    posted.length = 0;
+    const entry = entries.find((each) => each && each !== 'separator' && each.label === label);
+    if (entry && entry !== 'separator') entry.run();
+    return posted;
+  };
+
+  it('changes.row-menu: a tracked file offers what its buttons do, then Ignore…, Stop tracking and Hide its changes from git…', () => {
+    const menu = changedFileMenu({ file: file(), staged: 'none', untracked: false, unsaved: false }, false);
+    expect(labels(menu)).toEqual([
+      'Open changes',
+      'Open file',
+      'Stage',
+      'Discard changes',
+      'Stash this file…',
+      'Ignore…',
+      'Stop tracking, keep on disk…',
+      'Hide its changes from git…',
+    ]);
+    expect(chosen(menu, 'Ignore…')).toEqual([{ type: 'action', action: { kind: 'ignore', path: 'config/local.json' } }]);
+    expect(chosen(menu, 'Stop tracking, keep on disk…')).toEqual([{ type: 'action', action: { kind: 'stopTracking', path: 'config/local.json' } }]);
+    expect(chosen(menu, 'Hide its changes from git…')).toEqual([{ type: 'action', action: { kind: 'hideFromGit', path: 'config/local.json' } }]);
+  });
+
+  it('changes.row-menu: an untracked file can only be ignored, a deleted one not even that, and nothing changes while an operation runs', () => {
+    const untracked = labels(changedFileMenu({ file: file('added'), staged: 'none', untracked: true, unsaved: true }, false));
+    expect(untracked).toContain('Ignore…');
+    expect(untracked).not.toContain('Stop tracking, keep on disk…');
+    expect(untracked).not.toContain('Hide its changes from git…');
+    expect(untracked).toContain('Save');
+    const deleted = labels(changedFileMenu({ file: file('deleted'), staged: 'all', untracked: false, unsaved: false }, false));
+    expect(deleted).toContain('Unstage');
+    expect(deleted).not.toContain('Open file');
+    expect(deleted).not.toContain('Ignore…');
+    const busy = changedFileMenu({ file: file(), staged: 'none', untracked: false, unsaved: false }, true);
+    const disabled = busy.flatMap((entry) => (entry && entry !== 'separator' && entry.disabled ? [entry.label] : []));
+    expect(disabled).toEqual(['Stage', 'Discard changes', 'Stash this file…', 'Ignore…', 'Stop tracking, keep on disk…', 'Hide its changes from git…']);
+    const onlyEdited = labels(changedFileMenu({ file: file(), staged: null, untracked: false, unsaved: true }, false));
+    expect(onlyEdited).toEqual(['Save', 'Compare with the saved file']);
+  });
+
+  it('changes.skipped-list: a hidden file opens its diff with the last commit and shows itself to git again, and the heading all of them', () => {
+    const menu = hiddenFileMenu('config/local.json', false);
+    expect(labels(menu)).toEqual(['Open changes', 'Open file', 'Show its changes to git again']);
+    expect(chosen(menu, 'Open changes')).toEqual([
+      { type: 'openDiff', source: { kind: 'worktree' }, file: { path: 'config/local.json', originalPath: null, kind: 'modified' } },
+    ]);
+    expect(chosen(menu, 'Show its changes to git again')).toEqual([{ type: 'action', action: { kind: 'showToGit', path: 'config/local.json' } }]);
+    expect(chosen(hiddenGroupMenu(false), 'Show all to git again')).toEqual([{ type: 'action', action: { kind: 'showToGit' } }]);
   });
 });

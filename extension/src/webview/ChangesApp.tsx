@@ -14,12 +14,10 @@ import { Icon } from './Icon';
 import { OperationBanner, resolvableConflicts } from './OperationBanner';
 import { RepoSelect } from './RepoSelect';
 import { WorktreeBanner } from './WorktreeBanner';
-import { act } from './menus';
+import { useMenu } from './ContextMenu';
+import { act, changedFileMenu, hiddenFileMenu, hiddenGroupMenu, pathsOf } from './menus';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
-
-/** A staged rename covers two paths: unstaging only the new one would leave the deletion of the old one staged. */
-const pathsOf = (file: FileChange) => (file.originalPath ? [file.path, file.originalPath] : [file.path]);
 
 /** A diff as VS Code's list of changes opens it: what is not staged yet, or what is, when all of the file is. */
 const SOURCE = { kind: 'change' } as const;
@@ -32,6 +30,11 @@ type Listed = WorkingChange | { file: FileChange; staged: null; untracked: false
 
 /** Where a file of the list is, for the tree. Stable, so that the tree is not made again at every render. */
 const changePath = (change: Listed) => change.file.path;
+
+/** The buttons of a file in conflict, by their icons, in the order its menu lists them. */
+const MENU_ORDER = ['sparkle', 'wand', 'add', 'arrow-right', 'arrow-left'];
+/** The buttons of a file in conflict that open the review of its conflicts, and change nothing until it is applied. */
+const REVIEWS = ['sparkle', 'wand'];
 
 const PICK_TITLES: Record<WorkingChange['staged'], string> = {
   all: 'Staged: click to unstage',
@@ -65,6 +68,56 @@ function Group<T>({ title, items, lead, headerActions, row, tree }: GroupProps<T
       </header>
       {tree ? <FileTree nodes={nodes} folded={tree.folded} onFold={tree.onFold} row={row} /> : listed.map((item) => row(item))}
       {more}
+    </section>
+  );
+}
+
+/** What the row of a file hidden from git says under the pointer (`changes.skipped-list`). */
+const HIDDEN_TITLE = 'Git does not look at the changes of this file: they stay out of every commit.';
+
+/**
+ * The files git is told not to look at, by hand, at the end of the view while there are any (`changes.skipped-list`):
+ * **Hidden from git** and their count, which a click folds, with **…** for **Show all to git again**. Whether it is
+ * folded is kept while the view is open, and not remembered (Q1178).
+ */
+function HiddenGroup({ files, busy }: { files: NonNullable<RepoState['skipped']>; busy: boolean }) {
+  const [folded, setFolded] = useState(false);
+  const openMenu = useMenu();
+  if (!files.length) return null;
+  return (
+    <section className="group hidden-from-git" aria-label="Hidden from git">
+      <header>
+        <button className="grow fold-group" aria-expanded={!folded} onClick={() => setFolded(!folded)}>
+          <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
+          Hidden from git
+        </button>
+        <button
+          className="button icon"
+          title="More for the files hidden from git"
+          aria-label="More for the files hidden from git"
+          onClick={(event) => openMenu(event, hiddenGroupMenu(busy))}
+        >
+          <Icon name="ellipsis" />
+        </button>
+        <span className="count">{files.length}</span>
+      </header>
+      {!folded &&
+        files.map(({ path, skipWorktree }) => {
+          const file: FileChange = { path, originalPath: null, kind: 'modified' };
+          return (
+            <FileRow
+              key={path}
+              file={file}
+              mark="unchanged"
+              title={`${path}\n${HIDDEN_TITLE}`}
+              // Between the last commit and the disk, whatever git is told: the list does not know whether it differs (Q1451).
+              onOpen={() => post({ type: 'openDiff', source: { kind: 'worktree' }, file })}
+              extra={<span className="hint muted">{skipWorktree ? 'skip-worktree' : 'assumed unchanged'}</span>}
+              actions={[{ icon: 'eye', title: 'Show its changes to git again', run: () => act({ kind: 'showToGit', path }) }]}
+              onMenu={(event) => openMenu(event, hiddenFileMenu(path, busy))}
+            />
+          );
+        })}
     </section>
   );
 }
@@ -206,6 +259,7 @@ export function ChangesApp() {
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
   /** The files with edits not saved in an editor, by their paths. */
   const [unsaved, setUnsaved] = useState<string[]>([]);
+  const openMenu = useMenu();
 
   useEffect(() => {
     const stop = onMessage((incoming) => {
@@ -278,6 +332,17 @@ export function ChangesApp() {
           row={(file) => {
             const [resolvable, marked] = resolvableConflicts(state, file.path);
             const some = resolvable === marked ? (marked === 1 ? 'its conflict' : `its ${marked} conflicts`) : `${resolvable} of its ${marked} conflicts`;
+            const actions: FileAction[] = [
+              ...(resolvable
+                ? [{ icon: 'wand', title: `Resolve ${some} automatically, after looking at what is proposed`, run: () => post({ type: 'reviewConflicts', paths: [file.path] }) }]
+                : []),
+              ...(state.resolveWithAI && (!marked || resolvable < marked)
+                ? [{ icon: 'sparkle', title: 'Resolve with AI, after looking at what is proposed', run: () => post({ type: 'reviewConflicts', paths: [file.path], ai: true }) }]
+                : []),
+              { icon: 'arrow-left', title: 'Take the current side for the whole file', run: () => act({ kind: 'takeSide', path: file.path, side: 'ours' }) },
+              { icon: 'arrow-right', title: 'Take the incoming side for the whole file', run: () => act({ kind: 'takeSide', path: file.path, side: 'theirs' }) },
+              { icon: 'add', title: 'Mark as resolved', run: () => act({ kind: 'stage', paths: [file.path] }) },
+            ];
             return (
               <FileRow
                 key={file.path}
@@ -285,17 +350,16 @@ export function ChangesApp() {
                 mark="conflict"
                 unsaved={isUnsaved.has(file.path)}
                 onOpen={() => post({ type: 'openDiff', source: { kind: 'conflict' }, file })}
-                actions={[
-                  ...(resolvable
-                    ? [{ icon: 'wand', title: `Resolve ${some} automatically, after looking at what is proposed`, run: () => post({ type: 'reviewConflicts', paths: [file.path] }) }]
-                    : []),
-                  ...(state.resolveWithAI && (!marked || resolvable < marked)
-                    ? [{ icon: 'sparkle', title: 'Resolve with AI, after looking at what is proposed', run: () => post({ type: 'reviewConflicts', paths: [file.path], ai: true }) }]
-                    : []),
-                  { icon: 'arrow-left', title: 'Take the current side for the whole file', run: () => act({ kind: 'takeSide', path: file.path, side: 'ours' }) },
-                  { icon: 'arrow-right', title: 'Take the incoming side for the whole file', run: () => act({ kind: 'takeSide', path: file.path, side: 'theirs' }) },
-                  { icon: 'add', title: 'Mark as resolved', run: () => act({ kind: 'stage', paths: [file.path] }) },
-                ]}
+                actions={actions}
+                // The menu has what the buttons do, in the order of the desktop's (`changes.row-menu`); a review only opens a page.
+                onMenu={(event) =>
+                  openMenu(
+                    event,
+                    [...actions]
+                      .sort((one, other) => MENU_ORDER.indexOf(one.icon) - MENU_ORDER.indexOf(other.icon))
+                      .map((action) => ({ label: action.title, disabled: busy && !REVIEWS.includes(action.icon), run: action.run })),
+                  )
+                }
               />
             );
           }}
@@ -350,6 +414,7 @@ export function ChangesApp() {
                   pickDisabled
                   pickVerb="Stage"
                   pickTitle="Not saved: save it to stage it"
+                  onMenu={(event) => openMenu(event, changedFileMenu({ file, staged: null, untracked: false, unsaved: true }, busy))}
                   actions={[
                     { icon: 'git-compare', title: 'Compare with the saved file', run: () => post({ type: 'compareWithSaved', path: file.path }) },
                     save,
@@ -372,6 +437,7 @@ export function ChangesApp() {
                 mixed={done === 'some'}
                 pickVerb={done === 'all' ? 'Unstage' : 'Stage'}
                 pickTitle={PICK_TITLES[done]}
+                onMenu={(event) => openMenu(event, changedFileMenu({ file, staged: done, untracked: notTracked, unsaved: isUnsaved.has(file.path) }, busy))}
                 actions={[
                   ...(file.kind === 'deleted' ? [] : [{ icon: 'go-to-file', title: 'Open File', run: () => post({ type: 'openFile', file }) }]),
                   { icon: 'git-compare', title: 'Open Changes', run: () => post({ type: 'openDiff', source: SOURCE, file }) },
@@ -389,6 +455,7 @@ export function ChangesApp() {
           }}
         />
         {state.changes === 0 && !unsaved.length && <p className="muted none">No changes</p>}
+        <HiddenGroup files={state.skipped ?? []} busy={busy} />
       </div>
     </div>
   );

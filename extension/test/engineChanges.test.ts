@@ -11,7 +11,7 @@ import { engineRuns } from '../src/engine/actions';
 import type { Answer, Question } from '../src/engine/messages';
 import type { Action } from '../src/shared/protocol';
 import { git } from './git';
-import { built, cleanUpAfterEach, confirmed, repository, runFeature, text } from './engine/harness';
+import { built, choice, cleanUpAfterEach, confirmed, engineState, repository, runFeature, text } from './engine/harness';
 
 cleanUpAfterEach();
 
@@ -149,5 +149,51 @@ describe.skipIf(!built)('Stashes, through the engine', { timeout: 60_000 }, () =
     }
     const branch = await scenario(stashed, { kind: 'stashBranch', ref: 'stash@{0}' }, { name: text('from-stash') });
     expect(branch.engine).toEqual(['git stash branch from-stash stash@{0}']);
+  });
+});
+
+describe.skipIf(!built)('What git leaves alone, through the engine', { timeout: 60_000 }, () => {
+  /** `debug.log` untracked, and `config/local.json` committed then changed. */
+  const leftAlone = async (root: string) => {
+    fs.mkdirSync(path.join(root, 'config'));
+    fs.writeFileSync(path.join(root, 'config', 'local.json'), '{}\n');
+    await git(root, ['add', 'config/local.json']);
+    await git(root, ['commit', '--quiet', '-m', 'Add the local settings']);
+    fs.writeFileSync(path.join(root, 'config', 'local.json'), '{ "port": 8080 }\n');
+    fs.writeFileSync(path.join(root, 'debug.log'), 'log\n');
+  };
+  const status = async (root: string) => (await git(root, ['status', '--porcelain=v1', '--untracked-files=all'])).stdout;
+
+  it('changes.ignore: All .log files writes *.log at the end of the .gitignore, and debug.log leaves the changes', async () => {
+    const { engine, root } = await scenario(leftAlone, { kind: 'ignore', path: 'debug.log' }, { 'ignore-what': choice('1'), 'ignore-where': choice('0') });
+    expect(engine).toHaveLength(1);
+    expect(engine[0]).toMatch(/^write .*\.gitignore$/);
+    expect(fs.readFileSync(path.join(root, '.gitignore'), 'utf8')).toBe('*.log\n');
+    expect(await status(root)).toBe(' M config/local.json\n?? .gitignore\n');
+  });
+
+  it('changes.ignore and changes.stop-tracking: a tracked file is ignored and taken out of the index, kept on disk', async () => {
+    const answers = { 'ignore-what': choice('0'), 'ignore-where': choice('0'), 'ignore-tracked': choice('stop-tracking') };
+    const ignored = await scenario(leftAlone, { kind: 'ignore', path: 'config/local.json' }, answers);
+    expect(ignored.engine.slice(1)).toEqual(['git rm --cached -- config/local.json']);
+    expect(fs.readFileSync(path.join(ignored.root, '.gitignore'), 'utf8')).toBe('/config/local.json\n');
+    expect(fs.existsSync(path.join(ignored.root, 'config', 'local.json'))).toBe(true);
+    const stopped = await scenario(leftAlone, { kind: 'stopTracking', path: 'config/local.json' });
+    expect(stopped.engine).toEqual(['git rm --cached -- config/local.json']);
+    expect(await status(stopped.root)).toBe('D  config/local.json\n?? config/local.json\n?? debug.log\n');
+  });
+
+  it('changes.skip and changes.unskip: hides the changes of a tracked file, lists it as skipped, and shows it to git again', async () => {
+    const hidden = await scenario(leftAlone, { kind: 'hideFromGit', path: 'config/local.json' }, { 'skip-how': choice('skip-worktree') });
+    expect(hidden.engine).toEqual(['git update-index --skip-worktree -- config/local.json']);
+    expect(await status(hidden.root)).toBe('?? debug.log\n');
+    expect((await engineState(hidden.root)).skipped).toEqual([{ path: 'config/local.json', skipWorktree: true, assumeUnchanged: false }]);
+    const [one] = engineRuns({ kind: 'showToGit', path: 'config/local.json' }, NO_REFS) ?? [];
+    expect((await runFeature(hidden.root, one.feature, one.target)).lines).toEqual(['git update-index --no-skip-worktree -- config/local.json']);
+    expect(await status(hidden.root)).toBe(' M config/local.json\n?? debug.log\n');
+    await git(hidden.root, ['update-index', '--assume-unchanged', '--', 'config/local.json']);
+    const [all] = engineRuns({ kind: 'showToGit' }, NO_REFS) ?? [];
+    expect(all.target).toEqual({ kind: 'changes' });
+    expect((await runFeature(hidden.root, all.feature, all.target)).lines).toEqual(['git update-index --no-assume-unchanged -- config/local.json']);
   });
 });

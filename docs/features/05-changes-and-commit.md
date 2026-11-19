@@ -404,8 +404,11 @@ read whole in a narrow column, and keep their box
 - **Offered when**: the row is of a file; the headings and the folders of the tree have no menu.
 - **Uses**: `changes.open`, `changes.stage`, `changes.unstage`, `changes.discard`, `stash.push-file`, `changes.save`,
   `changes.ignore`, `changes.stop-tracking`, `conflicts.mark-resolved`, `conflicts.take-side`, `review.page`, `ai.resolve-conflicts`, `ui.menu-icons`.
-- **Extension**: the rows of the **Gitardo Changes** view have these actions as buttons beside the name
-  (`changes.pane`); whether they go into a context menu there too is Q764.
+- **Extension**: the rows of the **Gitardo Changes** view keep these actions as buttons beside the name
+  (`changes.pane`), and have the same menu with a right click (`changedFileMenu` in `src/webview/menus.ts`): the
+  entries of a changed file in this order, those of a file only an editor has changed, and those of a file in conflict,
+  which are its buttons; the entries that change something cannot be chosen while an operation runs. The buttons stay
+  (Q764).
 
 - A changed file: **Open changes**, **Open file** (not on a deleted file); then **Stage**, or **Unstage** on a file
   wholly staged (Q770), **Discard changes**, **Stash this file…**; then **Save**, only on a file with edits not
@@ -1243,6 +1246,8 @@ The patterns offered to ignore a file or a folder, the files each can be written
 - **Kind**: Derivation
 - **Function**: `model::changes::ignore_patterns(input: &IgnoreInput) -> IgnoreChoices`
 - **Uses**: by `changes.ignore`.
+- **Extension**: worked out by the engine for `changes.ignore`; the extension shows the patterns and the places in
+  VS Code's quick picks.
 
 Rules:
 
@@ -1316,11 +1321,14 @@ tracking it too, since a pattern does not stop git from following a file it trac
   path in a submodule: **`<path>` is in the submodule `<name>`: ignore it there.**
 - **Uses**: `changes.ignore-patterns`, `changes.stop-tracking`, `changes.pathspec`, `changes.row-menu`,
   `file-view.page`.
-- **Extension**: planned: **Ignore…** in the context menu of a file of the **Gitardo Changes** view and of a file or a
-  folder of VS Code's Explorer (`explorer/context`, beside **Link into New Worktrees**), sending `feature/run` of
-  `changes.ignore` to Gitardo's engine (`Controller.runOnEngine`), its questions asked in VS Code's pickers
-  (`VscodeAsker`) (Q1185). **Open `<file>`** opens the file in an editor of VS Code. VS Code's own **Add to
-  .gitignore** of its Source Control view stays as it is.
+- **Extension**: **Ignore…** in the context menu of a file of the **Gitardo Changes** view (`changes.row-menu`) and
+  of a file or a folder of VS Code's Explorer (`gitardo.ignore` in `explorer/context`, under **Link into New
+  Worktrees**, not on the root folder of a repository), sending `feature/run` of `changes.ignore` to Gitardo's engine
+  (`Controller.runOnEngine`) with the path from the top of the repository, its questions asked in VS Code's pickers
+  (`VscodeAsker`) (Q1185). From the Explorer the views show the repository of the file first. The Explorer cannot know
+  what git ignores, so it offers **Ignore…** on a file ignored already, which the engine refuses saying by which
+  pattern (Q1481). No **Open `<file>`** after it, as in the desktop (Q1450). VS Code's own **Add to .gitignore** of
+  its Source Control view stays as it is.
 
 Acceptance:
 
@@ -1366,9 +1374,11 @@ it stays on disk: for a file committed by mistake, such as a file of local setti
   it, and is listed as untracked otherwise.
 - **Refuses**: **Git does not track `<path>`.**; a file in conflict: **`<path>` is in conflict: resolve it first.**
 - **Uses**: `changes.pathspec`, `changes.read-skipped`, `changes.unskip`, `changes.unstage`.
-- **Extension**: planned: **Stop Tracking, Keep on Disk…** in the context menu of a file of the **Gitardo Changes**
-  view and of a file or a folder of VS Code's Explorer, sending `feature/run` of `changes.stop-tracking` to the
-  engine, its danger asked in a modal dialog (`VscodeAsker`) (Q1174).
+- **Extension**: **Stop tracking, keep on disk…** in the context menu of a tracked file of the **Gitardo Changes**
+  view, and **Stop Tracking, Keep on Disk…** in that of a file or a folder of VS Code's Explorer
+  (`gitardo.stopTracking`), which does not know which files git tracks and leaves the engine to refuse
+  (Q1481), sending `feature/run` of `changes.stop-tracking` to the engine, its danger asked in a modal dialog
+  (`VscodeAsker`) (Q1174).
 
 Acceptance:
 
@@ -1431,8 +1441,10 @@ that each one changes on their own computer.
 - **Refuses**: on a file git does not track: **Git does not track `<path>`: ignore it instead.** with **Ignore…**
   (`changes.ignore`).
 - **Uses**: `changes.read-skipped`, `changes.skipped-list`, `changes.unskip`, `changes.ignore`.
-- **Extension**: planned: **Hide Its Changes from Git…** in the context menu of a file of the **Gitardo Changes** view
-  and of a file of VS Code's Explorer, sending `feature/run` of `changes.skip` to the engine.
+- **Extension**: **Hide its changes from git…** in the context menu of a tracked file of the **Gitardo Changes** view,
+  and **Hide Its Changes from Git…** in that of a file of VS Code's Explorer (`gitardo.hideFromGit`), not of a folder
+  nor of a file hidden already, sending `feature/run` of `changes.skip` to the engine; on a file git does not track the
+  engine refuses with **Ignore…** (Q1481).
 
 Acceptance:
 
@@ -1460,8 +1472,12 @@ Takes back what `changes.skip` did, for one file or for every file hidden.
 - **Undo**: Not taken back by Undo: `changes.skip` hides it again.
 - **After**: the file leaves **Hidden from git**, and is listed in the changes when it differs from the last commit.
 - **Uses**: `changes.read-skipped`, `changes.skipped-list`.
-- **Extension**: planned: the same entries in the group **Hidden from git** of the **Gitardo Changes** view, sending
-  `feature/run` of `changes.unskip` to the engine.
+- **Extension**: the same entries in the group **Hidden from git** of the **Gitardo Changes** view, the one of a file
+  also as the eye button of its row, and **Show Its Changes to Git Again** in the context menu of VS Code's Explorer
+  on a file hidden from git (`gitardo.showToGit`), sending `feature/run` of `changes.unskip` to the engine. The
+  Explorer knows the hidden files of the repository the views show only (the context key `gitardo.hiddenFromGit`), so
+  that a file hidden in another repository of the workspace offers **Hide Its Changes from Git…**, which the engine
+  refuses as hidden already (Q1480).
 
 Acceptance:
 
@@ -1481,8 +1497,12 @@ The files git is told not to look at, listed under the changes while there are a
 - **Offered when**: `changes.read-skipped` gives at least one file; otherwise nothing of it is drawn.
 - **Uses**: `changes.read-skipped`, `changes.unskip`, `changes.open`, `diff.page`, `diff.read-sides`,
   `file-view.page`, `file-view.files-changes`, `ui.menu-icons`.
-- **Extension**: planned: a group **Hidden from git** at the end of the **Gitardo Changes** view, with the same rows
-  and menus.
+- **Extension**: a group **Hidden from git** at the end of the **Gitardo Changes** view (`HiddenGroup` in
+  `src/webview/ChangesApp.tsx`), from `skipped` in the state the engine sends (protocol 1.11): its name and count fold
+  it, its **…** has **Show all to git again**, and each row has the icon and the name of the file, its folder,
+  **skip-worktree** or **assumed unchanged**, the same tooltip after its path, the eye button of **Show its changes to
+  git again**, and the same menu (`hiddenFileMenu` in `src/webview/menus.ts`). A click opens VS Code's diff between
+  `HEAD` and the file on disk. No snapshot: the extension's views have none, and the UI runs are left to the pipeline.
 
 - A heading **Hidden from git** with their count, `Hidden from git 2`, unfolded when the repository is first shown,
   with **…** for **Show all to git again**. Whether it is folded is kept while the window is open, and not remembered

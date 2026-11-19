@@ -483,6 +483,26 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.ignore",
+        "title": "Ignore…",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.stopTracking",
+        "title": "Stop Tracking, Keep on Disk…",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.hideFromGit",
+        "title": "Hide Its Changes from Git…",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.showToGit",
+        "title": "Show Its Changes to Git Again",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.openRepositories",
         "title": "Show Repositories",
         "category": "Gitardo"
@@ -606,6 +626,22 @@
         },
         {
           "command": "gitardo.stopCopyingIntoWorktrees",
+          "when": "false"
+        },
+        {
+          "command": "gitardo.ignore",
+          "when": "false"
+        },
+        {
+          "command": "gitardo.stopTracking",
+          "when": "false"
+        },
+        {
+          "command": "gitardo.hideFromGit",
+          "when": "false"
+        },
+        {
+          "command": "gitardo.showToGit",
           "when": "false"
         },
         {
@@ -752,6 +788,26 @@
           "command": "gitardo.stopCopyingIntoWorktrees",
           "when": "resourceScheme == file && gitardo.hasRepository && resourcePath in gitardo.copiedIntoWorktrees",
           "group": "z_gitardo_worktrees@2"
+        },
+        {
+          "command": "gitardo.ignore",
+          "when": "resourceScheme == file && gitardo.hasRepository && resourcePath not in gitardo.repositoryRoots && resourcePath not in gitardo.hiddenFromGit",
+          "group": "z_gitardo_leave_alone@1"
+        },
+        {
+          "command": "gitardo.stopTracking",
+          "when": "resourceScheme == file && gitardo.hasRepository && resourcePath not in gitardo.repositoryRoots",
+          "group": "z_gitardo_leave_alone@2"
+        },
+        {
+          "command": "gitardo.hideFromGit",
+          "when": "resourceScheme == file && gitardo.hasRepository && !explorerResourceIsFolder && resourcePath not in gitardo.hiddenFromGit",
+          "group": "z_gitardo_leave_alone@3"
+        },
+        {
+          "command": "gitardo.showToGit",
+          "when": "resourceScheme == file && gitardo.hasRepository && resourcePath in gitardo.hiddenFromGit",
+          "group": "z_gitardo_leave_alone@3"
         }
       ],
       "editor/context": [

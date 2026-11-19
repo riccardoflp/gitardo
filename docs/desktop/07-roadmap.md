@@ -1347,7 +1347,7 @@ bringing it up to the fork's new commits; with a remote on bitbucket.org, **Crea
 page and nothing offers a checkout; every address of `hosting.web-links` was opened by hand on its service; every card
 of the milestone passes its tests, in the desktop and, after phase 5, in the extension.
 
-## M38 — What git leaves alone
+## M38 — What git leaves alone (done)
 
 Telling git to leave something alone, from the window: ignoring a file or a folder by a pattern written in the
 `.gitignore` or the exclude file chosen, stopping tracking a file while it stays on disk, hiding the changes of a
@@ -1375,7 +1375,7 @@ fourth brings the milestone to the extension.
    the Worktrees section, the group **Hidden from git** at the end of the **Gitardo Changes** view, and the lock on the
    rows of the worktrees, all run by the engine. Cards: the cards of the first three phases, in the extension.
 
-Built so far: the first three phases. **Ignore…** in the menu of a file of the changes and of a file or a folder of the
+Done: the four phases are built. **Ignore…** in the menu of a file of the changes and of a file or a folder of the
 Files page offers the patterns of `changes.ignore-patterns` and the places each can be written in, asks git with
 `git check-ignore` whether the path is ignored already, and writes the line as one `write` step; on a tracked path it
 offers to stop tracking it, which **Stop tracking, keep on disk…** does alone too, with **Stop tracking anyway** when
@@ -1388,10 +1388,15 @@ page and in the section. The lock of a worktree and its reason are read with the
 rows of **Repositories**, which have no menu (Q1452); the lock is drawn in both; **Remove…** and **Rename…** ask
 first and unlock, **Rename…** locking the new folder again; **Prune** is offered only while a missing worktree is not
 locked, and **Clean up branches…** lists the branch of a locked worktree unticked and unlocks it before removing it.
-Of the fourth phase, the locks only: **Lock…** and **Unlock** in the menus of a worktree in the extension, run by the
-engine, and the lock on the rows of the Worktrees section, not yet on those of the **Gitardo Repositories** view
-(Q1454). The entries of the first two phases in the **Gitardo Changes** view and in VS Code's Explorer, and the group
-**Hidden from git** there, are not built yet: this lane went on to M40 first.
+In the extension, run by the engine through `feature/run`: **Lock…** and **Unlock** in the menus of a worktree, and the
+lock on the rows of the Worktrees section, not yet on those of the **Gitardo Repositories** view (Q1454); the menu of
+a file of the **Gitardo Changes** view, a right click on its row, with the entries of its buttons and **Ignore…**,
+**Stop tracking, keep on disk…** and **Hide its changes from git…**; the same entries in the context menu of VS Code's
+Explorer, with **Show Its Changes to Git Again** on a file hidden from git of the repository the views show (Q1480),
+offered on every file since the Explorer does not know which files git tracks or ignores, the engine refusing what
+does not apply (Q1481); and the group **Hidden from git** at the end of the **Gitardo Changes** view, from `skipped`
+in the state (protocol 1.11, no new message). The extension's views have no snapshots, so that the group is checked by
+its tests and by the UI runs of the pipeline.
 
 Exit: in a repository with `debug.log` untracked, **Ignore…** with **All `.log` files** writes `*.log` at the end of
 the `.gitignore`, `debug.log` leaves the changes and the `.gitignore` comes in; **Ignore…** on the tracked

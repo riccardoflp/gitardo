@@ -254,6 +254,10 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
         ['gitardo.stopCopyingIntoWorktrees', 'none'],
       ] as const
     ).map(([id, choice]) => command(id, (uri, uris) => controller.setUpFromExplorer(choice, explorerUris(uri, uris)))),
+    // What git leaves alone, on the file or the folder the Explorer's menu was opened on.
+    ...(['ignore', 'stopTracking', 'hideFromGit', 'showToGit'] as const).map((kind) =>
+      command(`gitardo.${kind}`, (uri) => controller.leaveAloneFromExplorer(kind, uri instanceof vscode.Uri ? uri : undefined)),
+    ),
     command('gitardo.addSubmodule', () => controller.action({ kind: 'submoduleAdd' })),
     command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, new GitContentProvider()),

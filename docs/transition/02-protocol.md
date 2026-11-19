@@ -111,10 +111,11 @@ in, one of `branches` taken too (`hosting.checkout-pull-request`); the host ques
 `read/github.read-pull-requests` (`hosting.read-merge-requests`).
 For M38
 ([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)):
-`skipped` in `RepositoryState`, the tracked files git is told not to look at, and `locked` in `Worktree`, the reason
-a worktree is locked. For M40: `isLookedAfter` in `RepositoryState`, whether git's scheduled
-maintenance looks after the repository, `notes` in `RepositoryState`, the commits with a note, and `note` in
-`CommitDetail`, the text of the note of the commit.
+`skipped` in `RepositoryState`, the tracked files git is told not to look at, which the **Gitardo Changes** view lists
+under **Hidden from git**, and `locked` in `Worktree`, the reason a worktree is locked; the extension runs the features
+of that milestone with `feature/run` and the targets it had, `file` and `changes`, so they need no other message. For
+M40: `isLookedAfter` in `RepositoryState`, whether git's scheduled maintenance looks after the repository, `notes` in
+`RepositoryState`, the commits with a note, and `note` in `CommitDetail`, the text of the note of the commit.
 
 ## Transport
 
