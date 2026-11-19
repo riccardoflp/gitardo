@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 549 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 571 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -25,7 +25,7 @@ earns it.
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 47 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 37 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
-| [09-conflicts.md](09-conflicts.md) | Conflicts | 39 |
+| [09-conflicts.md](09-conflicts.md) | Conflicts | 47 |
 | [10-compare.md](10-compare.md) | Compare | 27 |
 | [11-history-and-blame.md](11-history-and-blame.md) | History and blame | 30 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 48 |
@@ -37,6 +37,7 @@ earns it.
 | [18-settings.md](18-settings.md) | Settings | 7 |
 | [19-tasks.md](19-tasks.md) | Tasks | 9 |
 | [20-help.md](20-help.md) | Ask Gitardo | 7 |
+| [21-large-files.md](21-large-files.md) | Large files | 14 |
 
 ## Repositories
 
@@ -394,6 +395,7 @@ earns it.
 | [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Built | Built |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built | Built |
 | [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built | Built |
+| [`review.recorded`](09-conflicts.md#reviewrecorded--a-file-git-resolved-as-before) | A file git resolved as before | View | Specified | Planned |
 | [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Built | Built |
 | [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Built | Built |
 | [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Built | Built |
@@ -401,6 +403,13 @@ earns it.
 | [`ai.trim-answer`](09-conflicts.md#aitrim-answer--the-lines-around-the-conflict-written-again) | The lines around the conflict, written again | Derivation | Built | Built |
 | [`ai.choose-model`](09-conflicts.md#aichoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Built | Differs (G2, G6) |
 | [`ai.copilot`](09-conflicts.md#aicopilot--github-copilot-as-the-ai-provider) | GitHub Copilot as the AI provider | Read | Specified | Host only |
+| [`rerere.read-state`](09-conflicts.md#rerereread-state--whether-git-remembers-resolutions) | Whether git remembers resolutions | Read | Specified | Planned |
+| [`rerere.turn-on`](09-conflicts.md#rerereturn-on--remember-how-conflicts-are-resolved) | Remember how conflicts are resolved | Operation | Specified | Planned |
+| [`rerere.turn-off`](09-conflicts.md#rerereturn-off--stop-remembering-how-conflicts-are-resolved) | Stop remembering how conflicts are resolved | Operation | Specified | Planned |
+| [`rerere.read-resolved`](09-conflicts.md#rerereread-resolved--the-files-git-resolved-as-before) | The files git resolved as before | Read | Specified | Planned |
+| [`rerere.read-marked`](09-conflicts.md#rerereread-marked--a-file-as-git-marked-it) | A file as git marked it | Read | Specified | Planned |
+| [`rerere.resolved-as-before`](09-conflicts.md#rerereresolved-as-before--the-files-git-resolved-as-before-where-conflicts-are-shown) | The files git resolved as before, where conflicts are shown | View | Specified | Planned |
+| [`rerere.forget`](09-conflicts.md#rerereforget--forget-a-resolution-git-recorded) | Forget a resolution git recorded | Operation | Specified | Planned |
 
 ## Compare
 
@@ -686,6 +695,25 @@ earns it.
 | [`help.read-answer`](20-help.md#helpread-answer--the-answer-read) | The answer, read | Derivation | Specified | Planned |
 | [`help.page`](20-help.md#helppage--the-ask-gitardo-page) | The Ask Gitardo page | View | Specified | Planned |
 | [`help.show-me`](20-help.md#helpshow-me--show-me) | Show me | Derivation | Specified | Planned |
+
+## Large files
+
+| Feature | Title | Kind | Desktop | Extension |
+| --- | --- | --- | --- | --- |
+| [`lfs.read-status`](21-large-files.md#lfsread-status--whether-git-lfs-is-there-and-what-the-repository-stores-with-it) | Whether Git LFS is there, and what the repository stores with it | Read | Specified | Planned |
+| [`lfs.read-files`](21-large-files.md#lfsread-files--the-files-stored-with-git-lfs) | The files stored with Git LFS | Read | Specified | Planned |
+| [`lfs.pointer`](21-large-files.md#lfspointer--a-file-left-as-a-pointer) | A file left as a pointer | Derivation | Specified | Planned |
+| [`lfs.read-content`](21-large-files.md#lfsread-content--the-content-of-a-file-stored-with-git-lfs-from-the-store-of-the-repository) | The content of a file stored with Git LFS, from the store of the repository | Read | Specified | Planned |
+| [`lfs.show-in-pages`](21-large-files.md#lfsshow-in-pages--a-file-stored-with-git-lfs-in-the-pages) | A file stored with Git LFS, in the pages | View | Specified | Planned |
+| [`lfs.download`](21-large-files.md#lfsdownload--download-files-stored-with-git-lfs) | Download files stored with Git LFS | Operation | Specified | Planned |
+| [`lfs.page`](21-large-files.md#lfspage--the-large-files-page) | The Large files page | View | Specified | Planned |
+| [`lfs.set-up`](21-large-files.md#lfsset-up--set-up-git-lfs-for-a-repository) | Set up Git LFS for a repository | Operation | Specified | Planned |
+| [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Specified | Planned |
+| [`lfs.store-committed`](21-large-files.md#lfsstore-committed--store-with-git-lfs-the-files-committed-before) | Store with Git LFS the files committed before | Operation | Specified | Planned |
+| [`lfs.untrack`](21-large-files.md#lfsuntrack--stop-storing-a-pattern-with-git-lfs) | Stop storing a pattern with Git LFS | Operation | Specified | Planned |
+| [`lfs.read-locks`](21-large-files.md#lfsread-locks--the-locks-of-the-files-stored-with-git-lfs) | The locks of the files stored with Git LFS | Read | Specified | Planned |
+| [`lfs.lock`](21-large-files.md#lfslock--lock-a-file-stored-with-git-lfs) | Lock a file stored with Git LFS | Operation | Specified | Planned |
+| [`lfs.unlock`](21-large-files.md#lfsunlock--unlock-a-file-stored-with-git-lfs) | Unlock a file stored with Git LFS | Operation | Specified | Planned |
 
 ## The extension's identifiers
 

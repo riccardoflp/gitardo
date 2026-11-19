@@ -1393,6 +1393,40 @@ Acceptance:
       change** in place of the rest.
 - [ ] Extension: neither choice can be taken back with **Undo**.
 
+### `review.recorded` — A file git resolved as before
+
+A file in conflict that git resolved itself, from a resolution it recorded the last time the same conflict came
+(`rerere.read-resolved`), has no markers left and nothing to propose: the review shows what git wrote, to accept or to
+forget.
+
+- **Kind**: View
+- **Function**: `views::review::recorded_card_view(state, ui) -> Vec<Intent>`
+- **Entry points**: one card per such file in `review.page`, under its own filter **Resolved as before** of
+  `review.file-list`.
+- **Reads**: `rerere.read-marked`, the file as git marked it; the file on disk.
+- **Uses**: `rerere.read-resolved`, `rerere.read-marked`, `rerere.forget`, `review.write`, `diff.page`,
+  `diff.line-diff`.
+- **Extension**: planned, in a later milestone: a card of the review tab of the extension (`ConflictsApp`) with the
+  same buttons.
+
+- The heading says **Resolved by git as before**, with *Git recorded how this conflict was resolved the last time,
+  and wrote the same resolution.* The card shows the lines git wrote in place of each conflict, as a diff of the file
+  as git marked it against the file on disk.
+- **Accept** marks the file accepted, as `review.accept-file` marks a file: **Write N resolutions** stages it
+  (`git add -- <file>`), as the other files written are staged. It is counted in the head of the page apart: *1 file
+  resolved by git as before*.
+- **Forget it** runs `rerere.forget`, after it asks: the file is in conflict again with its markers, and its conflicts
+  come back as cards, with what the rules or the AI propose.
+- A recorded resolution is not a proposal of its own: git has written it already, and **Clear** does not take it back
+  (Q1201).
+
+Acceptance:
+
+- [ ] After a rebase stopped on a conflict git resolved from a recorded resolution, the review lists the file under
+      **Resolved as before**, with the lines git wrote.
+- [ ] **Accept** and **Write** stage the file; the head said *1 file resolved by git as before* before.
+- [ ] **Forget it** asks, then the file has its markers again and its conflicts are cards.
+
 ### `ai.resolve-conflicts` — Resolve conflicts with AI
 
 Asks the AI provider how to resolve each conflict the rules leave, one conflict per question, and shows each answer as a
@@ -1701,3 +1735,186 @@ Acceptance:
       is answered.
 - [ ] Cancelling a question ends its session and not the CLI; closing the window ends the CLI.
 - [ ] The tests speak to a fake `copilot` of `testkit` that answers the protocol, so that no account is needed.
+
+## Resolutions git remembers
+
+Git can record how each conflict was resolved and write the same resolution the next time the same conflict comes, as
+when a branch is rebased again and again; its name for it is rerere, *reuse recorded resolution*. It is off unless the
+repository turns it on. This part covers turning it on, saying which files git resolved so, showing what it wrote, and
+forgetting a resolution that was wrong
+([D84](../08-decisions.md#d84--large-files-stored-with-git-lfs-and-resolutions-git-remembers-shown-where-the-files-are-proposed)).
+
+### `rerere.read-state` — Whether git remembers resolutions
+
+Whether git records and writes again the resolutions of conflicts in this repository, and whether it also stages what
+it writes.
+
+- **Kind**: Read
+- **Function**: `git::read::rerere::read_state(git: &Git, request: &RerereStateRequest) -> Result<RerereState, GitError>`
+- **Reads**: `git config --type=bool --get rerere.enabled` and `git config --type=bool --get rerere.autoUpdate`; when
+  the first is not set, whether the folder `git rev-parse --git-path rr-cache` gives exists, which git takes as on.
+- **Uses**: `repo.read-state`, with which it runs, again only when the configuration changed (`repo.watch-changes`).
+- **Extension**: read by the engine with the state of the repository: planned.
+
+Acceptance:
+
+- [ ] With `git config rerere.enabled true`, it is on; with `false`, off, even with an `rr-cache` folder.
+- [ ] With nothing set and an `rr-cache` folder in the git folder, it is on; with neither, off.
+- [ ] `git config rerere.autoUpdate true` reads as staging what it writes.
+
+### `rerere.turn-on` — Remember how conflicts are resolved
+
+Turns on, for this repository, git's recording of the resolutions of conflicts and their use the next time.
+
+- **Kind**: Operation
+- **Function**: `features::rerere::turn_on(context, answers) -> Outcome`
+- **Entry points**: **Remember how conflicts are resolved…** in the context menu of the row of a repository in
+  **Repositories** (`repo.tabs`), unticked; Quick search, **Remember How Conflicts Are Resolved…** (Q1199).
+- **Offered when**: it is off (`rerere.read-state`).
+- **Asks**: **When git meets a conflict it resolved before**: **Write the same resolution, and leave the file for me
+  to look at** (the default), *The file stays in conflict, without markers, until you mark it as resolved.*; **Write
+  the same resolution and stage it**, *The file is staged at once: look at it before you continue.*
+- **Plan**: `git config --local rerere.enabled true`; with the second answer, also
+  `git config --local rerere.autoUpdate true`.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: **Remember how conflicts are resolved** ticked in the same menu
+  (`rerere.turn-off`) turns it off.
+- **After**: says **Git now records how you resolve conflicts in `<repository>`, and resolves the same conflicts the
+  same way.**
+- **Uses**: `rerere.read-state`, `rerere.turn-off`.
+- **Extension**: planned: the same entry in the context menu of a row of the **Gitardo Repositories** view, and
+  **Gitardo: Remember How Conflicts Are Resolved…** in the Command Palette, sending `feature/run` of `rerere.turn-on`
+  to the engine.
+
+Acceptance:
+
+- [ ] With the first answer it runs `git config --local rerere.enabled true` alone, and the entry of the menu is
+      ticked after.
+- [ ] With the second it runs both commands.
+- [ ] Backing out of the question runs nothing.
+
+### `rerere.turn-off` — Stop remembering how conflicts are resolved
+
+Turns git's recording of resolutions off for this repository; what it recorded stays, unused.
+
+- **Kind**: Operation
+- **Function**: `features::rerere::turn_off(context, answers) -> Outcome`
+- **Entry points**: **Remember how conflicts are resolved**, ticked, in the context menu of the row of a repository
+  in **Repositories**; Quick search, **Stop Remembering How Conflicts Are Resolved**.
+- **Offered when**: it is on.
+- **Plan**: `git config --local rerere.enabled false`, rather than taking the key away, since a folder `rr-cache`
+  would keep it on; then `git config --local --unset rerere.autoUpdate` when the repository sets it.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: `rerere.turn-on` turns it on again, and the resolutions recorded are used again.
+- **Uses**: `rerere.read-state`.
+- **Extension**: planned, with `rerere.turn-on`.
+
+Acceptance:
+
+- [ ] It runs `git config --local rerere.enabled false`, and the next conflict git resolved before stays marked.
+- [ ] The folder `rr-cache` is not deleted (Q1203).
+
+### `rerere.read-resolved` — The files git resolved as before
+
+Which files in conflict git resolved by itself from a recorded resolution, while an operation is stopped.
+
+- **Kind**: Read
+- **Function**: `git::read::rerere::read_resolved(git: &Git, request: &ResolvedRequest) -> Result<Vec<RepoPath>, GitError>`
+- **Reads**: while it is on and files are in conflict, `git rerere remaining`, the files in conflict git did not
+  resolve, one path to a line: each file of `conflicts.read-files` that it does not list was resolved as before. Git
+  prints these paths as they are, with no `-z`: a path with a line ending in it cannot be told apart, and is taken as
+  not resolved (Q1200). With `rerere.autoUpdate`, git stages what it resolves, which takes those files out of the files
+  in conflict: they are the lines `Staged '<path>' using previous resolution.` that the operation that stopped printed
+  (git runs in the C locale under Gitardo), kept with the operation under way until it ends.
+- **Uses**: `rerere.read-state`, `conflicts.read-files`, `repo.read-state`.
+- **Extension**: read by the engine with the state of the repository: planned.
+
+Acceptance:
+
+- [ ] A merge that stops on `m.txt` and `n.txt`, with a resolution recorded for `m.txt` alone, gives `m.txt`.
+- [ ] With `rerere.autoUpdate` on, the same merge gives `m.txt`, which is staged.
+- [ ] With rerere off it runs nothing and gives nothing.
+- [ ] Once the merge is committed or aborted, it gives nothing.
+
+### `rerere.read-marked` — A file as git marked it
+
+The text of a file in conflict as git marked it when it stopped, made again from the three versions of the index, to
+compare with what git wrote from a recorded resolution.
+
+- **Kind**: Read
+- **Function**: `git::read::rerere::read_marked(git: &Git, request: &MarkedRequest) -> Result<Vec<u8>, GitError>`
+- **Reads**: `git merge-file -p --object-id -L <current> -L base -L <incoming> :2:<path> :1:<path> :3:<path>`, the
+  names those of `conflicts.side-names`; git ends with the number of conflicts, which is not a failure. A file both
+  sides added has no base: `git merge-file` is given the id of an empty file, which `git hash-object --stdin` gives
+  for nothing on its input without writing it. A file git staged has no versions in the index any more, and nothing
+  is read: what git wrote in it is the diff of the last commit and the index.
+- **Uses**: `conflicts.side-names`, by `rerere.resolved-as-before` and `review.recorded`.
+- **Extension**: read by the engine for the diff the extension opens: planned.
+
+Acceptance:
+
+- [ ] For `m.txt` resolved as before, the text read has the markers and the lines of both sides that git wrote when it
+      stopped, named as the Merge page names the sides.
+- [ ] Git's exit code 1, one conflict, is read as success.
+- [ ] Nothing in the working tree or the index changes.
+
+### `rerere.resolved-as-before` — The files git resolved as before, where conflicts are shown
+
+Says, wherever the files in conflict are listed, which of them git resolved from a recorded resolution, and gives what
+can be done with each: look at what git wrote, mark it resolved, or forget the resolution.
+
+- **Kind**: View
+- **Function**: `views::conflicts::resolved_as_before(state: &ResolvedAsBeforeState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: drawn in `conflicts.banner`, in the message of `conflicts.stopped`, on the rows of the files in
+  conflict of the changes, and in `review.page` (`review.recorded`).
+- **Reads**: `rerere.read-resolved`.
+- **Uses**: `rerere.read-resolved`, `rerere.read-marked`, `rerere.forget`, `conflicts.mark-resolved`,
+  `conflicts.banner`, `conflicts.stopped`, `changes.row-menu`, `review.recorded`, `diff.page`.
+- **Extension**: planned, in a later milestone: the same words in the banner, the message and the rows of the
+  **Gitardo Changes** view.
+
+- The banner adds **· git resolved 2 as before** after the count of the files in conflict; the message of an
+  operation that stopped adds *Git resolved 2 files as it did before: look at them before you continue.*
+- The row of such a file has **Resolved as before** in the small text of details, muted, and its menu has **Show what
+  git wrote**, **Mark as resolved** and **Forget this resolution…** in place of the two sides.
+- **Show what git wrote** opens the Diff page of the file as git marked it (`rerere.read-marked`), titled **As git
+  marked it**, against the working tree; for a file git staged, the Diff page of the last commit and the index.
+- A file staged by git as before is listed with the staged files, with the same words and menu, until the operation
+  ends.
+
+Acceptance:
+
+- [ ] A merge that stops with `m.txt` resolved as before and `n.txt` not says **Merge in progress · 2 files have
+      conflicts · git resolved 1 as before**.
+- [ ] The row of `m.txt` says **Resolved as before**, and **Show what git wrote** opens a Diff page with the markers
+      on the left and the lines git wrote on the right.
+- [ ] **Mark as resolved** on it runs `git add -- m.txt`.
+- [ ] With rerere off, nothing of this is drawn.
+
+### `rerere.forget` — Forget a resolution git recorded
+
+Has git forget the resolution it recorded for the conflicts of a file, and marks them again, for a resolution that was
+wrong and that git would otherwise write each time.
+
+- **Kind**: Operation
+- **Function**: `features::rerere::forget(context, answers) -> Outcome`
+- **Entry points**: **Forget this resolution…** in the menu of a file resolved as before
+  (`rerere.resolved-as-before`) and **Forget it** on its card in the review (`review.recorded`).
+- **Offered when**: the file was resolved as before during the operation under way, staged or not.
+- **Plan**: `git rerere forget <path>`, the path as `changes.pathspec` writes it (`git rerere forget` takes a pattern
+  and no `--`), then `git checkout --merge -- <path>`, which marks the conflicts again, also in a file git staged.
+- **Danger**: Destructive, because **The resolution git recorded is forgotten, and what git wrote in `<path>`, with
+  any change made to it since, is lost: the conflicts are marked again.**
+- **Undo**: Impossible: the resolution recorded and the text of the file are not kept.
+- **After**: the file is in conflict with its markers; the resolution made next is recorded in place of the one
+  forgotten.
+- **Uses**: `changes.pathspec`, `rerere.read-resolved`, `conflicts.restore`.
+- **Extension**: planned, in a later milestone, with `rerere.resolved-as-before`.
+
+Acceptance:
+
+- [ ] On `m.txt` resolved as before it asks with the warning, then runs `git rerere forget m.txt` and
+      `git checkout --merge -- m.txt`; the file has its markers after.
+- [ ] On `m.txt` that git staged, the same two commands leave it in conflict, not staged.
+- [ ] Resolving `m.txt` otherwise and running the same merge again writes the new resolution.
+- [ ] With `commandPreview` set to `off`, it still asks.

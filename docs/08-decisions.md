@@ -2052,6 +2052,56 @@ Rejected: a page that edits the `.gitignore` files (the File page edits them, an
 checkout may write over it); `git worktree remove -f -f` on a locked worktree (the lock has a reason the user should
 read first); hiding a file from git in every clone (git has no such thing: the mark is in the index of each clone).
 
+## D84 — Large files stored with Git LFS, and resolutions git remembers, shown where the files are (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M39; the details proposed while planning.*
+
+Git LFS keeps large files on a server and commits a pointer of three lines in their place. Gitardo shows that pointer
+as the text of the file in the File page, the Diff page and the page of a commit, and has no way to download a file
+left as a pointer, nor to store a pattern with Git LFS. And git can record how each conflict was resolved and write the
+same resolution the next time the same conflict comes, as when a branch is rebased again and again; Gitardo never turns
+it on, and when git writes a resolution it recorded, the file stays in conflict with no markers, which neither the
+changes nor the review explain.
+
+- **Git LFS is optional.** What Gitardo does with it is offered once `git lfs version` answers; what the repository
+  stores with it is read from the `.gitattributes` git tracks, so that a repository is understood without the program
+  (`lfs.read-status`). It is set up for one repository only, with `git lfs install --local`, never in the user's
+  configuration (`lfs.set-up`).
+- **A pointer is never shown as text.** The File page, the Diff page and the page of a commit show a file stored with
+  Git LFS by its content when it is on this computer, read from the store of the repository (`lfs.read-content`), and
+  otherwise say **Stored with Git LFS, not downloaded**, with its size and **Download** (`lfs.show-in-pages`). A read
+  never downloads: the filter of Git LFS, which would talk to the server in the middle of a read, is never run by one.
+- **Download** is `git lfs pull --include=<path>` for the commit checked out, and `git lfs fetch` for another commit
+  (`lfs.download`). **Store with Git LFS…** is `git lfs track`, which writes `.gitattributes` itself, and the files
+  committed before the pattern are staged again as pointers on demand (`lfs.track`, `lfs.store-committed`);
+  **Stop storing with Git LFS** is `git lfs untrack` (`lfs.untrack`). History is not rewritten.
+- **A page, Large files** (`lfs.page`), from the menu of the row of the repository and from Quick search: whether Git
+  LFS is there and set up, the patterns, the files with their sizes and whether they are downloaded, and the locks.
+  The locks are asked of the server only there, with `git lfs locks --verify --json` (`lfs.read-locks`), and a server
+  without them is said so; **Lock** and **Unlock**, someone else's lock after a warning (`lfs.lock`, `lfs.unlock`).
+- **Resolutions git remembers.** **Remember how conflicts are resolved…** in the menu of the row of the repository
+  turns git's rerere on for the repository, in its own configuration, and asks whether git also stages what it
+  resolves, not by default (`rerere.turn-on`, `rerere.turn-off`). Off, nothing of it is drawn.
+- **What git resolved is said.** A file in conflict that `git rerere remaining` does not list was resolved as before;
+  with staging on, the lines git printed when the operation stopped say which (`rerere.read-resolved`). The banner,
+  the message of the stop and the rows of the changes say **Resolved as before**; **Show what git wrote** opens the
+  Diff page of the file as git marked it, made again with `git merge-file`, beside what git wrote
+  (`rerere.read-marked`, `rerere.resolved-as-before`); **Forget this resolution…** is `git rerere forget` followed by
+  `git checkout --merge`, which marks the conflicts again (`rerere.forget`).
+- **In the review, not a proposal.** A resolution git recorded has been written already: it is a card of its own under
+  **Resolved as before**, accepted and staged by **Write**, or forgotten (`review.recorded`). Whether it should rather
+  be a proposal beside those of the rules and the AI is asked (Q1201).
+
+Desktop first: the extension follows in a later milestone, and every card is *Planned* there. The engine reads and
+runs all of it, so that the protocol can serve it as it is.
+
+Rejected: running the filter of Git LFS in a read (`git cat-file --filters` would download from the server while the
+window draws a page); a library of the protocol of Git LFS (D22: the program is what everyone has, with its
+credentials and its servers); `git lfs migrate`, which rewrites the history of every branch (asked, Q1193); marking in
+the tree of the Files page the files left as pointers at each read (`git lfs ls-files` reads the whole tree; asked,
+Q1190); rerere on in every repository Gitardo opens (it changes what git writes in the files at the next conflicts);
+`git rerere diff`, which runs the system's `diff` and prints for people.
+
 
 ## Open questions
 
@@ -5348,4 +5398,50 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1185** — `changes.ignore`, `changes.stop-tracking`, `changes.skip`: in the extension the entries are planned in the
   **Gitardo Changes** view and in the context menu of VS Code's Explorer. Should they be in the Explorer, where VS Code
   and other extensions have many entries already, or in Gitardo's views alone?
+
+### Of large files and remembered resolutions, from Q1190
+
+Questions of milestone M39 ([D84](#d84--large-files-stored-with-git-lfs-and-resolutions-git-remembers-shown-where-the-files-are-proposed)),
+asked while it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1190** — `lfs.read-files`: the files stored with Git LFS are listed when the **Large files** page opens, not with
+  the reads of the repository, since `git lfs ls-files` reads the whole tree of the commit. So the tree of the Files
+  page does not mark a file left as a pointer until it is opened. Should the tree mark them, reading them again when
+  `HEAD` moves?
+- **Q1191** — `lfs.show-in-pages`: a file is shown as stored with Git LFS when its bytes are a pointer and git says its
+  path has `filter=lfs`. A repository that stopped storing a pattern with Git LFS still has pointers committed for it,
+  which are then shown as text. Should a pointer be shown as such whatever the attributes say?
+- **Q1192** — `lfs.download`: `--include` takes patterns separated by commas, so that a path holding `,`, `*`, `?` or
+  `[` cannot be named alone; such a file is refused, with the advice to download them all. Should Gitardo download
+  it by its id instead (`git lfs fetch` of the commit, then the content put in place by Gitardo)?
+- **Q1193** — `lfs.store-committed`: the files committed before a pattern are stored with Git LFS from the next commit;
+  the commits before keep them, and the repository keeps their size. Is `git lfs migrate import`, which rewrites every
+  branch, wanted, as an operation of its own with its warnings?
+- **Q1194** — `lfs.set-up`: Git LFS is set up for one repository at a time, with `--local`. Most people run
+  `git lfs install` once for their account. Should Gitardo offer that instead, or as well?
+- **Q1195** — `lfs.read-locks`: the locks are read only on the **Large files** page. A file that `.gitattributes`
+  marks `lockable` is read-only on disk until it is locked. Should the File page say so when such a file is opened,
+  with **Lock**, reading the locks then?
+- **Q1196** — `lfs.unlock`: someone else's lock is taken away after a warning, with `--force`. Should it be offered at
+  all, or left to the server's page?
+- **Q1197** — `lfs.page`: a page of its own, from the menu of the row of the repository and from Quick search. Should it
+  be a section of the Files page instead, or, in the extension, a view of the side bar rather than an editor tab?
+- **Q1198** — tests: the tests of `lfs.` need the program Git LFS, which the runners of the pipeline have on every
+  system; where it is missing they are skipped and say so. Should the pipeline fail when they are skipped?
+- **Q1199** — `rerere.turn-on`: it is offered in the menu of the row of the repository and in Quick search. Should the
+  message of an operation that stopped on conflicts offer it too, while it is off, the first time only?
+- **Q1200** — `rerere.read-resolved`: `git rerere remaining` has no `-z`, and prints each path as it is on a line of its
+  own; a path with a line ending in it is taken as not resolved. Acceptable?
+- **Q1201** — `review.recorded`: what git wrote from a recorded resolution is a card of its own in the review, not a
+  proposal: **Clear** does not take it back, and **Accept all proposed** does not accept it. Should it be a proposal
+  of a third kind, **Recorded**, beside **Rules** and **AI**, accepted with them?
+- **Q1202** — `rerere.forget`: a resolution is forgotten only while its conflict is there. Should the resolutions git
+  recorded be listed and forgotten at any time, or cleared with `git rerere gc`?
+- **Q1203** — `rerere.turn-off`: the resolutions recorded stay in the folder `rr-cache`, unused. Should turning it off
+  offer to delete them?
+- **Q1204** — `review.write`: with rerere on, what Gitardo writes, the resolutions of the rules and of the AI
+  included, is recorded by git at the next commit and written again at the next same conflict, without the review.
+  Should the review say so when rerere is on?
+- **Q1205** — `lfs.show-in-pages`: the content of a file stored with Git LFS is diffed as text, or said binary. Should
+  an image stored with Git LFS be shown as images are, once the window shows images?
 

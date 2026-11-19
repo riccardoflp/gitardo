@@ -1274,6 +1274,51 @@ its reason, **Remove…** on it says the reason first, and **Prune** leaves it o
 do the same in the extension; every card of the milestone passes its tests, and the snapshots of the group and of a
 locked worktree match in each theme.
 
+## M39 — Large files and remembered resolutions
+
+Files stored with Git LFS shown by their content, or as not downloaded with **Download**, never as the text of their
+pointer; storing a pattern with Git LFS; the **Large files** page with the files and the locks; and git's rerere,
+turned on from the window, with the files git resolved as it did before said where conflicts are shown, what it wrote
+shown, and a wrong resolution forgotten
+([D84](../08-decisions.md#d84--large-files-stored-with-git-lfs-and-resolutions-git-remembers-shown-where-the-files-are-proposed)).
+Asked by the maintainer with M38. Built in six phases, each one commit or more, each ending with its cards built and
+their tests passing, in Gitardo Desktop alone: the extension follows in a later milestone, and every card is *Planned*
+there. The tests of Git LFS need the program, which the runners of the pipeline have (Q1198).
+
+1. **Git LFS read.** Whether it is installed and set up, the patterns from the `.gitattributes` git tracks, the files
+   with their sizes and whether they are downloaded, a pointer told apart from a file, and the content read from the
+   store of the repository without the server. Cards: `lfs.read-status`, `lfs.read-files`, `lfs.pointer`,
+   `lfs.read-content`.
+2. **Pointers in the pages, and Download.** The File page, the Diff page and the page of a commit show the content of
+   a file stored with Git LFS, or that it is not downloaded, with its size and **Download**, which pulls it for the
+   commit checked out and fetches it for another. Cards: `lfs.show-in-pages`, `lfs.download`, `diff.page`,
+   `file-view.page`, `commit-page.view`.
+3. **The Large files page.** From the menu of the row of the repository and from Quick search: Git LFS and whether it
+   is set up, the patterns, the files, **Download all**; **Set up**, **Store with Git LFS…**, **Store them with Git LFS
+   in the next commit**, **Stop storing with Git LFS**. Cards: `lfs.page`, `lfs.set-up`, `lfs.track`,
+   `lfs.store-committed`, `lfs.untrack`, `repo.tabs`.
+4. **Locks.** The locks read when the page opens, a server without them said so; **Lock** and **Unlock**, someone
+   else's after a warning. Cards: `lfs.read-locks`, `lfs.lock`, `lfs.unlock`.
+5. **Turning rerere on.** Whether git remembers resolutions, read with the repository; **Remember how conflicts are
+   resolved…** in the menu of the row of the repository, ticked while it is on, asking whether git stages what it
+   resolves. Cards: `rerere.read-state`, `rerere.turn-on`, `rerere.turn-off`, `repo.tabs`.
+6. **What git resolved as before.** The files git resolved, read while an operation is stopped; the words in the
+   banner, the message of the stop and the rows of the changes; **Show what git wrote**, **Forget this
+   resolution…**; the card of such a file in the review. Cards: `rerere.read-resolved`, `rerere.read-marked`,
+   `rerere.resolved-as-before`, `rerere.forget`, `review.recorded`, `review.file-list`, `conflicts.banner`,
+   `conflicts.stopped`, `changes.row-menu`.
+
+Nothing is built yet.
+
+Exit: in a clone of a repository that stores `*.psd` with Git LFS, made without downloading, the File page of a `.psd`
+says it is not downloaded, with its size, and **Download** shows its content after; the page of a commit that changed
+one says **Stored with Git LFS** with the two sizes, and no line of a pointer; **Store with Git LFS…** on a `.bin` adds
+its pattern to `.gitattributes`; the **Large files** page lists the files, which are downloaded and which not, and the
+locks of a server that has them. With **Remember how conflicts are resolved** ticked, a conflict resolved, committed,
+and met again by the same merge is said **Resolved as before**, **Show what git wrote** shows the markers beside what
+git wrote, and **Forget this resolution…** marks the conflict again; every card of the milestone passes its tests, and
+the snapshots of the page and of a file not downloaded match in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
