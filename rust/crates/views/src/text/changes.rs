@@ -141,6 +141,28 @@ pub const CO_AUTHORS: &str = "Co-authors\u{2026}";
 pub const REMOVE_CO_AUTHOR: &str = "Remove from the co-authors";
 /// The option that skips the hooks of the next commit.
 pub const SKIP_THE_HOOKS: &str = "Skip the hooks";
+/// The title of the picker of the co-authors (`commit.co-authors`).
+pub const CO_AUTHORS_TITLE: &str = "Co-authors of this commit";
+/// What the empty box of the picker of the co-authors shows.
+pub const TYPE_A_CO_AUTHOR: &str = "Type a name, or Name <email> to add someone";
+/// The button that keeps the co-authors ticked.
+pub const SET_CO_AUTHORS: &str = "Set co-authors";
+/// What the picker says while the authors of the history are read.
+pub const READING_AUTHORS: &str = "Reading the authors\u{2026}";
+
+/// The entry that adds someone typed as a co-author: **Add Dee <dee@example.com>**.
+#[must_use]
+pub fn add_co_author(name: &str, email: &str) -> String {
+    format!("Add {name} <{email}>")
+}
+
+/// The line under an author of the history: `ben@example.com · 3 commits`.
+#[must_use]
+pub fn author_detail(email: &str, commits: usize) -> String {
+    let noun = if commits == 1 { "commit" } else { "commits" };
+    format!("{email} \u{b7} {commits} {noun}")
+}
+
 /// What **Skip the hooks** does.
 pub const SKIP_THE_HOOKS_TOOLTIP: &str = "Commit without running the pre-commit and commit-msg hooks";
 

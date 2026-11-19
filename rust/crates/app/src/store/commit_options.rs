@@ -20,7 +20,7 @@ fn starts(state: &State) -> CommitOptions {
 }
 
 /// The options in force for the next commit of a repository.
-fn in_force(state: &State, folder: &Path) -> CommitOptions {
+pub(super) fn in_force(state: &State, folder: &Path) -> CommitOptions {
     state
         .changes
         .options
@@ -44,7 +44,7 @@ pub fn reduce(state: &mut State, intent: OptionsIntent) -> Vec<Effect> {
                 let _removed = options.co_authors.remove(index);
             }
         }
-        OptionsIntent::ChooseCoAuthors => return Vec::new(),
+        OptionsIntent::ChooseCoAuthors => return super::co_authors::open(state),
     }
     let _before = state.changes.options.insert(folder, options);
     Vec::new()

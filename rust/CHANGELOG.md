@@ -14,6 +14,11 @@
   the arguments added to `git commit`. When git signs with SSH or X.509 and has no key, **Sign this commit** cannot be
   ticked and **Switch identity…** is beside it. The new setting `commit.signOff` (User, Repository) ticks **Add
   Signed-off-by** to start.
+- **Co-authors…**, in the menu of **Commit options**, opens **Co-authors of this commit**: the authors of the history,
+  the one with the most commits first and without the identity that commits, found by name or email as they are
+  typed, each with its email and its commits; `Name <email>` typed adds someone who never committed. `Enter` keeps the
+  ticks, `Escape` leaves the co-authors as they were. The next commit ends with a `Co-authored-by` line for each, and
+  the menu lists them, each with × to take it away.
 
 ## 1.2.0 - 2026-11-18
 

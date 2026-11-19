@@ -6,7 +6,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use model::commit::{SigningConfig, SigningKind, is_true};
+use model::commit::{Author, SigningConfig, SigningKind, authors_of, is_true};
 
 use crate::read::fields::read_or_nothing;
 use crate::read::repo::read_location;
@@ -113,6 +113,52 @@ pub fn parse_signing(output: &[u8]) -> SigningConfig {
 pub fn read_signing(git: &Git, request: &SigningRequest) -> Result<SigningConfig, GitError> {
     let arguments: Vec<std::ffi::OsString> = signing_arguments(request).into_iter().map(Into::into).collect();
     Ok(read_or_nothing(git, &arguments)?.map_or_else(SigningConfig::default, |output| parse_signing(&output)))
+}
+
+/// Which history: every branch, remote branch and tag of the repository git runs in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct AuthorsRequest;
+
+/// How many commits are read at most, the newest first, so that a long history answers at once.
+pub const AUTHORS_READ: usize = 10_000;
+
+/// `git log -z --format=%aN%x1f%aE --max-count=10000 --branches --remotes --tags`: the name and the email of the author
+/// of each commit, the newest first, as the repository's `.mailmap` says them.
+#[must_use]
+pub fn authors_arguments(_request: &AuthorsRequest) -> Vec<String> {
+    vec![
+        String::from("log"),
+        String::from("-z"),
+        String::from("--format=%aN%x1f%aE"),
+        format!("--max-count={AUTHORS_READ}"),
+        String::from("--branches"),
+        String::from("--remotes"),
+        String::from("--tags"),
+    ]
+}
+
+/// The authors of what [`authors_arguments`] printed: one for each email, without regard to case, named as their
+/// latest commit says, the one with the most commits first.
+#[must_use]
+pub fn parse_authors(output: &[u8]) -> Vec<Author> {
+    let text = String::from_utf8_lossy(output);
+    let commits = text
+        .split('\0')
+        .map(|record| record.trim_start_matches('\n'))
+        .filter_map(|record| record.split_once('\u{1f}'))
+        .filter(|(_, email)| !email.is_empty());
+    authors_of(commits)
+}
+
+/// The people who made commits in the repository, with how many each made, for choosing co-authors.
+///
+/// Feature: commit.read-authors
+///
+/// # Errors
+///
+/// When the folder is not in a repository, or git cannot be started or fails.
+pub fn read_authors(git: &Git, request: &AuthorsRequest) -> Result<Vec<Author>, GitError> {
+    Ok(parse_authors(&git.run_read(&authors_arguments(request))?))
 }
 
 /// The message in a file of the git folder; none when the file is not there or holds only blanks.

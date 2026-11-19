@@ -1091,6 +1091,7 @@ their tests passing. Desktop first: the extension gets the line of the signature
    a `--trailer` for each co-author chosen, and none for one the message names already. Cards:
    `commit.read-authors`, `commit.co-authors`, `commit.option-arguments`.
 
+Built: the three phases, in Gitardo Desktop; the extension is unchanged.
 Phase 1 is built: the line **Signature** of the inspector and of the page of a commit, read once the details are
 drawn, the read before cancelled when another commit is selected, and tested with commits signed by an SSH key made
 for each test. The object of the commit is read first, where the plan read it only after `N` (the card says why).
@@ -1098,7 +1099,9 @@ Phase 2 is built: how git signs, read with the state; the button **Commit option
 with **Sign this commit**, **Add Signed-off-by** and **Skip the hooks**; their arguments, given to `commit.create` and
 `commit.amend` as answers the command line never asks; the line under the box; the setting `commit.signOff`; each
 repository keeping its own options until its next commit. What an entry signs with, or adds, is its tooltip, not a line
-under it (the card of `commit.options` says why). `commit.options` is Built with phase 3, which lists the co-authors.
+under it (the card of `commit.options` says why). Phase 3 is built: the authors of the history, read when the picker
+**Co-authors of this commit** opens and stopped when it closes first; an author typed as `Name <email>`; a `--trailer`
+for each co-author. The picker shows eight people at most, and typing finds the others (the card says why).
 
 Exit: in a repository signing with an SSH key whose allowed signers are set, selecting a commit signed shows
 **Signature** `Good` with the signer, and one not signed shows no such line; without the allowed signers, the same

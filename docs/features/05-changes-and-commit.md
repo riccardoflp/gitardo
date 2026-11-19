@@ -895,7 +895,8 @@ entry that switches shows its check alone (`ui.menu-icons`): what **Sign this co
 `Signed-off-by` line and what **Skip the hooks** does are the tooltips of their entries; a ticked option has the check
 and no icon of its own; and when no key can sign, **Switch identity…** is an entry of its own under **Sign this
 commit**, which cannot be chosen and says **No key to sign with: set one with Switch identity…** in its tooltip. The
-options a repository keeps last while the window is open, as its message does not: they are not written to disk.
+options a repository keeps last while the window is open, as its message does not: they are not written to disk. Each
+co-author chosen is an entry of the menu under **Co-authors…**, `Ben <ben@example.com>` with ×, which takes it away.
 
 Acceptance:
 
@@ -996,6 +997,10 @@ many commits, the ones with the most first, the identity that commits left out; 
 ticked. What is typed matches the names and the emails, as Quick search matches. When it is a name and an email,
 `Ben <ben@example.com>`, that no author has, an entry **Add Ben <ben@example.com>** is first. `Enter` keeps the ticks
 and closes the picker; `Escape` leaves the co-authors as they were.
+
+As built, the picker is a dialog of the window with a box at its top, its button **Set co-authors**, and room for eight
+people: the co-authors added by typing, then the authors found, so that a history of hundreds of authors keeps the
+dialog its height; typing finds the others. **Reading the authors…** stands in their place until they are read.
 
 Acceptance:
 

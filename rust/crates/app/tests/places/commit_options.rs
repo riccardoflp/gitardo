@@ -35,7 +35,7 @@ pub(super) fn staged() -> Repository {
 }
 
 /// Changes `a.txt` and stages it.
-fn stage(repository: &Repository, text: &str) {
+pub(super) fn stage(repository: &Repository, text: &str) {
     std::fs::write(repository.path().join("a.txt"), text).unwrap();
     let _ = repository.git(&["add", "a.txt"]);
 }

@@ -117,10 +117,15 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
     }
 }
 
-/// The message of a read of the Files page, of a blame, of the conflicts counted, of the page of new worktrees, or of
-/// the files git ignores among those not saved.
+/// The message of a read of the authors of the history, of the Files page, of a blame, of the conflicts counted, of the
+/// page of new worktrees, or of the files git ignores among those not saved.
 fn files_read(job: &Job, cancel: &CancelToken) -> Message {
     match &job.kind {
+        JobKind::ReadAuthors { folder, request } => Message::AuthorsRead {
+            job: job.id,
+            result: git::read::commit::read_authors(&Git::new(folder).with_cancel(cancel.clone()), request)
+                .map_err(|error| error.to_string()),
+        },
         JobKind::ReadBlame { folder, job: blame } => Message::BlameRead {
             job: job.id,
             result: super::blame::read_blame(folder, blame, cancel),

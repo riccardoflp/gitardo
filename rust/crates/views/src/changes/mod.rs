@@ -6,6 +6,7 @@ mod actions;
 #[cfg(test)]
 mod actions_tests;
 mod beside;
+mod co_authors;
 mod commit_box;
 mod menu;
 mod options;
@@ -29,6 +30,7 @@ use crate::text::changes as words;
 
 pub use actions::{RowAction, buttons_kept, conflict_actions, file_actions, heading_actions, staying};
 pub use beside::{BesideFile, BesideFileState, BesideShown, beside_file_view, beside_request};
+pub use co_authors::{AUTHORS_SHOWN, CoAuthorsIntent, CoAuthorsState, co_authors_view};
 pub use commit_box::{CommitBox, CommitKind, Draft};
 pub use menu::{RowMenuState, row_menu};
 pub use options::{CommitOptionsState, OptionsIntent, commit_options_view};
@@ -100,6 +102,8 @@ pub enum ChangesIntent {
     StopDraft,
     /// Something asked of the options of the next commit (`commit.options`).
     Options(OptionsIntent),
+    /// Something asked of the picker of the co-authors (`commit.co-authors`).
+    CoAuthors(CoAuthorsIntent),
     /// A file of the list, or every file, opened on the right of the list (`changes.beside-file`).
     OpenBeside(BesideFile),
     /// `Alt+Down` or `Alt+Up` beside the list: the next or the previous file of the list, in the same place.

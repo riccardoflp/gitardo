@@ -7,6 +7,8 @@
 #![cfg(test)]
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
+#[path = "details_and_diffs/authors.rs"]
+mod authors;
 #[path = "details_and_diffs/awkward.rs"]
 mod awkward;
 #[path = "details_and_diffs/compare.rs"]

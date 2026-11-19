@@ -41,6 +41,8 @@ pub struct Changes {
     pub beside: Option<super::changes_beside::Beside>,
     /// The options of the next commit of each repository changed from where they start (`commit.options`).
     pub options: BTreeMap<PathBuf, model::commit::CommitOptions>,
+    /// The picker of the co-authors, while it is open (`commit.co-authors`).
+    pub co_authors: Option<super::co_authors::Picking>,
 }
 
 /// The files with edits not saved that git was asked whether it ignores.
@@ -95,6 +97,7 @@ pub fn reduce(state: &mut State, intent: ChangesIntent) -> Vec<Effect> {
         ChangesIntent::OpenBeside(file) => super::changes_beside::open(state, file),
         ChangesIntent::StepFile(step) => super::changes_beside::step(state, step),
         ChangesIntent::Options(asked) => super::commit_options::reduce(state, asked),
+        ChangesIntent::CoAuthors(asked) => super::co_authors::reduce(state, asked),
         ChangesIntent::ShowWhole => {
             super::changes_beside::leave(state);
             pages::show_page(state, Page::Changes);

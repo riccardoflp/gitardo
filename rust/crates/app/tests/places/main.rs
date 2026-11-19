@@ -23,6 +23,7 @@ mod changes_menu;
 mod changes_save;
 mod changes_section;
 mod close_tabs;
+mod co_authors;
 mod commit_options;
 mod commit_page;
 mod compact_rows;

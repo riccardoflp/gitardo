@@ -101,6 +101,13 @@ pub enum Message {
         /// What was read, none for a commit that is not in the repository, or what git said when the read failed.
         result: Result<Option<Box<(CommitDetail, PatchLines)>>, String>,
     },
+    /// A job that read the authors of the history for the picker of the co-authors is done (`commit.read-authors`).
+    AuthorsRead {
+        /// The job.
+        job: JobId,
+        /// The authors, or what git said when the read failed.
+        result: Result<Vec<model::commit::Author>, String>,
+    },
     /// A job that read the signature of a commit shown is done (`details.read-signature`).
     SignatureRead {
         /// The job.
@@ -351,6 +358,13 @@ pub enum JobKind {
         folder: PathBuf,
         /// The commit, or the uncommitted changes.
         request: CommitRequest,
+    },
+    /// Reads the authors of the history for the picker of the co-authors (`commit.read-authors`).
+    ReadAuthors {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// Which history.
+        request: git::read::commit::AuthorsRequest,
     },
     /// Reads the signature of the commit of the inspector or of a page (`details.read-signature`).
     ReadSignature {

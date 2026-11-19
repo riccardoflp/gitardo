@@ -238,11 +238,11 @@ earns it.
 | [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Built | Built |
 | [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Built | Built |
 | [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built | Built |
-| [`commit.options`](05-changes-and-commit.md#commitoptions--the-options-of-a-commit) | The options of a commit | View | Specified | Planned |
+| [`commit.options`](05-changes-and-commit.md#commitoptions--the-options-of-a-commit) | The options of a commit | View | Built | Planned |
 | [`commit.option-arguments`](05-changes-and-commit.md#commitoption-arguments--the-arguments-of-the-options-of-a-commit) | The arguments of the options of a commit | Derivation | Built | Planned |
 | [`commit.read-signing`](05-changes-and-commit.md#commitread-signing--read-how-git-signs-commits) | Read how git signs commits | Read | Built | Planned |
-| [`commit.read-authors`](05-changes-and-commit.md#commitread-authors--read-the-authors-of-the-history) | Read the authors of the history | Read | Specified | Planned |
-| [`commit.co-authors`](05-changes-and-commit.md#commitco-authors--choose-the-co-authors-of-a-commit) | Choose the co-authors of a commit | View | Specified | Planned |
+| [`commit.read-authors`](05-changes-and-commit.md#commitread-authors--read-the-authors-of-the-history) | Read the authors of the history | Read | Built | Planned |
+| [`commit.co-authors`](05-changes-and-commit.md#commitco-authors--choose-the-co-authors-of-a-commit) | Choose the co-authors of a commit | View | Built | Planned |
 | [`commit.prepared-message`](05-changes-and-commit.md#commitprepared-message--the-message-git-prepared) | The message git prepared | Read | Built | Built |
 | [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built | Built |
 | [`commit.read-draft-diff`](05-changes-and-commit.md#commitread-draft-diff--the-diff-a-draft-is-written-from) | The diff a draft is written from | Read | Built | Built |
