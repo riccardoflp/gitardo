@@ -12,6 +12,7 @@ mod compare;
 mod conflicts;
 mod files;
 mod graph;
+mod hosting;
 mod repository;
 
 pub use bytes::{BytesJson, NotBase64};
@@ -38,6 +39,7 @@ pub use graph::{
     BranchesShownJson, CommitPageJson, CommitsParams, GraphRowsParams, MatchesJson, MatchesParams, NarrowingJson,
     ParentsJson, PositionParams, PositionResult, RowJson, SearchModeJson, TimelineJson,
 };
+pub use hosting::{HostingJson, HostingPageJson, HostingServiceJson, WebLinkParams, WebLinkResult};
 pub use repository::{
     ChecksJson, CommandProposalJson, CommandsResult, CommonFolderResult, GitHubTokenParams, GitHubTokenResult,
     IdentityKeysJson, IgnoredEntryJson, IgnoredHowJson, IgnoredKindJson, PathStatusJson, PathsParams, PathsResult,
@@ -109,6 +111,10 @@ pub mod methods {
     pub const SETUP_PATHS: &str = "read/worktree-setup.explain-change";
     /// `github.read-pull-requests`: the open pull requests.
     pub const PULL_REQUESTS: &str = "read/github.read-pull-requests";
+    /// `hosting.detect-remote`: the hosting service of the main remote (version 1.11).
+    pub const HOSTING_DETECT: &str = "read/hosting.detect-remote";
+    /// `hosting.web-links`: the address of a page of the project of the main remote (version 1.11).
+    pub const HOSTING_WEB_LINK: &str = "read/hosting.web-link";
     /// `branch.read-log`: the commits of what is checked out.
     pub const BRANCH_LOG: &str = "read/branch.read-log";
     /// `repo.common-folder`: the git folder the worktrees share.
@@ -128,7 +134,7 @@ pub mod methods {
     pub const GRAPH_ROWS: &str = "read/graph.rows";
 
     /// Every read of version 1.8, in the order of the table of the protocol.
-    pub const ALL: [&str; 36] = [
+    pub const ALL: [&str; 38] = [
         GRAPH_COMMITS,
         GRAPH_POSITION,
         SEARCH_MATCHES,
@@ -161,6 +167,8 @@ pub mod methods {
         SETUP_COMMANDS,
         SETUP_PATHS,
         PULL_REQUESTS,
+        HOSTING_DETECT,
+        HOSTING_WEB_LINK,
         BRANCH_LOG,
         COMMON_FOLDER,
         PREPARED_MESSAGE,

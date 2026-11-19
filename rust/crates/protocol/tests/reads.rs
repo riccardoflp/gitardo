@@ -37,8 +37,11 @@ fn commit(letter: char) -> CommitId {
 
 #[test]
 fn every_read_has_its_method_once_the_graphs_since_version_1_5_and_the_changes_to_read_since_1_8() {
-    assert_eq!(methods::ALL.len(), 36);
+    assert_eq!(methods::ALL.len(), 38);
     assert!(methods::ALL.contains(&"read/repo.watch-changes"));
+    // The hosting service of the main remote and the address of one of its pages, since 1.11.
+    assert!(methods::ALL.contains(&"read/hosting.detect-remote"));
+    assert!(methods::ALL.contains(&"read/hosting.web-link"));
     assert!(
         !methods::ALL.contains(&methods::GRAPH_ROWS),
         "the pages of a read are a notification, not a read"

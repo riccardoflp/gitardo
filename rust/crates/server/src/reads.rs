@@ -8,6 +8,7 @@ mod commits;
 mod conflicts;
 mod files;
 mod graph;
+mod hosting;
 mod repository;
 
 use std::fmt::Display;
@@ -114,6 +115,8 @@ fn read(reading: &Reading<'_>, method: &str, params: Value) -> Result<Value, Res
         methods::SETUP_COMMANDS => repository::setup_commands(reading),
         methods::SETUP_PATHS => repository::path_statuses(reading, &parameters(params)?),
         methods::PULL_REQUESTS => repository::pull_requests(reading, &parameters(params)?),
+        methods::HOSTING_DETECT => hosting::detect(reading),
+        methods::HOSTING_WEB_LINK => hosting::web_link(reading, &parameters(params)?),
         methods::WATCH_CHANGES => files::changes_to_read(reading, parameters(params)?),
         _ => Err(ResponseError::new(
             codes::METHOD_NOT_FOUND,
