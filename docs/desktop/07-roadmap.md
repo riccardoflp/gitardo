@@ -1592,6 +1592,29 @@ fit and `+N`, then the author and the date; the pointer on `+N` lists all five u
 in that list checks it out; with **Compact rows** on, the labels come first on the one line, as before; every card of
 the milestone passes its tests, and the snapshots of the timeline match in each theme.
 
+## M42 — An operation asked while another runs is refused, and that is said (done)
+
+A fix, in the extension alone, found on 2026-11-19 while the end-to-end suite of M27–M41 was made green: an operation
+asked while another runs was dropped without a word and counted as done, and the `busy` answer of the engine was
+swallowed the same way. **Unstage** in the Flow Diff, clicked in the second between git writing the index for the
+**Stage** before it and the end of that run, did nothing. Gitardo Desktop already refuses such an operation with
+"Gitardo: `<title>` is running in `<repository>`. Try again once it ends." (`repo.switch-tab`), so nothing changes in
+the engine or the window; the maintainer chose to say it, as the desktop does, over having the runs of the Flow Diff
+and the Flow Merge wait for the one running.
+
+Built in one phase, one commit, ending with its tests passing.
+
+1. **Said, as in the desktop.** `Controller.runOnEngine` refuses an operation asked while its own runs with the
+   desktop's sentence, the title of the plan when it was confirmed and the identifier of the feature otherwise, and
+   says a `busy` answer of the engine with "another operation" for its title; either gives false, and `runIn` with it,
+   so the Flow Diff and the Flow Merge know nothing ran. The step of the end-to-end suite that stages and unstages a
+   change in the Flow Diff asks **Unstage** while its **Stage** runs and expects the sentence. Cards:
+   `repo.switch-tab`.
+
+Exit: in the extension, **Stage** then **Unstage** on a change of the Flow Diff, the second asked before the first
+ends, says "Gitardo: diff.stage-change is running in app. Try again once it ends." and unstages nothing; **Unstage**
+asked once it ended unstages the change.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
