@@ -24,6 +24,9 @@ pub struct ActivityEntry {
     pub since: Instant,
     /// Whether it is a read, which a list of what runs counts on one row with the reads of the same words around it.
     pub is_read: bool,
+    /// The last line of progress git printed while it runs, for a step that asks git for it (`--progress`):
+    /// `Receiving objects: 45% (1203/2671)`.
+    pub progress: Option<String>,
 }
 
 /// One thing that ended.
@@ -92,6 +95,7 @@ impl Activities {
             started,
             since: Instant::now(),
             is_read,
+            progress: None,
         });
         ActivityGuard {
             activities: self.clone(),
@@ -119,6 +123,35 @@ impl Activities {
     fn lock(&self) -> MutexGuard<'_, ActivityList> {
         // A thread that panicked while holding the list left it whole: entries are pushed and removed in one step.
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+/// A way to say the progress of an activity while it runs, from a thread that does not keep it running: the steps of
+/// a plan, whose activity the plan keeps.
+#[derive(Debug, Clone)]
+pub struct ProgressReporter {
+    activities: Activities,
+    number: u64,
+}
+
+impl ProgressReporter {
+    /// Says the last line of progress of the activity; nothing once it ended.
+    pub fn report(&self, line: Option<String>) {
+        let mut list = self.activities.lock();
+        if let Some(entry) = list.entries.iter_mut().find(|entry| entry.number == self.number) {
+            entry.progress = line;
+        }
+    }
+}
+
+impl ActivityGuard {
+    /// What says the progress of this activity while it runs.
+    #[must_use]
+    pub fn reporter(&self) -> ProgressReporter {
+        ProgressReporter {
+            activities: self.activities.clone(),
+            number: self.number,
+        }
     }
 }
 

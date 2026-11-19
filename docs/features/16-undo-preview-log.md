@@ -239,7 +239,9 @@ in words, when it started and what asked for it, so that the activity indicator 
 and the **Activity** tab (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
 
 - **Kind**: Operation (of the engine; it has no entry point of its own)
-- **Function**: `engine::activity::track(description, cause) -> ActivityGuard`, which ends the entry when dropped.
+- **Function**: `engine::activity::track(description, cause) -> ActivityGuard`, which ends the entry when dropped. A
+  git step of the plan that asks git for its progress (`--progress`) is read as git prints, and the last line of
+  progress is the entry's progress (`ActivityGuard::reporter`) until the step ends.
 - **Danger**: None
 - **Undo**: Not applicable.
 
@@ -247,3 +249,5 @@ Acceptance:
 
 - [ ] A plan of a push shows **Pushing main to origin** in the activity indicator of the status bar while `git push` runs
       for more than half a second, and the time it has run.
+- [ ] A plan whose git step asks git for its progress (`--progress`) gives its activity the last line of progress git
+      printed on its standard error, changing as git prints, while the step runs.

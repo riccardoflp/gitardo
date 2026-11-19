@@ -1026,7 +1026,8 @@ there; the shallow history is *Planned* in the extension, for a later milestone.
    fetches behind them. Cards: `repo.read-shallow`, `repo.read-state`, `repo.watch-changes`, `graph.shallow-end`,
    `sync.deepen`, `sync.unshallow`.
 
-Nothing is built yet.
+Phase 1 is built: the engine reads what git prints on its standard error while a step with `--progress` runs, and the
+row of the operation in the **Activity** tab says its last line.
 
 Exit: on the Welcome page, **Clone a repository…** with the URL of a public repository, into a folder chosen, with
 nothing else ticked than the submodules, shows the clone in the **Activity** tab with git's progress under it, then

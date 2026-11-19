@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use model::activity::{Task, TaskKind, counted, describe_task};
+use model::activity::{Task, TaskKind, counted, describe_task, progress_line};
 use model::repo::ReadCause;
 
 use super::{RunningTask, tooltip};
@@ -53,6 +53,7 @@ fn activity_describe_task__65_seconds_is_1_min_5_s_and_59_9_seconds_is_59_s() {
     let operation = Task {
         kind: TaskKind::Operation {
             title: String::from("Pushing main to origin"),
+            progress: None,
         },
         started,
     };
@@ -131,4 +132,31 @@ fn activity_status_bar__the_tooltip_of_a_read_asked_for_by_a_change_says_which_f
     };
     let said = tooltip(&[task]);
     assert!(said.contains("Because src/a.rs changed."), "{said}");
+}
+
+#[test]
+fn activity_describe_task__an_operation_that_asks_git_for_its_progress_says_the_last_line_git_printed() {
+    let printed = b"Cloning into 'lib'...\nremote: Enumerating objects: 2671, done.\n\
+        Receiving objects:  12% (321/2671)\rReceiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s\r";
+    let progress = progress_line(printed);
+    assert_eq!(
+        progress.as_deref(),
+        Some("Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s")
+    );
+    assert_eq!(progress_line(b""), None);
+    assert_eq!(progress_line(b"\r\n  \n"), None);
+    let started = Instant::now();
+    let clone = Task {
+        kind: TaskKind::Operation {
+            title: String::from("Clone https://example.com/acme/lib.git into lib"),
+            progress,
+        },
+        started,
+    };
+    let text = describe_task(&clone, started + Duration::from_secs(3));
+    assert_eq!(text.title, "Clone https://example.com/acme/lib.git into lib");
+    assert_eq!(
+        text.detail.as_deref(),
+        Some("Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s")
+    );
 }

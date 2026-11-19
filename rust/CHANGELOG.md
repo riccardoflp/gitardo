@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- An operation that asks git for its progress has the last line of progress git printed under its title in the
+  **Activity** tab, changing as git prints: `Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s`.
+
 ## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of

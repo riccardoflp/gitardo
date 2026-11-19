@@ -72,6 +72,7 @@ impl Scripted {
             started: Timestamp(NOW + i64::try_from(self.starts.as_secs()).unwrap()),
             since: start + self.starts,
             is_read: self.is_read,
+            progress: None,
         }
     }
 }

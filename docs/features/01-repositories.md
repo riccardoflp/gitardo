@@ -603,7 +603,7 @@ that takes time.
 | What | Title | Detail |
 | --- | --- | --- |
 | A read of the repository | `Reading <name>`, or `Searching <name>` while a search in the changes (`git log -S` or `-G`) narrows the timeline | `Because <cause>.` for the change that asked for it; from the second read in a row, `Read <n> times in a row: something changed during each read.` before it |
-| An operation | its title, as the preview shows it | |
+| An operation | its title, as the preview shows it | while a step that asks git for its progress (`--progress`) runs, the last line of progress git printed, as git prints it: `Receiving objects: 45% (1203/2671), 1.20 MiB \| 3.40 MiB/s` (`model::activity::progress_line`) |
 | A comparison | `Comparing <from> ↔ <to>` | |
 | A patch being made | `Making a patch of <commits>` | |
 | The pull requests | `Reading the pull requests from GitHub` | |
@@ -621,6 +621,8 @@ Acceptance:
 - [ ] A read while the timeline is narrowed to `git log -S foo` is titled `Searching <name>`.
 - [ ] Four reads of `work/app` one after the other are titled `Reading work/app ×4`, and one alone `Reading
       work/app`.
+- [ ] An operation whose step asks git for its progress says, as its detail, the last line git printed, its parts
+      started again with a carriage return: `Receiving objects:  45% (1203/2671), 1.20 MiB | 3.40 MiB/s`.
 
 ### `activity.status-bar` — What is running, in the status bar
 
@@ -739,6 +741,8 @@ going on while it is shown. The list is laid out so that it holds still while it
   other, with nothing else ending between them, are one row there too, with the time the last ended and how long they
   took together. **Ran** keeps the last 50 of the session, however long ago they ended.
 - The list scrolls, under the title of its column, when it is taller than the tab.
+- The detail of an operation whose step asks git for its progress, such as a clone, is the last line of progress git
+  printed, changing as git prints (`activity.describe-task`).
 
 With nothing running it says **Nothing is running now** and "Gitardo is not reading or changing anything", where the
 first row would be. The commands Gitardo runs are in the tab beside it, **Command log** (`log.show`), and the
@@ -763,6 +767,9 @@ Acceptance:
       was.
 - [ ] Reads that ended one after the other are one row under **Ran**, until something else ends.
 - [ ] With more rows than fit, the wheel brings the last into sight.
+- [ ] The row of an operation whose step asks git for its progress has git's last line of progress under its title,
+      changing as git prints
+      ([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
 
 ### `welcome.page` — The Welcome page
 

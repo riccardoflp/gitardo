@@ -27,7 +27,7 @@ mod tasks;
 pub mod timeline;
 pub mod undo;
 
-pub use activity::{Activities, ActivityEntry, ActivityGuard, ActivityReport, EndedActivity};
+pub use activity::{Activities, ActivityEntry, ActivityGuard, ActivityReport, EndedActivity, ProgressReporter};
 pub use clock::{Clock, FixedClock};
 pub use drive::{Asker, Engine, FindOperation, Finished};
 pub use error::EngineError;

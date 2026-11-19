@@ -112,6 +112,7 @@ impl TaskRunner {
                     clock: self.clock.as_ref(),
                     cancel: &self.cancel,
                     went_on_after: Vec::new(),
+                    progress: None,
                 };
                 let _ran = runner.run(std::slice::from_ref(step)).map_err(TasksFailure::Step)?;
                 continue;
