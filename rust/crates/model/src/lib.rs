@@ -38,6 +38,7 @@ pub mod squash;
 pub mod stash;
 pub mod state;
 pub mod submodule;
+pub mod tag;
 pub mod tasks;
 pub mod terminal;
 pub mod trail;

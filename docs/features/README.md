@@ -282,8 +282,8 @@ earns it.
 | [`branch.read-log`](06-branches-tags-remotes.md#branchread-log--read-the-commits-of-what-is-checked-out) | Read the commits of what is checked out | Read | Built | Built |
 | [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Built | Built |
 | [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Built | Built |
-| [`tag.read-remote-tags`](06-branches-tags-remotes.md#tagread-remote-tags--read-the-tags-a-remote-has) | Read the tags a remote has | Read | Specified | Planned |
-| [`tag.compare-remote`](06-branches-tags-remotes.md#tagcompare-remote--which-tags-a-remote-lacks) | Which tags a remote lacks | Derivation | Specified | Planned |
+| [`tag.read-remote-tags`](06-branches-tags-remotes.md#tagread-remote-tags--read-the-tags-a-remote-has) | Read the tags a remote has | Read | Built | Planned |
+| [`tag.compare-remote`](06-branches-tags-remotes.md#tagcompare-remote--which-tags-a-remote-lacks) | Which tags a remote lacks | Derivation | Built | Planned |
 | [`tag.remote-marks`](06-branches-tags-remotes.md#tagremote-marks--the-tags-a-remote-lacks-marked) | The tags a remote lacks, marked | View | Specified | Planned |
 | [`tag.push-all`](06-branches-tags-remotes.md#tagpush-all--push-the-tags-a-remote-lacks) | Push the tags a remote lacks | Operation | Specified | Planned |
 | [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Built | Built |

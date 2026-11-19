@@ -1145,6 +1145,9 @@ last in the extension.
 
 Phase 1 is built: **Set upstream…**, **Change upstream…** and **Stop tracking `<upstream>`** in the menu of a local
 branch, on its label and in the branch rail, and **Set upstream of the current branch…** in Quick search.
+Phase 2 is built in part: `git ls-remote --tags --refs` read with the tags of the repository, and the comparison of the
+two (`tag.read-remote-tags`, `tag.compare-remote`). The marks of the tags in the branch rail and on the labels, and
+**Check tags on `<remote>`** that asks for them (`tag.remote-marks`, `refs.tree`), are not built yet.
 
 Exit: in a repository whose `feature` follows nothing and whose `origin` has `feature` and `release`, **Set upstream…**
 on `feature` lists `origin/feature` first, and once picked the branch rail says how far `feature` is from it;

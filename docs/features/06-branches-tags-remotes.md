@@ -914,6 +914,9 @@ commits it fetches, but never says which tags of this repository the remote lack
 It reaches the remote over the network, so it runs only when the user asks for something that needs it
 (`tag.remote-marks`, `tag.push-all`), never with the reads of the repository (Q1114).
 
+As built, the read gives `RemoteTags`: the name of the remote, its tags (`there`) and those of the repository (`here`),
+each with its object, so that `tag.compare-remote` is given both from one read.
+
 Acceptance:
 
 - [ ] A remote with the lightweight tag `v1` and the annotated tag `v2` gives both, `v2` with the object of the tag,
