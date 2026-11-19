@@ -113,6 +113,10 @@ pub enum QuickCommand {
     Compare,
     /// **Browse reflog** (`reflog.browse`).
     BrowseReflog,
+    /// **Fetch Notes…** (`note.fetch`).
+    FetchNotes,
+    /// **Push Notes…** (`note.push`).
+    PushNotes,
     /// **Clean up branches** (`branch.clean-up`).
     CleanUpBranches,
     /// **Manage remotes** (`remote.manage`).
@@ -165,7 +169,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 57] = [
+    pub const ALL: [QuickCommand; 59] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -211,6 +215,8 @@ impl QuickCommand {
         QuickCommand::ShowStashes,
         QuickCommand::Compare,
         QuickCommand::BrowseReflog,
+        QuickCommand::FetchNotes,
+        QuickCommand::PushNotes,
         QuickCommand::CleanUpBranches,
         QuickCommand::ManageRemotes,
         QuickCommand::SwitchWorktree,
@@ -283,6 +289,8 @@ impl QuickCommand {
             QuickCommand::AddSubmodule => Some("submodule.add"),
             QuickCommand::Compare => Some("compare.choose"),
             QuickCommand::BrowseReflog => Some("reflog.browse"),
+            QuickCommand::FetchNotes => Some("note.fetch"),
+            QuickCommand::PushNotes => Some("note.push"),
             QuickCommand::ApplyPatch => Some("patch.apply"),
             QuickCommand::SwitchIdentity => Some("identity.switch"),
             QuickCommand::SignInToGitHub => Some("github.load-pull-requests"),

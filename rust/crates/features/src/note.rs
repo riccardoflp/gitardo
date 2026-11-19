@@ -1,16 +1,20 @@
-//! The notes of commits: written and removed (`docs/features/04-details-and-commit-page.md`,
+//! The notes of commits: written, removed, fetched from a remote and pushed to it (`docs/features/04-details-and-commit-page.md`,
 //! D85). Git keeps a reflog for the reference of notes, so that Undo puts it back where it was.
 
 mod edit;
+mod fetch;
+mod push;
 mod remove;
 #[cfg(test)]
 mod tests;
 
 pub use edit::{NOTE, OLD_NOTE, edit};
+pub use fetch::{HAS_NOTES, fetch};
+pub use push::push;
 pub use remove::remove;
 
 use model::CommitId;
-use model::contract::{Context, Danger, FollowUp, JournalEntry, Plan, Step, Target, Text, Undo, UndoRecord};
+use model::contract::{Context, Danger, FollowUp, JournalEntry, Plan, Refusal, Step, Target, Text, Undo, UndoRecord};
 
 /// What Undo needs to put the reference of notes back where it is now.
 fn undo(context: &Context) -> Undo {
@@ -30,6 +34,19 @@ fn commit_of(context: &Context) -> Option<&CommitId> {
     match &context.target {
         Target::Commit(commit) => Some(commit),
         _ => None, // Only a commit of the timeline has a note.
+    }
+}
+
+/// The remote the notes are fetched from or pushed to: the one invoked on, or the only one; Quick search on a
+/// repository with several remotes is refused with where to find each (Q1458).
+fn remote_of(context: &Context) -> Result<&str, Refusal> {
+    match (&context.target, context.repository.remotes.as_slice()) {
+        (Target::Remote(remote), _) => Ok(remote),
+        (_, [only]) => Ok(only),
+        (_, []) => Err(Refusal::saying("This repository has no remote.")),
+        _ => Err(Refusal::saying(
+            "This repository has several remotes: choose one in the branch rail.",
+        )),
     }
 }
 

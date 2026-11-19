@@ -4,7 +4,7 @@ use model::contract::{Answer, Answers, Danger, JournalEntry, Outcome, Query, Tar
 use model::note::Notes;
 use model::state::{Head, RepositoryState};
 
-use super::{NOTE, OLD_NOTE, edit, remove, restore_plan};
+use super::{HAS_NOTES, NOTE, OLD_NOTE, edit, fetch, push, remove, restore_plan};
 use crate::testing::{commit, context, lines, plan, state};
 
 /// A repository whose commit `aaaa…` has a note, the reference of notes at `7777…`.
@@ -108,4 +108,56 @@ fn note_remove__undo_puts_the_reference_back_where_it_was_or_deletes_it() {
         [format!("git update-ref -d refs/notes/commits {}", commit('9'))]
     );
     assert!(matches!(undone.danger, Danger::Confirm(_)));
+}
+
+#[test]
+fn note_fetch__it_reads_whether_the_remote_has_notes_first_and_offers_the_merge_when_git_refuses() {
+    let given = context(noted(), Target::Remote(String::from("origin")));
+    assert_eq!(
+        fetch(&given, &Answers::new()),
+        Outcome::Read(
+            HAS_NOTES,
+            Query::RemoteNotes {
+                remote: String::from("origin"),
+                reference: String::from("refs/notes/commits"),
+            }
+        )
+    );
+    let none = Answers::new().with(HAS_NOTES, Answer::Flag(false));
+    let Outcome::Refuse(refusal) = fetch(&given, &none) else {
+        panic!("a remote with no notes is refused")
+    };
+    assert_eq!(refusal.message.as_str(), "origin has no notes.");
+    let has = Answers::new().with(HAS_NOTES, Answer::Flag(true));
+    let plan = plan(fetch(&given, &has));
+    assert_eq!(lines(&plan), ["git fetch origin refs/notes/commits:refs/notes/commits"]);
+    let [model::contract::FollowUp::OfferWhenFailed(offer)] = plan.on_failure.as_slice() else {
+        panic!("the merge is offered")
+    };
+    assert_eq!(offer.when, "non-fast-forward");
+    assert_eq!(
+        lines(&offer.plan),
+        [
+            "git fetch origin +refs/notes/commits:refs/notes/remotes/origin/commits",
+            "git notes merge --strategy=cat_sort_uniq refs/notes/remotes/origin/commits",
+        ]
+    );
+}
+
+#[test]
+fn note_push__it_pushes_the_reference_and_offers_fetch_notes_when_the_remote_refuses() {
+    let given = context(noted(), Target::Remote(String::from("origin")));
+    let plan = plan(push(&given, &Answers::new()));
+    assert_eq!(lines(&plan), ["git push origin refs/notes/commits"]);
+    let [model::contract::FollowUp::OfferRun(offer)] = plan.on_failure.as_slice() else {
+        panic!("Fetch notes is offered")
+    };
+    assert_eq!(offer.feature.0, "note.fetch");
+    assert_eq!(offer.target, Target::Remote(String::from("origin")));
+    let without = RepositoryState {
+        remotes: vec![String::from("origin")],
+        ..state()
+    };
+    let given = context(without, Target::Remote(String::from("origin")));
+    assert!(matches!(push(&given, &Answers::new()), Outcome::Refuse(_)));
 }

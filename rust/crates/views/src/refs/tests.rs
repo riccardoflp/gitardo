@@ -22,7 +22,7 @@ use crate::graph::GraphIntent;
 use crate::intent::{FilterIntent, Intent, RailIntent, RailList, RailLists};
 
 /// The hash of a commit named in a test: its name in hexadecimal, padded.
-fn id(name: &str) -> CommitId {
+pub(super) fn id(name: &str) -> CommitId {
     let hex = name.bytes().take(20).fold(String::new(), |mut hex, byte| {
         let _ = write!(hex, "{byte:02x}");
         hex
@@ -58,8 +58,8 @@ fn tag(name: &str) -> Tag {
 }
 
 /// Everything the rail is drawn from, owned.
-struct Rail {
-    repository: RepositoryState,
+pub(super) struct Rail {
+    pub(super) repository: RepositoryState,
     references: References,
     lists: RailLists,
     colors: HashMap<String, usize>,
@@ -71,7 +71,7 @@ struct Rail {
 }
 
 impl Rail {
-    fn new(branches: &[&str], remotes: &[&str], tags: &[&str]) -> Rail {
+    pub(super) fn new(branches: &[&str], remotes: &[&str], tags: &[&str]) -> Rail {
         let references = References {
             branches: branches.iter().map(|name| branch(name)).collect(),
             remote_branches: remotes.iter().map(|name| remote(name)).collect(),
@@ -106,7 +106,7 @@ impl Rail {
         }
     }
 
-    fn state(&self) -> ReferencesState<'_> {
+    pub(super) fn state(&self) -> ReferencesState<'_> {
         ReferencesState {
             repository: &self.repository,
             references: &self.references,

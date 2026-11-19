@@ -57,6 +57,10 @@
 - **Add note…** in the menu of a commit writes its note, with `git notes add`; a commit with a note has **Edit note…**,
   which proposes the note it has, and **Remove note**, also on the pencil and the **…** of the block **Note**. **Undo**
   takes them back, putting the reference of notes where it was.
+- **Fetch notes** and **Push notes** in the menu of a remote in the branch rail, and **Fetch Notes…** and **Push
+  Notes…** in Quick search, bring the notes of a remote and send them, which `git fetch` and `git push` do not do by
+  themselves. When each side has notes the other has not, **Merge the notes** puts the two notes of a commit one after
+  the other; a push the remote refuses offers **Fetch notes**.
 
 ## 1.2.0 - 2026-11-18
 

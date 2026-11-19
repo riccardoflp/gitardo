@@ -55,6 +55,12 @@ pub const SORT_BY_DATE: &str = "Sort by date";
 pub const CREATE_WORKTREE: &str = "Create worktree\u{2026}";
 /// **Add submodule…** on the title of the Submodules list.
 pub const ADD_SUBMODULE: &str = "Add submodule\u{2026}";
+
+/// The entry of the menu of a remote that fetches its notes (`note.fetch`).
+pub const FETCH_NOTES: &str = "Fetch notes";
+
+/// The entry of the menu of a remote that pushes the notes to it (`note.push`).
+pub const PUSH_NOTES: &str = "Push notes";
 /// **Rename…** in the menu of a local branch.
 pub const RENAME: &str = "Rename\u{2026}";
 /// **Delete** in the menu of a local branch or a tag.

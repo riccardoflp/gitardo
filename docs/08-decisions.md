@@ -5487,6 +5487,13 @@ asked while it is planned; each is built as it says until the maintainer answers
   than `git cat-file blob` of the id that `git notes list` gives, since the details are read, in the window and for the
   extension, without the list in hand; a commit with no note costs one run of git more when it is selected. Should the
   read of the details be given the id of the note instead, read with the state?
+- **Q1458** — `note.fetch`, `note.push`: **Fetch notes** says **Fetched the notes of `<remote>`.** without how many
+  commits have a note, since a plan says what it planned and cannot read the repository once its steps ended; the
+  inspector shows the notes fetched. When the remote refuses **Push notes**, the message is git's own, under
+  **Fetch notes** (`note.fetch`), since a message the plan gives for its failure would show whatever git said.
+  **Fetch Notes…** and **Push Notes…** in Quick search run on the only remote and, with several, are refused with
+  where to choose one, the branch rail, rather than asking which. Should a follow-up read the count, the refusal be
+  matched on what git said, and Quick search ask the remote?
 
 ### Of large files and remembered resolutions, from Q1190
 

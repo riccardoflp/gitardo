@@ -8,7 +8,7 @@ use model::filter::BranchesShown;
 use model::search::{BoxMode, SearchMode};
 
 use super::filter;
-use crate::search::Narrowed;
+use crate::search::{Narrowed, QuickCommand};
 
 /// The button that steps to the previous match.
 pub const PREVIOUS_MATCH: &str = "Previous match (Shift+Enter, Shift+F3)";
@@ -240,8 +240,7 @@ pub fn commit_detail(author: &str) -> String {
 
 /// The name of a command of Quick search, as its card says it.
 #[must_use]
-pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
-    use crate::search::QuickCommand;
+pub fn command_name(command: QuickCommand) -> &'static str {
     match command {
         QuickCommand::OpenTimeline => "Open Timeline",
         QuickCommand::GoToCommit => "Go to Commit\u{2026}",
@@ -268,6 +267,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::ShowStashes => "Show Stashes",
         QuickCommand::Compare => "Compare Branches, Tags or Commits\u{2026}",
         QuickCommand::BrowseReflog => "Browse reflog",
+        QuickCommand::FetchNotes | QuickCommand::PushNotes => notes_command_name(command),
         QuickCommand::CleanUpBranches => "Clean up branches",
         QuickCommand::ManageRemotes => "Manage remotes",
         QuickCommand::SwitchWorktree => "Switch Worktree\u{2026}",
@@ -300,5 +300,14 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::BlamePrevious => crate::text::blame::BLAME_BEFORE,
         QuickCommand::ToggleIgnoreWhitespace => crate::text::blame::TOGGLE_IGNORE_WHITESPACE,
         QuickCommand::ToggleEveryFile => crate::text::blame::TOGGLE_EVERY_FILE,
+    }
+}
+
+/// The name of a command of Quick search on the notes of commits (`note.fetch`, `note.push`).
+fn notes_command_name(command: QuickCommand) -> &'static str {
+    if command == QuickCommand::PushNotes {
+        "Push Notes\u{2026}"
+    } else {
+        "Fetch Notes\u{2026}"
     }
 }

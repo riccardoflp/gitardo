@@ -1385,7 +1385,11 @@ more**, and in the page of a commit, which is read again when the reference of n
 Then the second phase: **Add note…**, or **Edit note…** and **Remove note**, in the menu of a commit and on the
 block **Note**, run `git notes add -f -F -` and `git notes remove`, and **Undo** puts the reference of notes back where
 it was with `git update-ref`, from the journal, which the engine fills with where the plan left it.
-Not built yet: the notes fetched and pushed, phase 3, and the sixth phase, the extension.
+Then the third phase: **Fetch notes** and, while the repository has notes, **Push notes** in the menu of a remote in
+the branch rail and in Quick search run `git fetch <remote> <reference>:<reference>` and `git push <remote>
+<reference>`; when git refuses the fetch, **Merge the notes** fetches them beside and runs `git notes merge
+--strategy=cat_sort_uniq`, and a push refused offers **Fetch notes** (Q1458).
+Not built yet: the sixth phase, the extension.
 
 Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
 in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save

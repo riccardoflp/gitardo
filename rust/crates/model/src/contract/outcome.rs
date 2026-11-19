@@ -311,6 +311,14 @@ pub enum Query {
         /// The commit.
         commit: crate::CommitId,
     },
+    /// Whether a remote has a reference of notes (`git ls-remote <remote> <reference>`), for `note.fetch`. The answer
+    /// is [`super::Answer::Flag`].
+    RemoteNotes {
+        /// The remote.
+        remote: String,
+        /// The reference of notes: `refs/notes/commits`.
+        reference: String,
+    },
     /// The exclude file of the repository, in full (`git rev-parse --git-path info/exclude`), for `changes.ignore`.
     /// The answer is [`super::Answer::Path`].
     ExcludeFile,

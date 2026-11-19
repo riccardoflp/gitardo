@@ -758,7 +758,7 @@ Brings the notes of a remote into the reference of notes of the repository, whic
 - **Kind**: Operation
 - **Function**: `features::note::fetch(context, answers) -> Outcome`
 - **Entry points**: **Fetch notes** in the context menu of a remote in the branch rail; Quick search, **Fetch
-  Notes…**, which asks the remote when there are several.
+  Notes…**, on the only remote; with several it is refused with where to choose one (Q1458).
 - **Offered when**: the repository has a remote.
 - **Plan**: `git fetch <remote> <reference>:<reference>`, the reference of notes git uses (`refs/notes/commits`
   unless `core.notesRef` names another), which moves it only forward. When git refuses because each side has notes the
@@ -769,7 +769,7 @@ Brings the notes of a remote into the reference of notes of the repository, whic
   one after the other, without a line twice (Q1214).
 - **Danger**: None.
 - **Undo**: as `note.edit`, from the reflog of the reference of notes.
-- **After**: says how many commits have a note now; the inspector shows the notes fetched.
+- **After**: says **Fetched the notes of `<remote>`.** (Q1458); the inspector shows the notes fetched.
 - **Refuses**: a remote with no notes: **`<remote>` has no notes.**
 - **Uses**: `note.read`, `remote.read-remotes`, `undo.last`.
 - **Extension**: planned: **Fetch Notes** in the context menu of a remote among the references and in the Branches
@@ -777,11 +777,11 @@ Brings the notes of a remote into the reference of notes of the repository, whic
 
 Acceptance:
 
-- [ ] From a remote whose notes are ahead, it runs `git fetch origin refs/notes/commits:refs/notes/commits`, and the
+- [x] From a remote whose notes are ahead, it runs `git fetch origin refs/notes/commits:refs/notes/commits`, and the
       notes fetched show in the inspector.
-- [ ] With a note added on each side, git's refusal is followed by **Merge the notes**, after which a commit noted on
+- [x] With a note added on each side, git's refusal is followed by **Merge the notes**, after which a commit noted on
       both sides shows both notes.
-- [ ] From a remote with no notes, it says so, and nothing changes.
+- [x] From a remote with no notes, it says so, and nothing changes.
 
 ### `note.push` — Push the notes to a remote
 
@@ -789,18 +789,19 @@ Sends the reference of notes to a remote, which `git push` does not do by itself
 
 - **Kind**: Operation
 - **Function**: `features::note::push(context, answers) -> Outcome`
-- **Entry points**: **Push notes** in the context menu of a remote in the branch rail; Quick search, **Push Notes…**.
+- **Entry points**: **Push notes** in the context menu of a remote in the branch rail, while the repository has notes;
+  Quick search, **Push Notes…**, on the only remote (Q1458).
 - **Offered when**: the repository has a reference of notes and a remote.
 - **Plan**: `git push <remote> <reference>`, the reference of notes git uses.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: the notes are on the remote.
-- **Refuses**: when the remote refuses because it has notes this repository has not: **`<remote>` has notes you do not
-  have: fetch them first.** with **Fetch notes** (`note.fetch`).
+- **Refuses**: a repository with no notes: **This repository has no notes to push.** When the remote refuses because
+  it has notes this repository has not, git's message with **Fetch notes** (`note.fetch`) (Q1458).
 - **Uses**: `note.fetch`, `remote.read-remotes`.
 - **Extension**: planned: **Push Notes** in the context menu of a remote, sending `feature/run` of `note.push` to the
   engine.
 
 Acceptance:
 
-- [ ] It runs `git push origin refs/notes/commits`, and a clone that fetches the notes then has them.
-- [ ] When the remote has a note this repository has not, the refusal offers **Fetch notes**.
+- [x] It runs `git push origin refs/notes/commits`, and a clone that fetches the notes then has them.
+- [x] When the remote has a note this repository has not, the refusal offers **Fetch notes**.

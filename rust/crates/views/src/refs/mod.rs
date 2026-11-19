@@ -10,6 +10,8 @@ mod draw;
 mod entry;
 mod list_filter;
 mod menu;
+#[cfg(test)]
+mod notes_tests;
 mod rows;
 mod stashes;
 #[cfg(test)]
