@@ -108,6 +108,7 @@ fn head_words(head: HeadName<'_>) -> String {
     match head {
         HeadName::Branch(name) => name.to_owned(),
         HeadName::Detached(short) => words::detached_at(short),
+        HeadName::Unborn(name) => words::no_commits_on(name),
         HeadName::NoCommits => words::NO_COMMITS_YET.to_owned(),
     }
 }

@@ -25,7 +25,7 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "branch.checkout-detached"
         | "tag.checkout"
         | "submodule.update-to-recorded" => super::CHECK_OUT,
-        "branch.create" | "stash.branch" => super::CREATE_BRANCH,
+        "branch.create" | "branch.create-orphan" | "stash.branch" => super::CREATE_BRANCH,
         "tag.create" => super::TAG,
         "branch.rename" | "worktree.rename" | "message.edit" => super::RENAME,
         "branch.delete"

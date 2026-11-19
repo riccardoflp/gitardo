@@ -408,7 +408,8 @@ fn checked_out_upstream(repository: &RepositoryState) -> Option<(u32, u32)> {
 /// What `HEAD` is, as the branch of the header names it.
 fn head_name(repository: &RepositoryState) -> HeadName<'_> {
     match (repository.checked_out_branch(), &repository.head.commit) {
-        (Some(branch), _) => HeadName::Branch(branch),
+        (Some(branch), Some(_)) => HeadName::Branch(branch),
+        (Some(branch), None) => HeadName::Unborn(branch),
         (None, Some(commit)) => HeadName::Detached(commit.short()),
         (None, None) => HeadName::NoCommits,
     }

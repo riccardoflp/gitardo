@@ -1151,6 +1151,9 @@ two (`tag.read-remote-tags`, `tag.compare-remote`). The marks of the tags in the
 Phase 3 is built in part: **Delete from `<remote>`** and **Delete here and from `<remote>`** in the menu of a tag
 (`tag.delete-remote`). **Push tags…** (`tag.push-all`) is not built yet: it reads the tags of the remote before its
 pick, which needs a query of the engine that reaches the network, and the marks it updates are not built either.
+Phase 4 is built: **Create branch with no history…** in Quick search and in **…** after **Branch**, the question of what
+the working tree keeps, Undo from the journal back to what was checked out before, and the header that names the branch
+with **no commits yet** (`branch.create-orphan`, `undo.journal`, `graph.where`).
 
 Exit: in a repository whose `feature` follows nothing and whose `origin` has `feature` and `release`, **Set upstream…**
 on `feature` lists `origin/feature` first, and once picked the branch rail says how far `feature` is from it;

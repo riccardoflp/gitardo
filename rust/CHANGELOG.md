@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Create branch with no history…**, in Quick search and in **…** after **Branch**, starts a branch whose first commit
+  has no parent: **Start with no files** takes the tracked files out of the working tree and leaves the untracked ones,
+  **Keep the files, staged** stages every file as new. Undo right after checks out again what was checked out before.
+  Until its first commit the header says `site (no commits yet)`, as it now says of the branch of a repository with no
+  commit.
 - The menu of a tag has **Delete from origin** and **Delete here and from origin** after **Delete**, or **Delete from a
   remote…** and **Delete here and from a remote…** with several remotes, which ask which. They warn first, delete the
   tag on the remote with the tag named in full, so that a branch of its name there stays, and, here too, only once the

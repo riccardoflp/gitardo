@@ -93,6 +93,8 @@ pub enum QuickCommand {
     ShowChanges,
     /// **Create branch…** (`branch.create`).
     CreateBranch,
+    /// **Create branch with no history…** (`branch.create-orphan`).
+    CreateBranchWithNoHistory,
     /// **Fetch** (`sync.fetch`).
     Fetch,
     /// **Push** (`sync.push`).
@@ -159,7 +161,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 54] = [
+    pub const ALL: [QuickCommand; 55] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -195,6 +197,7 @@ impl QuickCommand {
         QuickCommand::ToggleIgnoreWhitespace,
         QuickCommand::ToggleEveryFile,
         QuickCommand::CreateBranch,
+        QuickCommand::CreateBranchWithNoHistory,
         QuickCommand::Fetch,
         QuickCommand::Push,
         QuickCommand::StashChanges,
@@ -255,6 +258,7 @@ impl QuickCommand {
     pub fn operation(self) -> Option<&'static str> {
         match self {
             QuickCommand::CreateBranch => Some("branch.create"),
+            QuickCommand::CreateBranchWithNoHistory => Some("branch.create-orphan"),
             QuickCommand::Fetch => Some("sync.fetch"),
             QuickCommand::Push => Some("sync.push"),
             QuickCommand::StashChanges => Some("stash.push"),

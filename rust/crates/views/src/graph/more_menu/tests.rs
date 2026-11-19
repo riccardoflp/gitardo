@@ -19,9 +19,10 @@ fn words(state: &MoreMenuState) -> Vec<&'static str> {
 }
 
 /// The words of the whole menu, in the groups and the order of the card.
-const IN_ORDER: [&str; 21] = [
+const IN_ORDER: [&str; 22] = [
     "Refresh",
     "Branch",
+    "Create branch with no history\u{2026}",
     "Stash",
     "Undo",
     "-",

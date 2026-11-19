@@ -76,6 +76,7 @@ mod new_worktrees;
 mod one_lane;
 mod open_tabs;
 mod operations;
+mod orphan;
 mod page_title;
 mod page_trail;
 mod pane;

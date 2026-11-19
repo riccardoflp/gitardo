@@ -22,6 +22,14 @@ pub enum UndoRecord {
         /// Its name, without `refs/heads/`.
         name: String,
     },
+    /// A branch with no history was checked out, which git writes in no reflog: Undo checks out again what was checked
+    /// out before, and the branch, which has no commit, is gone with it (`branch.create-orphan`).
+    BranchWithNoHistory {
+        /// Its name, without `refs/heads/`.
+        name: String,
+        /// What was checked out before.
+        before: Head,
+    },
     /// A branch was deleted: Undo creates it again at the same commit, without its upstream.
     BranchDeleted {
         /// Its name, without `refs/heads/`.

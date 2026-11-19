@@ -327,7 +327,15 @@ code: its first commit has no parent.
 - **Uses**: `branch.validate-name`, `repo.read-state`, `commit.create`, `undo.journal`, `undo.last`.
 
 `git switch --orphan` empties the working tree of the tracked files, which `HEAD` keeps; `git checkout --orphan` keeps
-the working tree and the index, so that every file is staged as new on the branch. A worktree of its own with no
+the working tree and the index, so that every file is staged as new on the branch.
+
+As built: the header says `site (no commits yet)`, which a repository before its first commit now says of its branch
+too. The operation is refused before the first commit of the repository, "There is no commit yet: the first commit made
+here has no parent already.", since its branch has no history already and Undo would have nothing to check out again;
+**Create branch with no history…** in **…** is then disabled, as **Branch** is. The timeline draws the first commit of
+the branch in the lane the history of the other branches then takes, with no line between them: it has no parent, and
+`graph.lanes` gives a lane of its own only to what waits for one. The Undo is destructive, as every Undo from the journal
+that moves `HEAD` is, with its title for a warning. A worktree of its own with no
 history (`git worktree add --orphan`, git 2.42) is not offered (Q1127).
 
 Acceptance:

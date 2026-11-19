@@ -258,6 +258,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::Welcome => "Welcome",
         QuickCommand::ShowChanges => "Show changes",
         QuickCommand::CreateBranch => "Create branch\u{2026}",
+        QuickCommand::CreateBranchWithNoHistory => super::header::BRANCH_WITH_NO_HISTORY,
         QuickCommand::Fetch => "Fetch",
         QuickCommand::Push => "Push",
         QuickCommand::StashChanges => "Stash Changes",

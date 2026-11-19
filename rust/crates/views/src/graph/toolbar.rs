@@ -53,6 +53,9 @@ pub enum HeadName<'a> {
     Branch(&'a str),
     /// A commit with no branch, by its short hash.
     Detached(&'a str),
+    /// A branch with no commit yet, by its short name: before the first commit, or on a branch with no history
+    /// (`branch.create-orphan`).
+    Unborn(&'a str),
     /// Nothing yet: the repository has no commits.
     NoCommits,
 }
