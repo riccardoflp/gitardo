@@ -35,6 +35,40 @@ Acceptance:
 - [ ] The uncommitted changes, asked for as a commit, return the subject **Uncommitted changes**, no author, and the
       files of the working tree and the index together.
 
+### `details.read-signature` — Read the signature of a commit
+
+Whether a commit is signed, and what git says of its signature: good, bad, made by a key it does not trust or cannot
+check, and by whom ([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)).
+
+- **Kind**: Read
+- **Function**: `git::read::details::read_signature(git: &Git, request: &SignatureRequest) -> Result<Signature, GitError>`
+- **Reads**:
+  - `git show --no-patch --format=%G?%x1f%GS%x1f%GK%x1f%GF%x1f%GT <hash>`: what git says of the signature, with the
+    signer, the key, its fingerprint and how far it is trusted. Git checks the signature with the program its
+    configuration names (`gpg`, `gpgsm` or `ssh-keygen`), which is why it is read apart from `details.read-commit`, for
+    the commit shown alone and after its details (Q1090).
+  - When git says `N`, no signature: `git cat-file commit <hash>`, for whether the commit has a `gpgsig` or
+    `gpgsig-sha256` header all the same. Git says `N` of a commit signed with SSH while `gpg.ssh.allowedSignersFile`
+    is not set; such a commit is signed, and git cannot check it here.
+- **Uses**: by `details.signature`.
+- **Extension**: Planned: `read/details.read-signature` of the engine, for the details of the graph and the tab of a
+  commit.
+
+What it gives, from git's letter: **Good** (`G`); **Good, from a key whose validity is not known** (`U`); **Good,
+expired** (`X`); **Good, made by an expired key** (`Y`); **Good, made by a revoked key** (`R`); **Bad** (`B`);
+**Cannot be checked** (`E`), as when the key is missing; **Signed, not checked** for a `gpgsig` header with `N`; and
+**Not signed**. The kind of signature, OpenPGP, X.509 or SSH, is the first line of the header (`-----BEGIN PGP
+SIGNATURE-----`, `-----BEGIN SIGNED MESSAGE-----`, `-----BEGIN SSH SIGNATURE-----`).
+
+Acceptance:
+
+- [ ] A commit made without `-S` is **Not signed**, and `git cat-file` ran once.
+- [ ] A commit signed with SSH, with `gpg.ssh.allowedSignersFile` naming a file that lists its key, is **Good**, with
+      the signer's email and the key's fingerprint.
+- [ ] The same commit, with `gpg.ssh.allowedSignersFile` not set, is **Signed, not checked**, of the kind SSH.
+- [ ] A signed commit whose message was changed in its object afterwards is **Bad**.
+- [ ] A commit signed with OpenPGP by a key not in the keyring is **Cannot be checked**, with the key's identifier.
+
 ### `details.show` — Details of the selected commit
 
 The summary of the commit selected in the timeline, in the inspector beside the commits or over them when the window is
@@ -90,6 +124,38 @@ Acceptance:
 - [ ] With the pointer moved from the row of a file onto the button of its history and resting there ten frames, each
       frame draws the button and the row lit, none differing from the one before; a click then asks for the history
       of that file.
+
+### `details.signature` — The signature of a commit
+
+Says, in the inspector and in the tab of a commit, whether the commit is signed and whether the signature holds
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)).
+
+- **Kind**: View
+- **Function**: `views::details::signature_view(state: &SignatureState, ui) -> Vec<Intent>`
+- **Entry points**: selecting a commit in the timeline; opening a commit as a page (`commit-page.view`).
+- **Reads**: `details.read-signature`, once the details of the commit are shown, so that they never wait for it.
+- **Uses**: `details.read-signature`, `details.show`, `commit-page.view`.
+- **Extension**: Planned: the same line in the details beside the graph and in the tab of a commit, read with
+  `read/details.read-signature`.
+
+- Under **Commit**, a line **Signature**, with a shield icon in the color of what git said, and its words: **Good**,
+  in the color of an addition, with the signer, `Good, Ada <ada@example.com>`; the three kinds of good signature that
+  git doubts, in the color of a warning, with what it doubts, `Good, expired key`; **Bad**, in the color of a removal;
+  **Signed, not checked** and **Cannot be checked**, muted, with why when git said it. Its tooltip has the kind of
+  signature, the key, its fingerprint and the trust git gave it.
+- **Not signed** is said by no line: most commits are not signed, and a line on each would say nothing (Q1091).
+- While the signature is read, the line says **Checking the signature…**; the stashes and the draft have none.
+- Nothing is drawn in the timeline for the signature (Q1092).
+
+Acceptance:
+
+- [ ] A commit signed with a good signature shows **Signature** `Good, Ada <ada@example.com>`, in the color of an
+      addition, and its tooltip has the fingerprint of the key.
+- [ ] A commit not signed has no line **Signature**.
+- [ ] A bad signature shows **Bad**, in the color of a removal.
+- [ ] Selecting a commit shows its message and files before its signature is read.
+- [ ] Going through ten commits with `↓` reads the signature of the one selected last, the reads before it cancelled.
+- [ ] The tab of a commit signed shows the same line.
 
 ### `details.message-title` — The title of a message
 

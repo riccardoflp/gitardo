@@ -1068,6 +1068,39 @@ gives the file its old line, which `Ctrl+Z` takes back; a selection across two c
 both in one `git apply`, which the Command log shows with its patch; staging two lines of an untracked file adds it to
 the index with those two lines; the cards of the milestone are Built in the desktop.
 
+## M34 — The signature of a commit, and the options of the commit box
+
+The inspector and the tab of a commit say whether it is signed and whether the signature holds; the commit box signs
+or does not sign a commit, adds `Signed-off-by` and co-authors, and skips the hooks, for one commit
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)). Asked by
+the maintainer on 2026-11-19. Built in three phases, each one commit or more, each ending with its cards built and
+their tests passing. Desktop first: the extension gets the line of the signature and the options of the commit box of
+**Gitardo Changes** in a later milestone.
+
+1. **The signature, read and shown.** `%G?`, the signer, the key, its fingerprint and its trust, read for the commit
+   selected once its details are drawn, the read before cancelled; the header of the object read when git says there
+   is no signature; the line **Signature** in the inspector and in the tab of a commit. Tested with commits signed by
+   an SSH key made for the tests, with and without allowed signers. Cards: `details.read-signature`,
+   `details.signature`, `details.show`, `commit-page.view`.
+2. **The options of a commit.** How git signs commits, read with the state; the menu beside **Commit** and **Amend**
+   with **Sign this commit**, **Add Signed-off-by** and **Skip the hooks**; the arguments they add to `git commit`;
+   the line under the box; the new setting `commit.signOff`, in the list of the settings and on the settings page;
+   the boxes back to where they start after each commit. Cards: `commit.read-signing`, `commit.options`,
+   `commit.option-arguments`, `commit.create`, `commit.amend`, `settings.edit`.
+3. **Co-authors.** The authors of the history, read when the picker opens; the picker of many, with an author typed;
+   a `--trailer` for each co-author chosen, and none for one the message names already. Cards:
+   `commit.read-authors`, `commit.co-authors`, `commit.option-arguments`.
+
+Nothing is built yet.
+
+Exit: in a repository signing with an SSH key whose allowed signers are set, selecting a commit signed shows
+**Signature** `Good` with the signer, and one not signed shows no such line; without the allowed signers, the same
+commit says **Signed, not checked**; with `commit.gpgSign` on, unticking **Sign this commit** makes a commit without a
+signature, and the next commit is signed again; **Add Signed-off-by** and two co-authors chosen in the picker give a
+commit whose message ends with the three lines, once each; **Skip the hooks** commits past a `pre-commit` hook that
+fails, and the next commit runs it; the cards of the milestone are Built in the desktop, and the snapshots of the
+menu and of the line of a signature match in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

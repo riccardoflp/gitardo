@@ -1790,6 +1790,47 @@ have both lines, which nobody wants from a line changed); staging the whole chan
 step (it is what the buttons do already); an interactive `git add -p` in a terminal of the bottom panel (it is there
 already, and is not a selection).
 
+## D79 — The signature of a commit shown, and the options of the commit box (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M34; the details proposed while planning.*
+
+Signing works through git's configuration alone (D1), and nothing in the window says whether a commit is signed, or
+whether its signature holds. The `Co-authored-by` and `Signed-off-by` lines of a message are shown as written, but the
+commit box never adds them, and its commits always run the hooks.
+
+- **The signature, read where it is shown.** `git show --format=%G?…` checks the signature with gpg, gpgsm or
+  ssh-keygen, which can take a tenth of a second or more for each commit: it is read for the commit selected alone,
+  after its details are drawn (`details.read-signature`), and said by a line **Signature** in the inspector and in the
+  tab of a commit (`details.signature`): good and by whom, good but doubted, bad, or not checked. A commit signed with
+  SSH while `gpg.ssh.allowedSignersFile` is not set is one git says nothing of: its object is read for its signature
+  header, and it is **Signed, not checked**. A commit not signed has no line.
+- **Nothing in the timeline for now.** A mark on each signed commit would check the signature of every commit of a
+  page; asked (Q1092).
+- **The options of the commit box** (`commit.options`), in a menu beside **Commit** or **Amend**: **Sign this commit**,
+  starting as git's configuration signs (`commit.gpgSign`, read by `commit.read-signing`), which adds `--gpg-sign` or
+  `--no-gpg-sign` only when it differs; **Add Signed-off-by**, `--signoff`; **Co-authors…**, a `--trailer` of
+  `Co-authored-by` for each person chosen among the authors of the history or typed (`commit.read-authors`,
+  `commit.co-authors`); **Skip the hooks**, `--no-verify` (`commit.option-arguments`). They apply to `commit.create`
+  and `commit.amend` alike.
+- **Held for one commit.** A tick changed holds until the commit is made; then each box goes back to where it starts,
+  and the co-authors are emptied. A hook skipped once and forgotten would be skipped on every commit after, and a
+  co-author kept would be named on commits they had no part in.
+- **One new setting, no key renamed.** `commit.signOff`, of the user and of the repository, `false` by default,
+  starts **Add Signed-off-by** ticked, for the projects that ask for it on every commit (`gitardo.commit.signOff` in
+  the extension). Signing every commit stays git's own `commit.gpgSign`, which Gitardo reads and does not write.
+- **The key is the identity's.** When git signs with SSH or X.509 and no `user.signingKey` is set, **Sign this commit**
+  cannot be ticked and says to set one with **Switch identity…**, whose profiles already carry a signing key.
+
+The extension: the details of the graph and its tab of a commit are the engine's, and **Gitardo Changes** has its own
+commit box, so every card is *Planned* there, for a later milestone; VS Code's **Commit (Signed Off)** and **Commit
+(No Verify)** are of its own Source Control.
+
+Rejected: reading `%G?` with the commits of the timeline (it checks every signature of every page); remembering the
+options until unticked (above); a setting for signing (git has one, and two places that say whether commits are
+signed would disagree); `Signed-off-by` written into the message box by Gitardo (`--signoff` adds it as git writes
+it, once, at the end); trailers other than `Co-authored-by` (asked, Q1097); co-authors from GitHub's users (the
+authors of the history know the emails that repository uses, and no request leaves the machine).
+
 
 ## Open questions
 
@@ -4863,4 +4904,40 @@ while it is planned; each is built as it says until the maintainer answers other
 - **Q1076** — `diff.lines-patch`: the lines of an untracked file are staged by a patch that creates the file in the index
   with mode `100644`, or `100755` when git sees it as executable. Is `git add --intent-to-add -- <file>` before the
   patch wanted instead, so that the file is in the index, empty, first?
+
+### Of the signature of a commit and the options of the commit box, from Q1090
+
+Questions of milestone M34 ([D79](#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)),
+asked while it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1090** — `details.read-signature`: the signature is checked for the commit selected alone, after its details are
+  shown, and checked again each time it is selected. Should what git said of a commit be kept for the session, since a
+  commit does not change, and what git says of its signature changes only with the keys or the allowed signers?
+- **Q1091** — `details.signature`: a commit not signed has no line **Signature**. In a repository where every commit is
+  signed, a commit that is not is the one to notice. Should **Not signed** be said when `commit.gpgSign` is on, or
+  when the commits around it are signed?
+- **Q1092** — `details.signature`: nothing is drawn in the timeline for a signature, since `%G?` checks every signature
+  of every page. A mark of the commits that carry a signature, without checking it, could be read from their objects
+  with `git cat-file --batch`. Is such a mark wanted, and is a check of the signatures of the commits in sight, in the
+  background, worth what it costs?
+- **Q1093** — `commit.options`: a tick changed holds for the next commit alone. Should **Sign this commit** and **Add
+  Signed-off-by** rather keep what was ticked for the repository, in `state.json`, and only **Skip the hooks** go back
+  after each commit?
+- **Q1094** — `commit.options`: the co-authors are emptied after each commit, so that a pair that works together for a
+  day chooses them again for each commit. Should they stay until taken away, said under the box all the while?
+- **Q1095** — `commit.option-arguments`: the line is `Co-authored-by`, which GitHub reads in any case; some write
+  `Co-Authored-By`. Is the form chosen right, and should a line of the message in another case count as the same?
+- **Q1096** — `commit.read-authors`: the authors are those of the last 10,000 commits of the branches, the remote
+  branches and the tags. Is that enough for a large repository, and should the authors be kept between the times the
+  picker opens?
+- **Q1097** — `commit.options`: only `Co-authored-by` and `Signed-off-by` are added. Should other trailers be offered,
+  as `Reviewed-by` and `Fixes`, or those that `trailer.*` of git's configuration defines?
+- **Q1098** — `commit.options`: the options are of commits alone. Should **Create a tag** (`tag.create`) offer to sign
+  the tag, `git tag -s`, and the details of a tag say its signature?
+- **Q1099** — `commit.options`: signing every commit is set in git's configuration, which Gitardo reads and does not
+  write. Should **Sign this commit** offer **Always sign in this repository**, which runs `git config commit.gpgSign
+  true`?
+- **Q1100** — `commit.options`: **Skip the hooks** has no danger, and the commit runs without asking when
+  `commandPreview` is `off`. Should a commit that skips the hooks always show its plan first, since a hook may be what
+  keeps a secret out of the repository?
 

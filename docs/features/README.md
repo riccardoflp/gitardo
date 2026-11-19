@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 505 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 512 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -20,8 +20,8 @@ earns it.
 | [01-repositories.md](01-repositories.md) | Repositories | 34 |
 | [02-graph.md](02-graph.md) | Graph | 59 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
-| [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 18 |
-| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 24 |
+| [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 20 |
+| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 29 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 39 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
@@ -183,7 +183,9 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`details.read-commit`](04-details-and-commit-page.md#detailsread-commit--read-the-details-of-a-commit) | Read the details of a commit | Read | Built | Built |
+| [`details.read-signature`](04-details-and-commit-page.md#detailsread-signature--read-the-signature-of-a-commit) | Read the signature of a commit | Read | Specified | Planned |
 | [`details.show`](04-details-and-commit-page.md#detailsshow--details-of-the-selected-commit) | Details of the selected commit | View | Built | Built |
+| [`details.signature`](04-details-and-commit-page.md#detailssignature--the-signature-of-a-commit) | The signature of a commit | View | Specified | Planned |
 | [`details.message-title`](04-details-and-commit-page.md#detailsmessage-title--the-title-of-a-message) | The title of a message | Derivation | Built | Built |
 | [`details.message-unwrap`](04-details-and-commit-page.md#detailsmessage-unwrap--lines-of-a-message-put-back-together) | Lines of a message put back together | Derivation | Built | Built |
 | [`details.show-more`](04-details-and-commit-page.md#detailsshow-more--show-more-of-a-long-message) | Show more of a long message | View | Built | Built |
@@ -223,6 +225,11 @@ earns it.
 | [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Built | Built |
 | [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Built | Built |
 | [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built | Built |
+| [`commit.options`](05-changes-and-commit.md#commitoptions--the-options-of-a-commit) | The options of a commit | View | Specified | Planned |
+| [`commit.option-arguments`](05-changes-and-commit.md#commitoption-arguments--the-arguments-of-the-options-of-a-commit) | The arguments of the options of a commit | Derivation | Specified | Planned |
+| [`commit.read-signing`](05-changes-and-commit.md#commitread-signing--read-how-git-signs-commits) | Read how git signs commits | Read | Specified | Planned |
+| [`commit.read-authors`](05-changes-and-commit.md#commitread-authors--read-the-authors-of-the-history) | Read the authors of the history | Read | Specified | Planned |
+| [`commit.co-authors`](05-changes-and-commit.md#commitco-authors--choose-the-co-authors-of-a-commit) | Choose the co-authors of a commit | View | Specified | Planned |
 | [`commit.prepared-message`](05-changes-and-commit.md#commitprepared-message--the-message-git-prepared) | The message git prepared | Read | Built | Built |
 | [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built | Built |
 | [`commit.read-draft-diff`](05-changes-and-commit.md#commitread-draft-diff--the-diff-a-draft-is-written-from) | The diff a draft is written from | Read | Built | Built |

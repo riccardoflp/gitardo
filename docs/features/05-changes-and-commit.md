@@ -849,6 +849,152 @@ Acceptance:
       to `off`, and nothing says the branch will need a force push.
 - [ ] Extension: right after, **Undo** asks first and then puts back the commit as it was before the amend.
 
+### `commit.options` — The options of a commit
+
+Signs the next commit or not, adds `Signed-off-by` and co-authors to its message, or skips the hooks, for that commit,
+from a menu beside **Commit**
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)).
+
+- **Kind**: View
+- **Function**: `views::changes::commit_options_view(state: &CommitOptionsState, ui) -> Vec<Intent>`
+- **Entry points**: the button **Commit options** beside **Commit**, or **Amend**, in the commit box of the Changes
+  page and of the **Changes** section; a click on the line under the box that says the options in force.
+- **Reads**: `commit.read-signing`, with the state of the repository.
+- **Settings**: `commit.signOff`, a new key (User, Repository), `false` by default: **Add Signed-off-by to every
+  commit**, for the projects that ask for it on each commit.
+- **Uses**: `commit.read-signing`, `commit.co-authors`, `commit.option-arguments`, `commit.create`, `commit.amend`,
+  `identity.switch`, `ui.menu-icons`.
+- **Extension**: Planned: the same button beside **Commit** in the commit box of the **Gitardo Changes** view, its menu
+  drawn by the view; the options go to the engine in the answers of `feature/run` of `commit.create` and
+  `commit.amend`, and the setting is `gitardo.commit.signOff`. VS Code's own **Commit (Signed Off)** and **Commit (No
+  Verify)** are of its Source Control, not of Gitardo's box.
+
+The menu has, each with a box ticked or not and its icon:
+
+- **Sign this commit**, ticked to start when git's configuration signs every commit (`commit.gpgSign`), with what it
+  signs with under it: `With the SSH key ~/.ssh/id_ed25519.pub`, `With the OpenPGP key 3AA5C34371567BD2`, or **With
+  the OpenPGP key of your email** when none is set. When git signs with SSH or X.509 and no key is set, it cannot be
+  ticked, and says **No key to sign with: set one with Switch identity…**, a link to `identity.switch`.
+- **Add Signed-off-by**, ticked to start when `commit.signOff` is on, with `Signed-off-by: <name> <email>` of the
+  identity under it.
+- **Co-authors…**, which opens `commit.co-authors`; the co-authors chosen are listed under it, each with ×.
+- **Skip the hooks**, never ticked to start, with **Commit without running the pre-commit and commit-msg hooks** under
+  it.
+
+A tick changed holds for the next commit or amend alone: once it is made, the boxes go back to where they start and
+the co-authors are emptied (Q1093, Q1094). Each repository open keeps its own, as it keeps its message. While any option
+differs from where it starts, or a co-author is chosen, a line under the box says them, muted, in the order of the
+menu: `Not signed · Signed-off-by · With Ben, +1 · Hooks skipped`, and its tooltip says the arguments they add.
+
+Acceptance:
+
+- [ ] With `commit.gpgSign` set to `true`, the menu opens with **Sign this commit** ticked; unticking it says **Not
+      signed** under the box, and the commit made has no signature.
+- [ ] With `gpg.format` set to `ssh` and no `user.signingKey`, **Sign this commit** cannot be ticked, and says so.
+- [ ] With `commit.signOff` on in `.gitardo/settings.json`, **Add Signed-off-by** starts ticked in that repository
+      only.
+- [ ] After a commit with **Skip the hooks** ticked, the next commit runs the hooks again.
+- [ ] Two co-authors chosen are listed in the menu and under the box, and are gone after the commit.
+- [ ] The repository shown changed and back, the options ticked are as they were left.
+- [ ] The menu open matches its snapshots in the dark and in the light theme.
+
+### `commit.option-arguments` — The arguments of the options of a commit
+
+What the options of the commit box add to `git commit`, for `commit.create` and `commit.amend`
+([D79](../08-decisions.md#d79--the-signature-of-a-commit-shown-and-the-options-of-the-commit-box-proposed)).
+
+- **Kind**: Derivation
+- **Function**: `model::commit::option_arguments(options: &CommitOptions, signing: &SigningConfig, message: &str) ->
+  Vec<OsString>`
+- **Uses**: by `commit.create` and `commit.amend`; `commit.read-signing`.
+- **Extension**: Planned, as `commit.options`.
+
+- **Sign this commit** ticked while git's configuration does not sign: `--gpg-sign`, which signs with the key git's
+  configuration names. Unticked while it signs: `--no-gpg-sign`. As the configuration says: nothing.
+- **Add Signed-off-by**: `--signoff`, which git adds only when the message does not end with that very line.
+- **Skip the hooks**: `--no-verify`.
+- Each co-author, in the order chosen, unless the message has that line already: `--trailer` and `Co-authored-by:
+  <name> <<email>>` as one argument, the form GitHub reads (Q1095).
+- The arguments go after `commit` and `--amend`, and before `-m <message>` or `--no-edit`: `git commit --amend
+  --gpg-sign --signoff --trailer "Co-authored-by: Ben <ben@example.com>" --no-edit`.
+
+Acceptance:
+
+- [ ] Nothing ticked, with a configuration that does not sign, gives no argument: `git commit -m "Fix the parser"`.
+- [ ] **Sign this commit** ticked gives `--gpg-sign`; with `commit.gpgSign` set to `true` it gives nothing, and
+      unticked `--no-gpg-sign`.
+- [ ] Two co-authors give two `--trailer` arguments in the order chosen; one whose line is in the message already
+      gives none.
+- [ ] An amend with an empty message, **Add Signed-off-by** and a co-author runs `git commit --amend --signoff
+      --trailer "Co-authored-by: Ben <ben@example.com>" --no-edit`, and the message of the commit ends with the two
+      lines after.
+- [ ] A name with a space or a quote is one argument, whatever it holds.
+
+### `commit.read-signing` — Read how git signs commits
+
+Whether git's configuration signs every commit, in which kind and with which key, so that **Sign this commit** starts
+as git would commit, and says what it signs with.
+
+- **Kind**: Read
+- **Function**: `git::read::commit::read_signing(git: &Git, request: &SigningRequest) -> Result<SigningConfig, GitError>`
+- **Reads**: `git config -z --get-regexp ^(commit\.gpgsign|gpg\.format|user\.signingkey)$`, wherever they are set,
+  with the reads of `repo.read-state`. Git ends with code 1 when none is set, which is an empty result, not an error.
+  `commit.gpgSign` is read as git reads a boolean: `true`, `yes`, `on`, `1` and a key with no value are true; the
+  kind is `openpgp` when `gpg.format` is not set.
+- **Uses**: by `commit.options` and `commit.option-arguments`.
+- **Extension**: Planned, with `read/repo.read-state` of the engine.
+
+Acceptance:
+
+- [ ] With nothing set, git does not sign, the kind is OpenPGP and there is no key.
+- [ ] With `commit.gpgSign` set to `yes` in the global configuration and `false` in the repository, git does not sign.
+- [ ] With `gpg.format` set to `ssh` and `user.signingKey` to a path, the kind is SSH and the key that path.
+
+### `commit.read-authors` — Read the authors of the history
+
+The people who made commits in the repository, with how many each made, for choosing co-authors.
+
+- **Kind**: Read
+- **Function**: `git::read::commit::read_authors(git: &Git, request: &AuthorsRequest) -> Result<Vec<Author>, GitError>`
+- **Reads**: `git log -z --format=%aN%x1f%aE --max-count=10000 --branches --remotes --tags`, the names and emails as
+  the repository's `.mailmap` says them; an author is an email, without regard to case, with the name of its latest
+  commit. Read when `commit.co-authors` opens, and stopped when it closes (Q1096).
+- **Uses**: by `commit.co-authors`.
+- **Extension**: Planned: `read/commit.read-authors` of the engine.
+
+Acceptance:
+
+- [ ] A history with three commits of `ben@example.com` and one of `cy@example.com` gives Ben with 3 and Cy with 1.
+- [ ] `Ben@Example.com` and `ben@example.com` are one author, named as the latest of their commits says.
+- [ ] A `.mailmap` that maps an old email to a new one gives the new one alone.
+
+### `commit.co-authors` — Choose the co-authors of a commit
+
+Picks the people who made the next commit with the one who commits, among the authors of the history or typed, so that
+the commit names them in `Co-authored-by` lines.
+
+- **Kind**: View
+- **Function**: `views::changes::co_authors_view(state: &CoAuthorsState, ui) -> Vec<Intent>`
+- **Entry points**: **Co-authors…** in the menu of `commit.options`.
+- **Reads**: `commit.read-authors`.
+- **Uses**: `commit.read-authors`, `commit.options`, `identity.read`.
+- **Extension**: Planned: a quick pick of many of VS Code, from the **Gitardo Changes** view.
+
+Gitardo's picker of many, titled **Co-authors of this commit**: each author by name with the email under it and how
+many commits, the ones with the most first, the identity that commits left out; the co-authors chosen already are
+ticked. What is typed matches the names and the emails, as Quick search matches. When it is a name and an email,
+`Ben <ben@example.com>`, that no author has, an entry **Add Ben <ben@example.com>** is first. `Enter` keeps the ticks
+and closes the picker; `Escape` leaves the co-authors as they were.
+
+Acceptance:
+
+- [ ] The picker lists the authors of the history, the one with the most commits first, without the identity that
+      commits.
+- [ ] Typing `ben` keeps Ben, by his name or his email.
+- [ ] Typing `Dee <dee@example.com>` offers **Add Dee <dee@example.com>**; chosen, Dee is a co-author.
+- [ ] Typing `Dee` alone offers nothing to add.
+- [ ] `Escape` after ticking two authors leaves the co-authors as they were.
+
 ### `commit.prepared-message` — The message git prepared
 
 The message git wrote for the commit of a squash merge while its changes wait to be committed, which fills the commit
