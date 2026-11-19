@@ -5476,6 +5476,10 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1454** — `worktree.locked`: in the extension, the rows of the **Gitardo Repositories** view do not draw the lock
   of a worktree, since the summaries of that view are read apart from the state that carries `locked`. Should the
   summary of a worktree carry its lock too?
+- **Q1456** — `archive.save`: Quick search has no **Save as Archive…**, which would ask the commit first, and the
+  message **Saved `<file>`** has no **Reveal in the file manager**, since the messages after an operation offer only
+  operations (`FollowUp::OfferRun`). Should Quick search get the entry, and a follow-up a button that reveals a file, as
+  Q1450 asks for one that opens a file?
 - **Q1451** — `changes.skipped-list`: a click on a file hidden from git opens its diff between the last commit and the
   disk even when the two are the same, since the list knows only how the file is hidden, not whether it differs. Should
   the read of the hidden files compare each with the last commit, so that one as committed opens its File page?

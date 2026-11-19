@@ -69,6 +69,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     if branch.is_checked_out {
         let mut entries = vec![create];
         entries.extend(link);
+        entries.push(archive_entry(target()));
         entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
         return entries;
     }
@@ -90,6 +91,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
         entries.extend(merge_entries(state, &branch.commit, target));
         entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
         entries.extend(link);
+        entries.push(archive_entry(target()));
         entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
         entries.extend(changing);
         return entries;
@@ -109,9 +111,15 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     entries.extend(merge_entries(state, &branch.commit, target));
     entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
     entries.extend(link);
+    entries.push(archive_entry(target()));
     entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
     entries.push(OperationEntry::runs(rail_words::DELETE, "branch.delete", target()));
     entries
+}
+
+/// **Save as archive…** (`archive.save`), on a commit, a branch, a remote branch or a tag.
+pub(crate) fn archive_entry(target: Target) -> OperationEntry {
+    OperationEntry::runs(crate::text::patch::SAVE_AS_ARCHIVE, "archive.save", target)
 }
 
 /// The worktree other than the one the views show that has a local branch, and whether it is renamed and removed from
@@ -169,6 +177,7 @@ pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -
     ));
     entries.extend(merge_entries(state, &remote.commit, target));
     entries.extend(menus.github.link_of_remote_branch(remote).map(OperationEntry::opens));
+    entries.push(archive_entry(target()));
     entries.push(OperationEntry::runs(
         rail_words::DELETE_FROM_REMOTE,
         "remote.delete-branch",
@@ -194,6 +203,7 @@ pub(crate) fn tag_entries(menus: ReferenceMenus<'_>, tag: &Tag) -> Vec<Operation
     if !state.remotes.is_empty() {
         entries.push(OperationEntry::runs(words::PUSH_TAG, "tag.push", target()));
     }
+    entries.push(archive_entry(target()));
     entries.push(OperationEntry::runs(rail_words::DELETE, "tag.delete", target()));
     entries
 }

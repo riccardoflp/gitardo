@@ -1374,7 +1374,10 @@ Built so far: the fifth phase, before the others. The menu of the row of the rep
 `git gc`; its message says the room before, not after (Q1455). **Look after it in the background…** is ticked while
 `maintenance.repo` in the user's configuration lists the repository, read with the state again only when that
 configuration changed, and sent to the extension as `isLookedAfter` (protocol 1.11); unticked it runs
-`git maintenance start` after its warning, ticked `git maintenance unregister`.
+`git maintenance start` after its warning, ticked `git maintenance unregister`. Then the fourth phase: **Save as
+archive…** in the menu of a commit, a branch, a remote branch and a tag runs `git archive` with every file or one
+folder read with `git ls-tree -d`, zip or tar.gz, the folder inside the archive and the save dialog; Quick search has
+no entry for it yet, and its message no **Reveal in the file manager** (Q1456).
 
 Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
 in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save

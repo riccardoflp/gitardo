@@ -4,6 +4,7 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::panic, reason = "a helper that cannot go on fails the test")]
 
+mod archive;
 mod branch;
 mod branches;
 mod changes;

@@ -42,7 +42,7 @@ fn history_icon(feature: &str) -> Option<Icon> {
         "cherry-pick.commit" | "selection.cherry-pick" => super::CHERRY_PICK,
         "revert.commit" | "undo.last" | "changes.discard" | "changes.discard-all" | "settings.reset" => super::UNDO,
         "commits.copy-hash" | "commits.copy-message" | "patch.copy" => super::COPY,
-        "patch.save" => super::SAVE,
+        "patch.save" | "archive.save" => super::SAVE,
         "compare.with"
         | "compare.with-current"
         | "compare.selected-before"

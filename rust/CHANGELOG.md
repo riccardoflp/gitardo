@@ -35,6 +35,10 @@
   each marked **skip-worktree** or **assumed unchanged**, where a click shows its diff between the last commit and the
   disk and **Show its changes to git again** brings it back, one file or all of them; the Files page marks them with a
   struck eye. The files a sparse checkout leaves out are not listed.
+- **Save as archive…**, in the menu of a commit, a branch, a remote branch and a tag, saves its files in a zip or a
+  tar.gz with `git archive`: every file or one folder, chosen in a search of the folders of the commit; zip by default
+  on Windows and tar.gz elsewhere; the folder inside the archive, `<repository>-<name>/` by default or empty for none;
+  and the file, in the system's save dialog, which starts beside the repository.
 - **Lock…** in the menu of a worktree has git keep it whatever happens to its folder, with the reason typed, such as a
   worktree on a drive that is not always plugged in; **Unlock** takes the lock away. A locked worktree has a lock after
   its label in the Worktrees list and on its row in **Repositories**, whose tooltip says the reason, and one whose

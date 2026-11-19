@@ -104,6 +104,9 @@ fn labels(entries: &[OperationEntry]) -> Vec<String> {
         .collect()
 }
 
+/// **Save as archive…**, in the menu of every commit, branch and tag.
+const ARCHIVE: &str = crate::text::patch::SAVE_AS_ARCHIVE;
+
 /// The entries of a local branch of the repository, by its name.
 fn of_branch(repository: &RepositoryState, open_in: OpenIn, name: &str) -> Vec<String> {
     let branch = repository.branches.iter().find(|branch| branch.name == name);
@@ -115,7 +118,7 @@ fn branch_checkout__the_menu_of_the_branch_checked_out_has_no_check_out_entry() 
     let repository = repository();
     assert_eq!(
         of_branch(&repository, OpenIn::Checkout, "main"),
-        ["Create branch here\u{2026}", "Rename\u{2026}"]
+        ["Create branch here\u{2026}", ARCHIVE, "Rename\u{2026}"]
     );
 }
 
@@ -134,6 +137,7 @@ fn branch_checkout__the_menu_of_a_branch_another_worktree_has_has_its_entries_an
             "Merge into main",
             "Merge into main\u{2026}",
             "Rebase main onto this",
+            ARCHIVE,
             "Rename branch\u{2026}",
             "Rename worktree\u{2026}",
             "Remove worktree\u{2026}",
@@ -223,6 +227,7 @@ fn branch_checkout_remote_and_rebase__the_entry_is_there_only_when_the_branch_ha
             "Check out as local branch",
             "Open in worktree",
             "Create branch here\u{2026}",
+            ARCHIVE,
             "Delete from remote",
         ]
     );
@@ -289,7 +294,12 @@ fn tag_push__a_repository_with_no_remote_has_no_push_tag_entry() {
     repository.remotes.clear();
     assert_eq!(
         of_tag(&repository, "v0"),
-        ["Check out tag (detached)", "Create branch here\u{2026}", "Delete"]
+        [
+            "Check out tag (detached)",
+            "Create branch here\u{2026}",
+            ARCHIVE,
+            "Delete"
+        ]
     );
 }
 
@@ -298,7 +308,7 @@ fn tag_checkout__a_tag_on_the_commit_checked_out_has_no_such_entry() {
     let repository = repository();
     assert_eq!(
         of_tag(&repository, "v1"),
-        ["Create branch here\u{2026}", "Push tag", "Delete"]
+        ["Create branch here\u{2026}", "Push tag", ARCHIVE, "Delete"]
     );
 }
 

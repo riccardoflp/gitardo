@@ -38,8 +38,8 @@ pub(crate) fn compare_entries(menus: ReferenceMenus<'_>, target: &Target, commit
 }
 
 /// The entries of a commit of the timeline beyond those of `branch.`: the comparisons, with the commit selected before
-/// when another one is; **Copy as patch** and **Save as patch…** unless it is a merge; and the bisect, started or
-/// marked.
+/// when another one is; **Copy as patch** and **Save as patch…** unless it is a merge; **Save as archive…**; and the
+/// bisect, started or marked.
 pub(crate) fn history_entries(
     menus: ReferenceMenus<'_>,
     commit: &Commit,
@@ -66,6 +66,7 @@ pub(crate) fn history_entries(
             target.clone(),
         ));
     }
+    entries.push(super::menu::archive_entry(target.clone()));
     entries.extend(bisect_entries(menus.repository, &target));
     entries
 }

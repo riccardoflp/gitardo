@@ -76,7 +76,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             crate::new_repository::answer(git, query)
         }
         Query::IgnoredBy { .. } | Query::ExcludeFile => crate::ignoring::answer(git, query),
-        Query::RepositorySize => crate::upkeep::answer(git),
+        Query::RepositorySize | Query::CommitFolders { .. } => crate::upkeep::answer(git, query),
         Query::SetupTakes(requests) => setup_takes(git, requests),
         Query::PathStatuses { paths } => path_statuses(git, paths),
         Query::FileNames { path } => history::file_names(git, path),
@@ -289,9 +289,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::MergedBranches { into } => git::command_line(&branch::merged_arguments(into)),
         Query::Containing { commit } => git::command_line(&branch::containing_arguments(commit.as_str())),
         Query::HasFile { revision, path } => git::command_line(&branch::has_file_arguments(revision, path)),
-        Query::Overwritten { upstream } => {
-            format!("git log --max-count=11 --format=%h%x00%s%x00 HEAD..{upstream} --")
-        }
+        Query::Overwritten { upstream } => describe_overwritten(upstream),
         Query::Remotes => String::from("git remote, git remote get-url"),
         Query::Stash { index } => format!(
             "git diff --name-only -z stash@{{{index}}}^1 stash@{{{index}}}, git merge-tree --write-tree \
@@ -330,12 +328,19 @@ pub(crate) fn describe(query: &Query) -> String {
         | Query::TakenNames { .. }
         | Query::RepositoryAround { .. }
         | Query::DefaultBranch { .. } => crate::new_repository::describe(query),
-        Query::IgnoredBy { .. } | Query::ExcludeFile | Query::RepositorySize => crate::upkeep::describe(query),
+        Query::IgnoredBy { .. } | Query::ExcludeFile | Query::RepositorySize | Query::CommitFolders { .. } => {
+            crate::upkeep::describe(query)
+        }
         Query::FileNames { path } => history::describe_file_names(path),
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
     }
+}
+
+/// What the read of the commits a push would overwrite runs.
+fn describe_overwritten(upstream: &str) -> String {
+    format!("git log --max-count=11 --format=%h%x00%s%x00 HEAD..{upstream} --")
 }
 
 /// What the reads that do not run git read: the journal, the clipboard, the credential store.

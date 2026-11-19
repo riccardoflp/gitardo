@@ -578,7 +578,7 @@ earns it.
 | [`patch.check`](14-patches.md#patchcheck--check-a-patch-before-applying-it) | Check a patch before applying it | Read | Built | Built |
 | [`patch.apply`](14-patches.md#patchapply--apply-a-patch) | Apply a patch | Operation | Built | Built |
 | [`patch.am-stopped`](14-patches.md#patcham-stopped--a-patch-that-stopped-on-a-conflict) | A patch that stopped on a conflict | View | Built | Built |
-| [`archive.save`](14-patches.md#archivesave--save-as-an-archive) | Save as an archive… | Operation | Specified | Planned |
+| [`archive.save`](14-patches.md#archivesave--save-as-an-archive) | Save as an archive… | Operation | Built | Planned |
 
 ## GitHub
 

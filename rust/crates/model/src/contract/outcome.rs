@@ -299,6 +299,12 @@ pub enum Query {
     /// `upkeep.clean-up`. The answer is [`super::Answer::Names`]: the numbers of
     /// [`crate::upkeep::RepositorySize::to_names`].
     RepositorySize,
+    /// The folders of a commit, at any depth (`git ls-tree -r -d --name-only -z <revision>`), for `archive.save`. The
+    /// answer is [`super::Answer::Names`]: their paths, with `/`.
+    CommitFolders {
+        /// The commit, or the full name of a branch or a tag.
+        revision: String,
+    },
     /// The exclude file of the repository, in full (`git rev-parse --git-path info/exclude`), for `changes.ignore`.
     /// The answer is [`super::Answer::Path`].
     ExcludeFile,

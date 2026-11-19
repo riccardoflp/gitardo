@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 pub mod ai;
+pub mod archive;
 pub mod bisect;
 pub mod blame;
 pub mod branch;
@@ -57,7 +58,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 177] = [
+pub const OPERATIONS: [(FeatureId, Operation); 178] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -160,6 +161,7 @@ pub const OPERATIONS: [(FeatureId, Operation); 177] = [
     (FeatureId("patch.apply"), patch::apply),
     (FeatureId("patch.copy"), patch::copy),
     (FeatureId("patch.save"), patch::save),
+    (FeatureId("archive.save"), archive::save),
     // Comparisons.
     (FeatureId("compare.change-side"), compare::change_side),
     (FeatureId("compare.choose"), compare::choose),
