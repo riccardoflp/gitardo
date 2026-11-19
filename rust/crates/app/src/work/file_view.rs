@@ -41,13 +41,16 @@ pub fn read_file(folder: &Path, job: &FileJob, cancel: &CancelToken) -> Result<O
     }
 }
 
-/// Reads an image of the repository and decodes it; none when it is not there, could not be read, or is not a PNG,
-/// which the preview shows as its text in its place.
+/// Reads an image of the repository and draws it (`file-view.read-image`); none when it is not there, is not an image or
+/// could not be read, which the preview shows as its text in its place. An SVG is drawn one pixel to a logical pixel,
+/// which the preview lays out an image by.
 #[must_use]
 pub fn read_image(folder: &Path, job: &FileJob, cancel: &CancelToken) -> Option<render::Image> {
     // A read that fails is not said: the preview shows the text of the image in its place, as for any image not drawn.
     let bytes = read_file(folder, job, cancel).ok().flatten()?;
-    render::Image::decode_png(&bytes)
+    render::image::read_image(&bytes, &job.path, 1.0)
+        .ok()
+        .map(|read| read.image)
 }
 
 /// Where a file of the working tree is on disk; a whole path, such as that of the user's settings file, is itself.

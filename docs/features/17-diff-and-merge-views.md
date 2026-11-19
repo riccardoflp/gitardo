@@ -1343,8 +1343,9 @@ Rules:
   in its File page, at the revision of the page when it shows one, at the line of a `#L12` after it; a link to a
   heading of the file scrolls to it, the heading named as GitHub names it (`#getting-started`). Another scheme, such as
   `javascript:`, and a path out of the repository go nowhere. An image of the repository is drawn, as wide as the page
-  at most, read on a worker; only PNG is read, and an image of another format shows its text, as an image from the
-  web, which is not fetched ([Q581](../08-decisions.md#open-questions)).
+  at most, read on a worker by `file-view.read-image`, so that an SVG of the repository is drawn as a PNG is, one pixel
+  of it to a pixel of the page; an image it cannot read shows its text, as an image from the web, which is not fetched
+  ([Q581](../08-decisions.md#open-questions), answered by D74).
 - The preview follows the text: edits made in **Source** show in **Preview** when it is shown again; a file of the
   working tree changed on disk is read again, as in **Source**.
 - With `markdown.openAsPreview` on, a Markdown file opens in **Preview**; otherwise in **Source**. The switch is kept
@@ -1460,17 +1461,17 @@ Rules:
 
 Acceptance:
 
-- [ ] The bytes of a PNG of 32 × 16 give 32 × 16 pixels, the format PNG and its weight.
-- [ ] The same PNG named `logo.dat` is read as a PNG.
-- [ ] An SVG with `width="10" height="20"` at a scale of 2 gives 20 × 40 pixels and a size of 10 × 20.
-- [ ] An SVG that names `<image href="secret.png">` and a font not of the program is drawn without either, and reads no
+- [x] The bytes of a PNG of 32 × 16 give 32 × 16 pixels, the format PNG and its weight.
+- [x] The same PNG named `logo.dat` is read as a PNG.
+- [x] An SVG with `width="10" height="20"` at a scale of 2 gives 20 × 40 pixels and a size of 10 × 20.
+- [x] An SVG that names `<image href="secret.png">` and a font not of the program is drawn without either, and reads no
       file.
 - [ ] A JPEG, a GIF, a WebP, a BMP and an ICO of the tests are each read with their size; an animated GIF gives its
       first frame.
-- [ ] A PNG cut short gives *This image could not be read.*; a PNG of 10,000 × 10,000 gives *This image is too large
+- [x] A PNG cut short gives *This image could not be read.*; a PNG of 10,000 × 10,000 gives *This image is too large
       to draw.*
-- [ ] `notes.txt` is not an image; `<svg` cut short in `a.svg` gives *This SVG could not be drawn:* with what is wrong.
-- [ ] `![logo](media/logo.svg)` in a Markdown file is drawn in its preview.
+- [x] `notes.txt` is not an image; `<svg` cut short in `a.svg` gives *This SVG could not be drawn:* with what is wrong.
+- [x] `![logo](media/logo.svg)` in a Markdown file is drawn in its preview.
 
 ### `file-view.image` — An image as it is drawn
 

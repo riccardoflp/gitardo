@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The preview of a Markdown file draws an SVG of the repository it names, as it draws a PNG, with the fonts of
+  the program and without reading anything the SVG names.
+
 ## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of

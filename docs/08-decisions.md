@@ -4346,7 +4346,8 @@ the reading given until the card says otherwise.
   GitHub draws it.
 - **Q581** — `file-view.markdown-preview`: which formats of images are drawn. Built: PNG only, read by the library
   `tiny-skia` takes for it (its feature `png-format`), on a worker; an SVG, a JPEG or a GIF of the repository shows its
-  text, as an image of the web does. SVG would need a library that draws it, JPEG and GIF one each.
+  text, as an image of the web does. SVG would need a library that draws it, JPEG and GIF one each. Answered by D74:
+  every image `file-view.read-image` reads is drawn, SVG since M27 phase 1.
 - **Q582** — `file-view.markdown-preview`: what **Find** in the preview finds. Built: the find in page of the window,
   `Ctrl+F`, which finds in the text the preview draws in sight, as on the page of a commit; a word of a part not
   scrolled into sight is found once it is. Finding in the whole text would need the preview drawn as a list of rows

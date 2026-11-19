@@ -215,6 +215,30 @@ fn file_view_markdown_preview__an_image_of_the_repository_is_drawn_and_one_of_th
 }
 
 #[test]
+fn file_view_read_image__an_svg_of_the_repository_named_in_a_markdown_file_is_drawn_in_its_preview() {
+    let repository = repository();
+    let media = repository.path().join("media");
+    std::fs::create_dir_all(&media).unwrap();
+    std::fs::write(
+        media.join("logo.svg"),
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="30" height="12"><rect width="30" height="12" fill="#c02828"/></svg>"##,
+    )
+    .unwrap();
+    std::fs::write(
+        repository.path().join("LOGO.md"),
+        "![logo](media/logo.svg)
+",
+    )
+    .unwrap();
+    let mut state = showing(repository.path().to_path_buf());
+    preview_of(&mut state, "LOGO.md");
+    let preview = shown(&state).markdown.as_ref().unwrap();
+    let (source, image) = &preview.content.images[0];
+    assert_eq!(source, "media/logo.svg");
+    assert_eq!((image.width(), image.height()), (30, 12));
+}
+
+#[test]
 fn file_view_markdown_preview__src_app_rs_has_no_preview() {
     let repository = repository();
     let mut state = showing(repository.path().to_path_buf());
