@@ -76,7 +76,7 @@ Windows are, and nothing else is linked.
 | Local time | `localtime_r` of the C library, whose `tm_gmtoff` is how far the local time is from UTC (`${date}` in the names of new branches). |
 | Open, reveal | `xdg-open` run as a process; revealing a file opens its folder. |
 | Credentials | The Secret Service over D-Bus, through a library ([D22](../08-decisions.md#d22--libraries-with-judgment)); until one is chosen, the file `credentials` in the configuration folder (`$XDG_CONFIG_HOME/gitardo-desktop`, or `~/.config/gitardo-desktop`), readable only by the user (mode `0600`, its folder `0700` when Gitardo makes it), and the settings page says so. |
-| Clipboard | `arboard` over X11; on Wayland through XWayland, since its Wayland part is not built. |
+| Clipboard | `arboard`. On Wayland (`WAYLAND_DISPLAY` set), the compositor's own clipboard through the protocol `ext-data-control` or `wlr-data-control` (its feature `wayland-data-control`, by `wl-clipboard-rs`), with no XWayland: KDE Plasma, Sway, Hyprland and the other compositors of wlroots offer one. On a compositor that offers neither, as GNOME's and Weston's, and on X11, the clipboard of X11, through XWayland on Wayland (Q1380). |
 | File dialogs | `rfd` through the desktop's portal (`xdg-desktop-portal`), which falls back to `zenity` when there is no portal. |
 | Fonts of the system | `fontdb`, through `cosmic-text`, reads the usual folders (`/usr/share/fonts`, `/usr/local/share/fonts`, `~/.local/share/fonts`, `~/.fonts`), not the configuration of fontconfig. |
 | Terminal, external editor | The terminal is `x-terminal-emulator` started in the folder, unless `terminal.external` says another; the editor is `editor.external`. |

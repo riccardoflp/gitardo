@@ -3684,7 +3684,10 @@ From milestone M10 (Linux):
 - **Q355** — Clipboard, dialogs and fonts stay with the libraries, as built: `arboard` over X11, and on Wayland through
   XWayland, since its Wayland part is not built; `rfd` through the desktop's portal, falling back to `zenity`; the
   fonts of the system for the fallback read by `fontdb` from the usual folders, without the configuration of
-  fontconfig. Is that enough for a first Linux release?
+  fontconfig. Is that enough for a first Linux release? *Answered in milestone M29*
+  ([D75](#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)): the clipboard speaks to the
+  compositor's own on Wayland, through the Wayland part of `arboard` (`ext-data-control` or `wlr-data-control`), and
+  to X11 as before where the compositor offers neither (Q1380); the dialogs and the fonts stay as built.
 - **Q356** — Killing a process tree on cancel is not built on either system: `git` and the commands of the user are
   killed alone (`Child::kill`). On Linux the simplest way is a process group of its own for each command
   (`CommandExt::process_group(0)`) and a signal to the group, in `engine` and `git`. Should it come in a slice of its
@@ -5133,6 +5136,15 @@ built; each is built as it says until the maintainer answers otherwise.
   answer to `permission.request` (`kind` `reject`, where older CLIs took `denied-interactively-by-user`) and the
   shape of `models.list` may differ in the CLI a user has. Should **Before a release** try each part against the CLI
   of the day, and the card name the version that passed?
+- **Q1380** — The clipboard of Wayland (M29): `arboard`'s Wayland part speaks `ext-data-control` or
+  `wlr-data-control`, which KDE Plasma, Sway, Hyprland and the other compositors of wlroots offer, and GNOME's
+  (Mutter 51) and Weston do not. There Gitardo falls back to the clipboard of X11, through XWayland, as before; a GNOME
+  started without XWayland leaves Gitardo with no clipboard, and copying says so as an error. The core protocol of
+  Wayland (`wl_data_device`, which every compositor has, through a library as `smithay-clipboard` on the connection
+  `winit` opened) would reach GNOME too, but only while a window of Gitardo has the keyboard, and the clipboard would
+  need the window where it is made (`app` makes one on the thread of an operation, which has none, to read what an
+  operation is given from the clipboard). Should it come, for
+  GNOME without XWayland?
 
 ### Of Ask Gitardo, from Q866
 

@@ -8,11 +8,19 @@ use platform::Clipboard;
 
 #[test]
 fn round_trips_text_through_the_clipboard_and_puts_back_what_was_there() {
-    if cfg!(target_os = "linux") && std::env::var_os("DISPLAY").is_none() {
-        // The clipboard goes through X11, or XWayland on Wayland: without a display there is none.
+    let has_display = |name: &str| std::env::var_os(name).is_some();
+    if cfg!(target_os = "linux") && !has_display("DISPLAY") && !has_display("WAYLAND_DISPLAY") {
+        // A Linux without a display server, such as a server, has no clipboard.
         return;
     }
-    let mut clipboard = Clipboard::new().unwrap();
+    let clipboard = Clipboard::new();
+    if cfg!(target_os = "linux") && !has_display("DISPLAY") && clipboard.is_err() {
+        // A compositor of Wayland that offers neither ext-data-control nor wlr-data-control, as GNOME's and Weston's,
+        // lets a program reach its clipboard only through XWayland, which is not there: the clipboard is refused,
+        // as an error and not a crash.
+        return;
+    }
+    let mut clipboard = clipboard.unwrap();
     let Some(before) = clipboard.read_text().unwrap() else {
         // The clipboard holds no text: it may hold an image, which this test could not put back, so it is left alone.
         return;

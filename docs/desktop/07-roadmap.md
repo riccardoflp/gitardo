@@ -926,6 +926,10 @@ resized from its title bar, opens the compositor's menu of the window with a rig
 hash that a terminal of the system pastes and pastes a text copied there; on X11 the same holds; the pipeline runs the
 tests of `platform` under Weston and passes; every card of the milestone passes its tests.
 
+Built: phase 1, the feature `wayland-data-control` of `arboard` (`wl-clipboard-rs`): on Wayland the compositor's own
+clipboard, through `ext-data-control` or `wlr-data-control`, and X11 as before where there is no Wayland or the
+compositor offers neither, as GNOME's and Weston's, through XWayland then (Q1380); Q355 is answered.
+
 ## M30 — GitHub Copilot, an AI provider (done)
 
 `ai.provider` set to `copilot` asks GitHub Copilot, with the user's sign-in and subscription, what the other providers

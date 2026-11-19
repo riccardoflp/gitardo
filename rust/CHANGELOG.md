@@ -11,6 +11,9 @@
   resolves conflicts** lists the models of the subscription, and `ai.endpoint` is left off the settings page. Without
   the CLI, Gitardo says so with **How to install**; signed out, with **Sign in**, which runs `copilot login` in a
   terminal of the bottom panel.
+- On Linux under Wayland, copy and paste speak to the compositor's own clipboard, with no XWayland, on the
+  compositors that offer the protocol `ext-data-control` or `wlr-data-control` (KDE Plasma, Sway, Hyprland and the
+  others of wlroots); on GNOME, whose compositor offers neither, and on X11, the clipboard of X11 as before.
 
 ## 1.2.0 - 2026-11-18
 

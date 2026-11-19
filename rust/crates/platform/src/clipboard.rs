@@ -1,8 +1,10 @@
-//! The clipboard of the system, for text, through `arboard`.
+//! The clipboard of the system, for text, through `arboard`: on Linux the compositor's own on Wayland when it offers
+//! a protocol of data control, the clipboard of X11 otherwise.
 
 use crate::error::PlatformError;
 
-/// The clipboard. On Linux, text written stays on the clipboard while this is kept, so a program keeps one.
+/// The clipboard. On X11, text written stays on the clipboard while this is kept, so a program keeps one; on Wayland,
+/// while the program runs or until another program copies.
 pub struct Clipboard {
     library: arboard::Clipboard,
 }
