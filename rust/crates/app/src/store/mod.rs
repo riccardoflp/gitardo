@@ -367,7 +367,7 @@ fn reduce_workspace_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             vec![Effect::ChooseWorkspaceFile]
         }
         Intent::AnswerOpenFolder(answer) => answer_open_folder(state, answer),
-        Intent::OpenRecent(index) => open_recent(state, index),
+        Intent::OpenRecent(index) => workspace::open_recent(state, index),
         Intent::SelectRepository(folder) => tabs::show_repository(state, &folder),
         Intent::PickRepository => {
             workspace::pick_repository(state);
@@ -464,23 +464,6 @@ fn reduce_graph(state: &mut State, intent: views::graph::GraphIntent) -> Vec<Eff
         state.compares.in_place = None;
     }
     timeline::reduce_graph(state, intent)
-}
-
-/// Opens a recent workspace, with the repository shown in it last; the window keeps what it shows until its
-/// repositories are found, since one whose folders are all gone is refused.
-///
-/// Feature: repo.open-recent
-fn open_recent(state: &mut State, index: usize) -> Vec<Effect> {
-    let Some(recent) = state.persisted.recent.get(index).cloned() else {
-        return Vec::new();
-    };
-    let request = OpenRequest {
-        remembered: recent.repository,
-        recent: Some(index),
-        file: recent.file,
-        ..OpenRequest::default()
-    };
-    workspace::open_workspace(state, recent.folders, request)
 }
 
 /// **Check again** looks for the repositories of the workspace again and shows the first one, saying **Loading

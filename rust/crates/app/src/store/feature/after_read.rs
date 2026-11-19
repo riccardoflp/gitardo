@@ -1,7 +1,9 @@
-//! What is done once the repository is read again after an operation: the warning of changes a pull with
-//! `--autostash` left in a stash, the first bad commit of a bisect, and the commit the operation said to select.
+//! What is remembered until the repository is read again after an operation, and what is done then: the warning of
+//! changes a pull with `--autostash` left in a stash, the first bad commit of a bisect, and the commit the operation
+//! said to select.
 
 use model::CommitId;
+use model::contract::FollowUp;
 
 use crate::store::{Effect, State, search};
 
@@ -101,4 +103,27 @@ fn before(rows: &[model::graph::Row], mut commit: CommitId, count: usize) -> Com
         }
     }
     commit
+}
+
+/// What the follow-ups of an operation that ran ask the window to remember until the repository is read again, and
+/// what the last of them that speaks says.
+pub(super) fn remember_follow_ups(state: &mut State, after: &[FollowUp]) -> Option<String> {
+    let mut said = None;
+    for follow_up in after {
+        match follow_up {
+            FollowUp::Say(text) => said = Some(text.as_str().to_owned()),
+            FollowUp::SelectHead => state.operations.select_after_read = Some(None),
+            FollowUp::SelectBeforeHead(count) => {
+                state.operations.select_after_read = Some(None);
+                state.operations.select_before_head = *count;
+            }
+            FollowUp::SelectCommit(commit) => state.operations.select_after_read = Some(Some(commit.clone())),
+            FollowUp::CheckBisect => state.operations.check_bisect = true,
+            FollowUp::CheckAutostash => {
+                state.operations.autostash_before = state.shown_read().map(|read| read.state.stashes.clone());
+            }
+            _ => {}
+        }
+    }
+    said
 }

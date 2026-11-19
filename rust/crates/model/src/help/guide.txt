@@ -49,6 +49,25 @@ show: quick search
 Opens again a workspace the window showed before, with the tabs it had and the repository that was shown in it.
 Entry points: the list of recent workspaces on the Welcome page; **Open recent** in Quick search.
 Refuses: a workspace whose folders are all gone: "None of the folders of this workspace is there any more." The workspace is taken out of the list.
+@card desktop repo.clone
+title: Clone a repository
+place: Repositories, in the side column
+show: quick search
+Copies a repository from its URL, or from its folder on disk, into a new folder, and opens the copy in a tab.
+Entry points: **Clone a repository…** on the Welcome page, beside **Open folder…**; in the menu of **+** in the heading of **Repositories**, after **Open folder…**; on the timeline of `repo.no-repository`; **Clone Repository…** in Quick search. The window has no menu bar, and the title bar it draws has none (`window.title-bar`): the menu of **+** is where the window opens what it shows.
+Refuses: what the boxes refuse while typed; a folder that has files by the time it runs: **`<full path>` is not empty.**
+@card desktop repo.folder-from-url
+title: The name of a clone's folder
+place: Repositories, in the side column
+show: none
+The name the folder of a clone gets by default: the name of the repository, from its URL or its path.
+@card desktop repo.init
+title: Create a repository
+place: Repositories, in the side column
+show: quick search
+Makes an empty repository in a folder, with the first branch git's configuration says or the one typed, and opens it in a tab.
+Entry points: **Create a repository…** on the Welcome page and in the menu of **+** in the heading of **Repositories**, after **Clone a repository…**; **Create Repository…** in Quick search; **Create a repository here** on the timeline of `repo.no-repository`, for the folder of the workspace that has none (with several, the first;).
+Refuses: a folder that is the top of a repository already, where `git init` would only initialize it again: **`<folder>` is a repository already.**
 @card desktop repo.select
 title: Choose the repository shown
 place: Repositories, in the side column
@@ -73,6 +92,11 @@ title: Read the state of the repository
 place: Repositories, in the side column
 show: none
 Everything the window shows of a repository but its commits: what is checked out, the branches and how far each is from its upstream, the remotes, the tags, the stashes, the worktrees, the submodules, what is not committed, and the operation that stopped half way.
+@card desktop repo.read-shallow
+title: Whether the history is shallow, and where it ends
+place: Repositories, in the side column
+show: none
+Whether the repository is a shallow clone, and the commits whose parents were not fetched, where its history ends.
 @card desktop repo.common-folder
 title: The git folder the worktrees share
 place: Repositories, in the side column
@@ -146,7 +170,7 @@ title: Open a repository in a tab
 place: Repositories, in the side column
 show: quick search
 Opens a repository of the workspace, or of a folder added to it, in a tab of its own.
-Entry points: **+** in the heading of **Repositories**, whose menu lists the repositories of the workspace that are not open, then **Open folder…** and **Open workspace file…**; **Open Repository in a Tab** in Quick search.
+Entry points: **+** in the heading of **Repositories**, whose menu lists the repositories of the workspace that are not open, then **Open folder…**, **Clone a repository…** (`repo.clone`), **Create a repository…** (`repo.init`) and **Open workspace file…**; **Open Repository in a Tab** in Quick search.
 @card desktop repo.choose-tabs
 title: Choose the repositories a workspace opens
 place: Repositories, in the side column
@@ -209,6 +233,39 @@ place: Repositories, in the side column
 show: quick search
 Entry points: **Trusted folders…** in Quick search.
 Refuses: with no folder trusted, **No folder is trusted.**
+@card desktop upkeep.read-size
+title: The size of a repository
+place: Repositories, in the side column
+show: none
+How much room the objects of a repository take, loose and packed, and how much of it git could put away.
+@card desktop upkeep.clean-up
+title: Clean up a repository
+place: Repositories, in the side column
+show: quick search
+Packs the loose objects of a repository and deletes those nothing has reached for a long time, with `git gc`, saying the room it takes before and after.
+Entry points: **Clean up…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`), on the row shown alone, since an operation runs on the repository the views show; Quick search, **Clean Up the Repository…**, is not there yet.
+Offered when: no operation of Gitardo runs in the repository.
+Refuses: git's message when another `git gc` runs in the repository.
+@card desktop upkeep.read-background
+title: Whether git looks after a repository in the background
+place: Repositories, in the side column
+show: none
+Whether the repository is among those git's scheduled maintenance looks after.
+@card desktop upkeep.start-background
+title: Have git look after a repository in the background
+place: Repositories, in the side column
+show: show where
+Registers the repository for git's scheduled maintenance, which fetches in the background into hidden references, packs and checks the repository each hour, day and week, so that it stays quick without a clean-up by hand.
+Entry points: **Look after it in the background…** in the context menu of the row of a repository in **Repositories**, unticked.
+Offered when: the repository is not registered (`upkeep.read-background`).
+Refuses: git's message when the system's scheduler refuses, as without the rights to it.
+@card desktop upkeep.stop-background
+title: Stop having git look after a repository
+place: Repositories, in the side column
+show: show where
+Takes the repository out of those git's scheduled maintenance looks after; the others stay as they are.
+Entry points: **Look after it in the background**, ticked, in the context menu of the row of a repository in **Repositories**.
+Offered when: the repository is registered.
 @card desktop graph.read-commits
 title: Read the commits of the graph
 place: the timeline
@@ -334,6 +391,13 @@ place: the timeline
 show: none
 The commits come a page at a time as they are read, without waiting for the list to be scrolled, so that scrolling does not stop to wait for them; past the 100,000 commits of one read, the next read starts long before the end of those shown.
 Entry points: scrolling the list of commits.
+@card desktop graph.shallow-end
+title: Where the history of a shallow clone ends
+place: the timeline
+show: none
+In a shallow clone the timeline says where the commits fetched end, and offers to fetch more, so that the last commit listed is not taken for the first commit of the project.
+Entry points: the timeline and the inspector of a shallow repository.
+Offered when: `repo.read-shallow` says the repository is shallow.
 @card desktop graph.lanes
 title: Lay out the lines of the graph
 place: the timeline
@@ -850,6 +914,48 @@ place: the inspector and the Commit page
 show: none
 Brings the timeline to a commit, from the page of that commit.
 Entry points: **Show in the timeline** in the page of a commit.
+@card desktop note.read
+title: Read the notes of commits
+place: the inspector and the Commit page
+show: none
+Which commits have a note, and the text of the note of one commit.
+@card desktop note.show
+title: The note of a commit, in the inspector and in its page
+place: the inspector and the Commit page
+show: page
+The note of a commit under its message, wherever the commit is read.
+Entry points: drawn by the inspector (`details.show`) and by the page of a commit (`commit-page.view`) for a commit that has a note.
+@card desktop note.edit
+title: Add or edit the note of a commit
+place: the inspector and the Commit page
+show: show where
+Writes the note of a commit, a new one or in place of the one it had.
+Entry points: **Add note…**, or **Edit note…** for a commit that has one, in the context menu of a commit in the timeline; the pencil of the block **Note** (`note.show`).
+Offered when: on a commit; not on the draft nor on a stash.
+Refuses: an empty text: **A note cannot be empty: remove it instead.**, said while it is typed; the same text as the note has: **The note is the same: nothing to change.**, and nothing runs; the draft and a stash: **Only a commit has a note.**
+@card desktop note.remove
+title: Remove the note of a commit
+place: the inspector and the Commit page
+show: show where
+Takes the note of a commit away.
+Entry points: **Remove note** in the **…** of the block **Note** and in the context menu of a commit that has a note in the timeline.
+Offered when: the commit has a note; otherwise it refuses: **`<short hash>` has no note.**
+@card desktop note.fetch
+title: Fetch the notes of a remote
+place: the inspector and the Commit page
+show: quick search
+Brings the notes of a remote into the reference of notes of the repository, which `git fetch` does not do by itself.
+Entry points: **Fetch notes** in the context menu of a remote in the branch rail; Quick search, **Fetch Notes…**, on the only remote; with several it is refused with where to choose one.
+Offered when: the repository has a remote.
+Refuses: a remote with no notes: **`<remote>` has no notes.**
+@card desktop note.push
+title: Push the notes to a remote
+place: the inspector and the Commit page
+show: quick search
+Sends the reference of notes to a remote, which `git push` does not do by itself.
+Entry points: **Push notes** in the context menu of a remote in the branch rail, while the repository has notes; Quick search, **Push Notes…**, on the only remote.
+Offered when: the repository has a reference of notes and a remote.
+Refuses: a repository with no notes: **This repository has no notes to push.** When the remote refuses because it has notes this repository has not, git's message with **Fetch notes** (`note.fetch`).
 @card desktop changes.pane
 title: The Changes page
 place: the draft and the Changes page
@@ -1028,6 +1134,54 @@ Removes the identity the repository set for itself, so that the one of the globa
 Entry points: **Use the global identity**, described **Remove this repository's own setting**, in the pick of `identity.switch`.
 Offered when: the repository has at least one of `user.name`, `user.email`, `user.signingkey` of its own.
 Refuses: "This repository already uses the global identity." when it has none of the three.
+@card desktop changes.ignore-patterns
+title: The patterns that ignore a file
+place: the draft and the Changes page
+show: none
+The patterns offered to ignore a file or a folder, the files each can be written in, and the line written there.
+@card desktop changes.ignore
+title: Ignore a file or a folder
+place: the draft and the Changes page
+show: show where
+Has git ignore a file or a folder, by a pattern written where the user chooses; on a file git tracks, offers to stop tracking it too, since a pattern does not stop git from following a file it tracks.
+Entry points: **Ignore…** in the menu of a file of the changes (`changes.row-menu`), in the Changes page and in the **Changes** section; **Ignore…** in the context menu of a file or a folder of the Files page.
+Offered when: the file or the folder is in the repository, outside its submodules, and no pattern ignores it. Not on a file in conflict, nor on a file only an editor has changed.
+Refuses: a path that a pattern ignores already: **`<path>` is ignored already, by `<pattern>` in `<file>`.**; a path in a submodule: **`<path>` is in the submodule `<name>`: ignore it there.**
+@card desktop changes.stop-tracking
+title: Stop tracking a file, and keep it on disk
+place: the draft and the Changes page
+show: show where
+Takes a file, or every file of a folder, out of the index, so that the next commit deletes it from the repository while it stays on disk: for a file committed by mistake, such as a file of local settings, once it is ignored.
+Entry points: the third question of `changes.ignore`; **Stop tracking, keep on disk…** in the menu of a tracked file of the changes (`changes.row-menu`) and in the context menu of a file or a folder git tracks in the Files page.
+Offered when: git tracks the file, or files under the folder; not on a file in conflict. The Files page offers it on every folder, since it does not know which folders hold tracked files; on a folder with none it refuses.
+Refuses: **Git does not track `<path>`.**; a file in conflict: **`<path>` is in conflict: resolve it first.**
+@card desktop changes.read-skipped
+title: Read the files hidden from git
+place: the draft and the Changes page
+show: none
+Which tracked files git is told not to look at, and how: those marked **skip-worktree**, whose changes stay out of commits and which a checkout leaves alone, and those marked **assume unchanged**, a promise git may forget.
+@card desktop changes.skip
+title: Hide a file's changes from git
+place: the draft and the Changes page
+show: show where
+Has git leave the changes of a tracked file alone: they stay on disk and out of every commit, as for a settings file that each one changes on their own computer.
+Entry points: **Hide its changes from git…** in the menu of a tracked file of the changes (`changes.row-menu`) and in the context menu of a tracked file of the Files page.
+Offered when: git tracks the file, it is not hidden already, and it is not in conflict. Not on a folder.
+Refuses: on a file git does not track: **Git does not track `<path>`: ignore it instead.** with **Ignore…** (`changes.ignore`).
+@card desktop changes.unskip
+title: Show a file's changes to git again
+place: the draft and the Changes page
+show: show where
+Takes back what `changes.skip` did, for one file or for every file hidden.
+Entry points: **Show its changes to git again** in the menu of a row of **Hidden from git** (`changes.skipped-list`) and in the context menu of a hidden file of the Files page; **Show all to git again** in the **…** of the heading of **Hidden from git**.
+Offered when: the file is hidden from git by hand (`changes.read-skipped`).
+@card desktop changes.skipped-list
+title: The files hidden from git, under the changes
+place: the draft and the Changes page
+show: none
+The files git is told not to look at, listed under the changes while there are any, so that they are not forgotten.
+Entry points: under the list of the changed files, in the Changes page and in the **Changes** section; a mark on the row of such a file in the tree of the Files page.
+Offered when: `changes.read-skipped` gives at least one file; otherwise nothing of it is drawn.
 @card desktop branch.checkout
 title: Check out a branch
 place: the branch rail
@@ -1266,6 +1420,22 @@ show: quick search
 Brings what every remote has, and forgets the remote branches deleted there.
 Entry points: **Fetch** in the menu of **Sync** in the header, whose tooltip is **Fetch: git fetch --all --prune**; **Fetch** in Quick search. **Sync** fetches first too (`sync.sync`).
 Refuses: in a repository with no remote, nothing runs: "This repository has no remote." with **Add remote…** (`remote.add`).
+@card desktop sync.deepen
+title: Load more history
+place: the branch rail
+show: quick search
+Fetches more of the history of a shallow clone: a number of commits further back than where it ends now.
+Entry points: **Load more history** on the last row of the timeline and in the inspector of a commit whose parents were not fetched (`graph.shallow-end`); **Load More History** in Quick search.
+Offered when: the repository is shallow (`repo.read-shallow`).
+Refuses: in a repository with no remote: "This repository has no remote." with **Add remote…** (`remote.add`).
+@card desktop sync.unshallow
+title: Load the whole history
+place: the branch rail
+show: quick search
+Fetches all the history a shallow clone does not have, so that it is a clone like any other.
+Entry points: **Load the whole history** on the last row of the timeline (`graph.shallow-end`); **Load the Whole History** in Quick search.
+Offered when: the repository is shallow (`repo.read-shallow`).
+Refuses: in a repository with no remote: "This repository has no remote." with **Add remote…** (`remote.add`).
 @card desktop sync.pull
 title: Pull
 place: the branch rail
@@ -2342,7 +2512,27 @@ place: Kept aside, in the branch rail
 show: show where
 Has git forget the worktrees whose folders are gone, which frees their branches.
 Entry points: **Prune missing worktrees** in the context menu of a worktree and in the **…** of the Worktrees list.
-Offered when: at least one worktree is missing.
+Offered when: at least one worktree is missing and not locked: git never prunes a locked one (`worktree.locked`).
+@card desktop worktree.lock
+title: Lock a worktree
+place: Kept aside, in the branch rail
+show: show where
+Has git keep a worktree whatever happens to its folder, with the reason why: a worktree on a drive that is not always plugged in is not forgotten by **Prune**, and is not removed or moved by mistake.
+Entry points: **Lock…** in the context menu of a worktree in the Worktrees list and of the row of a worktree in **Repositories** (`repo.group-tabs`). The rows of the worktrees in **Repositories** have no context menu yet, so the entry is only in the Worktrees list.
+Offered when: the worktree is not the main worktree and is not locked; a missing worktree too, which is what a lock is most for.
+Refuses: on the main worktree, as git does: **Git cannot lock the main worktree, the folder the repository was created in.**
+@card desktop worktree.unlock
+title: Unlock a worktree
+place: Kept aside, in the branch rail
+show: show where
+Takes the lock of `worktree.lock` away, so that **Prune**, **Remove…** and **Rename…** treat the worktree as any other.
+Entry points: **Unlock** in the context menu of a locked worktree in the Worktrees list and of its row in **Repositories**.
+Offered when: the worktree is locked.
+@card desktop worktree.locked
+title: What a locked worktree shows, and what it changes
+place: Kept aside, in the branch rail
+show: none
+How a lock is read and shown, and what **Remove…**, **Rename…**, **Prune** and the clean-up of branches do with a locked worktree, which git refuses to remove or move and never prunes.
 @card desktop worktree.read-folder-links
 title: Read the links to folders outside a worktree
 place: Kept aside, in the branch rail
@@ -2676,6 +2866,13 @@ place: the timeline
 show: none
 When `git am` stops because a commit of the patch does not fit, it waits to be continued, skipped or aborted, as a cherry-pick does.
 Entry points: the banner of the operation in the timeline and the Changes page, shown while `git am` is under way: the repository is in an am when `.git/rebase-apply/applying` exists, which is checked before the markers of a rebase.
+@card desktop archive.save
+title: Save as an archive…
+place: the timeline
+show: quick search
+Saves the files of a commit, or of one folder of it, in a zip or a tar.gz file the user chooses.
+Entry points: **Save as archive…** in the context menu of a commit in the timeline, and of a branch, a remote branch or a tag in the branch rail and on its label in the timeline; Quick search, **Save as Archive…**, which would ask the commit first as **Open Commit as a Page…** asks it (`commit-page.open`), is not there yet.
+Offered when: on a commit, a branch, a remote branch or a tag; not on the draft nor on a stash.
 @card desktop github.detect-remote
 title: The repository on GitHub
 place: the branch rail
@@ -3352,6 +3549,36 @@ title: See the trusted folders and stop trusting some
 place: Repositories, in the side column
 show: none
 Done by VS Code itself.
+@card extension upkeep.read-size
+title: The size of a repository
+place: Repositories, in the side column
+show: none
+How much room the objects of a repository take, loose and packed, and how much of it git could put away.
+In VS Code: read by the engine for the question of `upkeep.clean-up`: built.
+@card extension upkeep.clean-up
+title: Clean up a repository
+place: Repositories, in the side column
+show: quick search
+Packs the loose objects of a repository and deletes those nothing has reached for a long time, with `git gc`, saying the room it takes before and after.
+In VS Code: built: **Clean up…** in the context menu of the row of the repository shown in the **Gitardo Repositories** view (`repositoryRowMenu`), its question in a modal dialog, sending `feature/run` of `upkeep.clean-up` to the engine.
+@card extension upkeep.read-background
+title: Whether git looks after a repository in the background
+place: Repositories, in the side column
+show: none
+Whether the repository is among those git's scheduled maintenance looks after.
+In VS Code: read by the engine for the menu of the row, sent as `isLookedAfter`: built.
+@card extension upkeep.start-background
+title: Have git look after a repository in the background
+place: Repositories, in the side column
+show: show where
+Registers the repository for git's scheduled maintenance, which fetches in the background into hidden references, packs and checks the repository each hour, day and week, so that it stays quick without a clean-up by hand.
+In VS Code: built: **Look after it in the background…** in the context menu of the row of the repository shown in the **Gitardo Repositories** view, ticked while `isLookedAfter`, sending `feature/run` of `upkeep.start-background` to the engine.
+@card extension upkeep.stop-background
+title: Stop having git look after a repository
+place: Repositories, in the side column
+show: show where
+Takes the repository out of those git's scheduled maintenance looks after; the others stay as they are.
+In VS Code: built, with `upkeep.start-background`: the same entry, ticked.
 @card extension graph.read-commits
 title: Read the commits of the graph
 place: the timeline
@@ -3957,6 +4184,42 @@ place: the inspector and the Commit page
 show: none
 Brings the timeline to a commit, from the page of that commit.
 Entry points: **Show in the timeline** in the page of a commit.
+@card extension note.read
+title: Read the notes of commits
+place: the inspector and the Commit page
+show: none
+Which commits have a note, and the text of the note of one commit.
+In VS Code: read by the engine with the details of a commit (`note` of `CommitDetail`, `notes` of the state): built.
+@card extension note.show
+title: The note of a commit, in the inspector and in its page
+place: the inspector and the Commit page
+show: page
+The note of a commit under its message, wherever the commit is read.
+In VS Code: built: the same block under the message in the details beside the graph, cut with **Show more**, and in the tab of a commit, with the pencil of **Edit note…** and the bin of **Remove note** on its title; the note is read again when the reference of notes moves.
+@card extension note.edit
+title: Add or edit the note of a commit
+place: the inspector and the Commit page
+show: show where
+Writes the note of a commit, a new one or in place of the one it had.
+In VS Code: built: **Add note…** and **Edit note…** in the context menu of a commit in the graph, the text asked in an input box of VS Code, which takes one line, sending `feature/run` of `note.edit` to the engine.
+@card extension note.remove
+title: Remove the note of a commit
+place: the inspector and the Commit page
+show: show where
+Takes the note of a commit away.
+In VS Code: built: **Remove note** in the context menu of a commit with a note in the graph and on the block of the note, sending `feature/run` of `note.remove` to the engine.
+@card extension note.fetch
+title: Fetch the notes of a remote
+place: the inspector and the Commit page
+show: quick search
+Brings the notes of a remote into the reference of notes of the repository, which `git fetch` does not do by itself.
+In VS Code: built: **Fetch notes from `<remote>`**, one for each remote, in the menu of the title **Remotes** among the references and in the Branches view, which have no row for each remote, sending `feature/run` of `note.fetch` to the engine.
+@card extension note.push
+title: Push the notes to a remote
+place: the inspector and the Commit page
+show: quick search
+Sends the reference of notes to a remote, which `git push` does not do by itself.
+In VS Code: built: **Push notes to `<remote>`** in the same menu, while the repository has notes, sending `feature/run` of `note.push` to the engine.
 @card extension changes.pane
 title: The Changes page
 place: the draft and the Changes page
@@ -3995,6 +4258,12 @@ title: Changes, a section of the side column
 place: the draft and the Changes page
 show: none
 Done by VS Code itself.
+@card extension changes.row-menu
+title: The menu of a file of the changes
+place: the draft and the Changes page
+show: none
+What is done to one file of the changes, in the context menu of its row: the rows have no buttons, so that a name is read whole in a narrow column, and keep their box.
+In VS Code: the rows of the **Gitardo Changes** view keep these actions as buttons beside the name (`changes.pane`), and have the same menu with a right click (`changedFileMenu` in): the entries of a changed file in this order, those of a file only an editor has changed, and those of a file in conflict, which are its buttons; the entries that change something cannot be chosen while an operation runs. The buttons stay.
 @card extension changes.stage
 title: Stage a file
 place: the draft and the Changes page
@@ -4108,6 +4377,48 @@ Removes the identity the repository set for itself, so that the one of the globa
 Entry points: **Use the global identity**, described **Remove this repository's own setting**, in the pick of `identity.switch`.
 Offered when: the repository has at least one of `user.name`, `user.email`, `user.signingkey` of its own.
 Refuses: "This repository already uses the global identity." when it has none of the three.
+@card extension changes.ignore-patterns
+title: The patterns that ignore a file
+place: the draft and the Changes page
+show: none
+The patterns offered to ignore a file or a folder, the files each can be written in, and the line written there.
+In VS Code: worked out by the engine for `changes.ignore`; the extension shows the patterns and the places in VS Code's quick picks.
+@card extension changes.ignore
+title: Ignore a file or a folder
+place: the draft and the Changes page
+show: show where
+Has git ignore a file or a folder, by a pattern written where the user chooses; on a file git tracks, offers to stop tracking it too, since a pattern does not stop git from following a file it tracks.
+In VS Code: **Ignore…** in the context menu of a file of the **Gitardo Changes** view (`changes.row-menu`) and of a file or a folder of VS Code's Explorer (`gitardo.ignore` in `explorer/context`, under **Link into New Worktrees**, not on the root folder of a repository), sending `feature/run` of `changes.ignore` to Gitardo's engine with the path from the top of the repository, its questions asked in VS Code's pickers (`VscodeAsker`). From the Explorer the views show the repository of the file first. The Explorer cannot know what git ignores, so it offers **Ignore…** on a file ignored already, which the engine refuses saying by which pattern. No **Open `<file>`** after it, as in the desktop. VS Code's own **Add to.gitignore** of its Source Control view stays as it is.
+@card extension changes.stop-tracking
+title: Stop tracking a file, and keep it on disk
+place: the draft and the Changes page
+show: show where
+Takes a file, or every file of a folder, out of the index, so that the next commit deletes it from the repository while it stays on disk: for a file committed by mistake, such as a file of local settings, once it is ignored.
+In VS Code: **Stop tracking, keep on disk…** in the context menu of a tracked file of the **Gitardo Changes** view, and **Stop Tracking, Keep on Disk…** in that of a file or a folder of VS Code's Explorer (`gitardo.stopTracking`), which does not know which files git tracks and leaves the engine to refuse, sending `feature/run` of `changes.stop-tracking` to the engine, its danger asked in a modal dialog (`VscodeAsker`).
+@card extension changes.read-skipped
+title: Read the files hidden from git
+place: the draft and the Changes page
+show: none
+Which tracked files git is told not to look at, and how: those marked **skip-worktree**, whose changes stay out of commits and which a checkout leaves alone, and those marked **assume unchanged**, a promise git may forget.
+In VS Code: read by the engine with the state of the repository; the extension shows what it reads.
+@card extension changes.skip
+title: Hide a file's changes from git
+place: the draft and the Changes page
+show: show where
+Has git leave the changes of a tracked file alone: they stay on disk and out of every commit, as for a settings file that each one changes on their own computer.
+In VS Code: **Hide its changes from git…** in the context menu of a tracked file of the **Gitardo Changes** view, and **Hide Its Changes from Git…** in that of a file of VS Code's Explorer (`gitardo.hideFromGit`), not of a folder nor of a file hidden already, sending `feature/run` of `changes.skip` to the engine; on a file git does not track the engine refuses with **Ignore…**.
+@card extension changes.unskip
+title: Show a file's changes to git again
+place: the draft and the Changes page
+show: show where
+Takes back what `changes.skip` did, for one file or for every file hidden.
+In VS Code: the same entries in the group **Hidden from git** of the **Gitardo Changes** view, the one of a file also as the eye button of its row, and **Show Its Changes to Git Again** in the context menu of VS Code's Explorer on a file hidden from git (`gitardo.showToGit`), sending `feature/run` of `changes.unskip` to the engine. The Explorer knows the hidden files of the repository the views show only (the context key `gitardo.hiddenFromGit`), so that a file hidden in another repository of the workspace offers **Hide Its Changes from Git…**, which the engine refuses as hidden already.
+@card extension changes.skipped-list
+title: The files hidden from git, under the changes
+place: the draft and the Changes page
+show: none
+The files git is told not to look at, listed under the changes while there are any, so that they are not forgotten.
+In VS Code: a group **Hidden from git** at the end of the **Gitardo Changes** view (`HiddenGroup` in), from `skipped` in the state the engine sends (protocol 1.11): its name and count fold it, its **…** has **Show all to git again**, and each row has the icon and the name of the file, its folder, **skip-worktree** or **assumed unchanged**, the same tooltip after its path, the eye button of **Show its changes to git again**, and the same menu (`hiddenFileMenu` in). A click opens VS Code's diff between `HEAD` and the file on disk. No snapshot: the extension's views have none, and the UI runs are left to the pipeline.
 @card extension branch.checkout
 title: Check out a branch
 place: the branch rail
@@ -5302,6 +5613,24 @@ place: Kept aside, in the branch rail
 show: show where
 Has git forget the worktrees whose folders are gone, which frees their branches.
 In VS Code: **Prune missing worktrees** in the context menu of a worktree and in the **…** of the Worktrees section, beside the graph and in the Branches view (`worktreeMenu`, `worktreesMenu` in). It sends `feature/run` of `worktree.prune` to Gitardo's engine (`worktreePrune` in `engineRuns` of, run by), its plan shown first only when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, it says so.
+@card extension worktree.lock
+title: Lock a worktree
+place: Kept aside, in the branch rail
+show: show where
+Has git keep a worktree whatever happens to its folder, with the reason why: a worktree on a drive that is not always plugged in is not forgotten by **Prune**, and is not removed or moved by mistake.
+In VS Code: **Lock…** in the context menu of a worktree in the Worktrees section, beside the graph and in the Branches view, and of the row of a worktree in the **Gitardo Repositories** view (`worktreeMenu` in), sending `feature/run` of `worktree.lock` to the engine, the reason asked in an input box of VS Code (`VscodeAsker`).
+@card extension worktree.unlock
+title: Unlock a worktree
+place: Kept aside, in the branch rail
+show: show where
+Takes the lock of `worktree.lock` away, so that **Prune**, **Remove…** and **Rename…** treat the worktree as any other.
+In VS Code: **Unlock** in the same menus, sending `feature/run` of `worktree.unlock` to the engine.
+@card extension worktree.locked
+title: What a locked worktree shows, and what it changes
+place: Kept aside, in the branch rail
+show: none
+How a lock is read and shown, and what **Remove…**, **Rename…**, **Prune** and the clean-up of branches do with a locked worktree, which git refuses to remove or move and never prunes.
+In VS Code: the same rules, in the engine; the rows of the Worktrees section draw the lock after the label, say `missing, locked`, and their tooltips say the reason (`lockTitle` in). The rows of the **Gitardo Repositories** view do not draw the lock yet.
 @card extension worktree.read-folder-links
 title: Read the links to folders outside a worktree
 place: Kept aside, in the branch rail
@@ -5580,6 +5909,12 @@ place: the timeline
 show: none
 When `git am` stops because a commit of the patch does not fit, it waits to be continued, skipped or aborted, as a cherry-pick does.
 Entry points: the banner of the operation in the timeline and the Changes page, shown while `git am` is under way: the repository is in an am when `.git/rebase-apply/applying` exists, which is checked before the markers of a rebase.
+@card extension archive.save
+title: Save as an archive…
+place: the timeline
+show: quick search
+Saves the files of a commit, or of one folder of it, in a zip or a tar.gz file the user chooses.
+In VS Code: built: **Save as archive…** in the context menu of a commit, a branch, a remote branch or a tag in the graph and in the Branches view, the questions in VS Code's pickers and its save dialog, sending `feature/run` of `archive.save` to the engine.
 @card extension github.detect-remote
 title: The repository on GitHub
 place: the branch rail

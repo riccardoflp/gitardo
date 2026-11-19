@@ -16,8 +16,7 @@ use super::{
     BisectJson, BranchJson, ChangeKindJson, CheckoutJson, ConflictKindJson, ConflictedFileJson, DistanceJson,
     FileChangeJson, HeadJson, IdentityJson, NotesJson, OperationJson, RebaseStopJson, RemoteBranchJson, SigningJson,
     SigningKindJson, SkippedFileJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson, UpstreamJson,
-    WorkingTreeJson,
-    WorktreeJson,
+    WorkingTreeJson, WorktreeJson,
 };
 
 /// A path as the system gives it, as a string.

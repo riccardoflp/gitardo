@@ -353,7 +353,7 @@ pub(super) fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<
         Ended::Ran {
             title, after, can_undo, ..
         } => {
-            let said = remember_follow_ups(state, &after);
+            let said = after_read::remember_follow_ups(state, &after);
             let said_nothing = said.is_none();
             let is_undo = feature == Some(FeatureId("undo.last"));
             let pushed = feature.and_then(|feature| super::github::offer_after_push(state, feature));
@@ -418,29 +418,6 @@ fn offer_of(after: &[FollowUp]) -> Option<(FeatureId, String)> {
         FollowUp::Offer(feature, label) => Some((*feature, label.as_str().to_owned())),
         _ => None,
     })
-}
-
-/// What the follow-ups of an operation that ran ask the window to remember until the repository is read again, and
-/// what the last of them that speaks says.
-fn remember_follow_ups(state: &mut State, after: &[FollowUp]) -> Option<String> {
-    let mut said = None;
-    for follow_up in after {
-        match follow_up {
-            FollowUp::Say(text) => said = Some(text.as_str().to_owned()),
-            FollowUp::SelectHead => state.operations.select_after_read = Some(None),
-            FollowUp::SelectBeforeHead(count) => {
-                state.operations.select_after_read = Some(None);
-                state.operations.select_before_head = *count;
-            }
-            FollowUp::SelectCommit(commit) => state.operations.select_after_read = Some(Some(commit.clone())),
-            FollowUp::CheckBisect => state.operations.check_bisect = true,
-            FollowUp::CheckAutostash => {
-                state.operations.autostash_before = state.shown_read().map(|read| read.state.stashes.clone());
-            }
-            _ => {}
-        }
-    }
-    said
 }
 
 /// Keeps the values given for the inputs of `branches.format` as the ones used last in the workspace of the window

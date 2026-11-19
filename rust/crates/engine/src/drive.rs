@@ -23,6 +23,7 @@ use crate::tasks::TaskSteps;
 use crate::undo::{Journal, journal_after};
 
 mod answers;
+mod failed;
 mod remote_tags;
 mod tokens;
 
@@ -297,7 +298,7 @@ impl Engine {
                 Ok(steps) => steps,
                 Err(mut failure) => {
                     failure.plan = plan.title.to_string();
-                    failure.on_failure = for_the_window(&plan.on_failure, &failure);
+                    failure.on_failure = failed::for_the_window(&plan.on_failure, &failure);
                     if matches!(&plan.undo, Undo::Journal(record) if record.holds_after_a_stop()) {
                         let _state_after = self.after_plan(&plan, context);
                     }
@@ -329,7 +330,7 @@ impl Engine {
         asker: &mut dyn Asker,
         failure: crate::StepFailure,
     ) -> Result<Vec<String>, crate::StepFailure> {
-        if let Some(offer) = offered_instead(plan, &failure) {
+        if let Some(offer) = failed::offered_instead(plan, &failure) {
             if !asker.confirm(&offer) {
                 return Err(failure);
             }
@@ -463,43 +464,4 @@ impl Engine {
     pub fn take_went_on_after(&mut self) -> Vec<StepFailure> {
         std::mem::take(&mut self.went_on_after)
     }
-}
-
-/// The plan a plan whose step failed offers in its place for what git said, asked first: the plan again from that step
-/// with the file protocol allowed (`submodule.allow-file-protocol`), or another plan for some words of git's
-/// (`FollowUp::OfferWhenFailed`). None when the step was cancelled, or nothing is offered for what git said.
-fn offered_instead(plan: &Plan, failure: &StepFailure) -> Option<Plan> {
-    if failure.cancelled {
-        return None;
-    }
-    plan.on_failure.iter().find_map(|follow_up| match follow_up {
-        FollowUp::AllowFileProtocol => model::submodule::allow_file_protocol(&model::submodule::FailedPlan {
-            plan,
-            failed_step: failure.ran.len(),
-            said: &failure.said,
-        }),
-        FollowUp::OfferWhenFailed(offer) if failure.said.contains(&offer.when) => Some(offer.plan.clone()),
-        _ => None, // The other follow-ups get past nothing.
-    })
-}
-
-/// The follow-ups of a plan that failed which the window carries out: the operations offered for what was said, those
-/// with no words to look for whatever was said, and any other the window does. What the engine did itself, getting
-/// past the stop or deleting the files of a rebase, is not among them.
-fn for_the_window(on_failure: &[FollowUp], failure: &StepFailure) -> Box<[FollowUp]> {
-    if failure.cancelled {
-        return Box::default();
-    }
-    let said = failure.said.to_lowercase();
-    on_failure
-        .iter()
-        .filter(|follow_up| match follow_up {
-            FollowUp::Recover(_) | FollowUp::DeleteWhenRebaseEnded(_) | FollowUp::Cleanup(_) => false,
-            FollowUp::OfferRun(offer) => {
-                offer.when_said.is_empty() || offer.when_said.iter().any(|words| said.contains(&words.to_lowercase()))
-            }
-            _ => true, // The window carries out the others as it does after a plan.
-        })
-        .cloned()
-        .collect()
 }

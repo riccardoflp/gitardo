@@ -14,7 +14,6 @@ import { Icon } from './Icon';
 import { OperationBanner, resolvableConflicts } from './OperationBanner';
 import { RepoSelect } from './RepoSelect';
 import { WorktreeBanner } from './WorktreeBanner';
-import { useMenu } from './ContextMenu';
 import { act, changedFileMenu, hiddenFileMenu, hiddenGroupMenu, pathsOf } from './menus';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';

@@ -75,6 +75,23 @@ pub fn open_workspace(state: &mut State, folders: Vec<PathBuf>, mut request: Ope
     effects
 }
 
+/// Opens a recent workspace, with the repository shown in it last; the window keeps what it shows until its
+/// repositories are found, since one whose folders are all gone is refused.
+///
+/// Feature: repo.open-recent
+pub(super) fn open_recent(state: &mut State, index: usize) -> Vec<Effect> {
+    let Some(recent) = state.persisted.recent.get(index).cloned() else {
+        return Vec::new();
+    };
+    let request = OpenRequest {
+        remembered: recent.repository,
+        recent: Some(index),
+        file: recent.file,
+        ..OpenRequest::default()
+    };
+    open_workspace(state, recent.folders, request)
+}
+
 /// Takes the repositories found for the workspace being opened: refuses a recent one whose folders are all gone,
 /// otherwise shows the workspace with the repository remembered for it, or the first one found.
 pub fn repositories_found(state: &mut State, job: JobId, found: Found) -> Vec<Effect> {
