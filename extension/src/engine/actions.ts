@@ -184,6 +184,10 @@ export function engineRuns(
       return isHome(action.path, state) ? null : [{ feature: 'worktree.rename', target: { kind: 'worktree', folder: action.path } }];
     case 'worktreePrune':
       return [{ feature: 'worktree.prune', target: { kind: 'head' } }];
+    case 'worktreeLock':
+      return [{ feature: 'worktree.lock', target: { kind: 'worktree', folder: action.path } }];
+    case 'worktreeUnlock':
+      return [{ feature: 'worktree.unlock', target: { kind: 'worktree', folder: action.path } }];
     case 'worktreeSetUp':
       return action.path
         ? [{ feature: 'worktree-setup.bring-into-worktree', target: { kind: 'worktree', folder: action.path } }]

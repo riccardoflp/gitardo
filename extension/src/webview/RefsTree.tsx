@@ -10,6 +10,8 @@ import { endDrag, startDrag, type DragSource } from './drag';
 import {
   act,
   branchMenu,
+  isLocked,
+  lockTitle,
   openBranch,
   openRemoteBranch,
   remoteBranchMenu,
@@ -74,6 +76,8 @@ interface Item {
   worktree?: string;
   /** How many files are not committed in the worktree, when there are any. */
   changes?: number;
+  /** Whether it is a locked worktree, which has a lock after its label (`worktree.locked`). */
+  locked?: boolean;
   /** How far it is indented under the one it is in. */
   depth?: number;
   badge?: Badge;
@@ -203,6 +207,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
                 }}
               >
                 <span className="grow">{item.label}</span>
+                {item.locked && <Icon name="lock" />}
                 {item.favorite && id !== 'favorites' && <Icon name="star-full" />}
                 {item.worktree && <Icon name="worktree" />}
                 {item.hint && <span className="hint">{item.hint}</span>}
@@ -409,8 +414,13 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
             key: worktree.folder,
             hash: worktree.commit ?? undefined,
             label: worktreeLabel(worktree.folder, state.worktreesRoot),
-            hint: worktree.isMissing ? 'missing' : [worktreeBranch(worktree) ?? 'detached', ahead].filter(Boolean).join(' '),
-            title: [worktree.folder, tracking, changesText(worktree.uncommitted), pull && pullTitle(pull)].filter(Boolean).join('\n'),
+            hint: worktree.isMissing
+              ? isLocked(worktree)
+                ? 'missing, locked'
+                : 'missing'
+              : [worktreeBranch(worktree) ?? 'detached', ahead].filter(Boolean).join(' '),
+            title: [worktree.folder, lockTitle(worktree), tracking, changesText(worktree.uncommitted), pull && pullTitle(pull)].filter(Boolean).join('\n'),
+            locked: isLocked(worktree),
             changes: worktree.uncommitted || undefined,
             pull,
             current: worktree.isCurrent,

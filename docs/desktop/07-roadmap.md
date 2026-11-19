@@ -1282,6 +1282,10 @@ page and in the section. The lock of a worktree and its reason are read with the
 rows of **Repositories**, which have no menu (Q1452); the lock is drawn in both; **Remove…** and **Rename…** ask
 first and unlock, **Rename…** locking the new folder again; **Prune** is offered only while a missing worktree is not
 locked, and **Clean up branches…** lists the branch of a locked worktree unticked and unlocks it before removing it.
+Of the fourth phase, the locks only: **Lock…** and **Unlock** in the menus of a worktree in the extension, run by the
+engine, and the lock on the rows of the Worktrees section, not yet on those of the **Gitardo Repositories** view
+(Q1454). The entries of the first two phases in the **Gitardo Changes** view and in VS Code's Explorer, and the group
+**Hidden from git** there, are not built yet: this lane went on to M40 first.
 
 Exit: in a repository with `debug.log` untracked, **Ignore…** with **All `.log` files** writes `*.log` at the end of
 the `.gitignore`, `debug.log` leaves the changes and the `.gitignore` comes in; **Ignore…** on the tracked

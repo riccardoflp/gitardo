@@ -15,6 +15,7 @@ const {
   changesMenu,
   commitMenu,
   dropMenu,
+  lockTitle,
   openBranch,
   openRemoteBranch,
   remoteBranchMenu,
@@ -133,6 +134,23 @@ describe('menus of branches that a worktree has', () => {
     expect(labels(worktreeMenu(window, shown))).not.toEqual(expect.arrayContaining(['Rename…']));
     expect(labels(worktreeMenu(window, shown))).not.toContain('Remove…');
     expect(labels(branchMenu(branchAt('feature', 'aaa', { isCheckedOut: false }), shown, () => {}))).not.toContain('Remove worktree…');
+  });
+
+  it('worktree.lock: offers Lock… on a worktree, Unlock on a locked one, and no prune while the only missing one is locked', () => {
+    expect(labels(worktreeMenu(there, repo))).toContain('Lock…');
+    expect(labels(worktreeMenu(worktree({}), repo))).not.toContain('Lock…');
+    const locked = { ...there, isMissing: true, locked: 'On the USB drive' };
+    const lockedRepo = state([worktree({}), locked], [main, login]);
+    const menu = labels(worktreeMenu(locked, lockedRepo));
+    expect(menu).toContain('Unlock');
+    expect(menu).not.toContain('Lock…');
+    expect(menu).not.toContain('Prune missing worktrees');
+    posted.length = 0;
+    const unlock = worktreeMenu(locked, lockedRepo).find((entry) => entry && entry !== 'separator' && entry.label === 'Unlock');
+    if (unlock && unlock !== 'separator') unlock.run();
+    expect(posted).toEqual([{ type: 'action', action: { kind: 'worktreeUnlock', path: there.folder } }]);
+    expect(lockTitle(locked)).toBe('Locked: On the USB drive');
+    expect(lockTitle({ ...there, locked: '' })).toBe('Locked');
   });
 });
 

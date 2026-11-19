@@ -134,7 +134,7 @@ fn worktree() -> Worktree {
         is_main: true,
         is_current: true,
         is_missing: false,
-        locked: None,
+        locked: Some(String::from("On the USB drive")),
         uncommitted: Some(3),
     }
 }

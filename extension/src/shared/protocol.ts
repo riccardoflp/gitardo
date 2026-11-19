@@ -449,6 +449,8 @@ export type Action =
   | { kind: 'worktreeRemove'; path: string; deleteBranch?: boolean }
   | { kind: 'worktreeRename' | 'worktreeTerminal' | 'worktreeReveal'; path: string }
   | { kind: 'worktreePrune' }
+  /** Locks a worktree with the reason asked, or unlocks it (`worktree.lock`, `worktree.unlock`). */
+  | { kind: 'worktreeLock' | 'worktreeUnlock'; path: string }
   /** Brings into the worktree in `path`, or into every other worktree, what new worktrees get of what git ignores here. */
   | { kind: 'worktreeSetUp'; path?: string }
   /** Asks for the URL, the folder and the branch of a new submodule. */

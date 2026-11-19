@@ -770,8 +770,8 @@ plugged in is not forgotten by **Prune**, and is not removed or moved by mistake
 - **Refuses**: on the main worktree, as git does: **Git cannot lock the main worktree, the folder the repository was
   created in.**
 - **Uses**: `worktree.locked`, `worktree.read-list`.
-- **Extension**: planned: **Lock…** in the context menu of a worktree in the Worktrees section, beside the graph and in
-  the Branches view, and of the row of a worktree in the **Gitardo Repositories** view (`worktreeMenu` in
+- **Extension**: **Lock…** in the context menu of a worktree in the Worktrees section, beside the graph and in the
+  Branches view, and of the row of a worktree in the **Gitardo Repositories** view (`worktreeMenu` in
   `src/webview/menus.ts`), sending `feature/run` of `worktree.lock` to the engine (`Controller.runOnEngine`), the reason
   asked in an input box of VS Code (`VscodeAsker`).
 
@@ -800,7 +800,7 @@ Takes the lock of `worktree.lock` away, so that **Prune**, **Remove…** and **R
   unlocked, git keeps no reason to read back (Q1453).
 - **After**: the row loses its lock; a missing worktree can then be pruned.
 - **Uses**: `worktree.locked`.
-- **Extension**: planned: **Unlock** in the same menus, sending `feature/run` of `worktree.unlock` to the engine.
+- **Extension**: **Unlock** in the same menus, sending `feature/run` of `worktree.unlock` to the engine.
 
 Acceptance:
 
@@ -820,8 +820,9 @@ locked worktree, which git refuses to remove or move and never prunes.
   folder of each locked worktree is looked for on disk, to know whether it is missing.
 - **Uses**: `worktree.read-list`, `worktree.section`, `worktree.remove`, `worktree.rename`, `worktree.prune`,
   `worktree.unlock`, `branch.clean-up`, `repo.group-tabs`.
-- **Extension**: the same rules, in the engine; the rows of the Worktrees section and of the **Gitardo Repositories**
-  view draw the lock as their tooltips say it: planned.
+- **Extension**: the same rules, in the engine; the rows of the Worktrees section draw the lock after the label, say
+  `missing, locked`, and their tooltips say the reason (`lockTitle` in `src/webview/menus.ts`). The rows of the
+  **Gitardo Repositories** view do not draw the lock yet (Q1454).
 
 Rules:
 

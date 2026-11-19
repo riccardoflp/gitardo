@@ -506,15 +506,35 @@ export function worktreeMenu(worktree: Worktree, state: Pick<RepoState, 'agentsW
     'separator',
     !worktree.isMissing && !worktree.isMain && !worktree.isCurrent && !home && { label: 'Rename…', run: () => act({ kind: 'worktreeRename', path }) },
     { label: 'Copy path', run: () => copy(path) },
+    // Git keeps a locked worktree whatever happens to its folder; the main worktree cannot be locked.
+    isLocked(worktree) && { label: 'Unlock', run: () => act({ kind: 'worktreeUnlock', path }) },
+    !isLocked(worktree) && !worktree.isMain && { label: 'Lock…', run: () => act({ kind: 'worktreeLock', path }) },
     // From the checkout of the views, into another: what new worktrees get of what git ignores, as they are now.
     !worktree.isMissing && !worktree.isCurrent && !home && { label: 'Bring ignored files…', run: () => act({ kind: 'worktreeSetUp', path }) },
     'separator',
     !worktree.isCurrent && !worktree.isMain && !home && { label: 'Remove…', danger: true, run: () => act({ kind: 'worktreeRemove', path }) },
-    state.worktrees.some((candidate) => candidate.isMissing) && {
+    hasPrunable(state.worktrees) && {
       label: 'Prune missing worktrees',
       run: () => act({ kind: 'worktreePrune' }),
     },
   ];
+}
+
+/** Whether a worktree is locked, with a reason or none (protocol 1.11). */
+export function isLocked(worktree: Worktree): boolean {
+  return worktree.locked !== undefined && worktree.locked !== null;
+}
+
+/** Whether **Prune missing worktrees** has something to forget: git never prunes a locked worktree. */
+function hasPrunable(worktrees: readonly Worktree[]): boolean {
+  return worktrees.some((candidate) => candidate.isMissing && !isLocked(candidate));
+}
+
+/** What the row of a worktree says of its lock: **Locked: `<reason>`**, or **Locked**; undefined when it is not locked. */
+export function lockTitle(worktree: Worktree): string | undefined {
+  if (!isLocked(worktree)) return undefined;
+  const reason = (worktree.locked ?? '').trim();
+  return reason ? `Locked: ${reason}` : 'Locked';
 }
 
 /** What the "…" beside the title of the Worktrees section offers, and a right click on that title. */
@@ -529,7 +549,7 @@ export function worktreesMenu(state: RepoState): MenuEntry[] {
       run: () => act({ kind: 'worktreeSetUp' }),
     },
     'separator',
-    state.worktrees.some((candidate) => candidate.isMissing) && { label: 'Prune missing worktrees', run: () => act({ kind: 'worktreePrune' }) },
+    hasPrunable(state.worktrees) && { label: 'Prune missing worktrees', run: () => act({ kind: 'worktreePrune' }) },
   ];
 }
 
