@@ -17,8 +17,8 @@ use super::{Effect, State, reads};
 use crate::persisted::inputs::{inputs_of, remember_inputs};
 
 mod after_read;
-pub(crate) mod made;
 mod carry_out;
+pub(crate) mod made;
 mod said;
 mod shown;
 

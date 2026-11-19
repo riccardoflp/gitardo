@@ -19,6 +19,10 @@ use model::stash::StashReading;
 
 use crate::{history, readings};
 
+mod grouped;
+
+use grouped::{answered_by_engine, branch_reads};
+
 /// The answer of a query, read now.
 pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
     match query {
@@ -77,47 +81,9 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::Note { .. } | Query::RemoteNotes { .. } => crate::notes::answer(git, query),
         Query::SetupTakes(requests) => setup_takes(git, requests),
         Query::PathStatuses { paths } => path_statuses(git, paths),
-        Query::FileNames { path } => history::file_names(git, path),
-        Query::CommittedLines(query) => history::committed_lines(git, query),
-        Query::Blame(query) => history::blame(git, query),
+        Query::FileNames { .. } | Query::CommittedLines(_) | Query::Blame(_) => history::answer(git, query),
         Query::RemoteTags { remote } => remote_tags(git, remote),
         Query::LfsToStore { .. } | Query::LfsPointers { .. } => readings::lfs(git, query),
-    }
-}
-
-/// The answer of a query about branches: how far apart two are, whether one holds another, which are merged or hold a
-/// commit, and whether a revision has a file.
-fn branch_reads(git: &Git, query: &Query) -> Result<Answer, GitError> {
-    match query {
-        Query::Counts { left, right } => {
-            branch::read_counts(git, left, right).map(|(left, right)| Answer::Counts { left, right })
-        }
-        Query::IsAncestor { ancestor, descendant } => {
-            branch::read_is_ancestor(git, ancestor, descendant).map(Answer::Flag)
-        }
-        Query::MergedBranches { into } => branch::read_merged(git, into).map(Answer::Names),
-        Query::Containing { commit } => branch::read_containing(git, commit.as_str()).map(Answer::Names),
-        Query::HasFile { revision, path } => branch::read_has_file(git, revision, path).map(Answer::Flag),
-        _ => Ok(Answer::Names(Vec::new())), // Only the queries about branches come here.
-    }
-}
-
-/// What a query the engine answers before asking git anything gives when it reaches git: none of them does.
-fn answered_by_engine(query: &Query) -> Answer {
-    match query {
-        // The engine answers it with its credential store.
-        Query::GitHubToken { .. } | Query::HostingToken { .. } => Answer::Token(None),
-        // The engine answers it with the hosting service.
-        Query::PullRequestList { .. } => Answer::PullList(model::hosting::PullList::Unread(String::from(
-            "The pull requests are listed by the engine.",
-        ))),
-        // The engine answers it with the AI provider.
-        Query::AiModels { .. } => Answer::AiModels(model::ai::AiModels::Failed(String::from(
-            "The models of the AI provider are listed by the engine.",
-        ))),
-        // The engine asks the window for it.
-        Query::Clipboard => Answer::Clipboard(None),
-        _ => Answer::Journal(None), // The journal, the last of those the engine answers, comes here.
     }
 }
 

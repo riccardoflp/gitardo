@@ -213,24 +213,12 @@ fn read_parts(
         let branch_sort = scope.spawn(|| branch_sort::read_branch_sort(git));
         let reflog_subjects = scope.spawn(|| reflog_subjects::read_reflog_subjects(git));
         let working_tree = scope.spawn(|| status::read_status(git));
-        let bisect_request = crate::read::bisect::BisectRequest {
-            git_folder: location.git_folder.clone(),
-        };
-        let bisect = scope.spawn(move || crate::read::bisect::read(git, &bisect_request));
-        let submodules_request = crate::read::submodule::SubmoduleListRequest {
-            folder: location.folder.clone(),
-        };
-        let submodules = scope.spawn(move || crate::read::submodule::read_list(git, &submodules_request));
-        let shallow_request = ShallowRequest {
-            folder: location.folder.clone(),
-        };
-        let shallow = scope.spawn(move || read_shallow(git, &shallow_request));
+        let bisect = scope.spawn(|| read_bisect(git, location));
+        let submodules = scope.spawn(|| read_submodules(git, location));
+        let shallow = scope.spawn(|| read_shallow_of(git, location));
         let kept = scope.spawn(|| read_kept(git, location, before));
         let lfs = scope.spawn(|| crate::read::lfs::read_repository_status(git));
-        let rerere_request = model::rerere::RerereStateRequest {
-            git_folder: location.git_folder.clone(),
-        };
-        let rerere = scope.spawn(move || crate::read::rerere::read_state(git, &rerere_request));
+        let rerere = scope.spawn(|| read_rerere(git, location));
         let operation = operation::read_operation(&location.git_folder);
         let (worktrees, mut counted) = joined(worktrees)?;
         let kept = joined(kept)?;
@@ -270,6 +258,38 @@ struct Kept {
     skipped: crate::read::changes::SkippedRead,
     background: crate::read::upkeep::BackgroundRead,
     notes: model::note::Notes,
+}
+
+/// The bisect under way in the repository at `location`, if any.
+fn read_bisect(git: &Git, location: &Location) -> Result<Option<model::bisect::Bisect>, GitError> {
+    let request = crate::read::bisect::BisectRequest {
+        git_folder: location.git_folder.clone(),
+    };
+    crate::read::bisect::read(git, &request)
+}
+
+/// The submodules of the repository at `location`, and theirs.
+fn read_submodules(git: &Git, location: &Location) -> Result<Vec<model::submodule::Submodule>, GitError> {
+    let request = crate::read::submodule::SubmoduleListRequest {
+        folder: location.folder.clone(),
+    };
+    crate::read::submodule::read_list(git, &request)
+}
+
+/// Where the history of the repository at `location` ends, when it is a shallow clone.
+fn read_shallow_of(git: &Git, location: &Location) -> Result<Shallow, GitError> {
+    let request = ShallowRequest {
+        folder: location.folder.clone(),
+    };
+    read_shallow(git, &request)
+}
+
+/// Whether git remembers how conflicts are resolved in the repository at `location`.
+fn read_rerere(git: &Git, location: &Location) -> Result<model::rerere::RerereState, GitError> {
+    let request = model::rerere::RerereStateRequest {
+        git_folder: location.git_folder.clone(),
+    };
+    crate::read::rerere::read_state(git, &request)
 }
 
 /// The reads kept from the read before while what they read did not change: the files hidden from git, while the index

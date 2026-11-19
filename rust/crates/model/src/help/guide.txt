@@ -908,6 +908,12 @@ title: Which diffs start folded
 place: the inspector and the Commit page
 show: none
 A page of many or long diffs would take long to show and be hard to read: the long ones start folded.
+@card desktop commit-page.images
+title: The images of a commit in its page
+place: the inspector and the Commit page
+show: page
+The two versions of an image that a commit changed, drawn in its page and in a comparison in place of **Binary file.**.
+Entry points: **Show the changes** in the page of a commit (`commit-page.view`) and in a comparison (`compare.`), for a file that is an image on either side.
 @card desktop commit-page.show-in-graph
 title: Show a commit in the timeline
 place: the inspector and the Commit page
@@ -1601,6 +1607,11 @@ place: the timeline
 show: none
 The local branches, other than the one rewritten, whose tip is one of the commits a rebase is about to make again: the branches of a stack, each started from the one under it, which the rebase would leave on the old commits.
 Entry points: none: read by the operations of `rebase.update-refs` before they make their plan.
+@card desktop rebase.update-refs
+title: Which branches move with a rewrite
+place: the timeline
+show: none
+Decides whether a rewrite takes the other branches of a stack with it, and says which in its plan, so that a branch on a commit made again is not left on the old one.
 @card desktop rebase.todo-page
 title: The interactive rebase page
 place: the timeline
@@ -1620,7 +1631,6 @@ show: show where
 Runs `git rebase -i` with the todo list prepared on the interactive rebase page, by having git's editor of the todo list copy the prepared one over it, since no editor can be typed into.
 Entry points: **Start rebase** on the interactive rebase page (`rebase.todo-page`). The same plan is what `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit` build for an older commit.
 Offered when: as `rebase.todo-page`.
-Refuses: as `rebase.build-todo-list`; when git refuses to start (changes not committed and no `--autostash`), git's words are shown.
 @card desktop rebase.read-stop
 title: Where an interactive rebase stopped to change a commit
 place: the timeline
@@ -1697,6 +1707,35 @@ place: the timeline
 show: none
 Drag a commit, or a branch from the timeline or the branch rail, onto a row of the timeline to cherry-pick, merge, rebase or reset.
 Entry points: dragging a row of the timeline (a commit), a branch label of the timeline, or a branch or remote branch of the branch rail, onto a row of the timeline.
+@card desktop range-diff.read-last-rewrite
+title: Read what a branch was before it was rewritten
+place: the timeline
+show: none
+Where a branch was before its last rebase or amend, and what the rebase was onto, from the reflog of the branch; and where a remote branch was before a fetch found it force pushed.
+Entry points: none: read by `range-diff.compare` and by what offers it.
+@card desktop range-diff.ranges
+title: The two lines of commits compared
+place: the timeline
+show: none
+Which commits were there before and which are there now, for each way of reaching the page of what a rewrite changed.
+@card desktop range-diff.read-pairs
+title: Read what a rewrite changed, commit by commit
+place: the timeline
+show: none
+The commits of two lines paired, as `git range-diff` pairs them: the same commit made again, a commit changed with what changed in it, a commit added, a commit dropped.
+@card desktop range-diff.compare
+title: See what a rewrite changed
+place: the timeline
+show: show where
+Opens, commit by commit, what a rebase or an amend changed in a branch, what a force push would replace, or what someone else's force push replaced.
+Entry points: - **See what changed** in what is said after a rebase, an interactive rebase and the operations built on it, an amend and a pull that rebased, once they ended and made at least one commit again; - **What its last rewrite changed** in the context menu of a local branch; - **Compare with `<upstream>` commit by commit** in the context menu of a local branch that has commits its upstream has not and the other way round, as of the last fetch, and among the other ways to push in the menu of **Sync** while the branch checked out is so; - **Compare first** in the warning of `sync.push-force-with-lease` and of `sync.push-force`, which closes it, runs nothing and opens the page; - after a fetch that found the upstream of a local branch force pushed, "`<remote branch>` was force pushed." with **See what changed**; and **What the force push changed** in the context menu of that remote branch.
+Refuses: "`<branch>` has not been rebased or amended lately." when its reflog has no rewrite; "`<branch>` and `<upstream>` are at the same commit." when there is nothing to compare.
+@card desktop range-diff.page
+title: What a rewrite changed, commit by commit
+place: the timeline
+show: page
+The commits of a branch before and after a rewrite, paired: the ones made again unchanged, the ones changed with what changed in each, the ones added and the ones dropped.
+Entry points: `range-diff.compare`.
 @card desktop stash.read-list
 title: Read the stashes
 place: Kept aside, in the branch rail
@@ -1993,6 +2032,12 @@ place: the Conflicts page
 show: none
 A file one side deleted and the other changed has no lines to choose between: only whether it stays, with the changes of the side that kept it, or goes.
 Entry points: one card per such file in `review.page`, shown with the conflicts that have nothing proposed.
+@card desktop review.recorded
+title: A file git resolved as before
+place: the Conflicts page
+show: none
+A file in conflict that git resolved itself, from a resolution it recorded the last time the same conflict came (`rerere.read-resolved`), has no markers left and nothing to propose: the review shows what git wrote, to accept or to forget.
+Entry points: one card per such file in `review.page`, under its own filter **Resolved as before** of `review.file-list`.
 @card desktop ai.resolve-conflicts
 title: Resolve conflicts with AI
 place: the Conflicts page
@@ -2034,6 +2079,48 @@ place: the Conflicts page
 show: none
 Asks GitHub Copilot, with the user's own sign-in and subscription, the questions Gitardo asks a language model: the conflicts the rules leave, and the draft of a commit message.
 Refuses: without `copilot` on the `PATH`: *The GitHub Copilot CLI is not installed. Install it, then try again.* with **How to install**, which opens GitHub's page on installing it; when it is not signed in: *GitHub Copilot is not signed in.* with **Sign in**, which opens a new terminal of the bottom panel and types `copilot login` in it; when Copilot refuses the question (no subscription, no requests left, a model not offered): *GitHub Copilot refused: \<its words\>*. A draft or a conflict refused so says it in the status bar with its button; the refusal of `ai.choose-model` offers it as its button.
+@card desktop rerere.read-state
+title: Whether git remembers resolutions
+place: the Conflicts page
+show: none
+Whether git records and writes again the resolutions of conflicts in this repository, and whether it also stages what it writes.
+@card desktop rerere.turn-on
+title: Remember how conflicts are resolved
+place: the Conflicts page
+show: quick search
+Turns on, for this repository, git's recording of the resolutions of conflicts and their use the next time.
+Entry points: **Remember how conflicts are resolved…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`), unticked; Quick search, **Remember How Conflicts Are Resolved…**.
+Offered when: it is off (`rerere.read-state`).
+@card desktop rerere.turn-off
+title: Stop remembering how conflicts are resolved
+place: the Conflicts page
+show: quick search
+Turns git's recording of resolutions off for this repository; what it recorded stays, unused.
+Entry points: **Remember how conflicts are resolved**, ticked, in the context menu of the row of a repository in **Repositories**; Quick search, **Stop Remembering How Conflicts Are Resolved**.
+Offered when: it is on.
+@card desktop rerere.read-resolved
+title: The files git resolved as before
+place: the Conflicts page
+show: none
+Which files in conflict git resolved by itself from a recorded resolution, while an operation is stopped.
+@card desktop rerere.read-marked
+title: A file as git marked it
+place: the Conflicts page
+show: none
+The text of a file in conflict as git marked it when it stopped, made again from the three versions of the index, to compare with what git wrote from a recorded resolution.
+@card desktop rerere.resolved-as-before
+title: The files git resolved as before, where conflicts are shown
+place: the Conflicts page
+show: none
+Says, wherever the files in conflict are listed, which of them git resolved from a recorded resolution, and gives what can be done with each: look at what git wrote, mark it resolved, or forget the resolution.
+Entry points: drawn in `conflicts.banner`, in the message of `conflicts.stopped`, on the rows of the files in conflict of the changes, and in `review.page` (`review.recorded`).
+@card desktop rerere.forget
+title: Forget a resolution git recorded
+place: the Conflicts page
+show: show where
+Has git forget the resolution it recorded for the conflicts of a file, and marks them again, for a resolution that was wrong and that git would otherwise write each time.
+Entry points: **Forget this resolution…** in the menu of a file resolved as before (`rerere.resolved-as-before`) and **Forget it** on its card in the review (`review.recorded`).
+Offered when: the file was resolved as before during the operation under way, staged or not.
 @card desktop compare.resolve-revision
 title: Which commit a revision is
 place: the Compare page
@@ -2992,6 +3079,11 @@ title: Remember what Undo needs
 place: the header and the bottom panel
 show: none
 The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, what was checked out before a branch with no history (`branch.create-orphan`, whose move git writes in no reflog), the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD` is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
+@card desktop undo.moved-branches
+title: Take back the branches a rewrite moved
+place: the header and the bottom panel
+show: none
+The journal entry of a rewrite that moved the other branches of a stack keeps where each was, so that one Undo puts them back with the branch rewritten.
 @card desktop activity.track
 title: Say what is running
 place: the header and the bottom panel
@@ -3087,6 +3179,41 @@ Puts back in the working tree what the left side has in place of one change.
 Entry points: the **⟲** button (**Revert this change**) on the band of a change in the gutter.
 Offered when: the right side is the working tree (against `HEAD`, the index or a commit).
 Refuses: *The file changed since the diff was shown. Try again.*
+@card desktop diff.select-lines
+title: Select lines of a diff
+place: the Diff and Merge pages
+show: none
+Selects some lines of a Diff page, on either side, so that only those are staged, unstaged or reverted.
+Entry points: dragging over the lines or over their numbers on either side of the Diff page; `Shift` with a click, or with `↑`, `↓`, `Page Up` and `Page Down`, from the line chosen; text selected in the side that is edited.
+@card desktop diff.lines-patch
+title: The patch of the lines selected
+place: the Diff and Merge pages
+show: none
+The patch that takes into a version of a file only the lines selected of the differences between it and another, for `git apply --cached` on standard input.
+@card desktop diff.stage-lines
+title: Stage the lines selected
+place: the Diff and Merge pages
+show: show where
+Puts into the index only the lines selected of the changes of the working tree.
+Entry points: **Stage lines** in the context menu of either side of the Diff page while lines are selected; `Alt+S` (`Ctrl+Option+S` on macOS) (`diff.select-lines`).
+Offered when: the right side is the working tree and the left is `HEAD` or the index, the file is not renamed, and some line selected differs between the index and the working tree.
+Refuses: as `diff.stage-change`: when the file changed since the page was computed, *The file changed since the diff was shown. Try again.*; for a file that is not UTF-8 with a character above 127 in the patch, *Staging lines needs UTF-8 text: stage the whole file.*; for the first line of a file with a byte order mark, *The first line of a file with a byte order mark cannot be staged alone: stage the whole file.* When no line selected differs between the index and the working tree: *These lines are staged already.*
+@card desktop diff.unstage-lines
+title: Unstage the lines selected
+place: the Diff and Merge pages
+show: show where
+Takes only the lines selected back out of the index, the working tree unchanged.
+Entry points: **Unstage lines** in the context menu of either side of the Diff page while lines are selected; `Alt+U` (`Ctrl+Option+U` on macOS) (`diff.select-lines`).
+Offered when: the page shows the index against `HEAD`, or the working tree against `HEAD`; the file is not renamed; and some line selected differs between `HEAD` and the index.
+Refuses: as `diff.stage-lines`; when no line selected differs between `HEAD` and the index: *Nothing of these lines is staged.*
+@card desktop diff.revert-lines
+title: Revert the lines selected
+place: the Diff and Merge pages
+show: show where
+Puts back in the working tree what the left side has in place of the lines selected.
+Entry points: **Revert lines** in the context menu of either side of the Diff page while lines are selected; `Alt+R` (`Ctrl+Option+R` on macOS) (`diff.select-lines`).
+Offered when: the right side is the working tree (against `HEAD`, the index or a commit), and some line selected differs between the two sides.
+Refuses: *The file changed since the diff was shown. Try again.*
 @card desktop diff.edit
 title: Editing the working tree side
 place: the Diff and Merge pages
@@ -3128,6 +3255,13 @@ Takes the file back to its staged version, or deletes it when it is untracked.
 Entry points: the title button **Discard changes** of a Diff page.
 Offered when: the right side is the working tree and the left is `HEAD` or the index.
 Refuses: *There is nothing to discard.*
+@card desktop diff.image
+title: Two versions of an image side by side
+place: the Diff and Merge pages
+show: none
+The two versions of an image in the Diff page, drawn side by side, so that what changed in a picture is seen and not refused.
+Entry points: every entry point of `diff.page`, for a file that is an image on at least one side.
+Refuses: a file that is not an image on either side and has a NUL byte, as `diff.page` does: *This file looks binary.*
 @card desktop merge-view.page
 title: The Merge page
 place: the Diff and Merge pages
@@ -3233,6 +3367,18 @@ place: the Diff and Merge pages
 show: none
 A block of code fenced as `mermaid` in the preview of a Markdown file, drawn as its diagram.
 Entry points: the preview of a Markdown file (`file-view.markdown-preview`) with a block fenced as `mermaid`.
+@card desktop file-view.read-image
+title: The pixels of an image file
+place: the Diff and Merge pages
+show: none
+Reads the bytes of a file as an image, whatever its format, for every place that draws one.
+Entry points: the File page (`file-view.image`), the Diff page (`diff.image`), the page of a commit and a comparison (`commit-page.images`), the preview of Markdown (`file-view.markdown-preview`).
+@card desktop file-view.image
+title: An image as it is drawn
+place: the Diff and Merge pages
+show: none
+An image file in the File page, drawn as a picture in place of its bytes.
+Entry points: every entry point of `file-view.page`, for a file that `file-view.read-image` reads as an image: a click on it in the Files page, **Open file** in a Diff page, **Open the file at this revision** on a file of a commit.
 @card desktop file-view.read-revision
 title: A file at a revision
 place: the Diff and Merge pages
@@ -3370,6 +3516,95 @@ place: the bottom panel
 show: none
 A picker of every task and group of the repository, from Quick search or a key, wherever the window is.
 Entry points: **Run Task…** in Quick search; `Ctrl+Shift+T` (`Cmd+Shift+T` on macOS), as in Run My Tasks.
+@card desktop lfs.read-status
+title: Whether Git LFS is there, and what the repository stores with it
+place: the Files page
+show: none
+Whether the program Git LFS is installed and set up for the repository, and the patterns of the files the repository stores with it.
+@card desktop lfs.read-files
+title: The files stored with Git LFS
+place: the Files page
+show: none
+The files of the commit checked out that the repository stores with Git LFS, with their sizes and whether their content is downloaded.
+@card desktop lfs.pointer
+title: A file left as a pointer
+place: the Files page
+show: none
+Tells whether some bytes are a pointer of Git LFS, and which content they stand for.
+@card desktop lfs.read-content
+title: The content of a file stored with Git LFS, from the store of the repository
+place: the Files page
+show: none
+The content a pointer stands for, read from the store of Git LFS on this computer, never downloaded by a read.
+@card desktop lfs.show-in-pages
+title: A file stored with Git LFS, in the pages
+place: the Files page
+show: none
+What the File page, the Diff page and the page of a commit show of a file stored with Git LFS: its content when it is on this computer, and otherwise that it is not downloaded, with **Download**, never the text of its pointer.
+Entry points: drawn by the File page, the Diff page and the page of a commit in place of the text of a file whose version is a pointer (`lfs.pointer`) at a path the repository stores with Git LFS.
+@card desktop lfs.download
+title: Download files stored with Git LFS
+place: the Files page
+show: show where
+Downloads the content of files left as pointers, into the working tree for the commit checked out, or into the store for another commit.
+Entry points: **Download** where `lfs.show-in-pages` says a file is not downloaded; **Download** in the menu of a file of the **Large files** page; **Download all** on that page; **Download** in the context menu of a file or a folder of the Files page that holds files left as pointers.
+Offered when: Git LFS is installed (`lfs.read-status`).
+Refuses: without Git LFS: **Git LFS is not installed: install it from git-lfs.com, then try again.** with **Open git-lfs.com**; a path holding `,` or a character of patterns, which `--include` cannot name alone: **`<path>` cannot be named to Git LFS on its own: download all the files instead.**.
+@card desktop lfs.page
+title: The Large files page
+place: the Files page
+show: page
+A page with what the repository stores with Git LFS: whether Git LFS is there and set up, the patterns, the files with their sizes and whether they are downloaded, and the locks.
+Entry points: **Large files…** in the context menu of the row of a repository in **Repositories** (`repo.tabs`); **Large Files (Git LFS)…** in Quick search.
+@card desktop lfs.set-up
+title: Set up Git LFS for a repository
+place: the Files page
+show: show where
+Sets up the filter and the hooks of Git LFS for one repository, so that its files are downloaded at checkout and stored with Git LFS at commit.
+Entry points: **Set up** on the **Large files** page.
+Offered when: Git LFS is installed, the repository has patterns, and it is not set up (`lfs.read-status`).
+@card desktop lfs.track
+title: Store files with Git LFS
+place: the Files page
+show: show where
+Has Git LFS store the files that a pattern takes, from their next commit on.
+Entry points: **Store with Git LFS…** in the context menu of a file of the Files page and in the menu of a file of the changes (`changes.row-menu`); **Track a pattern…** on the **Large files** page.
+Offered when: Git LFS is installed and set up for the repository, and no pattern takes the file already.
+Refuses: without Git LFS, as `lfs.download`; not set up: **Git LFS is not set up in this repository.** with **Set up**.
+@card desktop lfs.store-committed
+title: Store with Git LFS the files committed before
+place: the Files page
+show: show where
+Stages again, as pointers, the files git tracks that a pattern of Git LFS takes but that were committed before the pattern was there, so that the next commit stores them with Git LFS. The commits before keep them as they are.
+Entry points: **Store them with Git LFS in the next commit** in the message after `lfs.track`, and in the menu of a pattern of the **Large files** page.
+Offered when: such files exist.
+@card desktop lfs.untrack
+title: Stop storing a pattern with Git LFS
+place: the Files page
+show: show where
+Takes a pattern out of the `.gitattributes` at the top, so that the files it took are stored by git from their next commit on.
+Entry points: **Stop storing with Git LFS** in the menu of a pattern of the **Large files** page.
+Offered when: Git LFS is installed and the pattern is in the `.gitattributes` at the top; a pattern of another file has **Open `<file>`** only.
+@card desktop lfs.read-locks
+title: The locks of the files stored with Git LFS
+place: the Files page
+show: none
+The files that someone locked on the server, so that two people do not change a file that cannot be merged, with who holds each lock.
+@card desktop lfs.lock
+title: Lock a file stored with Git LFS
+place: the Files page
+show: show where
+Locks a file on the server, so that others know not to change it.
+Entry points: **Lock** in the menu of a file of the **Large files** page.
+Offered when: Git LFS is installed, the server supports locks, and the file is not locked.
+Refuses: git-lfs's message when the server refuses, such as a file locked by someone else meanwhile.
+@card desktop lfs.unlock
+title: Unlock a file stored with Git LFS
+place: the Files page
+show: show where
+Takes a lock away: one's own, or, after a warning, someone else's.
+Entry points: **Unlock** in the menu of a locked file of the **Large files** page.
+Offered when: the file is locked.
 @card extension repo.read-repositories
 title: Find the repositories of a workspace
 place: Repositories, in the side column
@@ -3435,6 +3670,12 @@ title: The git folder the worktrees share
 place: Repositories, in the side column
 show: none
 The git folder every worktree of a repository shares, where its references live: the `.git` of the main worktree, whichever worktree is shown. The extension watches it for the changes of the references.
+@card extension repo.read-git-version
+title: Read the version of git
+place: Repositories, in the side column
+show: none
+Which git runs the operations, so that a feature that needs a newer one says what it does without it, rather than failing in git's words.
+In VS Code: the engine reads it for itself, under the extension as under the window.
 @card extension repo.watch-changes
 title: Which changes ask for a read
 place: Repositories, in the side column
@@ -4178,6 +4419,12 @@ title: Which diffs start folded
 place: the inspector and the Commit page
 show: none
 A page of many or long diffs would take long to show and be hard to read: the long ones start folded.
+@card extension commit-page.images
+title: The images of a commit in its page
+place: the inspector and the Commit page
+show: page
+The two versions of an image that a commit changed, drawn in its page and in a comparison in place of **Binary file.**.
+In VS Code: the page of a commit and the tab of a comparison, Gitardo's webview, with the two versions as images of `data:` URIs from the bytes of `read/diff.read-sides`.
 @card extension commit-page.show-in-graph
 title: Show a commit in the timeline
 place: the inspector and the Commit page
@@ -4770,6 +5017,18 @@ place: the timeline
 show: none
 The remote branches that have a commit, read before a commit is rewritten, so that the confirmation can say the branch will have to be force pushed.
 In VS Code: the engine reads it for `message.edit`, `squash.commits` and `split.commit`, not for the fixup, the rebase editor, `rebase.onto` or the reset; the extension does not read it.
+@card extension rebase.read-stacked-branches
+title: The other branches on the commits a rewrite makes again
+place: the timeline
+show: none
+The local branches, other than the one rewritten, whose tip is one of the commits a rebase is about to make again: the branches of a stack, each started from the one under it, which the rebase would leave on the old commits.
+In VS Code: the engine reads it for the operations it runs; the extension does not read it.
+@card extension rebase.update-refs
+title: Which branches move with a rewrite
+place: the timeline
+show: none
+Decides whether a rewrite takes the other branches of a stack with it, and says which in its plan, so that a branch on a commit made again is not left on the old one.
+In VS Code: the engine's, in the plans of those operations, which the extension runs on the engine; the setting is `gitardo.rebase.updateRefs`.
 @card extension rebase.todo-page
 title: The interactive rebase page
 place: the timeline
@@ -4787,7 +5046,8 @@ title: Run an interactive rebase
 place: the timeline
 show: show where
 Runs `git rebase -i` with the todo list prepared on the interactive rebase page, by having git's editor of the todo list copy the prepared one over it, since no editor can be typed into.
-In VS Code: **Start rebase** in the dialog of the rebase editor posts `rebaseInteractive`, which runs it on `HEAD` with the rows as the answer `todo` (`todoRows` and `engineRuns` in). A reword that gives a whole message, which the rows cannot say, runs nothing; the rebase editor gives only a new subject (`keepBody`). When the engine's binary is missing, it says so.
+Entry points: **Start rebase** on the interactive rebase page (`rebase.todo-page`). The same plan is what `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit` build for an older commit.
+Offered when: as `rebase.todo-page`.
 @card extension rebase.read-stop
 title: Where an interactive rebase stopped to change a commit
 place: the timeline
@@ -4854,6 +5114,36 @@ place: the timeline
 show: none
 Drag a commit, or a branch from the timeline or the branch rail, onto a row of the timeline to cherry-pick, merge, rebase or reset.
 In VS Code: in the Graph view, a commit row (not the uncommitted changes, not a stash), the label of a local or remote branch on a row, or a branch of the references beside the graph, dragged onto a row (`startDrag` and `dragging` in); the entries run as the same entries of the context menus.
+@card extension range-diff.read-last-rewrite
+title: Read what a branch was before it was rewritten
+place: the timeline
+show: none
+Where a branch was before its last rebase or amend, and what the rebase was onto, from the reflog of the branch; and where a remote branch was before a fetch found it force pushed.
+In VS Code: the engine's, for `range-diff.compare`.
+@card extension range-diff.ranges
+title: The two lines of commits compared
+place: the timeline
+show: none
+Which commits were there before and which are there now, for each way of reaching the page of what a rewrite changed.
+In VS Code: the engine's, for `range-diff.compare`.
+@card extension range-diff.read-pairs
+title: Read what a rewrite changed, commit by commit
+place: the timeline
+show: none
+The commits of two lines paired, as `git range-diff` pairs them: the same commit made again, a commit changed with what changed in it, a commit added, a commit dropped.
+In VS Code: the engine's, asked by the tab of `range-diff.page`.
+@card extension range-diff.compare
+title: See what a rewrite changed
+place: the timeline
+show: show where
+Opens, commit by commit, what a rebase or an amend changed in a branch, what a force push would replace, or what someone else's force push replaced.
+In VS Code: the same entries in the menus of the graph and the references (`branchMenu` and `remoteBranchMenu` in), in **More push options** beside **Push**, and on the messages the extension says after an operation; each sends `feature/run` of `range-diff.compare` to Gitardo's engine (in), whose follow-up opens the tab of `range-diff.page`. The warning of a force push is VS Code's modal dialog, which gets **Compare First**. When the engine's binary is missing, it says so.
+@card extension range-diff.page
+title: What a rewrite changed, commit by commit
+place: the timeline
+show: page
+The commits of a branch before and after a rewrite, paired: the ones made again unchanged, the ones changed with what changed in each, the ones added and the ones dropped.
+In VS Code: a tab of the editor area of its own, as the comparison is (`CompareApp`), with the same rows; a click on a hash opens the tab of that commit.
 @card extension stash.read-list
 title: Read the stashes
 place: Kept aside, in the branch rail
@@ -6018,6 +6308,12 @@ title: Remember what Undo needs
 place: the header and the bottom panel
 show: none
 The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, what was checked out before a branch with no history (`branch.create-orphan`, whose move git writes in no reflog), the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD` is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
+@card extension undo.moved-branches
+title: Take back the branches a rewrite moved
+place: the header and the bottom panel
+show: none
+The journal entry of a rewrite that moved the other branches of a stack keeps where each was, so that one Undo puts them back with the branch rewritten.
+In VS Code: the engine's, in the plan of `undo.last` that the extension runs on the engine.
 @card extension activity.track
 title: Say what is running
 place: the header and the bottom panel
@@ -6133,6 +6429,12 @@ show: show where
 Takes the whole file out of the index.
 Entry points: the title button **Unstage file** of a Diff page.
 Offered when: the right side is the index.
+@card extension diff.image
+title: Two versions of an image side by side
+place: the Diff and Merge pages
+show: none
+The two versions of an image in the Diff page, drawn side by side, so that what changed in a picture is seen and not refused.
+In VS Code: VS Code's diff editor with its preview of images on both sides, the sides given as bytes by the `FileSystemProvider` of the scheme `gitardo`.
 @card extension merge-view.page
 title: The Merge page
 place: the Diff and Merge pages
@@ -6238,6 +6540,12 @@ title: The pixels of an image file
 place: the Diff and Merge pages
 show: none
 Done by VS Code itself.
+@card extension file-view.image
+title: An image as it is drawn
+place: the Diff and Merge pages
+show: none
+An image file in the File page, drawn as a picture in place of its bytes.
+In VS Code: VS Code's preview of images, the file at a revision given as bytes by a `FileSystemProvider` of the scheme `gitardo`.
 @card extension file-view.read-revision
 title: A file at a revision
 place: the Diff and Merge pages

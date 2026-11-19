@@ -186,6 +186,29 @@ fn remote_tags_not_read(job: JobId, kind: &JobKind) -> Option<Message> {
     ))
 }
 
+/// The answer to a read of an image, or to a drawing of an image or of a diagram, these tests do not do.
+fn pictures_not_read(job: JobId, kind: &JobKind) -> Option<Message> {
+    if let JobKind::DrawImage { .. } = kind {
+        return Some(Message::ImageDrawn {
+            job,
+            result: Err(render::image::NotRead::NotImage),
+        });
+    }
+    if let JobKind::ReadImage { .. } = kind {
+        return Some(Message::ImageRead { job, image: None });
+    }
+    if let JobKind::ReadImages { .. } = kind {
+        return Some(Message::ImagesRead { job, images: None });
+    }
+    if let JobKind::DrawDiagram { .. } = kind {
+        return Some(Message::DiagramDrawn {
+            job,
+            diagram: Err(views::file_view::DiagramFailure::Unsupported),
+        });
+    }
+    None
+}
+
 fn not_listed(job: JobId, kind: &JobKind) -> Message {
     if let JobKind::CountConflicts { .. } = kind {
         return Message::ConflictsCounted {
@@ -214,23 +237,8 @@ fn not_listed(job: JobId, kind: &JobKind) -> Message {
             result: Err(String::from("not read in these tests")),
         };
     }
-    if let JobKind::DrawImage { .. } = kind {
-        return Message::ImageDrawn {
-            job,
-            result: Err(render::image::NotRead::NotImage),
-        };
-    }
-    if let JobKind::ReadImage { .. } = kind {
-        return Message::ImageRead { job, image: None };
-    }
-    if let JobKind::ReadImages { .. } = kind {
-        return Message::ImagesRead { job, images: None };
-    }
-    if let JobKind::DrawDiagram { .. } = kind {
-        return Message::DiagramDrawn {
-            job,
-            diagram: Err(views::file_view::DiagramFailure::Unsupported),
-        };
+    if let Some(message) = pictures_not_read(job, kind) {
+        return message;
     }
     if let JobKind::ReadNewWorktrees { .. } = kind {
         return Message::NewWorktreesRead {
@@ -308,21 +316,8 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             job,
             result: Err(String::from("not read in these tests")),
         },
-        JobKind::CountConflicts { .. }
-        | JobKind::ReadFiles { .. }
-        | JobKind::FileSearch { .. }
-        | JobKind::ReadNewWorktrees { .. }
-        | JobKind::ReadRangeDiff { .. }
-        | JobKind::ReadIgnored { .. }
-        | JobKind::ReadImage { .. }
-        | JobKind::ReadImages { .. }
-        | JobKind::DrawImage { .. }
-        | JobKind::ReadLargeFiles(..)
-        | JobKind::ReadBlame { .. }
-        | JobKind::ReadSignature { .. }
-        | JobKind::ReadRemoteTags { .. }
-        | JobKind::ReadAuthors { .. }
-        | JobKind::DrawDiagram { .. } => not_listed(job, kind),
+        // The reads of lists, of a blame, of a signature, of images and of diagrams, each answered as not read.
+        _ => not_listed(job, kind),
     }
 }
 

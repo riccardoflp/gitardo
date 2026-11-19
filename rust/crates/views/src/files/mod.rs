@@ -305,12 +305,7 @@ struct RowMenuFor<'r, 'f> {
 /// tracks has **Hide its changes from git…** too, and a file hidden from git **Show its changes to git again** alone.
 /// A file also has **Store with Git LFS…** in a repository that stores files with Git LFS.
 fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, menu: &RowMenuFor<'_, '_>) -> Option<Intent> {
-    let RowMenuFor {
-        row,
-        path,
-        is_hidden,
-        can_store_with_lfs,
-    } = *menu;
+    let RowMenuFor { row, path, .. } = *menu;
     let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
     let compare = item(icons::COMPARE, words::COMPARE_WITH, MenuChoice::Compare);
     let search_here = item(
@@ -334,14 +329,7 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, menu: &RowMenuFor<'_, '_>)
         ],
         FilesRow::Top => vec![compare, search_here],
     };
-    entries.extend(ignore_entries(row, is_hidden));
-    if can_store_with_lfs && matches!(row, FilesRow::File { .. }) {
-        entries.push(MenuEntry::Item(icons::action(
-            icons::ADD,
-            crate::text::lfs::STORE_WITH_LFS,
-            MenuChoice::StoreWithLfs,
-        )));
-    }
+    entries.extend(more_entries(menu));
     let run = |feature: &'static str| files_intent(FilesPageIntent::Run(FeatureId(feature), path.to_owned()));
     match ui.context_menu(("files row menu", path), response, &entries)? {
         MenuChoice::Open => Some(files_intent(FilesPageIntent::OpenFile(path.to_owned()))),
@@ -366,6 +354,20 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, menu: &RowMenuFor<'_, '_>)
             Some(Intent::FileSearch(crate::file_search::FileSearchIntent::Here(place)))
         }
     }
+}
+
+/// The entries after those of every row: **Ignore…** and the like, then **Store with Git LFS…** on a file of a
+/// repository that stores files with Git LFS (`lfs.track`).
+fn more_entries(menu: &RowMenuFor<'_, '_>) -> Vec<MenuEntry<'static, MenuChoice>> {
+    let mut entries = ignore_entries(menu.row, menu.is_hidden);
+    if menu.can_store_with_lfs && matches!(menu.row, FilesRow::File { .. }) {
+        entries.push(MenuEntry::Item(icons::action(
+            icons::ADD,
+            crate::text::lfs::STORE_WITH_LFS,
+            MenuChoice::StoreWithLfs,
+        )));
+    }
+    entries
 }
 
 /// **Ignore…** and **Stop tracking, keep on disk…** under a line, for the rows that have them.

@@ -101,16 +101,21 @@ fn repository() -> RepositoryState {
         shallow: model::state::Shallow {
             ends: vec![commit('2')],
         },
-        skipped: vec![model::state::SkippedFile {
-            path: String::from("config/local.json"),
-            how: model::state::Skipped::Worktree,
-        }],
+        skipped: skipped(),
         is_looked_after: true,
         notes: notes(),
         lfs: model::lfs::LfsStatus::default(),
         rerere: model::rerere::RerereState::default(),
         resolved_as_before: Vec::new(),
     }
+}
+
+/// One file hidden from git, skipped in the working tree.
+fn skipped() -> Vec<model::state::SkippedFile> {
+    vec![model::state::SkippedFile {
+        path: String::from("config/local.json"),
+        how: model::state::Skipped::Worktree,
+    }]
 }
 
 /// Every commit signed with a key of SSH.

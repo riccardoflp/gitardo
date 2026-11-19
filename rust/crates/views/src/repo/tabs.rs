@@ -177,9 +177,43 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents
 }
 
+/// The entries of the menu of a row that act on its repository: on the row shown, **Remember how conflicts are
+/// resolved…**, ticked while git does, and, while nothing runs in it, **Clean up…** and **Look after it in the
+/// background…**, ticked while git's maintenance looks after it.
+fn repository_entries(tab: &TabEntry) -> Vec<MenuEntry<'static, TabCommand>> {
+    let mut entries = Vec::new();
+    if let Some(is_on) = tab.remembers_resolutions {
+        let label = if is_on {
+            crate::text::rerere::REMEMBERING
+        } else {
+            crate::text::rerere::REMEMBER
+        };
+        entries.push(MenuEntry::Item(icons::choice(
+            label,
+            TabCommand::RememberResolutions,
+            is_on,
+        )));
+    }
+    // The upkeep runs on the repository the views show, and so is offered on its row alone (`upkeep.clean-up`).
+    if tab.is_shown && !tab.is_running {
+        entries.push(MenuEntry::Separator);
+        entries.push(MenuEntry::Item(icons::action(
+            icons::DELETE,
+            words::CLEAN_UP,
+            TabCommand::CleanUp,
+        )));
+        entries.push(MenuEntry::Item(icons::choice(
+            words::LOOK_AFTER,
+            TabCommand::LookAfter,
+            tab.looked_after == Some(true),
+        )));
+    }
+    entries
+}
+
 /// The context menu of a row: **Close tab**, **Close other tabs**, then **Reveal in File Explorer** on the row shown,
-/// and **Copy path**, which copies the folder of what the row shows; **Large files…**, and on the row shown **Remember
-/// how conflicts are resolved…**, ticked while git does.
+/// and **Copy path**, which copies the folder of what the row shows; **Large files…**, and the entries of
+/// [`repository_entries`].
 pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, response: &ui::Response) -> Option<Intent> {
     let mut entries = vec![
         MenuEntry::Item(icons::action(icons::CLOSE, words::CLOSE_TAB, TabCommand::Close)),
@@ -209,32 +243,7 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
             TabCommand::LargeFiles,
         )),
     ]);
-    if let Some(is_on) = tab.remembers_resolutions {
-        let label = if is_on {
-            crate::text::rerere::REMEMBERING
-        } else {
-            crate::text::rerere::REMEMBER
-        };
-        entries.push(MenuEntry::Item(icons::choice(
-            label,
-            TabCommand::RememberResolutions,
-            is_on,
-        )));
-    }
-    // The upkeep runs on the repository the views show, and so is offered on its row alone (`upkeep.clean-up`).
-    if tab.is_shown && !tab.is_running {
-        entries.push(MenuEntry::Separator);
-        entries.push(MenuEntry::Item(icons::action(
-            icons::DELETE,
-            words::CLEAN_UP,
-            TabCommand::CleanUp,
-        )));
-        entries.push(MenuEntry::Item(icons::choice(
-            words::LOOK_AFTER,
-            TabCommand::LookAfter,
-            tab.looked_after == Some(true),
-        )));
-    }
+    entries.extend(repository_entries(tab));
     let run = |feature| {
         let run =
             crate::feature::FeatureIntent::Run(model::contract::FeatureId(feature), model::contract::Target::Head);

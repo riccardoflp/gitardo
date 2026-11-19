@@ -25,6 +25,16 @@ pub(crate) fn blame(git: &Git, query: &BlameQuery) -> Result<Answer, GitError> {
     read_file(git, &blame_request(query)).map(Answer::Blame)
 }
 
+/// The answer of a query of the history of a file or of the blame.
+pub(crate) fn answer(git: &Git, query: &model::contract::Query) -> Result<Answer, GitError> {
+    match query {
+        model::contract::Query::FileNames { path } => file_names(git, path),
+        model::contract::Query::CommittedLines(lines) => committed_lines(git, lines),
+        model::contract::Query::Blame(blame_query) => blame(git, blame_query),
+        _ => Ok(Answer::Names(Vec::new())), // Only the queries of the history and of the blame come here.
+    }
+}
+
 /// The commands a query of the history of a file or of the blame runs, as the log writes them.
 pub(crate) fn describe(query: &model::contract::Query) -> String {
     match query {
