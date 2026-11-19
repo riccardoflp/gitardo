@@ -62,6 +62,10 @@ pub enum Answer {
     EmptyStop(Option<super::EmptyStop>),
     /// The parents of a commit and the line from it up to `HEAD` (`Query::Line`).
     Line(crate::rebase::LineToHead),
+    /// The version of git, none when `git --version` said something of another form (`Query::GitVersion`).
+    GitVersion(Option<crate::rebase::GitVersion>),
+    /// The branches of a stack over the commits a rebase makes again (`Query::StackedBranches`).
+    Stacked(crate::rebase::StackedBranches),
     /// The whole messages of commits, in the order asked.
     Messages(Vec<String>),
     /// Commits as one patch made by `git format-patch`, oldest first (`patch.read-format-patch`).

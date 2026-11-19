@@ -5,6 +5,7 @@
 
 mod branch_sort;
 mod common_folder;
+mod git_version;
 mod head;
 mod identity;
 mod location;
@@ -27,6 +28,7 @@ use crate::{Git, GitError};
 pub use crate::read::worktree::{parse_worktrees, worktrees_arguments};
 pub use branch_sort::{branch_sort_arguments, parse_branch_sort};
 pub use common_folder::{CommonFolderRequest, common_folder_arguments, parse_common_folder, read_common_folder};
+pub use git_version::{GitVersionRequest, git_version_arguments, parse_git_version, read_git_version};
 pub use head::{head_branch_arguments, head_commit_arguments, parse_head_branch, parse_head_commit};
 pub use identity::{identity_arguments, parse_identity};
 pub use location::{Location, location_arguments, parse_location};

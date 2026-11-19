@@ -49,6 +49,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::EmptyStop => rewrite::read_empty_stop(git).map(Answer::EmptyStop),
         Query::Line { commit } => rebase::read_line(git, &LineRequest { commit: commit.clone() }).map(Answer::Line),
         Query::Messages { commits } => rebase::read_messages(git, commits).map(Answer::Messages),
+        Query::GitVersion | Query::StackedBranches { .. } => crate::stacking::answer(git, query),
         Query::Pushed { commit } => {
             rebase::read_pushed(git, &PushedRequest { commit: commit.clone() }).map(Answer::Names)
         }
@@ -300,10 +301,8 @@ pub(crate) fn describe(query: &Query) -> String {
         ),
         Query::Line { commit } => describe_line(commit),
         Query::Messages { commits } => describe_messages(commits),
-        Query::Pushed { commit } => {
-            git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
-        }
-        Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
+        Query::GitVersion | Query::StackedBranches { .. } => crate::stacking::describe(query),
+        Query::Pushed { .. } | Query::CommitFiles { .. } => describe_commit_reads(query),
         Query::FormatPatch { commits } => describe_format_patch(commits),
         Query::PatchCheck { patch } => describe_patch_check(patch),
         Query::FileContents { path } => format!("read {}", path.display()),
@@ -322,6 +321,17 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
+    }
+}
+
+/// The commands that read what a rewrite needs of a commit: the remote branches that have it, the files it changes.
+fn describe_commit_reads(query: &Query) -> String {
+    match query {
+        Query::Pushed { commit } => {
+            git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
+        }
+        Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
+        _ => String::new(), // Only these two come here.
     }
 }
 

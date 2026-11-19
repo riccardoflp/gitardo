@@ -599,6 +599,10 @@ branches of a stack, each started from the one under it, which the rebase would 
 The result is each branch whose tip is among the commits made again, but the one rewritten, with its commit and the
 worktree that has it checked out, if any; and whether git's setting is `true`, `false` or not set.
 
+As built, a feature asks for it with `Query::StackedBranches { base, tip }`. The worktree of each branch is the one
+`%(worktreepath)` names, also the worktree the rebase runs in, so that the plan tells the branch of another worktree from
+its own.
+
 Acceptance:
 
 - [ ] On `p3`, with `p1` at its second commit and `p2` at its third above `main`, a rebase onto `main` gives `p1` and

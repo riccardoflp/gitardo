@@ -22,6 +22,7 @@ mod queries;
 mod readings;
 mod secrets;
 mod setup;
+mod stacking;
 mod steps;
 mod tasks;
 pub mod timeline;

@@ -1207,6 +1207,10 @@ their tests passing; the first five in Gitardo Desktop, the last in the extensio
    of the menus, **Compare First** in the modal dialog of a force push and **See What Changed** on the messages after an
    operation. Cards: every card above.
 
+Phase 1 is built: `git --version` read once for each engine (`Query::GitVersion`), and the branches on the commits a
+rebase makes again with the worktree of each and git's `rebase.updateRefs` (`Query::StackedBranches`); nothing uses them
+yet, so the user sees no change.
+
 Nothing is built yet.
 
 Exit: in a repository with `p1`, `p2` on it and `p3` on `p2`, all above an older `main`, **Rebase p3 onto main**

@@ -21,6 +21,8 @@ mod remote_tags;
 mod remotes_and_stashes;
 #[path = "reads/repositories.rs"]
 mod repositories;
+#[path = "reads/stacked.rs"]
+mod stacked;
 #[path = "reads/submodules.rs"]
 mod submodules;
 #[path = "reads/summary.rs"]

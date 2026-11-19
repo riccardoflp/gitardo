@@ -162,6 +162,17 @@ pub enum Query {
         /// The commit.
         commit: CommitId,
     },
+    /// The version of git, read once for each engine (`repo.read-git-version`). The answer is
+    /// [`super::Answer::GitVersion`].
+    GitVersion,
+    /// The other local branches on the commits a rebase makes again, and git's `rebase.updateRefs`
+    /// (`rebase.read-stacked-branches`). The answer is [`super::Answer::Stacked`].
+    StackedBranches {
+        /// What the rebase starts from, or `None` from the root.
+        base: Option<String>,
+        /// The branch rewritten, or the commit of a detached `HEAD`.
+        tip: String,
+    },
     /// The whole messages of commits (`git log -1 --format=%B <hash>`). The answer is [`super::Answer::Messages`], in
     /// the same order.
     Messages {
