@@ -606,7 +606,10 @@ Rules:
   high, read or not, so that the page does not jump.
 - Extension: the webview draws the two as `<img>` of `data:` URIs, which its policy of content allows for images
   alone; in an `<img>` nothing of an SVG runs and nothing is fetched. A side over 10 MB is not sent: *Too large to show
-  here.* with **Open it in the Diff page**.
+  here.* with **Open it in the diff editor**, as the other notes of the page say: the extension opens a diff of an
+  image in VS Code's diff editor (`diff.image`). The page reads as images the same files as the desktop's
+  ([Q1301](../08-decisions.md#open-questions)), each version's type told by its first bytes as `file-view.read-image`
+  tells it; the size in pixels under a picture is the one the webview reads from it.
 
 Acceptance:
 
@@ -618,7 +621,7 @@ Acceptance:
 - [x] An SVG shows its lines; **Show the images** shows its two pictures.
 - [x] A comparison of two branches that differ in a PNG shows its two versions: in the desktop the page of a
       comparison lists its files, and a file opens in the Diff page, which draws them (`diff.image`).
-- [ ] Extension: the page of a commit that changed a PNG shows its two versions in the webview; one of 12 MB says *Too
+- [x] Extension: the page of a commit that changed a PNG shows its two versions in the webview; one of 12 MB says *Too
       large to show here.*
 
 ### `commit-page.show-in-graph` — Show a commit in the timeline

@@ -52,12 +52,61 @@ export function revisionOf(uri: vscode.Uri): { root: string; revision: string; f
   }
 }
 
-export class GitContentProvider implements vscode.TextDocumentContentProvider {
-  async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
+/** Whether a URI stands for the side of a diff that has no file. */
+export function isAbsent(uri: vscode.Uri): boolean {
+  if (uri.scheme !== SCHEME) return false;
+  try {
+    return !(JSON.parse(uri.query) as { ref?: string }).ref;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The files of the scheme `gitardo` as bytes, which can only be read: VS Code opens an image there in its preview of
+ * images, and the two sides of a diff of an image in its diff editor as two pictures; a text file opens as before
+ * (`file-view.image`, `diff.image`).
+ */
+export class GitFileSystem implements vscode.FileSystemProvider {
+  private readonly changed = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+  readonly onDidChangeFile = this.changed.event;
+
+  async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     const { root, ref, file } = JSON.parse(uri.query) as { root: string; ref: string; file?: string };
-    if (!ref) return '';
-    if (ref === PROPOSAL) return proposals.get(`${root}\n${uri.path.slice(1)}`) ?? '';
+    if (!ref) return new Uint8Array();
+    if (ref === PROPOSAL) return Buffer.from(proposals.get(`${root}\n${uri.path.slice(1)}`) ?? '', 'utf8');
     // The path is the name of the file, but for the URIs whose tab says more than the name.
-    return reads.show({ root }, ref, file ?? uri.path.slice(1));
+    return (await reads.fileBytesAt(root, ref, file ?? uri.path.slice(1))) ?? new Uint8Array();
+  }
+
+  async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    const { at } = JSON.parse(uri.query) as { at?: number };
+    const size = (await this.readFile(uri)).length;
+    return { type: vscode.FileType.File, ctime: 0, mtime: at ?? 0, size, permissions: vscode.FilePermission.Readonly };
+  }
+
+  watch(): vscode.Disposable {
+    // A version of a commit never changes; the index and a proposal carry the time they were asked at.
+    return new vscode.Disposable(() => undefined);
+  }
+
+  readDirectory(): never {
+    throw vscode.FileSystemError.FileNotADirectory();
+  }
+
+  createDirectory(): never {
+    throw vscode.FileSystemError.NoPermissions();
+  }
+
+  writeFile(): never {
+    throw vscode.FileSystemError.NoPermissions();
+  }
+
+  delete(): never {
+    throw vscode.FileSystemError.NoPermissions();
+  }
+
+  rename(): never {
+    throw vscode.FileSystemError.NoPermissions();
   }
 }

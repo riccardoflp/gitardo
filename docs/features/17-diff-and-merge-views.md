@@ -832,7 +832,7 @@ Acceptance:
 - [x] A file with a NUL byte that is not an image still refuses with *This file looks binary.*
 - [x] In a page of a text file and an image, `F7` goes from the last change of the text to the image, and on to the
       next file.
-- [ ] Extension: opening a changed PNG from the Gitardo Changes view shows VS Code's diff editor with the two pictures,
+- [x] Extension: opening a changed PNG from the Gitardo Changes view shows VS Code's diff editor with the two pictures,
       not their bytes as text.
 
 ### `merge-view.page` — The Merge page
@@ -1528,7 +1528,7 @@ Acceptance:
 - [x] Saving the PNG from another program draws the new picture.
 - [x] A PNG cut short says *This image could not be read.* and nothing else.
 - [x] `media/logo.png` at `3f2a1c9` opens a read-only page **logo.png (3f2a1c9)** with the picture of that commit.
-- [ ] Extension: **Open the file at this revision** on a PNG opens VS Code's preview of images with the picture of
+- [x] Extension: **Open the file at this revision** on a PNG opens VS Code's preview of images with the picture of
       the commit.
 
 ### `file-view.read-revision` — A file at a revision

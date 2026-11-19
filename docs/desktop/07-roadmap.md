@@ -831,7 +831,7 @@ the page comes back as it was after the window is closed and opened; on the work
 under half a second; every card of the milestone passes its tests, and the snapshots of the page match, empty, with
 results in each mode and with a match lit in the preview, in the dark and in the light theme.
 
-## M27 — Images, and SVG, drawn where their files are shown
+## M27 — Images, and SVG, drawn where their files are shown (done)
 
 An image in the File page, two versions of it side by side in the Diff page and in the page of a commit, an SVG as its
 picture or as its text, in both apps
@@ -873,6 +873,16 @@ it beside **Empty**; a Markdown file that names the SVG draws it; an SVG that na
 in VS Code, the diff of the PNG opened from the Gitardo Changes view shows the two pictures and the page of that
 commit shows its two versions; every card of the milestone is Built in both apps, or Host only in the extension, and
 the snapshots of the File page and the Diff page with an image match in the dark and in the light theme.
+
+All six phases are built. In the desktop: `file-view.read-image` reads PNG with `tiny-skia`, SVG with `resvg`, and
+JPEG, GIF, WebP, BMP and ICO with the library `image`, only those five; the File page draws an image with its zoom and
+**Preview** and **Source** of an SVG; the Diff page draws the two versions at one scale, with **Image** and **Text** of
+an SVG; the page of a commit draws them under the header of a diff, read once it is shown unfolded, for the binary
+files whose name is of an image (Q1301), and a comparison opens its files in the Diff page, which draws them. In the
+extension: the scheme `gitardo` is a `FileSystemProvider` that can only be read, so that VS Code's preview of images
+and its diff editor draw an image at a revision; the tab of a commit and of a comparison draw the two versions as
+`<img>` of `data:` URIs. The snapshots `file-image`, `diff-image` and `commit-images` are recorded in both themes; the
+step of the end-to-end suite is written and runs with the suite.
 
 ## M28 — Gitardo, by its name
 

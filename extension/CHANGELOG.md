@@ -2,6 +2,16 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- The tab of a commit and the tab of a comparison show an image they changed, a PNG, a JPEG, a GIF, a WebP, a BMP or an ICO, as its two versions side by side in place of *Binary file.*, each at most 240 pixels high, with its size and weight under it and **Empty** on a side that has none; a click opens them in the diff editor. They are read once the diff is shown; a version over 10 MB says *Too large to show here.* An SVG shows its lines, with **Show the images** on its header for its two pictures. They are drawn as images of `data:` URIs, in which nothing of an SVG runs or is fetched.
+
+### Changed
+
+- An image at a commit, in the index or in a conflict, opened from Gitardo, opens in VS Code's preview of images, and the diff of an image in VS Code's diff editor with its two pictures: the files of the scheme `gitardo` are given to VS Code as their bytes. Before, an image at a revision opened as its bytes in a text editor.
+
 ## 1.2.0 - 2026-11-18
 
 ### Added
