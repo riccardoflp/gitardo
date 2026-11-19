@@ -21,7 +21,7 @@ pub fn section_view(state: &ChangesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     };
     let repository = ChangesRepository {
         wants_focus: false,
-        ..repository.clone()
+        ..(**repository).clone()
     };
     let insets = section_insets(ui);
     ui.scope("changes section", |ui| {

@@ -29,6 +29,12 @@
 - **Stop tracking, keep on disk…**, in the same menus, takes a file or a folder out of the index with
   `git rm --cached`, after a warning: the file stays on disk, and its deletion is staged for the next commit. When git
   refuses because the version staged is found nowhere else, **Stop tracking anyway** is offered, as destructive.
+- **Hide its changes from git…**, in the menu of a tracked file of the changes and of the Files page, has git leave the
+  changes of the file alone, skipped in the working tree (the default) or assumed unchanged: they stay on disk and out
+  of every commit. Such files are listed under the changes, in the page and in the section, as **Hidden from git 1**,
+  each marked **skip-worktree** or **assumed unchanged**, where a click shows its diff between the last commit and the
+  disk and **Show its changes to git again** brings it back, one file or all of them; the Files page marks them with a
+  struck eye. The files a sparse checkout leaves out are not listed.
 
 ## 1.2.0 - 2026-11-18
 

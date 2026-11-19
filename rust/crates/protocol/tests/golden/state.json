@@ -104,5 +104,6 @@
   "rebaseStop": null,
   "bisect": null,
   "submodules": [],
-  "shallow": []
+  "shallow": [],
+  "skipped": []
 }

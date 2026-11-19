@@ -1,11 +1,17 @@
 //! What is not committed, as the Changes pane lists it: staged, not staged, untracked and in conflict.
 
+mod skipped;
+
 use std::ffi::OsString;
 
 use model::state::{ChangeKind, ConflictKind, ConflictedFile, FileChange, WorkingTree};
 
 use crate::read::fields::{arguments, unexpected};
 use crate::{Git, GitError};
+
+pub use skipped::{
+    SkippedRead, SkippedRequest, parse_skipped, read_skipped, skipped_arguments, sparse_checkout_arguments,
+};
 
 /// What is being read, for the errors.
 const WHAT: &str = "what is not committed";

@@ -47,6 +47,9 @@ pub struct StateJson {
     /// repository is not shallow (since 1.11).
     #[serde(default)]
     pub shallow: Vec<String>,
+    /// The tracked files git is told not to look at, by hand (since 1.11).
+    #[serde(default)]
+    pub skipped: Vec<SkippedFileJson>,
 }
 
 /// What is checked out.
@@ -274,6 +277,18 @@ pub struct BisectJson {
     pub skipped: Vec<String>,
     /// How many commits are left to test, when git says.
     pub remaining: Option<u32>,
+}
+
+/// A tracked file git is told not to look at, and how (since 1.11).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkippedFileJson {
+    /// Its path from the top of the working tree.
+    pub path: String,
+    /// Whether it is marked skip-worktree: its changes stay out of commits.
+    pub skip_worktree: bool,
+    /// Whether it is marked assume-unchanged.
+    pub assume_unchanged: bool,
 }
 
 /// A submodule.

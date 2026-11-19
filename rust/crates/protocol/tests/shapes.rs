@@ -100,6 +100,10 @@ fn repository() -> RepositoryState {
         shallow: model::state::Shallow {
             ends: vec![commit('2')],
         },
+        skipped: vec![model::state::SkippedFile {
+            path: String::from("config/local.json"),
+            how: model::state::Skipped::Worktree,
+        }],
     }
 }
 

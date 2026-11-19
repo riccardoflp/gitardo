@@ -227,6 +227,11 @@ export interface RepositoryState {
    * does not show them yet (`graph.shallow-end` is Planned in the extension).
    */
   shallow?: string[];
+  /**
+   * The tracked files git is told not to look at, by hand, and how (protocol 1.11); the **Gitardo Changes** view does
+   * not list them yet (`changes.skipped-list` is Planned in the extension).
+   */
+  skipped?: { path: string; skipWorktree: boolean; assumeUnchanged: boolean }[];
 }
 
 /** Who made a commit, or committed it, and when. */

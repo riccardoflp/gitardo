@@ -160,6 +160,7 @@ struct Parts {
     bisect: Option<model::bisect::Bisect>,
     submodules: Vec<model::submodule::Submodule>,
     shallow: Shallow,
+    skipped: Vec<model::state::SkippedFile>,
 }
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
@@ -196,8 +197,14 @@ fn read_parts(
             folder: location.folder.clone(),
         };
         let shallow = scope.spawn(move || read_shallow(git, &shallow_request));
+        let skipped_request = crate::read::changes::SkippedRequest {
+            git_folder: location.git_folder.clone(),
+            before: before.skipped.clone(),
+        };
+        let skipped = scope.spawn(move || crate::read::changes::read_skipped(git, &skipped_request));
         let operation = operation::read_operation(&location.git_folder);
-        let (worktrees, counted) = joined(worktrees)?;
+        let (worktrees, mut counted) = joined(worktrees)?;
+        let skipped = joined(skipped)?;
         let parts = Parts {
             references: joined(references)?,
             head: Head {
@@ -215,7 +222,9 @@ fn read_parts(
             bisect: joined(bisect)?,
             submodules: joined(submodules)?,
             shallow: joined(shallow)?,
+            skipped: skipped.files.clone(),
         };
+        counted.skipped = Some(skipped);
         Ok((parts, counted))
     })
 }
@@ -255,6 +264,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         bisect: parts.bisect,
         submodules: parts.submodules,
         shallow: parts.shallow,
+        skipped: parts.skipped,
     }
 }
 

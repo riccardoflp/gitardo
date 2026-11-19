@@ -5466,6 +5466,9 @@ asked while it is planned; each is built as it says until the maintainer answers
   **Open `<file>`**: the messages after an operation have no button that opens a file at a line, only the operations
   offered after it (`FollowUp::OfferRun`). Should a follow-up that says something with a button that opens a file be
   added, for this and for the other operations that write a file?
+- **Q1451** — `changes.skipped-list`: a click on a file hidden from git opens its diff between the last commit and the
+  disk even when the two are the same, since the list knows only how the file is hidden, not whether it differs. Should
+  the read of the hidden files compare each with the last commit, so that one as committed opens its File page?
 
 ### Of large files and remembered resolutions, from Q1190
 

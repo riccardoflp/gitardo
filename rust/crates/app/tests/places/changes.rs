@@ -249,14 +249,15 @@ fn changes_pane__the_identity_line_reads_name_and_email_or_no_identity_configure
     // The window reads git with the global configuration of whoever runs the tests: the page is drawn alone for a
     // repository with no identity.
     let list = model::changes::ChangesList::default();
-    let page = views::changes::ChangesState::Repository(views::changes::ChangesRepository {
+    let (folded, identity) = (std::collections::BTreeSet::new(), model::state::Identity::default());
+    let page = views::changes::ChangesState::Repository(Box::new(views::changes::ChangesRepository {
         list: &list,
         files: &[],
         tree: &[],
         layout: views::details::FileLayout::List,
-        folded: &std::collections::BTreeSet::new(),
+        folded: &folded,
         commit: views::changes::CommitBox::default(),
-        identity: &model::state::Identity::default(),
+        identity: &identity,
         is_running: false,
         wants_focus: false,
         on_click: model::changes::OpenOnClick::File,
@@ -264,7 +265,9 @@ fn changes_pane__the_identity_line_reads_name_and_email_or_no_identity_configure
         worktree: None,
         marked: None,
         serial: 0,
-    });
+        skipped: &[],
+        is_hidden_folded: false,
+    }));
     let (_, tree) = window.frame(&[], |ui| views::changes::pane(&page, ui));
     assert!(has(&tree, Role::Button, "No identity configured"));
 }

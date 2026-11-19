@@ -129,5 +129,12 @@
   ],
   "shallow": [
     "2222222222222222222222222222222222222222"
+  ],
+  "skipped": [
+    {
+      "path": "config/local.json",
+      "skipWorktree": true,
+      "assumeUnchanged": false
+    }
   ]
 }

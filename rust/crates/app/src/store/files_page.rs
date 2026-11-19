@@ -173,6 +173,7 @@ pub fn page_state(state: &State) -> FilesPageState<'_> {
             .shown_file
             .and_then(|id| state.file_pages.pages.iter().find(|file| file.id == id))
             .map(|file| file.path.as_str()),
+        skipped: state.shown_read().map_or(&[], |read| read.state.skipped.as_slice()),
     }
 }
 

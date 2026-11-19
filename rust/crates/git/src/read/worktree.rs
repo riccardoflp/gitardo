@@ -32,11 +32,14 @@ pub struct WorktreeListRequest {
 }
 
 /// What a read counted in the other worktrees, kept for the read after it (M15): for each, by its folder, the stamp of
-/// its own git folder when it was counted, and its count. Empty, every other worktree is counted.
+/// its own git folder when it was counted, and its count; and the files hidden from git, with the stamp of the index
+/// they were read from (`changes.read-skipped`). Empty, every other worktree is counted, and the index read.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CountedWorktrees {
     /// The stamp and the count of each worktree counted.
     counted: BTreeMap<PathBuf, (GitFolderStamp, Option<usize>)>,
+    /// The files hidden from git the read found.
+    pub(crate) skipped: Option<crate::read::changes::SkippedRead>,
 }
 
 impl CountedWorktrees {

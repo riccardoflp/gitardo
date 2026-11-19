@@ -252,10 +252,10 @@ earns it.
 | [`changes.ignore-patterns`](05-changes-and-commit.md#changesignore-patterns--the-patterns-that-ignore-a-file) | The patterns that ignore a file | Derivation | Built | Planned |
 | [`changes.ignore`](05-changes-and-commit.md#changesignore--ignore-a-file-or-a-folder) | Ignore a file or a folder | Operation | Built | Planned |
 | [`changes.stop-tracking`](05-changes-and-commit.md#changesstop-tracking--stop-tracking-a-file-and-keep-it-on-disk) | Stop tracking a file, and keep it on disk | Operation | Built | Planned |
-| [`changes.read-skipped`](05-changes-and-commit.md#changesread-skipped--read-the-files-hidden-from-git) | Read the files hidden from git | Read | Specified | Planned |
-| [`changes.skip`](05-changes-and-commit.md#changesskip--hide-a-files-changes-from-git) | Hide a file's changes from git | Operation | Specified | Planned |
-| [`changes.unskip`](05-changes-and-commit.md#changesunskip--show-a-files-changes-to-git-again) | Show a file's changes to git again | Operation | Specified | Planned |
-| [`changes.skipped-list`](05-changes-and-commit.md#changesskipped-list--the-files-hidden-from-git-under-the-changes) | The files hidden from git, under the changes | View | Specified | Planned |
+| [`changes.read-skipped`](05-changes-and-commit.md#changesread-skipped--read-the-files-hidden-from-git) | Read the files hidden from git | Read | Built | Planned |
+| [`changes.skip`](05-changes-and-commit.md#changesskip--hide-a-files-changes-from-git) | Hide a file's changes from git | Operation | Built | Planned |
+| [`changes.unskip`](05-changes-and-commit.md#changesunskip--show-a-files-changes-to-git-again) | Show a file's changes to git again | Operation | Built | Planned |
+| [`changes.skipped-list`](05-changes-and-commit.md#changesskipped-list--the-files-hidden-from-git-under-the-changes) | The files hidden from git, under the changes | View | Built | Planned |
 
 ## Branches, tags, remotes and sync
 

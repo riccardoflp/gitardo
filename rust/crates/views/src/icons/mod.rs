@@ -56,10 +56,10 @@ pub(crate) const SEARCH: Icon = Icon::Search;
 /// Filter what is shown or listed.
 pub(crate) const FILTER: Icon = Icon::Filter;
 
-/// Show, show beside.
+/// Show, show beside; show the changes of a file to git again.
 pub(crate) const SHOW: Icon = Icon::Eye;
 
-/// Hide: from what is shown, or from git, by ignoring a file.
+/// Hide: from what is shown, or from git, by ignoring a file or hiding its changes.
 pub(crate) const HIDE: Icon = Icon::EyeOff;
 
 /// Branch.

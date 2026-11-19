@@ -39,6 +39,8 @@ pub struct Changes {
     pub checking: Option<(JobId, Checked)>,
     /// The file shown beside the list, while one is (`changes.beside-file`).
     pub beside: Option<super::changes_beside::Beside>,
+    /// Whether the group of the files hidden from git is folded, while the window is open (`changes.skipped-list`).
+    pub is_hidden_folded: bool,
 }
 
 /// The files with edits not saved that git was asked whether it ignores.
@@ -95,6 +97,10 @@ pub fn reduce(state: &mut State, intent: ChangesIntent) -> Vec<Effect> {
         ChangesIntent::ShowWhole => {
             super::changes_beside::leave(state);
             pages::show_page(state, Page::Changes);
+            Vec::new()
+        }
+        ChangesIntent::FoldHidden => {
+            state.changes.is_hidden_folded = !state.changes.is_hidden_folded;
             Vec::new()
         }
     }
@@ -240,7 +246,7 @@ impl ChangesData {
                 return ChangesState::NoRepository(NoRepositoryState::Loading);
             }
         };
-        ChangesState::Repository(ChangesRepository {
+        ChangesState::Repository(Box::new(ChangesRepository {
             list: &self.list,
             files: &self.files,
             tree: &self.tree,
@@ -255,7 +261,9 @@ impl ChangesData {
             worktree: super::worktrees::banner_state(state, read),
             marked: state.changes.beside.as_ref().and_then(|beside| beside.path.as_deref()),
             serial: state.changes.beside.as_ref().map_or(0, |beside| beside.serial),
-        })
+            skipped: &read.state.skipped,
+            is_hidden_folded: state.changes.is_hidden_folded,
+        }))
     }
 }
 

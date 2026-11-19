@@ -65,6 +65,8 @@ From top to bottom the page shows:
    the file is in the menu of its row (`changes.row-menu`). A file that only an editor has changed has its box greyed
    out, with the tooltip **Not saved: save it to stage it**.
 6. **No changes** when there is nothing in either list.
+7. **Hidden from git**, with their count, under the lists while git is told not to look at some files
+   (`changes.skipped-list`).
 
 A file opened from the page, its diff or the file itself, shows on the right of the page, which stays on the left as a
 column with the file marked (`changes.beside-file`); the Changes view of the bar of views shows the whole page again.
@@ -345,8 +347,8 @@ window ([D71](../08-decisions.md#d71--changes-a-section-of-the-side-column-whose
 - **Entry points**: the side column (`repo.side-column`), under **Repositories**; a click on its heading folds and
   unfolds it.
 - **Uses**: `repo.side-column`, `changes.pane`, `changes.list`, `changes.unsaved`, `changes.row-menu`,
-  `changes.open`, `changes.beside-file`, `commit.create`, `commit.amend`, `commit.draft-message`, `identity.switch`,
-  `conflicts.banner`, `graph.resize-panes`.
+  `changes.open`, `changes.beside-file`, `changes.skipped-list`, `commit.create`, `commit.amend`,
+  `commit.draft-message`, `identity.switch`, `conflicts.banner`, `graph.resize-panes`.
 - **Extension**: VS Code's Source Control side bar is the column, and **Gitardo Changes** a view of it
   (`changes.pane`): nothing to build.
 
@@ -409,7 +411,8 @@ read whole in a narrow column, and keep their box
   wholly staged (Q770), **Discard changes**, **Stash this file…**; then **Save**, only on a file with edits not
   saved.
 - Under a line, on a file still on disk: **Ignore…** (`changes.ignore`), and **Stop tracking, keep on disk…**
-  (`changes.stop-tracking`) on a file git tracks, that is not untracked.
+  (`changes.stop-tracking`) and **Hide its changes from git…** (`changes.skip`) on a file git tracks, that is not
+  untracked.
 - A file only an editor has changed: **Save** and **Compare with the saved file**.
 - A file in conflict: **Resolve with AI, after looking at what is proposed** (only when `ai.*` is set up for
   conflicts), **Resolve its conflicts automatically, after looking at what is proposed** (only when the rules can
@@ -1314,10 +1317,10 @@ it stays on disk: for a file committed by mistake, such as a file of local setti
   file of the changes (`changes.row-menu`) and in the context menu of a file or a folder git tracks in the Files page.
 - **Offered when**: git tracks the file, or files under the folder; not on a file in conflict. The Files page offers it
   on every folder, since it does not know which folders hold tracked files; on a folder with none it refuses.
-- **Reads**: whether git tracks the path, and whether it is a folder (`git ls-files -z -- :(literal)<path>`);
-  `changes.read-skipped`, for the files among them that are hidden from git.
+- **Reads**: whether git tracks the path, and whether it is a folder (`git ls-files -z -- :(literal)<path>`); the files
+  among them hidden from git come from `changes.read-skipped`, with the state of the repository.
 - **Plan**: for each file hidden from git, `git update-index --no-skip-worktree -- <path>` first, since `git rm`
-  leaves such a file alone (built with `changes.read-skipped`, in the second phase of M38); then `git rm --cached -- <path>`, or `git rm --cached -r -- <path>` for a folder, with the
+  leaves such a file alone; then `git rm --cached -- <path>`, or `git rm --cached -r -- <path>` for a folder, with the
   path as `changes.pathspec` writes it. When git refuses because the index has a version that is neither the last
   commit nor the file on disk, Gitardo offers **Stop tracking anyway**, the same plan with `git rm --cached --force`,
   Destructive, because **The version of `<path>` that is staged is lost: it is neither committed nor on disk.**
@@ -1453,7 +1456,8 @@ The files git is told not to look at, listed under the changes while there are a
 - A row for each file: its icon, its name, its folder, and in the small text of details, muted, **skip-worktree** or
   **assumed unchanged**. Its tooltip: *Git does not look at the changes of this file: they stay out of every commit.*
 - A click on a row opens the Diff page of the file between the last commit and the disk, which Gitardo reads itself
-  (`diff.read-sides`) whatever git is told; a file whose version on disk is as committed opens the File page instead.
+  (`diff.read-sides`) whatever git is told. A file whose version on disk is as committed opens the same page, which
+  shows no change: the list does not know, without reading the file, whether it changed (Q1451).
   Its menu: **Open changes**, **Open file**, **Show its changes to git again**.
 - In the tree of the Files page, a hidden file has an eye struck through at the end of its row, with the same tooltip,
   and **Show its changes to git again** in its context menu.

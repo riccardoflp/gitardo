@@ -116,7 +116,8 @@ fn changes_row_menu__the_menu_of_a_changed_file_has_its_actions_and_unstage_on_a
             words::DISCARD,
             words::STASH_FILE,
             words::IGNORE,
-            words::STOP_TRACKING
+            words::STOP_TRACKING,
+            words::HIDE_FROM_GIT
         ]
     );
     assert_eq!(
@@ -128,7 +129,8 @@ fn changes_row_menu__the_menu_of_a_changed_file_has_its_actions_and_unstage_on_a
             words::DISCARD,
             words::STASH_FILE,
             words::IGNORE,
-            words::STOP_TRACKING
+            words::STOP_TRACKING,
+            words::HIDE_FROM_GIT
         ]
     );
 }

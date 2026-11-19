@@ -33,6 +33,8 @@ pub struct FilesPageState<'a> {
     pub marks: &'a TreeMarks,
     /// The file shown beside the tree, by its path, which the tree marks (`file-view.beside-files`).
     pub marked: Option<&'a str>,
+    /// The files hidden from git, which have an eye struck through at the end of their row (`changes.skipped-list`).
+    pub skipped: &'a [model::state::SkippedFile],
 }
 
 /// The files of the page, or why there are none to show.
@@ -109,6 +111,10 @@ enum MenuChoice {
     Ignore,
     /// **Stop tracking, keep on disk…** (`changes.stop-tracking`).
     StopTracking,
+    /// **Hide its changes from git…** (`changes.skip`).
+    Skip,
+    /// **Show its changes to git again** (`changes.unskip`).
+    Unskip,
 }
 
 /// The Files page over the rectangle its caller clipped it to: the tree of the files of the working tree under the row
@@ -215,6 +221,14 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
         FilesRow::File { mark, .. } if marks::is_deleted(*mark) => marks::DIMMED,
         _ => u8::MAX,
     };
+    let is_hidden = matches!(row, FilesRow::File { .. }) && state.skipped.iter().any(|file| file.path == path);
+    if is_hidden {
+        let side = theme.sizes.icon;
+        let eye = place(parts.right(side), (side, side), (Align::Start, Align::Center));
+        ui.icon_in(eye, icons::HIDE, Tone::Muted);
+        let eye_response = ui.interact(ui.id(("hidden from git", path)), eye, Sense::HOVER);
+        ui.tooltip(&eye_response, changes_words::HIDDEN_TOOLTIP);
+    }
     ui.faded(opacity, |ui| {
         row_icons(ui, &mut parts, row);
         match *row {
@@ -233,7 +247,7 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
             FilesRow::Top => {}
         }
     }
-    intents.extend(row_menu(ui, &response, (row, path)));
+    intents.extend(row_menu(ui, &response, (row, path, is_hidden)));
     intents
 }
 
@@ -266,8 +280,13 @@ fn row_icons(ui: &mut Ui<'_>, parts: &mut Area, row: &FilesRow<'_>) {
 /// The context menu of a row: **Open file**, **Show file history**, **Compare with…** and **Search here** for a file;
 /// **Show folder history**, **Compare with…** and **Search here** for a folder; **Compare with…** and **Search here**
 /// for the top folder, whose history is all of it. A file or a folder then has **Ignore…** and **Stop tracking, keep
-/// on disk…**, the second not on a file git does not track, and neither on a file deleted or in conflict.
-fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_>, &str)) -> Option<Intent> {
+/// on disk…**, the second not on a file git does not track, and neither on a file deleted or in conflict; a file git
+/// tracks has **Hide its changes from git…** too, and a file hidden from git **Show its changes to git again** alone.
+fn row_menu(
+    ui: &mut Ui<'_>,
+    response: &ui::Response,
+    (row, path, is_hidden): (&FilesRow<'_>, &str, bool),
+) -> Option<Intent> {
     let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
     let compare = item(icons::COMPARE, words::COMPARE_WITH, MenuChoice::Compare);
     let search_here = item(
@@ -291,7 +310,7 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
         ],
         FilesRow::Top => vec![compare, search_here],
     };
-    entries.extend(ignore_entries(row));
+    entries.extend(ignore_entries(row, is_hidden));
     let run = |feature: &'static str| files_intent(FilesPageIntent::Run(FeatureId(feature), path.to_owned()));
     match ui.context_menu(("files row menu", path), response, &entries)? {
         MenuChoice::Open => Some(files_intent(FilesPageIntent::OpenFile(path.to_owned()))),
@@ -300,6 +319,8 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
         MenuChoice::Compare => Some(run("compare.path-with")),
         MenuChoice::Ignore => Some(run("changes.ignore")),
         MenuChoice::StopTracking => Some(run("changes.stop-tracking")),
+        MenuChoice::Skip => Some(run("changes.skip")),
+        MenuChoice::Unskip => Some(run("changes.unskip")),
         MenuChoice::SearchHere => {
             let place = |is_file| model::file_search::Place {
                 path: path.to_owned(),
@@ -316,25 +337,36 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
 }
 
 /// **Ignore…** and **Stop tracking, keep on disk…** under a line, for the rows that have them.
-fn ignore_entries(row: &FilesRow<'_>) -> Vec<MenuEntry<'static, MenuChoice>> {
-    let mark = match row {
+fn ignore_entries(row: &FilesRow<'_>, is_hidden: bool) -> Vec<MenuEntry<'static, MenuChoice>> {
+    let (mark, is_file) = match row {
         FilesRow::Top => return Vec::new(),
-        FilesRow::File { mark, .. } => mark.map(|file| file.mark),
-        FilesRow::Folder { .. } => None,
+        FilesRow::File { mark, .. } => (mark.map(|file| file.mark), true),
+        FilesRow::Folder { .. } => (None, false),
     };
     let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
-    match mark {
-        Some(TreeMark::Conflicted | TreeMark::Changed(ChangeKind::Deleted)) => Vec::new(),
-        Some(TreeMark::Untracked) => vec![
+    if is_hidden {
+        return vec![
             MenuEntry::Separator,
-            item(icons::HIDE, changes_words::IGNORE, MenuChoice::Ignore),
-        ],
-        _ => vec![
-            MenuEntry::Separator,
-            item(icons::HIDE, changes_words::IGNORE, MenuChoice::Ignore),
-            item(icons::UNSTAGE, changes_words::STOP_TRACKING, MenuChoice::StopTracking),
-        ],
+            item(icons::SHOW, changes_words::SHOW_TO_GIT, MenuChoice::Unskip),
+        ];
     }
+    let mut entries = vec![
+        MenuEntry::Separator,
+        item(icons::HIDE, changes_words::IGNORE, MenuChoice::Ignore),
+    ];
+    match mark {
+        Some(TreeMark::Conflicted | TreeMark::Changed(ChangeKind::Deleted)) => return Vec::new(),
+        Some(TreeMark::Untracked) => return entries,
+        _ => entries.push(item(
+            icons::UNSTAGE,
+            changes_words::STOP_TRACKING,
+            MenuChoice::StopTracking,
+        )),
+    }
+    if is_file {
+        entries.push(item(icons::HIDE, changes_words::HIDE_FROM_GIT, MenuChoice::Skip));
+    }
+    entries
 }
 
 /// The intent of the window for something asked of the page.

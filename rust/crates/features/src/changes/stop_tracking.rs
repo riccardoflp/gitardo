@@ -1,8 +1,6 @@
 //! `changes.stop-tracking`: takes a file, or the files of a folder, out of the index, so that the next commit deletes it
 //! from the repository while it stays on disk.
 
-use std::path::PathBuf;
-
 use model::contract::{
     Answer, AnswerKey, Answers, Context, Danger, FailureOffer, FollowUp, Outcome, Query, Refusal, Step, Target, Text,
 };
@@ -36,11 +34,10 @@ pub fn stop_tracking(context: &Context, answers: &Answers) -> Outcome {
     let Some(status) = statuses.first().filter(|status| status.tracked != Tracked::Nothing) else {
         return Outcome::Refuse(Refusal::saying(&format!("Git does not track {path}.")));
     };
-    let folder = context.repository.folder.clone();
-    let (step, offer) = untrack_steps(folder, &path, status.is_folder);
+    let (steps, offer) = untrack_steps(context, &path, status.is_folder);
     let mut stopped = plan(
         format!("Stop tracking {path}"),
-        vec![step],
+        steps,
         Danger::Confirm(Text::from(stays_on_disk(&path))),
         UNSTAGE_TAKES_IT_BACK,
     );
@@ -80,8 +77,23 @@ pub(super) fn one_path(context: &Context) -> Result<String, Refusal> {
     Ok(path)
 }
 
-/// The step that takes a path out of the index, and the offer of the same with `--force` when git refuses it.
-pub(super) fn untrack_steps(folder: PathBuf, path: &str, is_folder: bool) -> (Step, FollowUp) {
+/// The steps that take a path out of the index, and the offer of the last with `--force` when git refuses it: the files
+/// among them hidden from git with `--skip-worktree` shown to it again first, since `git rm` leaves such a file alone.
+pub(super) fn untrack_steps(context: &Context, path: &str, is_folder: bool) -> (Vec<Step>, FollowUp) {
+    let folder = context.repository.folder.clone();
+    let under = format!("{path}/");
+    let skipped = context
+        .repository
+        .skipped
+        .iter()
+        .filter(|file| file.how.is_skip_worktree())
+        .filter(|file| file.path == path || (is_folder && file.path.starts_with(&under)))
+        .map(|file| file.path.as_str())
+        .collect::<Vec<&str>>();
+    let mut steps = Vec::new();
+    if !skipped.is_empty() {
+        steps.push(super::skip::update_index(context, "--no-skip-worktree", skipped));
+    }
     let arguments: &[&str] = if is_folder {
         &["rm", "--cached", "-r"]
     } else {
@@ -92,7 +104,7 @@ pub(super) fn untrack_steps(folder: PathBuf, path: &str, is_folder: bool) -> (St
     } else {
         &["rm", "--cached", "--force"]
     };
-    let step = with_files(folder.clone(), arguments, [path]);
+    steps.push(with_files(folder.clone(), arguments, [path]));
     let lost = format!("The version of {path} that is staged is lost: it is neither committed nor on disk.");
     let forced = plan(
         String::from("Stop tracking anyway"),
@@ -104,7 +116,7 @@ pub(super) fn untrack_steps(folder: PathBuf, path: &str, is_folder: bool) -> (St
         when: String::from(STAGED_DIFFERENT),
         plan: forced,
     }));
-    (step, offer)
+    (steps, offer)
 }
 
 /// The warning of stopping tracking a path.

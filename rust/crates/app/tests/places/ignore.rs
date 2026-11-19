@@ -20,7 +20,7 @@ const WIDE: (u32, u32) = (1200, 640);
 
 /// Gives what was asked, answers each question of the operation by the choices given in turn, accepts its
 /// confirmation, and waits for it to end.
-fn answer_until_ended(driver: &OperationsDriver, state: &mut State, intents: Vec<Intent>, choices: &[&str]) {
+pub(super) fn answer_until_ended(driver: &OperationsDriver, state: &mut State, intents: Vec<Intent>, choices: &[&str]) {
     for intent in intents {
         driver.intent(state, intent);
     }

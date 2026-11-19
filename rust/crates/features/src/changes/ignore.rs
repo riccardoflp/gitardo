@@ -165,8 +165,8 @@ fn written(context: &Context, answers: &Answers, ignoring: &Ignoring) -> Outcome
     let mut danger = Danger::None;
     let mut on_failure = Vec::new();
     if stopping {
-        let (step, offer) = untrack_steps(folder.clone(), ignoring.path, ignoring.status.is_folder);
-        steps.push(step);
+        let (untracking, offer) = untrack_steps(context, ignoring.path, ignoring.status.is_folder);
+        steps.extend(untracking);
         on_failure.push(offer);
         danger = Danger::Confirm(Text::from(stays_on_disk(ignoring.path)));
     }
