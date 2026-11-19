@@ -450,6 +450,28 @@ Acceptance:
 - [ ] In a linked worktree, it is the `.git` of the main worktree, not the worktree's own git folder.
 - [ ] From a folder inside the working tree, it is the same folder, in full.
 
+### `repo.read-git-version` — Read the version of git
+
+Which git runs the operations, so that a feature that needs a newer one says what it does without it, rather than
+failing in git's words.
+
+- **Kind**: Read
+- **Function**: `git::read::repo::read_git_version(git: &Git, request: &GitVersionRequest) -> Result<GitVersion, GitError>`
+- **Reads**: `git --version`, once for each run of the engine, in the C locale. Its line is
+  `git version <major>.<minor>.<patch>`, followed on some systems by more (`.windows.1`, ` (Apple Git-155)`), which is
+  kept as git said it and not compared.
+- **Uses**: by `rebase.update-refs`. Each version a feature needs is a constant with the version and the reason
+  (R9.5).
+- **Extension**: the engine reads it for itself, under the extension as under the window.
+
+Acceptance:
+
+- [ ] `git version 2.53.0.windows.1` gives 2.53.0.
+- [ ] `git version 2.39.5 (Apple Git-154)` gives 2.39.5.
+- [ ] A line of another form gives an error that quotes it, and a feature that needs a version then acts as on a git
+      too old for it.
+- [ ] It runs once for each engine, however many repositories are open.
+
 ### `repo.watch-changes` — Which changes ask for a read
 
 The repository is read again on its own when it or its files change, from Gitardo, a terminal or another program.

@@ -1885,6 +1885,71 @@ deletes the tags made here and never pushed too); a mark on every tag the remote
 list of marks that says nothing); `--follow-tags` on every push (it sends annotated tags the user may not have meant
 to publish; Q1118); a worktree with no history, `git worktree add --orphan`, in this milestone (Q1127).
 
+## D81 — The branches of a stack move with a rewrite, and what a rewrite changed is shown commit by commit (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M36; the details proposed while planning.*
+
+A rewrite leaves the other local branches on the old commits: rebasing `p3`, made on `p2`, made on `p1`, leaves `p1`
+and `p2` on commits `p3` no longer has, and the next rebase of `p2` replays them twice. Since 2.38 git moves them with
+`--update-refs`. And once a rewrite ran, nothing says what it changed, commit by commit, though `git range-diff` does;
+before a force push, and after someone else's, is when it is wanted. So:
+
+- **The branches move with the rewrite.** The local branches on the commits a rebase makes again are read first
+  (`rebase.read-stacked-branches`), and `rebase.update-refs` decides for every rewrite: the plans that let git write
+  its todo list (`rebase.onto`, `rebase.branch-onto`, `fixup.commit`) get `--update-refs`; those whose todo list is
+  Gitardo's (`rebase.interactive`, and `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit` on
+  it) write `update-ref refs/heads/<branch>` lines into it, after the `exec` of a reword so that the branch takes the
+  reworded commit. The option would do nothing there: the list Gitardo copies over git's replaces git's `update-ref`
+  lines, and its own are run with the option or without it (seen with git 2.53).
+- **By default they move.** Gitardo's setting `rebase.updateRefs`, not set by default, leaves it to git's
+  `rebase.updateRefs`; when neither is set, they move, where git's default is not to: a branch left on old commits is
+  the surprise (Q1130). The command says what happens whatever the configuration of git: `--no-update-refs` when git's
+  setting would move them and Gitardo's says not.
+- **The plan says which.** Its note names the branches that move and those that stay, and what is said after it ran
+  names those that moved. The interactive rebase page shows on the row of a commit the branches on it, marked as
+  moving with it (`rebase.todo-page`; Q1131).
+- **Never a branch of another worktree.** Git leaves a branch checked out in another worktree out of `--update-refs`,
+  but an `update-ref` line moves it all the same and leaves the files and the index of that worktree on the old commit
+  (seen with git 2.53). Gitardo writes no line for it, says that it stays, and asks first; it does not refuse the
+  rewrite (Q1132).
+- **An older git says so.** The version is read once, `git --version` (`repo.read-git-version`); below 2.38 there is
+  neither the option nor the line, the branches stay, and the plan says so and asks first. 2.38 is a constant with its
+  reason (R9.5).
+- **One Undo takes them all back.** The journal entry of the rewrite keeps each branch moved with the commit it was on
+  (`undo.moved-branches`); Undo resets the branch rewritten as before, then moves the others back in one
+  `git update-ref --stdin`, which git makes whole or not at all, each line guarded by the commit the rewrite left the
+  branch on. A branch moved since stays, and the dialog of Undo says so. With no journal, after the engine started
+  again, the reflog takes back the branch rewritten alone (Q1133).
+- **What a rewrite changed, commit by commit.** `git range-diff`, read into pairs (`range-diff.read-pairs`): the same,
+  changed with its diff of diffs, added, dropped; shown on a page of its own (`range-diff.page`), one row a pair, a
+  changed one opening on its diff of diffs. The two lines compared (`range-diff.ranges`) come from the reflog of the
+  branch (`range-diff.read-last-rewrite`): `… (finish): refs/heads/<branch> onto <hash>` for a rebase, a pull that
+  rebased included, `commit (amend)` for an amend, and `forced-update` for a remote branch that a fetch found force
+  pushed. More than 1,000 commits on a side are not compared (Q1138).
+- **Offered where it is asked** (`range-diff.compare`): **See what changed** in what is said after a rewrite; **What
+  its last rewrite changed** on a local branch; **Compare with `<upstream>` commit by commit** on a branch that has
+  commits its upstream has not and the other way round; **Compare first** in the warning of a force push, beside the
+  commits `sync.read-overwritten` lists (Q1140); and **See what changed** after a fetch that found an upstream force
+  pushed.
+- **Read from what git prints for people.** `git range-diff` has no form made for programs, and R9.3 says that a read
+  never parses what git prints for people. Proposed: R9.3 names `git range-diff` as its one exception, read with
+  `--no-color`, `--no-notes` and full hashes, its lines of pairs parsed and its diff of diffs kept as lines; the page of
+  the code rules changes first, in the phase that reads it (Q1139).
+
+In the extension the plans are the engine's: `--update-refs`, the `update-ref` lines and the Undo that takes them back
+reach it with no work of its own but its tests, the modal dialog of a plan showing the note. What a rewrite changed is
+a tab of its own beside the comparison, with the entries in the menus of the graph and the references, **Compare
+First** in the modal dialog of a force push and **See What Changed** on the messages after an operation; all *Planned*,
+brought in the last phase of M36.
+
+Rejected: leaving the branches to git's configuration alone (a stack left behind by default, and a plan that does not
+say it); refusing a rewrite while a branch of the stack is checked out in another worktree (the rewrite here is still
+wanted, and that branch is rebased there; Q1132); moving the branch of another worktree with `git -C <worktree> reset`
+(it changes the files of a worktree the user is not looking at); a range-diff of Gitardo's own, pairing commits by
+their patch identity and diffing their diffs in the `text` crate (a second program for what git does, with its own
+tuning); the comparison page for it (`compare.page` compares two sides by their files and the commits only on each,
+not pairs of commits); comparing at every force push without being asked (a long line of commits takes seconds).
+
 
 ## Open questions
 
@@ -5043,4 +5108,46 @@ asked while it was planned; each is built as it says until the maintainer answer
 - **Q1129** — `branch.unset-upstream`: after it, **Push** pushes the branch as a first push, to the remote of
   `remote.default` under its name, and makes that its upstream again without asking, as `sync.push` does for a new
   branch. Should a push of a branch whose upstream was taken away ask first?
+
+### Of the branches of a stack and what a rewrite changed, from Q1130
+
+Questions of milestone M36 ([D81](#d81--the-branches-of-a-stack-move-with-a-rewrite-and-what-a-rewrite-changed-is-shown-commit-by-commit-proposed)),
+asked while it was planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1130** — `rebase.update-refs`: with neither Gitardo's `rebase.updateRefs` nor git's set, the branches of a stack
+  move with a rewrite, where git's own default is not to move them. Is that the default wanted?
+- **Q1131** — `rebase.todo-page`: the rows show the branches on each commit, marked as moving with it, and they all move.
+  Should each be a box to untick, so that one branch of the stack stays where it is?
+- **Q1132** — `rebase.update-refs`: a branch of the stack checked out in another worktree stays on the old commits, and
+  the plan says so and asks first. Should the rewrite be refused instead, until that worktree has another branch?
+- **Q1133** — `undo.moved-branches`: with no journal, after the engine started again, Undo goes by the reflog and takes
+  back the branch rewritten alone; the others, whose reflogs say `rewritten during rebase`, stay. Should Undo read
+  their reflogs and put them back too?
+- **Q1134** — `rebase.update-refs`: `git pull --rebase` (`sync.pull`, `sync.sync`) rewrites the commits not pushed, and
+  is not given the option: git's own setting decides there. Should a pull follow the same rule as a rebase?
+- **Q1135** — `rebase.update-refs`: an amend of the last commit (`commit.amend`, `message.edit`) is not a rebase, and a
+  branch on the commit amended stays on the old one. Should the amend move it too, with `git update-ref`?
+- **Q1136** — `rebase.update-refs`: Gitardo's setting is named `rebase.updateRefs`, as git's is, the way `pull.rebase` is
+  named as git's. Is that name right, or should it be one that says it is Gitardo's?
+- **Q1137** — `range-diff.ranges`: a branch and its upstream with no rebase from the upstream are compared by the commits
+  each has that the other has not, so the commits that a rebase onto a newer base brought in are listed as added.
+  Should the base of the branch be found another way, as its merge base with the default branch of the remote?
+- **Q1138** — `range-diff.read-pairs`: more than 1,000 commits on either side are not compared, since git pairs every
+  commit of one side with every commit of the other. Is 1,000 the right limit?
+- **Q1139** — `range-diff.read-pairs`: `git range-diff` has no form made for programs, so the read parses what it prints
+  for people, against R9.3. Should R9.3 name it as an exception, as D81 proposes, or should the pairs be made by
+  Gitardo from `git patch-id` and the diffs of each commit?
+- **Q1140** — `range-diff.compare`: **Compare first** is a third button of the warning of a force push, which closes it,
+  runs nothing and opens the page; a plan has had **Run** and **Cancel** alone until now (`preview.confirm`). Is a
+  button of a feature in that dialog acceptable, or should **Compare with `<upstream>` commit by commit** be in the menu
+  of **Sync** only?
+- **Q1141** — `range-diff.page`: the pairs that are the same are listed, dimmed. Should they be hidden, or folded into
+  one row that says how many there are?
+- **Q1142** — `range-diff.compare`: **See what changed** is offered after every rewrite that made a commit again, a
+  squash and a fixup included, after which most commits are changed. Should it be offered after a rebase onto another
+  base alone?
+- **Q1143** — `range-diff.read-pairs`: git pairs two commits when their diffs are close enough, by its creation factor of
+  60. Should a setting change it?
+- **Q1144** — `range-diff.page`: the diff of diffs is shown as git prints it, its two marks side by side in one column.
+  Should a changed pair open the two diffs side by side in the Diff page instead?
 

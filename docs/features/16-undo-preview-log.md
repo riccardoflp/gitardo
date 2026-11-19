@@ -196,6 +196,42 @@ Acceptance:
 - [ ] The journal keeps at most 50 entries per repository. (A number of Gitardo Desktop's own: the extension keeps
       what it needs in memory only. Whether entries survive a restart is open question Q4.)
 
+### `undo.moved-branches` — Take back the branches a rewrite moved
+
+The journal entry of a rewrite that moved the other branches of a stack keeps where each was, so that one Undo puts
+them back with the branch rewritten.
+
+- **Kind**: Derivation
+- **Function**: `engine::undo::moved_branches(entry: &JournalEntry, state: &RepoState) -> MovedBranchesUndo`
+- **Uses**: `undo.journal`, `undo.last`, `rebase.update-refs`, `rebase.read-stacked-branches`.
+- **Extension**: the engine's, in the plan of `undo.last` that the extension runs on the engine.
+
+Rules:
+
+- A plan that moves branches with `--update-refs` or `update-ref` lines (`rebase.update-refs`) records in its journal
+  entry each branch it is to move with the commit it was on, as `rebase.read-stacked-branches` read it, and, once it
+  ran, the commit it is on.
+- Undo of that entry reads where each of those branches is now. Its plan is the step of `undo.last` for the branch
+  rewritten, `git reset --keep <before>`, then one
+  `git update-ref -m "undo: back to before the rebase" --stdin`, with one line
+  `update refs/heads/<branch> <before> <after>` for each branch on standard input, shown beside the step as the
+  preview shows what a step reads. Git makes them all or none, and refuses a branch that is no longer at `<after>`.
+- A branch that moved since the rewrite, by a commit or anything else, is left out of the lines, and the dialog of
+  Undo says so: "`p1` moved since the rebase and stays where it is." The others go back.
+- A branch the rewrite left behind (`rebase.update-refs`) is not in the entry.
+- The dialog says it in words: *Undo the rebase of `p3`, and put `p1` and `p2` back where they were.*
+- With no entry in the journal (the engine started again since), Undo goes by the reflog as before, and takes back the
+  branch rewritten alone (Q1133).
+
+Acceptance:
+
+- [ ] After a rebase of `p3` that moved `p1` and `p2`, one Undo puts `p3`, `p1` and `p2` back on their commits of
+      before; the log has `git reset --keep <before>` and `git update-ref … --stdin` with two lines.
+- [ ] With a commit made on `p1` since the rebase, Undo puts `p3` and `p2` back, leaves `p1` where it is, and its
+      dialog says so.
+- [ ] After a rebase that moved no other branch, the plan of Undo has no `git update-ref`.
+- [ ] Extension: one **Undo** after a rebase that moved `p1` puts both branches back.
+
 ### `activity.track` — Say what is running
 
 Every read, plan, comparison and request that may take longer than a frame is registered while it runs, with what it is

@@ -1144,6 +1144,54 @@ warning and `v1` is gone from both; **Create branch with no history…** named `
 leaves only the untracked files in the working tree, its first commit has no parent, and Undo before that commit goes
 back to `main`; every card of the milestone passes its tests, in the desktop and, after phase 5, in the extension.
 
+## M36 — Stacked branches and what a rewrite changed
+
+The other local branches on the commits a rewrite makes again move with it, the plan says which, and one Undo takes
+them all back; and what a rebase, an amend or a force push changed is shown commit by commit, as `git range-diff`
+pairs the commits
+([D81](../08-decisions.md#d81--the-branches-of-a-stack-move-with-a-rewrite-and-what-a-rewrite-changed-is-shown-commit-by-commit-proposed)).
+Asked by the maintainer: rebasing the top of a stack of branches leaves the branches under it on the old commits, and
+nothing said what a rewrite changed. Built in six phases, each one commit or more, each ending with its cards built and
+their tests passing; the first five in Gitardo Desktop, the last in the extension.
+
+1. **The version of git, and the branches of a stack.** `git --version` read once for each engine; the local branches
+   on the commits a rebase makes again, with the worktree that has each, and git's own `rebase.updateRefs`. Cards:
+   `repo.read-git-version`, `rebase.read-stacked-branches`.
+2. **The branches move with the rewrite.** `--update-refs`, or `--no-update-refs` when git's setting says otherwise, on
+   the rebases that let git write their todo list; `update-ref` lines in the todo lists Gitardo writes, after the
+   `exec` of a reword; none for a branch of another worktree, nor on a git older than 2.38, each said in the note of the
+   plan, which then asks first; what is said after names the branches that moved; the branches of each commit shown on
+   the interactive rebase page; Gitardo's setting `rebase.updateRefs`, added to the list of the settings in the section
+   **Pull and commits**. Cards: `rebase.update-refs`, `rebase.build-todo-list`, `rebase.onto`, `rebase.branch-onto`,
+   `rebase.interactive`, `rebase.todo-page`, `fixup.commit`, `settings.read`.
+3. **One Undo for the whole stack.** The journal entry of a rewrite keeps each branch it moved; Undo resets the branch
+   rewritten and moves the others back in one `git update-ref --stdin`, leaving out and naming a branch moved since.
+   Cards: `undo.moved-branches`, `undo.last`, `undo.journal`.
+4. **What a rewrite changed, read.** First the code rules: R9.3 names `git range-diff` as the one read that parses
+   what git prints for people (Q1139). Then the last rewrite of a branch, or the last force push of a remote branch,
+   from its reflog; the two lines of commits for each case; `git range-diff` read into pairs with their diffs of diffs,
+   tested on recorded output. Cards: `range-diff.read-last-rewrite`, `range-diff.ranges`, `range-diff.read-pairs`.
+5. **The page, and where it is offered.** The page of the pairs, a changed one opening on its diff of diffs; **See
+   what changed** after a rewrite and after a fetch that found an upstream force pushed, **What its last rewrite
+   changed** on a branch, **Compare with `<upstream>` commit by commit** on a branch that diverged from its upstream,
+   and **Compare first** in the warning of a force push. Cards: `range-diff.page`, `range-diff.compare`,
+   `sync.push-force-with-lease`, `sync.push-force`, `preview.confirm`.
+6. **In the extension.** The plans already come from the engine: its end-to-end suite rebases a stack and undoes it;
+   the setting `gitardo.rebase.updateRefs`; the tab of what a rewrite changed, beside the comparison, with the entries
+   of the menus, **Compare First** in the modal dialog of a force push and **See What Changed** on the messages after an
+   operation. Cards: every card above.
+
+Nothing is built yet.
+
+Exit: in a repository with `p1`, `p2` on it and `p3` on `p2`, all above an older `main`, **Rebase p3 onto main**
+runs `git rebase --update-refs main`, and `p1` and `p2` are on the new commits after, what is said naming them; with
+`p2` checked out in another worktree, the plan asks first and says that `p2` stays, and that worktree's files are as
+they were; editing the message of the commit `p1` is on moves `p1` to the reworded commit; one Undo puts the three
+branches back; **See what changed** after the rebase opens the page with each commit paired, and after a commit was
+reworded and one dropped, the reworded one opens on its diff of diffs; before **Push (force with lease)** of `p3`,
+**Compare first** opens the page of `origin/p3` against `p3` and pushes nothing; every card of the milestone passes its
+tests, in the desktop and, after phase 6, in the extension.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 520 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 529 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -17,13 +17,13 @@ earns it.
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 34 |
+| [01-repositories.md](01-repositories.md) | Repositories | 35 |
 | [02-graph.md](02-graph.md) | Graph | 59 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 20 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 29 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 47 |
-| [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
+| [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 37 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 39 |
 | [10-compare.md](10-compare.md) | Compare | 26 |
@@ -32,7 +32,7 @@ earns it.
 | [13-submodules.md](13-submodules.md) | Submodules | 20 |
 | [14-patches.md](14-patches.md) | Patches | 7 |
 | [15-github.md](15-github.md) | GitHub | 6 |
-| [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
+| [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 7 |
 | [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 53 |
 | [18-settings.md](18-settings.md) | Settings | 7 |
 | [19-tasks.md](19-tasks.md) | Tasks | 9 |
@@ -55,6 +55,7 @@ earns it.
 | [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built | Built |
 | [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Specified | Planned |
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
+| [`repo.read-git-version`](01-repositories.md#reporead-git-version--read-the-version-of-git) | Read the version of git | Read | Specified | Planned |
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Built | Built |
 | [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Built | Built |
 | [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Built | Built |
@@ -309,6 +310,8 @@ earns it.
 | [`rebase.branch-onto`](07-history-rewriting.md#rebasebranch-onto--rebase-another-local-branch-onto-a-commit) | Rebase another local branch onto a commit | Operation | Built | Built |
 | [`rebase.find-line-before-head`](07-history-rewriting.md#rebasefind-line-before-head--the-line-of-commits-an-interactive-rebase-can-rewrite) | The line of commits an interactive rebase can rewrite | Derivation | Built | Built |
 | [`rebase.read-pushed`](07-history-rewriting.md#rebaseread-pushed--where-a-commit-was-pushed) | Where a commit was pushed | Read | Built | Built |
+| [`rebase.read-stacked-branches`](07-history-rewriting.md#rebaseread-stacked-branches--the-other-branches-on-the-commits-a-rewrite-makes-again) | The other branches on the commits a rewrite makes again | Read | Specified | Planned |
+| [`rebase.update-refs`](07-history-rewriting.md#rebaseupdate-refs--which-branches-move-with-a-rewrite) | Which branches move with a rewrite | Derivation | Specified | Planned |
 | [`rebase.todo-page`](07-history-rewriting.md#rebasetodo-page--the-interactive-rebase-page) | The interactive rebase page | View | Built | Built |
 | [`rebase.build-todo-list`](07-history-rewriting.md#rebasebuild-todo-list--the-todo-list-of-an-interactive-rebase) | The todo list of an interactive rebase | Derivation | Built | Built |
 | [`rebase.interactive`](07-history-rewriting.md#rebaseinteractive--run-an-interactive-rebase) | Run an interactive rebase | Operation | Built | Built |
@@ -323,6 +326,11 @@ earns it.
 | [`fixup.commit`](07-history-rewriting.md#fixupcommit--add-changes-to-an-earlier-commit) | Add changes to an earlier commit | Operation | Built | Built |
 | [`drag.list-drop-entries`](07-history-rewriting.md#draglist-drop-entries--what-a-drop-offers) | What a drop offers | Derivation | Built | Built |
 | [`drag.drop`](07-history-rewriting.md#dragdrop--drag-a-commit-or-a-branch-onto-the-timeline) | Drag a commit or a branch onto the timeline | View | Built | Built |
+| [`range-diff.read-last-rewrite`](07-history-rewriting.md#range-diffread-last-rewrite--read-what-a-branch-was-before-it-was-rewritten) | Read what a branch was before it was rewritten | Read | Specified | Planned |
+| [`range-diff.ranges`](07-history-rewriting.md#range-diffranges--the-two-lines-of-commits-compared) | The two lines of commits compared | Derivation | Specified | Planned |
+| [`range-diff.read-pairs`](07-history-rewriting.md#range-diffread-pairs--read-what-a-rewrite-changed-commit-by-commit) | Read what a rewrite changed, commit by commit | Read | Specified | Planned |
+| [`range-diff.compare`](07-history-rewriting.md#range-diffcompare--see-what-a-rewrite-changed) | See what a rewrite changed | Operation | Specified | Planned |
+| [`range-diff.page`](07-history-rewriting.md#range-diffpage--what-a-rewrite-changed-commit-by-commit) | What a rewrite changed, commit by commit | View | Specified | Planned |
 
 ## Stashes
 
@@ -560,6 +568,7 @@ earns it.
 | [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Built | Host only |
 | [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Built | Built |
 | [`undo.journal`](16-undo-preview-log.md#undojournal--remember-what-undo-needs) | Remember what Undo needs | Derivation | Built | Built |
+| [`undo.moved-branches`](16-undo-preview-log.md#undomoved-branches--take-back-the-branches-a-rewrite-moved) | Take back the branches a rewrite moved | Derivation | Specified | Planned |
 | [`activity.track`](16-undo-preview-log.md#activitytrack--say-what-is-running) | Say what is running | Operation | Built | Built |
 
 ## Diff, Merge and File pages

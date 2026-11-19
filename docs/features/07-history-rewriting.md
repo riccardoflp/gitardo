@@ -2,8 +2,9 @@
 
 What changes the commits of a branch, or brings commits from elsewhere onto it: merging in its four ways, cherry-picking
 one commit or several, reverting, resetting, rebasing onto something else, the interactive rebase and the operations
-built on it (editing a message, squashing, splitting, fixup), several commits selected at once, and dragging commits and
-branches onto the timeline. What the banner offers once one of them stops (**Continue**, **Skip**, **Abort**) is in the
+built on it (editing a message, squashing, splitting, fixup), several commits selected at once, dragging commits and
+branches onto the timeline, the other branches of a stack that move with a rewrite, and what a rewrite changed, commit
+by commit (`range-diff.`). What the banner offers once one of them stops (**Continue**, **Skip**, **Abort**) is in the
 conflicts area: `conflicts.continue-operation`, `conflicts.skip-step`, `conflicts.abort-operation`. Copying or saving commits as a patch is in the
 patch area.
 
@@ -577,6 +578,93 @@ Acceptance:
 - [ ] A commit on no remote branch gives nothing and adds no note.
 - [ ] Extension: rewording the last commit after it was pushed to `origin/reword` asks, even with
       `gitardo.commandPreview` set to `off`, with the note above.
+
+### `rebase.read-stacked-branches` — The other branches on the commits a rewrite makes again
+
+The local branches, other than the one rewritten, whose tip is one of the commits a rebase is about to make again: the
+branches of a stack, each started from the one under it, which the rebase would leave on the old commits.
+
+- **Kind**: Read
+- **Function**: `git::read::rebase::read_stacked_branches(git: &Git, request: &StackedRequest) -> Result<StackedBranches, GitError>`
+- **Entry points**: none: read by the operations of `rebase.update-refs` before they make their plan.
+- **Reads**:
+  - the commits made again: `git rev-list <base>..<tip> --`, `<tip>` the branch rewritten and `<base>` what the rebase
+    starts from (the commit or branch it is onto for `rebase.onto` and `rebase.branch-onto`, the base of the todo list
+    for an interactive rebase); `git rev-list <tip> --` when the interactive rebase starts at the root;
+  - the local branches with the folder of the worktree that has each checked out:
+    `git for-each-ref --format=%(refname)%00%(objectname)%00%(worktreepath)%00 refs/heads`;
+  - git's own setting: `git config --type=bool --get rebase.updateRefs`, which ends with 1 when it is not set.
+- **Extension**: the engine reads it for the operations it runs; the extension does not read it.
+
+The result is each branch whose tip is among the commits made again, but the one rewritten, with its commit and the
+worktree that has it checked out, if any; and whether git's setting is `true`, `false` or not set.
+
+Acceptance:
+
+- [ ] On `p3`, with `p1` at its second commit and `p2` at its third above `main`, a rebase onto `main` gives `p1` and
+      `p2`, each with its commit.
+- [ ] A branch at `<base>` itself is not given: that commit is not made again.
+- [ ] A branch at the same commit as the tip of the branch rewritten is given.
+- [ ] A branch checked out in another worktree is given with the folder of that worktree.
+- [ ] git's `rebase.updateRefs` set to `true` is given as set to true; not set, as not set.
+
+### `rebase.update-refs` — Which branches move with a rewrite
+
+Decides whether a rewrite takes the other branches of a stack with it, and says which in its plan, so that a branch on
+a commit made again is not left on the old one.
+
+- **Kind**: Derivation
+- **Function**: `model::rebase::update_refs(input: &UpdateRefsInput) -> UpdateRefs`
+- **Settings**: `rebase.updateRefs` of Gitardo: `true`, `false`, or not set, its default, where git's own
+  `rebase.updateRefs` decides, and moving them when that is not set either (Q1130).
+- **Uses**: `rebase.read-stacked-branches`, `repo.read-git-version`, `rebase.build-todo-list`; by `rebase.onto`,
+  `rebase.branch-onto`, `rebase.interactive` and the operations built on it (`message.edit`, `squash.commits`,
+  `squash.into-previous`, `split.commit`), `fixup.commit`, and so by `drag.drop`; `undo.moved-branches`.
+- **Extension**: the engine's, in the plans of those operations, which the extension runs on the engine; the setting is
+  `gitardo.rebase.updateRefs`.
+
+Rules:
+
+- Input: the version of git, Gitardo's setting and git's, the branches read by `rebase.read-stacked-branches`, and,
+  for an interactive rebase, its steps. Output: the option of the rebase, the `update-ref` lines of the todo list, the
+  branches that move and those that stay, and the note of the plan.
+- The branches move when Gitardo's setting is `true`, or when it is not set and git's is not `false`.
+- With no branch on the commits made again, nothing changes: no option, no line, no note.
+- A rebase with git's own todo list (`rebase.onto`, `rebase.branch-onto`, `fixup.commit`) gets `--update-refs` when
+  the branches move, and `--no-update-refs` when they do not and git's setting is `true`, so that the command says what
+  happens whatever the configuration of git.
+- An interactive rebase whose todo list is Gitardo's (`rebase.interactive`) replaces git's list, `update-ref` lines
+  included, so the option would do nothing: `rebase.build-todo-list` writes `update-ref refs/heads/<branch>` itself
+  after the line of the commit each branch is on, and after its `exec` line when it is reworded, so that the branch
+  takes the reworded commit. A branch on a commit dropped moves to the commit kept before it; on a commit squashed or
+  fixed up, to the commit it becomes.
+- A branch checked out in another worktree never moves: git leaves it out of `--update-refs`, and Gitardo writes no
+  line for it, since a line moves it all the same and leaves the files and the index of that worktree on the old
+  commit (Q1132).
+- Git older than 2.38 has neither the option nor the line: no option, no line, and the branches stay.
+- The note of the plan, after its own: "These branches move with it: `p1`, `p2`."; for those that stay, "`p2` is
+  checked out in `<folder>` and stays on the old commits: rebase it there.", "Git `<version>` cannot move `p1` and `p2`
+  with the rewrite (2.38 or later can): they stay on the old commits.", or, with the setting off, "`p1` and `p2` stay on
+  the old commits." A plan that leaves a branch behind is Confirm at least; one that moves them all keeps its danger.
+- Once it ran, what is said after names the branches that moved: "Rebased `p3` onto `main`; `p1` and `p2` moved with
+  it."
+
+Acceptance:
+
+- [ ] Rebasing `p3` onto `main`, with `p1` and `p2` under its tip, runs `git rebase --update-refs main`; `p1` and `p2`
+      are on the new commits after, and what is said names them.
+- [ ] With Gitardo's `rebase.updateRefs` set to `false` and git's set to `true`, it runs
+      `git rebase --no-update-refs main`, asks first, and the note says that `p1` and `p2` stay.
+- [ ] With no other branch on the commits made again, the command has neither option.
+- [ ] With git 2.37, the command has neither option, and it asks first with the note that says which branches stay
+      and why.
+- [ ] With `p2` checked out in another worktree, the note says that it stays, and that worktree's files and index are
+      as they were after the rebase.
+- [ ] Editing the message of the commit `p1` is on (`message.edit`) writes `update-ref refs/heads/p1` after the `exec`
+      line of the reword, and `p1` is on the reworded commit after.
+- [ ] Squashing the commit `p1` is on into the one before it moves `p1` to the commit they become.
+- [ ] Extension: rebasing `p3` onto `main` from the graph runs `git rebase --update-refs main` in the engine, and the
+      modal dialog of the plan, when it shows, names `p1` and `p2`.
 
 ### `rebase.todo-page` — The interactive rebase page
 
@@ -1168,3 +1256,191 @@ Acceptance:
 - [ ] Extension: dropping the local branch `feature` on the commit checked out on `main` offers exactly **Merge feature
       into main**, **Merge feature into main…** and **Rebase main onto feature**.
 - [ ] Extension: while an operation is under way, no drop offers anything.
+
+### `range-diff.read-last-rewrite` — Read what a branch was before it was rewritten
+
+Where a branch was before its last rebase or amend, and what the rebase was onto, from the reflog of the branch; and
+where a remote branch was before a fetch found it force pushed.
+
+- **Kind**: Read
+- **Function**: `git::read::range_diff::read_last_rewrite(git: &Git, request: &LastRewriteRequest) -> Result<Option<Rewrite>, GitError>`
+- **Entry points**: none: read by `range-diff.compare` and by what offers it.
+- **Reads**: `git log -g -z --max-count=50 --format=%H%x00%gs <reference> --`, the last moves of the branch or of the
+  remote branch, newest first, each the commit it moved to and what git wrote of the move.
+- **Extension**: the engine's, for `range-diff.compare`.
+
+Rules:
+
+- For a local branch, the newest of those moves that is a rewrite:
+  - `<what> (finish): refs/heads/<branch> onto <hash>`, as git writes it for `git rebase`, `git rebase -i` and
+    `git pull --rebase`, is a rebase: the commit of that move is the tip after it, the commit of the move before it
+    the tip before, and `<hash>` the commit it was onto;
+  - `commit (amend): <subject>` is an amend: the tip after and the tip before, as for a rebase, each with its parent as
+    its base.
+- For a remote branch, the newest move that ends in `forced-update`, as a fetch writes it when the remote branch was
+  force pushed: the commit of that move and the commit of the move before it.
+- A reference with none of these among its 50 last moves gives nothing; so does a move whose commit before is no longer
+  in the repository.
+
+Acceptance:
+
+- [ ] After `git rebase main` on `feature`, it gives the tip before, the tip after and the commit of `main` it was onto.
+- [ ] After `git pull --rebase`, it gives the same, onto the commit of the upstream.
+- [ ] After an amend, it gives the commit before and the commit after, with their parents.
+- [ ] After a commit made on top of a rebase, it still gives the rebase, with the tip it made.
+- [ ] After a fetch that found `origin/feature` force pushed, it gives where `origin/feature` was before and after.
+- [ ] A branch that was only ever committed to gives nothing.
+
+### `range-diff.ranges` — The two lines of commits compared
+
+Which commits were there before and which are there now, for each way of reaching the page of what a rewrite changed.
+
+- **Kind**: Derivation
+- **Function**: `model::range_diff::ranges(input: &RangesInput) -> Option<Ranges>`
+- **Uses**: `range-diff.read-last-rewrite`; by `range-diff.compare`.
+- **Extension**: the engine's, for `range-diff.compare`.
+
+Rules, each giving the arguments of `git range-diff`:
+
+- After a rebase onto `<base>`: before, the commits from `<base>` to the tip before; now, from `<base>` to the tip
+  after: `<base> <tip before> <tip after>`, the form of three that git reads as `<base>..<tip before>` and
+  `<base>..<tip after>`.
+- After an amend: `<before>^..<before> <after>^..<after>`. An amend of the first commit, which has no parent, gives
+  nothing.
+- A branch and its upstream: when the last rewrite of the branch started from the commit its upstream is at (it was
+  pushed, then rebased), the ranges of that rebase, `<base> <upstream> <branch>`; otherwise the commits each has that
+  the other has not, `<upstream>...<branch>`, which git reads as `<branch>..<upstream>` and `<upstream>..<branch>`. In
+  that form the commits a rebase onto a newer base brought in are among the commits added (Q1137).
+- A remote branch force pushed: `<before>...<after>`.
+- Two sides that are the same commit give nothing.
+
+Acceptance:
+
+- [ ] A rebase of `feature` from `a1` to `b2` onto `m3` gives `m3 a1 b2`.
+- [ ] An amend of `c4` into `c5` gives `c4^..c4 c5^..c5`.
+- [ ] `feature`, rebased after it was pushed to `origin/feature` and not pushed since, gives the ranges of the rebase,
+      from `origin/feature`.
+- [ ] `feature` and `origin/feature` that each have commits the other has not, with no rebase from the upstream, give
+      `origin/feature...feature`.
+
+### `range-diff.read-pairs` — Read what a rewrite changed, commit by commit
+
+The commits of two lines paired, as `git range-diff` pairs them: the same commit made again, a commit changed with
+what changed in it, a commit added, a commit dropped.
+
+- **Kind**: Read
+- **Function**: `git::read::range_diff::read_pairs(git: &Git, request: &RangeDiffRequest) -> Result<RangeDiff, GitError>`,
+  with `git::read::range_diff::parse_pairs(output: &[u8]) -> Result<Vec<Pair>, GitError>`
+- **Reads**:
+  - how many commits each line has, `git rev-list --count <range> --` for each; more than 1,000 on either side are
+    not compared (Q1138);
+  - `git range-diff --no-color --no-notes --abbrev=<length of a full hash> <ranges>`, the ranges of `range-diff.ranges`;
+  - the subject of each commit named, `git log --no-walk=unsorted -z --format=%H%x00%s <hashes> --`.
+- **Uses**: `range-diff.ranges`, `activity.track`, which says **Comparing the commits of `<branch>`** while it runs for
+  more than half a second.
+- **Extension**: the engine's, asked by the tab of `range-diff.page`.
+
+Git has no form of `range-diff` made for programs, so this read parses the one it prints for people, against rule
+R9.3 (Q1139). Each pair is a line `<n>:  <hash> <mark> <m>:  <hash> <subject>`, the numbers padded with spaces, a commit
+missing on one side written `-` with a line of `-` in place of its hash; the mark is `=` (the same), `!` (changed), `>`
+(added, only now) or `<` (dropped, only before). The lines after a pair that start with four spaces are its diff of
+diffs: with the four spaces taken off, each starts with the mark of the outer diff (a space, `-` before, `+` now), then
+the line of the diff it is in, under headings `## Commit message ##`, `## <path> ##` and `## Metadata ##`.
+
+Acceptance:
+
+- [ ] After a rebase in which one commit was reworded and one dropped, it gives a pair the same, a pair changed whose
+      diff of diffs is under `## Commit message ##`, and a pair dropped.
+- [ ] A commit only in the second line is a pair added, with no commit before.
+- [ ] Every hash is given in full.
+- [ ] A recorded output whose subject holds ` ! ` and `:` is read the same.
+- [ ] Two lines of 1,200 commits are not compared, and the error says how many there are.
+
+### `range-diff.compare` — See what a rewrite changed
+
+Opens, commit by commit, what a rebase or an amend changed in a branch, what a force push would replace, or what
+someone else's force push replaced.
+
+- **Kind**: Operation
+- **Function**: `features::range_diff::compare(context, answers) -> Outcome`
+- **Entry points**:
+  - **See what changed** in what is said after a rebase, an interactive rebase and the operations built on it, an
+    amend and a pull that rebased, once they ended and made at least one commit again;
+  - **What its last rewrite changed** in the context menu of a local branch;
+  - **Compare with `<upstream>` commit by commit** in the context menu of a local branch that has commits its upstream
+    has not and the other way round, as of the last fetch, and among the other ways to push in the menu of **Sync**
+    while the branch checked out is so;
+  - **Compare first** in the warning of `sync.push-force-with-lease` and of `sync.push-force`, which closes it, runs
+    nothing and opens the page (Q1140);
+  - after a fetch that found the upstream of a local branch force pushed, "`<remote branch>` was force pushed." with
+    **See what changed**; and **What the force push changed** in the context menu of that remote branch.
+- **Extension**: the same entries in the menus of the graph and the references (`branchMenu` and `remoteBranchMenu` in
+  `src/webview/menus.ts`), in **More push options** beside **Push**, and on the messages the extension says after an
+  operation (`Controller.afterSync`, `Controller.say`); each sends `feature/run` of `range-diff.compare` to Gitardo's
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`), whose follow-up opens the tab of `range-diff.page`.
+  The warning of a force push is VS Code's modal dialog, which gets **Compare First**. When the engine's binary is
+  missing, it says so (D49).
+- **Reads**: `range-diff.read-last-rewrite` for the branch, or for the remote branch; the upstream, from the state of the
+  repository.
+- **Plan**: no step; it changes nothing.
+- **Danger**: None
+- **Undo**: Nothing to undo: it changes nothing.
+- **After**: the page of what changed opens (`range-diff.page`), with the ranges of `range-diff.ranges`.
+- **Refuses**: "`<branch>` has not been rebased or amended lately." when its reflog has no rewrite;
+  "`<branch>` and `<upstream>` are at the same commit." when there is nothing to compare.
+- **Uses**: `range-diff.read-last-rewrite`, `range-diff.ranges`, `range-diff.page`, `sync.push-force-with-lease`,
+  `sync.push-force`, `sync.read-overwritten`, `sync.fetch`, `sync.pull`, `rebase.onto`, `rebase.interactive`,
+  `commit.amend`.
+
+Acceptance:
+
+- [ ] Right after **Rebase feature onto main**, what is said has **See what changed**, which opens the page with the
+      ranges of that rebase.
+- [ ] **What its last rewrite changed** on a branch rebased in a terminal opens the same page.
+- [ ] On a branch that was never rebased or amended, it says so and opens nothing.
+- [ ] Before **Push (force with lease)** of a branch rebased after it was pushed, **Compare first** in the warning
+      opens the page of the upstream against the branch, and nothing is pushed.
+- [ ] After a fetch that found `origin/feature` force pushed, while `feature` follows it, what is said offers **See
+      what changed**, which compares `origin/feature` before and after.
+- [ ] Extension: **What its last rewrite changed** on a branch rebased by the engine opens the tab of the page.
+
+### `range-diff.page` — What a rewrite changed, commit by commit
+
+The commits of a branch before and after a rewrite, paired: the ones made again unchanged, the ones changed with what
+changed in each, the ones added and the ones dropped.
+
+- **Kind**: View
+- **Function**: `views::range_diff::page(state: &RewriteState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: `range-diff.compare`.
+- **Reads**: `range-diff.read-pairs`.
+- **Uses**: `range-diff.read-pairs`, `range-diff.compare`, `commit-page.open`, `file-view.find`.
+- **Extension**: a tab of the editor area of its own, as the comparison is (`CompareApp`), with the same rows; a click
+  on a hash opens the tab of that commit.
+
+What it shows, from the top:
+
+- The title of what was compared: **What the rebase of `feature` changed**, **What the amend of `feature` changed**,
+  **`feature` and `origin/feature`, commit by commit**, or **What the force push of `origin/feature` changed**; the
+  page is named `<branch> · what changed` in its tab and its title row.
+- The two lines: **Before**, its count of commits and the short hash of the commit it starts from; **Now**, the same;
+  then the count of each kind of pair, `2 the same · 1 changed · 1 added · 1 dropped`.
+- One row for each pair, in the order of the commits now, a dropped commit where it was: an icon for its kind, the
+  short hash before and the short hash now joined by an arrow, the subject now (before, for a dropped one), and for a
+  changed one what changed in it, **message**, **changes** or both, from the headings of its diff of diffs. The pairs
+  that are the same are dimmed (Q1141).
+- A changed row opens by a click, `Enter` or `→`, and shows its diff of diffs under it: each line with its outer mark
+  in the colors of a diff (before in the color of lines lost, now in that of lines gained), then the line of the diff
+  it is in, its own mark kept; the headings `## Commit message ##` and `## <path> ##` as headings.
+- A click on a short hash opens the page of that commit (`commit-page.open`).
+- `↑` and `↓` move through the rows; `Ctrl+F` (`Cmd+F` on macOS) finds a word in the page (`file-view.find`).
+- While it is read, **Comparing…**; when the read fails, what git said.
+
+Acceptance:
+
+- [ ] After a rebase in which `B` was reworded and `D` dropped, the page lists `A` dimmed as the same, `B` changed with
+      **message**, `C` the same and `D` dropped, and the counts say `2 the same · 1 changed · 1 dropped`.
+- [ ] A click on the row of `B` shows its diff of diffs, the old subject in the color of lines lost and the new one in
+      that of lines gained.
+- [ ] A click on the short hash of `B` now opens the page of that commit.
+- [ ] A commit added by the rewrite has a row with no hash before.
+- [ ] Extension: the tab lists the same rows, and opening a changed row shows its diff of diffs.
