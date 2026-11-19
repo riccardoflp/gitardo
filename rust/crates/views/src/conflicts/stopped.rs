@@ -27,6 +27,8 @@ pub struct StoppedState<'a> {
     pub auto_resolve: bool,
     /// `conflicts.ai`.
     pub ai: bool,
+    /// How many files git resolved as before (`rerere.resolved-as-before`).
+    pub resolved_as_before: usize,
 }
 
 impl StoppedState<'_> {
@@ -35,6 +37,10 @@ impl StoppedState<'_> {
     pub fn says(&self) -> String {
         let noun = self.operation.map(words::operation_noun);
         let mut said = words::stopped(self.title, self.conflicted, noun);
+        if self.resolved_as_before > 0 {
+            said.push(' ');
+            said.push_str(&crate::text::rerere::stopped(self.resolved_as_before));
+        }
         if let Some(counts) = self.resolvable() {
             said.push(' ');
             said.push_str(&words::can_resolve(counts.resolvable, counts.conflicts));

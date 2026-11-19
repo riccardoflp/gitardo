@@ -20,47 +20,62 @@ pub struct SvgImage {
     pub height: u32,
 }
 
+/// Why an SVG is not drawn.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum SvgFailure {
+    /// The library could not read it: what it says.
+    Error(String),
+    /// It has no size, or no pixels could be made for it.
+    NoSize,
+}
+
 impl Image {
     /// An SVG drawn on a clear ground with the fonts of the program, at a scale: two pixels for each logical pixel at a
     /// scale of 2, so that it stays sharp on a screen that has that many. A drawing that would have more pixels than an
     /// image may have is drawn at the scale that fits. None when the text is not an SVG, or it has no size.
     #[must_use]
     pub fn from_svg(svg: &str, scale: f32) -> Option<SvgImage> {
-        let options = usvg::Options {
-            fontdb: Arc::new(crate::text::bundled_fonts()),
-            font_family: crate::text::INTERFACE_FAMILY.to_owned(),
-            // An image the SVG names, in a file, on the web or inside it, is never read (D60).
-            image_href_resolver: usvg::ImageHrefResolver {
-                resolve_data: Box::new(|_, _, _| None),
-                resolve_string: Box::new(|_, _| None),
-            },
-            resources_dir: None,
-            ..usvg::Options::default()
-        };
-        let tree = usvg::Tree::from_str(svg, &options).ok()?;
-        let size = tree.size();
-        let (width, height) = (size.width(), size.height());
-        let pixels_at_one = f64::from(width) * f64::from(height);
-        if pixels_at_one < 1.0 {
-            return None;
-        }
-        let fitting = number::narrowed((number::float_of_large(MOST_PIXELS) / pixels_at_one).sqrt());
-        let scale = scale.min(fitting).max(f32::MIN_POSITIVE);
-        let mut pixmap = tiny_skia::Pixmap::new(
-            number::size(number::ceil(width * scale)).max(1),
-            number::size(number::ceil(height * scale)).max(1),
-        )?;
-        resvg::render(
-            &tree,
-            tiny_skia::Transform::from_scale(scale, scale),
-            &mut pixmap.as_mut(),
-        );
-        Some(SvgImage {
-            image: Image::of_pixmap(&pixmap),
-            width: number::size(number::ceil(width)),
-            height: number::size(number::ceil(height)),
-        })
+        draw_svg(svg.as_bytes(), scale).ok()
     }
+}
+
+/// The bytes of an SVG drawn as [`Image::from_svg`] draws its text, or why they are not.
+pub(crate) fn draw_svg(svg: &[u8], scale: f32) -> Result<SvgImage, SvgFailure> {
+    let options = usvg::Options {
+        fontdb: Arc::new(crate::text::bundled_fonts()),
+        font_family: crate::text::INTERFACE_FAMILY.to_owned(),
+        // An image the SVG names, in a file, on the web or inside it, is never read (D60).
+        image_href_resolver: usvg::ImageHrefResolver {
+            resolve_data: Box::new(|_, _, _| None),
+            resolve_string: Box::new(|_, _| None),
+        },
+        resources_dir: None,
+        ..usvg::Options::default()
+    };
+    let tree = usvg::Tree::from_data(svg, &options).map_err(|error| SvgFailure::Error(error.to_string()))?;
+    let size = tree.size();
+    let (width, height) = (size.width(), size.height());
+    let pixels_at_one = f64::from(width) * f64::from(height);
+    if pixels_at_one < 1.0 {
+        return Err(SvgFailure::NoSize);
+    }
+    let fitting = number::narrowed((number::float_of_large(MOST_PIXELS) / pixels_at_one).sqrt());
+    let scale = scale.min(fitting).max(f32::MIN_POSITIVE);
+    let mut pixmap = tiny_skia::Pixmap::new(
+        number::size(number::ceil(width * scale)).max(1),
+        number::size(number::ceil(height * scale)).max(1),
+    )
+    .ok_or(SvgFailure::NoSize)?;
+    resvg::render(
+        &tree,
+        tiny_skia::Transform::from_scale(scale, scale),
+        &mut pixmap.as_mut(),
+    );
+    Ok(SvgImage {
+        image: Image::of_pixmap(&pixmap),
+        width: number::size(number::ceil(width)),
+        height: number::size(number::ceil(height)),
+    })
 }
 
 #[cfg(test)]

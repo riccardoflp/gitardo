@@ -11,6 +11,8 @@ pub mod file_search;
 pub mod file_view;
 pub mod github;
 pub mod jobs;
+pub mod large_files;
+mod lfs_sides;
 pub mod merge_view;
 pub mod new_worktrees;
 mod operations;
@@ -194,8 +196,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadSignature { folder, .. } => (folder, activity::CHECKING_SIGNATURE),
         JobKind::ReadAuthors { folder, .. } => (folder, activity::READING_AUTHORS),
         JobKind::ReadCommitPage { folder, .. } => (folder, activity::OPENING_COMMIT_PAGE),
-        JobKind::ReadDiff { folder, .. } => (folder, activity::COMPUTING_DIFF),
-        JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } => (folder, activity::OPENING_FILE),
+        JobKind::ReadDiff { folder, .. } | JobKind::ReadImages { folder, .. } => (folder, activity::COMPUTING_DIFF),
+        JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } | JobKind::DrawImage { folder, .. } => {
+            (folder, activity::OPENING_FILE)
+        }
         JobKind::DrawDiagram { folder, .. } => (folder, activity::DRAWING_DIAGRAM),
         JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (folder, activity::COMPARING),
         JobKind::CountConflicts { folder } => (folder, activity::COUNTING_CONFLICTS),
@@ -204,6 +208,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadFiles { folder } => (folder, activity::LISTING_FILES),
         JobKind::FileSearch { folder, .. } => (folder, activity::SEARCHING_FILES),
         JobKind::ReadNewWorktrees { folder, .. } => (folder, activity::LOOKING_AT_IGNORED),
+        JobKind::ReadLargeFiles(folder, _) => (folder, activity::READING_LARGE_FILES),
         JobKind::ReadIgnored { folder, .. } => (folder, activity::CHECKING_IGNORED),
         JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),
         JobKind::ReadRangeDiff { folder, .. } => (folder, activity::COMPARING_COMMITS),

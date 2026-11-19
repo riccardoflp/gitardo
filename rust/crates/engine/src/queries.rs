@@ -81,6 +81,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::CommittedLines(query) => history::committed_lines(git, query),
         Query::Blame(query) => history::blame(git, query),
         Query::RemoteTags { remote } => remote_tags(git, remote),
+        Query::LfsToStore { .. } | Query::LfsPointers { .. } => readings::lfs(git, query),
     }
 }
 
@@ -373,9 +374,8 @@ pub(crate) fn describe(query: &Query) -> String {
             crate::upkeep::describe(query)
         }
         Query::Note { .. } | Query::RemoteNotes { .. } => crate::notes::describe(query),
-        Query::FileNames { path } => history::describe_file_names(path),
-        Query::CommittedLines(query) => history::describe_committed_lines(query),
-        Query::Blame(query) => history::describe_blame(query),
+        Query::FileNames { .. } | Query::CommittedLines(_) | Query::Blame(_) => history::describe(query),
+        Query::LfsToStore { .. } | Query::LfsPointers { .. } => readings::describe_lfs(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
         Query::RemoteTags { remote } => describe_remote_tags(remote),
     }

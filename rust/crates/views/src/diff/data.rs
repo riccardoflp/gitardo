@@ -30,6 +30,9 @@ pub enum DiffVersion {
     /// The files with the accepted resolutions of their conflicts in place (`review.show-result`): each file's text
     /// by its path, read from nothing on disk.
     Resolved(Vec<(String, String)>),
+    /// A file in conflict as git marked it when it stopped, before it wrote a resolution it recorded
+    /// (`rerere.read-marked`).
+    Marked,
 }
 
 impl DiffVersion {
@@ -53,6 +56,7 @@ impl DiffVersion {
             DiffVersion::Empty => words::EMPTY,
             DiffVersion::Base => words::BASE,
             DiffVersion::Resolved(_) => crate::text::review::RESULT,
+            DiffVersion::Marked => crate::text::rerere::AS_GIT_MARKED_IT,
         }
     }
 
@@ -151,6 +155,10 @@ pub enum FileDiff {
     Failed,
     /// Its two sides in rows.
     Text(Box<DiffText>),
+    /// The two versions of an image, side by side (`diff.image`).
+    Image(Box<super::DiffImages>),
+    /// A file stored with Git LFS with a side whose content is not on this computer (`lfs.show-in-pages`).
+    StoredWithLfs(Box<model::lfs::StoredWithLfs>),
 }
 
 /// The two sides of a file and their lines in rows.
@@ -178,6 +186,9 @@ pub struct DiffText {
     pub left_colors: Vec<Vec<ui::CodeSpan>>,
     /// The colors of the code of each line of the right side.
     pub right_colors: Vec<Vec<ui::CodeSpan>>,
+    /// Whether a side was a pointer of Git LFS, read from the store: the page says **Stored with Git LFS** beside
+    /// its title (`lfs.show-in-pages`).
+    pub is_stored_with_lfs: bool,
 }
 
 impl DiffText {
@@ -219,6 +230,12 @@ pub enum PageLine {
     Folded(usize, Range<usize>),
     /// What a file with no rows says: being read, binary, too complex, or no change.
     Note(usize),
+    /// A row of the pictures of an image file (`diff.image`): the file, which row of its pictures it is, and how many
+    /// rows they take.
+    Image(usize, usize, usize),
+    /// A row of the message of a file stored with Git LFS not downloaded (`lfs.show-in-pages`): the file, which row of
+    /// the message it is, and how many rows it takes.
+    StoredWithLfs(usize, usize, usize),
 }
 
 /// Where a change is: its file, its place among the changes of the file, and the row of the page it starts at.

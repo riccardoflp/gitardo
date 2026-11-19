@@ -76,6 +76,8 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadMerge { .. }
             | JobKind::ReadFile { .. }
             | JobKind::ReadImage { .. }
+            | JobKind::DrawImage { .. }
+            | JobKind::ReadImages { .. }
             | JobKind::DrawDiagram { .. }
             | JobKind::ReadComparison { .. }
             | JobKind::ReadInPlace { .. }
@@ -84,6 +86,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::FileSearch { .. }
             | JobKind::ReadNewWorktrees { .. }
             | JobKind::ReadRangeDiff { .. }
+            | JobKind::ReadLargeFiles(..)
             | JobKind::ReadIgnored { .. }
             | JobKind::ReadBlame { .. }
             | JobKind::CountConflicts { .. } => None,
@@ -211,8 +214,17 @@ fn not_listed(job: JobId, kind: &JobKind) -> Message {
             result: Err(String::from("not read in these tests")),
         };
     }
+    if let JobKind::DrawImage { .. } = kind {
+        return Message::ImageDrawn {
+            job,
+            result: Err(render::image::NotRead::NotImage),
+        };
+    }
     if let JobKind::ReadImage { .. } = kind {
         return Message::ImageRead { job, image: None };
+    }
+    if let JobKind::ReadImages { .. } = kind {
+        return Message::ImagesRead { job, images: None };
     }
     if let JobKind::DrawDiagram { .. } = kind {
         return Message::DiagramDrawn {
@@ -230,6 +242,9 @@ fn not_listed(job: JobId, kind: &JobKind) -> Message {
                 look: None,
             }),
         };
+    }
+    if let JobKind::ReadLargeFiles(..) = kind {
+        return Message::LargeFilesRead(job, Box::new(Ok(crate::work::large_files::LargeFilesRead::default())));
     }
     if let JobKind::ReadIgnored { .. } = kind {
         return Message::IgnoredRead {
@@ -283,6 +298,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
         JobKind::ReadFile { .. } => Message::FileRead {
             job,
             result: Err(String::from("not read in these tests")),
+            stored: None,
         },
         JobKind::ReadComparison { .. } => Message::ComparisonRead {
             job,
@@ -299,6 +315,9 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
         | JobKind::ReadRangeDiff { .. }
         | JobKind::ReadIgnored { .. }
         | JobKind::ReadImage { .. }
+        | JobKind::ReadImages { .. }
+        | JobKind::DrawImage { .. }
+        | JobKind::ReadLargeFiles(..)
         | JobKind::ReadBlame { .. }
         | JobKind::ReadSignature { .. }
         | JobKind::ReadRemoteTags { .. }

@@ -4,6 +4,7 @@
 //! files one side deleted (`review.deleted-card`), and the names of the two sides (`conflicts.side-names`).
 
 mod kept;
+mod recorded;
 #[cfg(test)]
 mod tests;
 
@@ -38,6 +39,9 @@ const TIME_LIMIT: Duration = Duration::from_secs(5);
 pub struct ReviewRequest {
     /// Only these files, by their paths from the top of the working tree; none for every file in conflict.
     pub only: Option<Vec<String>>,
+    /// The files in conflict git resolved as before and did not stage, as the read of the repository found them
+    /// (`review.recorded`).
+    pub recorded: Vec<String>,
 }
 
 /// What a worker read for the review: the files and what each side of each conflict changed of the base.
@@ -68,6 +72,7 @@ fn read_all(git: &Git, request: &ReviewRequest, cancel: &CancelToken) -> Result<
         sides: side_names(&names.input()),
         files: Vec::new(),
         deleted: Vec::new(),
+        recorded: Vec::new(),
         others: Vec::new(),
     };
     let mut side_diffs = Vec::new();
@@ -78,6 +83,13 @@ fn read_all(git: &Git, request: &ReviewRequest, cancel: &CancelToken) -> Result<
     for (index, file) in asked.enumerate() {
         if index >= MOST_FILES {
             read.others.push(file.path);
+            continue;
+        }
+        if request.recorded.contains(&file.path) {
+            match recorded::read(git, &file.path, &read.sides)? {
+                Some(recorded) => read.recorded.push(recorded),
+                None => read.others.push(file.path),
+            }
             continue;
         }
         if let Some(deleted_by) = deleted_by(&file) {

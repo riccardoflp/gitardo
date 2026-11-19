@@ -7,6 +7,8 @@ import { FileIcon } from './FileIcon';
 import { ActionButtons, FileRow, Status, fileTitle, type FileAction } from './FileRow';
 import { FileTree, toggled } from './FileTree';
 import { Icon } from './Icon';
+import { ImagePair } from './ImagePair';
+import { isImageName, isSvgName } from '../shared/images';
 import { useColors, type Colors, type Token } from './syntax';
 import { post } from './vscode';
 
@@ -111,6 +113,8 @@ const Lines = memo(function Lines({ hunks, colors }: { hunks: Hunk[]; colors?: C
 
 interface DiffProps {
   entry: Entry;
+  /** The two versions it compares. */
+  source: DiffSource;
   open: boolean;
   onToggle(): void;
   onOpen(): void;
@@ -118,8 +122,11 @@ interface DiffProps {
   onMenu?(event: MouseEvent): void;
 }
 
-function FileDiff({ entry, open, onToggle, onOpen, actions, onMenu }: DiffProps) {
+function FileDiff({ entry, source, open, onToggle, onOpen, actions, onMenu }: DiffProps) {
   const { file, patch } = entry;
+  // An SVG shows its lines, and its two pictures once asked for (`commit-page.images`).
+  const isSvg = isSvgName(file.path);
+  const [svgPictures, setSvgPictures] = useState(false);
   // Its code in the colors the editor gives it, once it is unfolded.
   const colors = useColors(file.path, patch?.hunks, open);
   const inEditor = (
@@ -128,8 +135,11 @@ function FileDiff({ entry, open, onToggle, onOpen, actions, onMenu }: DiffProps)
     </button>
   );
   let body = null;
+  const binaryNote = <p className="muted diff-note">Binary file. {inEditor}</p>;
+  const pictured = isSvg ? svgPictures : !!patch?.binary && isImageName(file.path);
   if (open && patch) {
-    if (patch.binary) body = <p className="muted diff-note">Binary file. {inEditor}</p>;
+    if (pictured) body = <ImagePair source={source} file={file} onOpen={onOpen} notImages={binaryNote} />;
+    else if (patch.binary) body = binaryNote;
     else if (!patch.hunks) body = <p className="muted diff-note">Too long to show with the others. {inEditor}</p>;
     else if (!patch.hunks.length) body = <p className="muted diff-note">{file.kind === 'renamed' ? 'Renamed, with no change to its text.' : 'No change to its text.'}</p>;
     else body = <Lines hunks={patch.hunks} colors={colors} />;
@@ -146,6 +156,11 @@ function FileDiff({ entry, open, onToggle, onOpen, actions, onMenu }: DiffProps)
           {fileTitle(file)}
         </button>
         <Stat patch={patch} />
+        {isSvg && open && (
+          <button className="button" onClick={() => setSvgPictures(!svgPictures)}>
+            {svgPictures ? 'Show the lines' : 'Show the images'}
+          </button>
+        )}
         <ActionButtons actions={actions} />
         <button className="button icon" title="Open in the diff editor" aria-label={`Open ${file.path} in the diff editor`} onClick={onOpen}>
           <Icon name="diff" />
@@ -293,6 +308,7 @@ export function FileChanges({ files, patch, source, title, layout, onLayout, not
               <FileDiff
                 key={entry.id}
                 entry={entry}
+                source={source}
                 open={isOpen(entry)}
                 onToggle={() => setChosen((current) => new Map(current).set(entry.id, !isOpen(entry)))}
                 onOpen={() => openDiff(entry)}

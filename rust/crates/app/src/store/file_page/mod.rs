@@ -7,6 +7,7 @@ mod diagrams;
 mod edit;
 mod given;
 mod held;
+mod image;
 mod markdown;
 mod save_all;
 mod shown;
@@ -30,6 +31,7 @@ pub(crate) use edit::save;
 pub use edit::{Edited, edit_with, ended, reduce_page};
 pub use given::open_with_text;
 pub use held::{HeldFile, document_of, hold};
+pub use image::{ImagePage, image_drawn};
 pub use markdown::{Preview, image_read, preview_read};
 pub use shown::{close_question, page_state};
 
@@ -83,6 +85,9 @@ pub enum FileContent {
     Failed(String),
     /// The text of the file.
     Text(Box<Document>),
+    /// A file stored with Git LFS whose content is not on this computer: its pointer, never shown as text
+    /// (`lfs.show-in-pages`).
+    StoredWithLfs(Box<model::lfs::StoredWithLfs>),
 }
 
 /// The box that finds in a page.
@@ -145,6 +150,8 @@ pub struct FilePage {
     pub is_hidden: bool,
     /// The preview of a Markdown file, none for another file (`file-view.markdown-preview`).
     pub markdown: Option<Preview>,
+    /// The picture of an image file, none for another file (`file-view.image`).
+    pub image: Option<ImagePage>,
 }
 
 impl FilePage {
@@ -210,6 +217,7 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
         go_to_line: None,
         is_hidden: false,
         markdown: preview,
+        image: None,
     });
     super::pages::show_page(state, Page::File(id));
     start_read(state, id).into_iter().collect()
@@ -282,7 +290,7 @@ pub(super) fn page_mut(state: &mut State, id: FilePageId) -> Option<&mut FilePag
 
 /// Takes the file read: the first read shows it, at the line asked for; a read again replaces the text when the page
 /// has no edits not saved and the file changed.
-pub fn file_read(state: &mut State, job: JobId, result: Result<Option<Vec<u8>>, String>) -> Vec<Effect> {
+pub fn file_read(state: &mut State, job: JobId, (result, stored): crate::work::file_view::ShownRead) -> Vec<Effect> {
     let _finished = state.jobs.remove(&job);
     let Some(id) = state
         .file_pages
@@ -312,7 +320,13 @@ pub fn file_read(state: &mut State, job: JobId, result: Result<Option<Vec<u8>>, 
         // A read again that finds the file gone, or fails, leaves the page as it was.
         Ok(None) | Err(_) => return Vec::new(),
     };
-    if !is_first && (page.is_unsaved() || bytes == page.read) {
+    if let Some(stored) = stored {
+        page.content = FileContent::StoredWithLfs(stored);
+        page.read = bytes;
+        return Vec::new();
+    }
+    let was_stored = matches!(page.content, FileContent::StoredWithLfs(_));
+    if !is_first && !was_stored && (page.is_unsaved() || bytes == page.read) {
         return Vec::new();
     }
     take_bytes(page, bytes);
@@ -320,7 +334,9 @@ pub fn file_read(state: &mut State, job: JobId, result: Result<Option<Vec<u8>>, 
         let line = page.pending_line.take().unwrap_or(1);
         go_to(page, line, serial);
     }
-    let mut effects = markdown::refresh(state, id);
+    let read = page.read.clone();
+    let mut effects = image::take_bytes(state, id, &read);
+    effects.extend(markdown::refresh(state, id));
     effects.extend(given::take_pending(state, id));
     effects
 }
@@ -346,7 +362,8 @@ fn take_bytes(page: &mut FilePage, bytes: Vec<u8>) {
 }
 
 /// Reads again the pages of files of the working tree of the repository shown, once the repository was read again
-/// since they were: a file changed in another program shows its new text, unless the page has edits not saved.
+/// since they were: a file changed in another program shows its new text, unless the page has edits not saved; and
+/// the pages of a file stored with Git LFS not downloaded, at any revision.
 pub fn follow(state: &mut State) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return Vec::new();
@@ -356,7 +373,12 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
         .file_pages
         .pages
         .iter_mut()
-        .filter(|page| page.revision.is_none() && page.generation != generation && same_folder(&page.folder, &folder))
+        .filter(|page| {
+            // A version of a revision stored with Git LFS and not downloaded is read again, for **Download** fills
+            // the store (`lfs.download`).
+            let follows = page.revision.is_none() || matches!(page.content, FileContent::StoredWithLfs(_));
+            follows && page.generation != generation && same_folder(&page.folder, &folder)
+        })
         .filter_map(|page| {
             page.generation = generation;
             let can_read = page.job.is_none() && !page.is_unsaved() && page.content != FileContent::Reading;
@@ -386,7 +408,12 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
     state.file_pages.pages = kept;
     closed
         .into_iter()
-        .flat_map(|page| page.job.into_iter().chain(markdown::image_jobs(&page)))
+        .flat_map(|page| {
+            page.job
+                .into_iter()
+                .chain(markdown::image_jobs(&page))
+                .chain(image::job(&page))
+        })
         .map(|job| {
             let _cancelled = state.jobs.remove(&job);
             Effect::Cancel(job)

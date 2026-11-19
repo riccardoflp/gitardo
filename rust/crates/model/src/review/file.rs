@@ -168,6 +168,16 @@ pub struct DeletedFile {
     pub changes: KeptChanges,
 }
 
+/// A file in conflict that git resolved from a resolution it recorded (`review.recorded`): what it wrote in place of
+/// the conflicts, as the changes from the file as git marked it to the file on disk.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RecordedFile {
+    /// Its path from the top of the working tree.
+    pub path: String,
+    /// What git wrote in place of the markers.
+    pub changes: KeptChanges,
+}
+
 /// What the side that kept a file deleted on the other changed of the base.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum KeptChanges {
@@ -203,6 +213,8 @@ pub struct ReviewRead {
     pub files: Vec<ReviewFile>,
     /// The files one side deleted and the other changed.
     pub deleted: Vec<DeletedFile>,
+    /// The files git resolved from a resolution it recorded, and did not stage (`review.recorded`).
+    pub recorded: Vec<RecordedFile>,
     /// The other files in conflict: binary, very large, added on both sides without markers.
     pub others: Vec<String>,
 }

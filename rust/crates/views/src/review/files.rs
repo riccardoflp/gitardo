@@ -9,11 +9,12 @@ use crate::intent::Intent;
 use crate::text::review as words;
 
 /// The filters, with their names and what the pointer on them says.
-const FILTERS: [(Filter, &str, Option<&str>); 4] = [
+const FILTERS: [(Filter, &str, Option<&str>); 5] = [
     (Filter::All, words::ALL, Some(words::ALL_TOOLTIP)),
     (Filter::NotAccepted, words::NOT_ACCEPTED, None),
     (Filter::NothingProposed, words::NOTHING_PROPOSED, None),
     (Filter::FromTheAi, words::FROM_THE_AI, None),
+    (Filter::ResolvedAsBefore, crate::text::rerere::RESOLVED_AS_BEFORE, None),
 ];
 
 /// What the list shows, one under the other.
@@ -24,12 +25,12 @@ enum Entry<'a> {
     AllFiles,
     /// A file with conflicts marked in it.
     File(&'a FileCards),
-    /// The heading of the files deleted on one side.
-    DeletedHeading,
+    /// A heading: of the files deleted on one side, of those git resolved as before, or of the other files.
+    Heading(&'static str),
     /// A file deleted on one side.
     Deleted(&'a str),
-    /// The heading of the other files in conflict, and what is said under it.
-    OthersHeading,
+    /// A file git resolved as before.
+    Recorded(&'a str),
     /// The note under it.
     OthersNote,
     /// Another file in conflict.
@@ -42,6 +43,7 @@ enum Entry<'a> {
 fn entries<'a>(state: &ReviewState<'a>) -> Vec<Entry<'a>> {
     let mut entries: Vec<Entry<'a>> = FILTERS
         .iter()
+        .filter(|(filter, ..)| *filter != Filter::ResolvedAsBefore || !state.recorded.is_empty())
         .map(|(filter, said, tooltip)| Entry::Filter(*filter, said, *tooltip))
         .collect();
     entries.push(Entry::AllFiles);
@@ -65,16 +67,26 @@ fn entries<'a>(state: &ReviewState<'a>) -> Vec<Entry<'a>> {
         })
         .map(|file| file.path.as_str())
         .collect();
-    if files.is_empty() && deleted.is_empty() {
+    let recorded: Vec<&str> = state
+        .recorded
+        .iter()
+        .filter(|file| state.is_recorded_kept(file))
+        .map(|file| file.path.as_str())
+        .collect();
+    if files.is_empty() && deleted.is_empty() && recorded.is_empty() {
         entries.push(Entry::Nothing);
     }
     entries.extend(files.into_iter().map(Entry::File));
     if !deleted.is_empty() {
-        entries.push(Entry::DeletedHeading);
+        entries.push(Entry::Heading(words::DELETED_ON_ONE_SIDE));
         entries.extend(deleted.into_iter().map(Entry::Deleted));
     }
+    if !recorded.is_empty() {
+        entries.push(Entry::Heading(crate::text::rerere::RESOLVED_AS_BEFORE));
+        entries.extend(recorded.into_iter().map(Entry::Recorded));
+    }
     if !state.others.is_empty() {
-        entries.push(Entry::OthersHeading);
+        entries.push(Entry::Heading(words::ALSO_IN_CONFLICT));
         entries.push(Entry::OthersNote);
         entries.extend(state.others.iter().map(|path| Entry::Other(path)));
     }
@@ -126,8 +138,7 @@ pub fn file_list_view(state: &ReviewState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                     }
                 }
                 Entry::File(file) => intents.extend(file_entry(state, ui, (file, area.top(sizes.control_height)))),
-                Entry::DeletedHeading => heading(ui, area.top(sizes.row_height), words::DELETED_ON_ONE_SIDE),
-                Entry::OthersHeading => heading(ui, area.top(sizes.row_height), words::ALSO_IN_CONFLICT),
+                Entry::Heading(said) => heading(ui, area.top(sizes.row_height), said),
                 Entry::OthersNote => {
                     let _ = ui.paragraph(
                         area.top(sizes.row_height * 3.0),
@@ -135,7 +146,7 @@ pub fn file_list_view(state: &ReviewState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                         (TextKind::Small, Tone::Muted),
                     );
                 }
-                Entry::Deleted(path) => {
+                Entry::Deleted(path) | Entry::Recorded(path) => {
                     let button = Button::secondary(path).kind(ButtonKind::Outline);
                     if wide_button(ui, (area.top(sizes.row_height), ("deleted", path)), &button) {
                         intents.push(Intent::Review(ReviewIntent::ShowFile(Some(path.to_owned()))));

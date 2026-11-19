@@ -1,3 +1,4 @@
+import type { ImagePair } from './images';
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
 import type { Hosting, HostingService } from './hosting';
@@ -580,6 +581,11 @@ export type HostMessage =
    */
   | { type: 'comparePatch'; since: string; to: string; patch: FilePatch[] | null }
   /**
+   * The two versions of an image file of the page of a commit or of a comparison, as `readImages` asked for them; null
+   * when neither side is an image (`commit-page.images`).
+   */
+  | { type: 'images'; source: DiffSource; path: string; images: ImagePair | null }
+  /**
    * The colors the theme of VS Code gives the code, once the page asked for them, and again whenever the theme changes.
    * Null when the theme cannot be read: the page then takes those of Dark+ or Light+.
    */
@@ -702,6 +708,8 @@ export type WebviewMessage =
    */
   | { type: 'keepMessage'; root: string; message: string; shown: string }
   | { type: 'openDiff'; source: DiffSource; file: FileChange }
+  /** Reads the two versions of an image file of the page of a commit or of a comparison, to draw them (`commit-page.images`). */
+  | { type: 'readImages'; source: DiffSource; file: FileChange }
   /**
    * Asks what to compare a file listed in a commit, in a comparison or in the changes not committed with, a branch,
    * tag, commit or the working tree, and opens the two versions in the diff editor. `names` are the branches or tags

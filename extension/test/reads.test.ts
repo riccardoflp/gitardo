@@ -124,6 +124,19 @@ describe.skipIf(!built)('the reads of the extension through the engine', { timeo
     expect(path.resolve(await reads.commonDir(repo))).toBe(path.resolve(common));
   });
 
+  it('read the bytes of an image at a revision as they are, for the preview of images (file-view.image)', async () => {
+    const root = await repository();
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xff, 0x00, 0xfe]);
+    fs.writeFileSync(path.join(root, 'logo.png'), bytes);
+    await git(root, ['add', '--', 'logo.png']);
+    await git(root, ['commit', '--quiet', '-m', 'Add the logo']);
+    const { reads } = readsOf(root);
+    const head = await id(root, 'HEAD');
+    expect(Buffer.from((await reads.fileBytesAt(root, head, 'logo.png'))!)).toEqual(bytes);
+    expect(Buffer.from((await reads.fileBytesAt(root, ':0', 'logo.png'))!)).toEqual(bytes);
+    expect(await reads.fileBytesAt(root, head, 'none.png')).toBeUndefined();
+  });
+
   it('read the conflicts, their sides and the stages git has', async () => {
     const root = await conflicted();
     const { reads, repo } = readsOf(root);

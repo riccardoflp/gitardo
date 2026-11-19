@@ -351,18 +351,28 @@ export class Reads {
 
   /** A file as a revision has it, or as the index has it for the revision `''` or `:0`; undefined when there is no such file. */
   async fileAt(root: string, revision: string, file: string): Promise<string | undefined> {
+    const bytes = await this.fileBytesAt(root, revision, file);
+    return bytes && Buffer.from(bytes).toString('utf8');
+  }
+
+  /**
+   * The bytes of a file as a revision has it, or as the index has it for the revision `''` or `:0`, so that an image
+   * is given as it is; undefined when there is no such file.
+   */
+  async fileBytesAt(root: string, revision: string, file: string): Promise<Uint8Array | undefined> {
     const client = this.client();
     const stage = /^:([0-3])$/.exec(revision)?.[1];
+    const raw = (bytes: Bytes) => new Uint8Array(Buffer.from(bytes.base64, 'base64'));
     if (revision === '' || stage === '0') {
       const { left } = await client.diffSides(root, { version: { kind: 'index' }, path: file }, { version: { kind: 'absent' }, path: file });
-      return left ? textOf(left) : undefined;
+      return left ? raw(left) : undefined;
     }
     if (stage) {
       const sides = await client.mergeSides(root, file, null);
-      return textOf(stage === '1' ? sides.base : stage === '2' ? sides.current : sides.incoming);
+      return raw(stage === '1' ? sides.base : stage === '2' ? sides.current : sides.incoming);
     }
     const bytes = await client.fileRevision(root, file, revision);
-    return bytes ? textOf(bytes) : undefined;
+    return bytes ? raw(bytes) : undefined;
   }
 
   /** The message git prepared for the commit of a squash merge, without the newlines at its end (R3); null otherwise. */

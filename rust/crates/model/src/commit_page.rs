@@ -53,6 +53,9 @@ pub struct FilePatch {
     pub is_binary: bool,
     /// Whether its hunks were left out because the files before it took the lines a page is given.
     pub is_past_limit: bool,
+    /// The sizes of the contents when its lines are those of the pointers of a file the repository stores with Git
+    /// LFS, which the page says in one line in place of them (`lfs.show-in-pages`).
+    pub stored_with_lfs: Option<crate::lfs::PointerChange>,
 }
 
 impl FilePatch {

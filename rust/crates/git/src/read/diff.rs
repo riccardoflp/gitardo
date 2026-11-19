@@ -28,6 +28,9 @@ pub enum FileVersion {
         /// The text of the File page, when it has unsaved edits.
         unsaved: Option<Vec<u8>>,
     },
+    /// A file in conflict as git marked it when it stopped, made again from the versions of the index, its sides named
+    /// as the Merge page names them (`rerere.read-marked`).
+    Marked,
 }
 
 /// One version of a file: where from, and its path there, which differs between the two sides of a rename.
@@ -83,6 +86,7 @@ fn read_version(git: &Git, request: &VersionRequest) -> Result<Option<Vec<u8>>, 
         FileVersion::Absent => Ok(None),
         FileVersion::WorkingTree { unsaved: Some(text) } => Ok(Some(text.clone())),
         FileVersion::WorkingTree { unsaved: None } => read_from_disk(git, &request.path),
+        FileVersion::Marked => read_marked_version(git, &request.path).map(Some),
         FileVersion::Index | FileVersion::Base | FileVersion::Commit(_) => match object_name(request) {
             Some(object) => read_unless_missing(git, &blob_arguments(&object), &object),
             None => Ok(None),
@@ -96,8 +100,22 @@ fn object_name(request: &VersionRequest) -> Option<String> {
         FileVersion::Index => Some(format!(":0:{}", request.path)),
         FileVersion::Base => Some(format!(":1:{}", request.path)),
         FileVersion::Commit(commit) => Some(blob_name(commit, &request.path)),
-        FileVersion::Absent | FileVersion::WorkingTree { .. } => None,
+        FileVersion::Absent | FileVersion::WorkingTree { .. } | FileVersion::Marked => None,
     }
+}
+
+/// A file in conflict as git marked it, its sides named as the Merge page names them: the branch or the short hash of
+/// each side, else what the side is.
+fn read_marked_version(git: &Git, path: &str) -> Result<Vec<u8>, GitError> {
+    let read = crate::read::review::read_side_names(git, &crate::read::review::SideNamesRequest)?;
+    let sides = model::conflicts::side_names(&read.input());
+    let name = |side: &model::conflicts::Side| side.name.clone().unwrap_or_else(|| side.role.words().to_owned());
+    let request = model::rerere::MarkedRequest {
+        path: path.to_owned(),
+        current: name(&sides.current),
+        incoming: name(&sides.incoming),
+    };
+    crate::read::rerere::read_marked(git, &request)
 }
 
 /// The file as it is on disk; none when it is not there.

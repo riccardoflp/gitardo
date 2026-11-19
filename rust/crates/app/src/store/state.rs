@@ -97,6 +97,8 @@ pub struct State {
     pub new_worktrees: super::new_worktrees::NewWorktreesPage,
     /// The page of what a rewrite changed, while it is open (`range-diff.page`).
     pub range_diff: Option<super::range_diff::RangeDiffPage>,
+    /// The Large files page (`lfs.page`).
+    pub large_files: super::large_files::LargeFilesPage,
     /// The blame of the File pages (`blame.current-line`, `blame.file`).
     pub blames: super::blame::Blames,
     /// Another worktree shown in this window, and what the operations of worktrees are told of the window.

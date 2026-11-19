@@ -207,7 +207,7 @@ earns it.
 | [`commit-page.diff-lines`](04-details-and-commit-page.md#commit-pagediff-lines--the-lines-of-each-diff-and-how-many-are-sent) | The lines of each diff, and how many are sent | Derivation | Built | Built |
 | [`commit-page.view`](04-details-and-commit-page.md#commit-pageview--the-page-of-a-commit) | The page of a commit | View | Built | Built |
 | [`commit-page.initial-folds`](04-details-and-commit-page.md#commit-pageinitial-folds--which-diffs-start-folded) | Which diffs start folded | Derivation | Built | Built |
-| [`commit-page.images`](04-details-and-commit-page.md#commit-pageimages--the-images-of-a-commit-in-its-page) | The images of a commit in its page | View | Specified | Planned |
+| [`commit-page.images`](04-details-and-commit-page.md#commit-pageimages--the-images-of-a-commit-in-its-page) | The images of a commit in its page | View | Built | Built |
 | [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-timeline) | Show a commit in the timeline | View | Built | Built |
 | [`note.read`](04-details-and-commit-page.md#noteread--read-the-notes-of-commits) | Read the notes of commits | Read | Built | Built |
 | [`note.show`](04-details-and-commit-page.md#noteshow--the-note-of-a-commit-in-the-inspector-and-in-its-page) | The note of a commit, in the inspector and in its page | View | Built | Built |
@@ -406,7 +406,7 @@ earns it.
 | [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Built | Built |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built | Built |
 | [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built | Built |
-| [`review.recorded`](09-conflicts.md#reviewrecorded--a-file-git-resolved-as-before) | A file git resolved as before | View | Specified | Planned |
+| [`review.recorded`](09-conflicts.md#reviewrecorded--a-file-git-resolved-as-before) | A file git resolved as before | View | Built | Planned |
 | [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Built | Built |
 | [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Built | Built |
 | [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Built | Built |
@@ -414,13 +414,13 @@ earns it.
 | [`ai.trim-answer`](09-conflicts.md#aitrim-answer--the-lines-around-the-conflict-written-again) | The lines around the conflict, written again | Derivation | Built | Built |
 | [`ai.choose-model`](09-conflicts.md#aichoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Built | Differs (G2, G6) |
 | [`ai.copilot`](09-conflicts.md#aicopilot--github-copilot-as-the-ai-provider) | GitHub Copilot as the AI provider | Read | Built | Host only |
-| [`rerere.read-state`](09-conflicts.md#rerereread-state--whether-git-remembers-resolutions) | Whether git remembers resolutions | Read | Specified | Planned |
-| [`rerere.turn-on`](09-conflicts.md#rerereturn-on--remember-how-conflicts-are-resolved) | Remember how conflicts are resolved | Operation | Specified | Planned |
-| [`rerere.turn-off`](09-conflicts.md#rerereturn-off--stop-remembering-how-conflicts-are-resolved) | Stop remembering how conflicts are resolved | Operation | Specified | Planned |
-| [`rerere.read-resolved`](09-conflicts.md#rerereread-resolved--the-files-git-resolved-as-before) | The files git resolved as before | Read | Specified | Planned |
-| [`rerere.read-marked`](09-conflicts.md#rerereread-marked--a-file-as-git-marked-it) | A file as git marked it | Read | Specified | Planned |
-| [`rerere.resolved-as-before`](09-conflicts.md#rerereresolved-as-before--the-files-git-resolved-as-before-where-conflicts-are-shown) | The files git resolved as before, where conflicts are shown | View | Specified | Planned |
-| [`rerere.forget`](09-conflicts.md#rerereforget--forget-a-resolution-git-recorded) | Forget a resolution git recorded | Operation | Specified | Planned |
+| [`rerere.read-state`](09-conflicts.md#rerereread-state--whether-git-remembers-resolutions) | Whether git remembers resolutions | Read | Built | Planned |
+| [`rerere.turn-on`](09-conflicts.md#rerereturn-on--remember-how-conflicts-are-resolved) | Remember how conflicts are resolved | Operation | Built | Planned |
+| [`rerere.turn-off`](09-conflicts.md#rerereturn-off--stop-remembering-how-conflicts-are-resolved) | Stop remembering how conflicts are resolved | Operation | Built | Planned |
+| [`rerere.read-resolved`](09-conflicts.md#rerereread-resolved--the-files-git-resolved-as-before) | The files git resolved as before | Read | Built | Planned |
+| [`rerere.read-marked`](09-conflicts.md#rerereread-marked--a-file-as-git-marked-it) | A file as git marked it | Read | Built | Planned |
+| [`rerere.resolved-as-before`](09-conflicts.md#rerereresolved-as-before--the-files-git-resolved-as-before-where-conflicts-are-shown) | The files git resolved as before, where conflicts are shown | View | Built | Planned |
+| [`rerere.forget`](09-conflicts.md#rerereforget--forget-a-resolution-git-recorded) | Forget a resolution git recorded | Operation | Built | Planned |
 
 ## Compare
 
@@ -631,18 +631,18 @@ earns it.
 | [`diff.stage-change`](17-diff-and-merge-views.md#diffstage-change--stage-this-change) | Stage this change | Operation | Built | Built |
 | [`diff.unstage-change`](17-diff-and-merge-views.md#diffunstage-change--unstage-this-change) | Unstage this change | Operation | Built | Built |
 | [`diff.revert-change`](17-diff-and-merge-views.md#diffrevert-change--revert-this-change) | Revert this change | Operation | Built | Differs (A5) |
-| [`diff.select-lines`](17-diff-and-merge-views.md#diffselect-lines--select-lines-of-a-diff) | Select lines of a diff | View | Specified | Planned |
-| [`diff.lines-patch`](17-diff-and-merge-views.md#difflines-patch--the-patch-of-the-lines-selected) | The patch of the lines selected | Derivation | Specified | Planned |
-| [`diff.stage-lines`](17-diff-and-merge-views.md#diffstage-lines--stage-the-lines-selected) | Stage the lines selected | Operation | Specified | Planned |
-| [`diff.unstage-lines`](17-diff-and-merge-views.md#diffunstage-lines--unstage-the-lines-selected) | Unstage the lines selected | Operation | Specified | Planned |
-| [`diff.revert-lines`](17-diff-and-merge-views.md#diffrevert-lines--revert-the-lines-selected) | Revert the lines selected | Operation | Specified | Planned |
+| [`diff.select-lines`](17-diff-and-merge-views.md#diffselect-lines--select-lines-of-a-diff) | Select lines of a diff | View | Built | Planned |
+| [`diff.lines-patch`](17-diff-and-merge-views.md#difflines-patch--the-patch-of-the-lines-selected) | The patch of the lines selected | Derivation | Built | Planned |
+| [`diff.stage-lines`](17-diff-and-merge-views.md#diffstage-lines--stage-the-lines-selected) | Stage the lines selected | Operation | Built | Planned |
+| [`diff.unstage-lines`](17-diff-and-merge-views.md#diffunstage-lines--unstage-the-lines-selected) | Unstage the lines selected | Operation | Built | Planned |
+| [`diff.revert-lines`](17-diff-and-merge-views.md#diffrevert-lines--revert-the-lines-selected) | Revert the lines selected | Operation | Built | Planned |
 | [`diff.edit`](17-diff-and-merge-views.md#diffedit--editing-the-working-tree-side) | Editing the working tree side | View | Built | Built |
 | [`diff.open-at-line`](17-diff-and-merge-views.md#diffopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Built | Built |
 | [`diff.open-file`](17-diff-and-merge-views.md#diffopen-file--open-file) | Open file | View | Built | Built |
 | [`diff.stage-file`](17-diff-and-merge-views.md#diffstage-file--stage-file) | Stage file | Operation | Built | Built |
 | [`diff.unstage-file`](17-diff-and-merge-views.md#diffunstage-file--unstage-file) | Unstage file | Operation | Built | Built |
 | [`diff.discard-file`](17-diff-and-merge-views.md#diffdiscard-file--discard-changes) | Discard changes | Operation | Built | Differs (A4) |
-| [`diff.image`](17-diff-and-merge-views.md#diffimage--two-versions-of-an-image-side-by-side) | Two versions of an image side by side | View | Specified | Planned |
+| [`diff.image`](17-diff-and-merge-views.md#diffimage--two-versions-of-an-image-side-by-side) | Two versions of an image side by side | View | Built | Built |
 | [`merge-view.page`](17-diff-and-merge-views.md#merge-viewpage--the-merge-page) | The Merge page | View | Built | Built |
 | [`merge-view.read-sides`](17-diff-and-merge-views.md#merge-viewread-sides--the-versions-of-a-file-in-conflict) | The versions of a file in conflict | Read | Built | Built |
 | [`merge-view.three-way`](17-diff-and-merge-views.md#merge-viewthree-way--the-regions-of-a-file-in-conflict) | The regions of a file in conflict | Derivation | Built | Built |
@@ -660,8 +660,8 @@ earns it.
 | [`file-view.file-icons`](17-diff-and-merge-views.md#file-viewfile-icons--the-icon-of-a-file-or-a-folder) | The icon of a file or a folder | View | Built | Host only |
 | [`file-view.markdown-preview`](17-diff-and-merge-views.md#file-viewmarkdown-preview--a-markdown-file-as-it-reads) | A Markdown file as it reads | View | Built | Built |
 | [`file-view.mermaid`](17-diff-and-merge-views.md#file-viewmermaid--a-mermaid-diagram-as-it-is-drawn) | A Mermaid diagram as it is drawn | Derivation | Built | Built |
-| [`file-view.read-image`](17-diff-and-merge-views.md#file-viewread-image--the-pixels-of-an-image-file) | The pixels of an image file | Derivation | Specified | Host only |
-| [`file-view.image`](17-diff-and-merge-views.md#file-viewimage--an-image-as-it-is-drawn) | An image as it is drawn | View | Specified | Planned |
+| [`file-view.read-image`](17-diff-and-merge-views.md#file-viewread-image--the-pixels-of-an-image-file) | The pixels of an image file | Derivation | Built | Host only |
+| [`file-view.image`](17-diff-and-merge-views.md#file-viewimage--an-image-as-it-is-drawn) | An image as it is drawn | View | Built | Built |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built | Host only |
 | [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built | Host only |
@@ -712,20 +712,20 @@ earns it.
 
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
-| [`lfs.read-status`](21-large-files.md#lfsread-status--whether-git-lfs-is-there-and-what-the-repository-stores-with-it) | Whether Git LFS is there, and what the repository stores with it | Read | Specified | Planned |
-| [`lfs.read-files`](21-large-files.md#lfsread-files--the-files-stored-with-git-lfs) | The files stored with Git LFS | Read | Specified | Planned |
-| [`lfs.pointer`](21-large-files.md#lfspointer--a-file-left-as-a-pointer) | A file left as a pointer | Derivation | Specified | Planned |
-| [`lfs.read-content`](21-large-files.md#lfsread-content--the-content-of-a-file-stored-with-git-lfs-from-the-store-of-the-repository) | The content of a file stored with Git LFS, from the store of the repository | Read | Specified | Planned |
-| [`lfs.show-in-pages`](21-large-files.md#lfsshow-in-pages--a-file-stored-with-git-lfs-in-the-pages) | A file stored with Git LFS, in the pages | View | Specified | Planned |
-| [`lfs.download`](21-large-files.md#lfsdownload--download-files-stored-with-git-lfs) | Download files stored with Git LFS | Operation | Specified | Planned |
-| [`lfs.page`](21-large-files.md#lfspage--the-large-files-page) | The Large files page | View | Specified | Planned |
-| [`lfs.set-up`](21-large-files.md#lfsset-up--set-up-git-lfs-for-a-repository) | Set up Git LFS for a repository | Operation | Specified | Planned |
-| [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Specified | Planned |
-| [`lfs.store-committed`](21-large-files.md#lfsstore-committed--store-with-git-lfs-the-files-committed-before) | Store with Git LFS the files committed before | Operation | Specified | Planned |
-| [`lfs.untrack`](21-large-files.md#lfsuntrack--stop-storing-a-pattern-with-git-lfs) | Stop storing a pattern with Git LFS | Operation | Specified | Planned |
-| [`lfs.read-locks`](21-large-files.md#lfsread-locks--the-locks-of-the-files-stored-with-git-lfs) | The locks of the files stored with Git LFS | Read | Specified | Planned |
-| [`lfs.lock`](21-large-files.md#lfslock--lock-a-file-stored-with-git-lfs) | Lock a file stored with Git LFS | Operation | Specified | Planned |
-| [`lfs.unlock`](21-large-files.md#lfsunlock--unlock-a-file-stored-with-git-lfs) | Unlock a file stored with Git LFS | Operation | Specified | Planned |
+| [`lfs.read-status`](21-large-files.md#lfsread-status--whether-git-lfs-is-there-and-what-the-repository-stores-with-it) | Whether Git LFS is there, and what the repository stores with it | Read | Built | Planned |
+| [`lfs.read-files`](21-large-files.md#lfsread-files--the-files-stored-with-git-lfs) | The files stored with Git LFS | Read | Built | Planned |
+| [`lfs.pointer`](21-large-files.md#lfspointer--a-file-left-as-a-pointer) | A file left as a pointer | Derivation | Built | Planned |
+| [`lfs.read-content`](21-large-files.md#lfsread-content--the-content-of-a-file-stored-with-git-lfs-from-the-store-of-the-repository) | The content of a file stored with Git LFS, from the store of the repository | Read | Built | Planned |
+| [`lfs.show-in-pages`](21-large-files.md#lfsshow-in-pages--a-file-stored-with-git-lfs-in-the-pages) | A file stored with Git LFS, in the pages | View | Built | Planned |
+| [`lfs.download`](21-large-files.md#lfsdownload--download-files-stored-with-git-lfs) | Download files stored with Git LFS | Operation | Built | Planned |
+| [`lfs.page`](21-large-files.md#lfspage--the-large-files-page) | The Large files page | View | Built | Planned |
+| [`lfs.set-up`](21-large-files.md#lfsset-up--set-up-git-lfs-for-a-repository) | Set up Git LFS for a repository | Operation | Built | Planned |
+| [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Built | Planned |
+| [`lfs.store-committed`](21-large-files.md#lfsstore-committed--store-with-git-lfs-the-files-committed-before) | Store with Git LFS the files committed before | Operation | Built | Planned |
+| [`lfs.untrack`](21-large-files.md#lfsuntrack--stop-storing-a-pattern-with-git-lfs) | Stop storing a pattern with Git LFS | Operation | Built | Planned |
+| [`lfs.read-locks`](21-large-files.md#lfsread-locks--the-locks-of-the-files-stored-with-git-lfs) | The locks of the files stored with Git LFS | Read | Built | Planned |
+| [`lfs.lock`](21-large-files.md#lfslock--lock-a-file-stored-with-git-lfs) | Lock a file stored with Git LFS | Operation | Built | Planned |
+| [`lfs.unlock`](21-large-files.md#lfsunlock--unlock-a-file-stored-with-git-lfs) | Unlock a file stored with Git LFS | Operation | Built | Planned |
 
 ## The extension's identifiers
 

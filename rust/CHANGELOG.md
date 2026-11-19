@@ -169,6 +169,59 @@
   Notes…** in Quick search, bring the notes of a remote and send them, which `git fetch` and `git push` do not do by
   themselves. When each side has notes the other has not, **Merge the notes** puts the two notes of a commit one after
   the other; a push the remote refuses offers **Fetch notes**.
+- The **Large files** page, from **Large files…** in the menu of the row of a repository or **Large Files (Git
+  LFS)…** in Quick search, says which Git LFS is installed, or that none is with **Open git-lfs.com**, and whether
+  the repository is set up, with **Set up**; it lists the patterns, with **Track a pattern…** and, in the menu of a
+  pattern, **Stop storing with Git LFS** and **Store them with Git LFS in the next commit**, and the files with their
+  sizes and whether they are downloaded, with **Download all** and **Refresh**. **Store with Git LFS…** in the menu
+  of a file of the Files page stores its extension, the file alone, its folder or a pattern typed with Git LFS, and
+  says how many files committed before the pattern takes, offering to store them in the next commit.
+- The **Large files** page shows the locks of the server: the name of whoever locked a file, read when the page opens
+  and on **Refresh**, never with the reads of the repository, and **The server of `<remote>` does not support locks.**
+  when it has none. **Lock** in the menu of a file runs `git lfs lock`; **Unlock** runs `git lfs unlock`, with
+  **Unlock anyway** when the file has changes not committed, and asks first for someone else's lock, who is not told.
+- **Remember how conflicts are resolved…** in the menu of the row of the repository shown, or in Quick search, turns
+  on git's rerere for the repository, asking whether git leaves the files it resolves as before for you to look at or
+  stages them; the entry is ticked while git remembers, and choosing it again turns it off, keeping what git recorded.
+- The files git resolved as before, from a resolution it recorded, are said while an operation is stopped: **· git
+  resolved 1 as before** in the banner, a sentence in the message of the stop, and **Resolved as before** on their
+  rows in the changes, whose menu has **Show what git wrote**, a Diff page of the file as git marked it against the
+  file on disk, **Mark as resolved** and **Forget this resolution…**, which runs `git rerere forget` and marks the
+  conflicts again. The review of the conflicts shows each such file on a card under **Resolved as before**, to accept,
+  which **Write** stages, or to forget.
+- A file stored with Git LFS is never shown as the text of its pointer. Left as a pointer, as after a clone without
+  Git LFS, the File page says **Stored with Git LFS, not downloaded** with its size and **Download**, which pulls it
+  with `git lfs pull --include=<path>`; at a revision, its content is read from the store of the repository when it is
+  there. The Diff page shows the diff of the contents, with **Stored with Git LFS** in its bar, or, when a side is not
+  downloaded, each side's size and **Download**, which fetches the content of a commit not checked out without
+  changing the working tree. The page of a commit says **Stored with Git LFS: 2.0 MB → 2.1 MB** in place of the lines
+  of the pointers. Nothing is downloaded by a read.
+- The Diff page selects lines: dragging over the lines or their numbers of a side, `Shift` with a click or with the
+  arrows from the line chosen, or the text selected on the side of the working tree, selects their rows, drawn on both
+  sides and in the gutter; `Escape` or a click elsewhere clears them. **Stage lines**, **Unstage lines** and **Revert
+  lines** in the context menu of either side, or `Alt+S`, `Alt+U` and `Alt+R`, stage, unstage or revert only those
+  lines: a patch of them for `git apply --cached`, or for a revert one edit of the working tree side that `Ctrl+Z`
+  takes back, saved at once. With no changed line among the rows, the three items are greyed out.
+- JPEG, GIF, WebP, BMP and ICO are drawn wherever a PNG is: in the File page, the Diff page, the page of a commit and
+  the preview of Markdown. A GIF or an animated WebP shows its first frame, an ICO its largest image.
+- The page of a commit shows, with its changes, the two versions of an image it changed side by side under the header
+  of its diff, in place of *Binary file.*: each at most 240 pixels high and half the width of the page, **Empty** on a
+  side with none, with its size and weight under it. They are read once the diff is shown unfolded, and a click on
+  them opens the file in the Diff page. An SVG shows its lines, with **Show the images** on its header for its two
+  pictures and **Show the lines** back.
+- The Diff page of an image shows its two versions side by side in place of *This file looks binary.*, at one scale
+  so that a picture that grew looks larger, **Empty** on a side with none, and over them what changed: the sizes and
+  the weights, or *Only the bytes of the file changed; the pixels are the same.* An SVG opens on **Image**, its two
+  pictures, and **Text** shows the diff of its lines with everything that page has. **Stage file**, **Unstage file**
+  and **Discard changes** stay, and `F7` stops on an image once in a page of several files.
+- An image opens in the File page as its picture, in place of *This file is not text.*: centered, fit to the page,
+  on a ground of squares that shows what is transparent, with its size in pixels, its format and its weight under it.
+  `Ctrl` with the wheel, `Ctrl+=` and `Ctrl+-` zoom it in steps up to 800%, its pixels square, and `Ctrl+0` fits it
+  again; dragging or the wheel moves it once it is larger than the page. An SVG opens as its picture, with **Source**
+  for its text and **Preview** drawing the text as it is edited. A picture changed on disk is drawn again, and an
+  image at a revision is drawn the same way.
+- The preview of a Markdown file draws an SVG of the repository it names, as it draws a PNG, with the fonts of
+  the program and without reading anything the SVG names.
 
 ## 1.2.0 - 2026-11-18
 

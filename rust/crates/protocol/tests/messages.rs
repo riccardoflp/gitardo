@@ -105,6 +105,9 @@ fn repository() -> RepositoryState {
         skipped: Vec::new(),
         is_looked_after: false,
         notes: model::note::Notes::default(),
+        lfs: model::lfs::LfsStatus::default(),
+        rerere: model::rerere::RerereState::default(),
+        resolved_as_before: Vec::new(),
     }
 }
 

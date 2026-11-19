@@ -71,7 +71,7 @@ pub struct ChangesRepository<'a> {
     /// `changes.openOnClick`: what a click on a file does.
     pub on_click: OpenOnClick,
     /// The banner of an operation that stopped, over the lists (`conflicts.banner`).
-    pub banner: Option<crate::conflicts::BannerState<'a>>,
+    pub banner: Option<Box<crate::conflicts::BannerState<'a>>>,
     /// The banner of another worktree shown in this window, at the top (`worktree.banner`).
     pub worktree: Option<Box<crate::worktree::BannerState<'a>>>,
     /// The file shown beside the list, which its row marks; none while nothing is shown beside it, or every file
@@ -83,6 +83,8 @@ pub struct ChangesRepository<'a> {
     pub skipped: &'a [model::state::SkippedFile],
     /// Whether the group of the files hidden from git is folded.
     pub is_hidden_folded: bool,
+    /// The files git resolved as before during the operation under way (`rerere.resolved-as-before`).
+    pub resolved_as_before: &'a [model::rerere::ResolvedAsBefore],
 }
 
 /// Something asked of the Changes page, or of the draft of the timeline, which shows its message and **Commit**.

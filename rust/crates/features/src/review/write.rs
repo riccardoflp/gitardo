@@ -34,7 +34,7 @@ pub fn write(context: &Context, answers: &Answers) -> Outcome {
         .iter()
         .filter(|file| !file.accepted.is_empty())
         .collect();
-    if written.is_empty() {
+    if written.is_empty() && resolutions.recorded.is_empty() {
         return Outcome::Refuse(Refusal::saying(NOTHING_ACCEPTED));
     }
     let mut texts = Vec::with_capacity(written.len());
@@ -100,27 +100,33 @@ fn plan(context: &Context, resolutions: &Resolutions, (written, texts): (&[&File
         path: folder.join(&file.path),
         contents: text.into_bytes(),
     }));
-    let whole: Vec<&&FileResolutions> = written.iter().filter(|file| file.is_whole()).collect();
-    if !whole.is_empty() {
+    let whole = written.iter().filter(|file| file.is_whole()).map(|file| &file.path);
+    let staged: Vec<&String> = whole.chain(&resolutions.recorded).collect();
+    if !staged.is_empty() {
         let mut arguments = vec![std::ffi::OsString::from("add"), std::ffi::OsString::from("--")];
-        arguments.extend(whole.iter().map(|file| pathspec(&file.path)));
+        arguments.extend(staged.iter().map(|path| pathspec(path)));
         steps.push(Step::git(folder.clone(), arguments));
     }
-    let accepted = resolutions.accepted();
-    let title = if accepted == 1 {
-        String::from("Write the resolution of 1 conflict")
-    } else {
-        format!("Write the resolutions of {accepted} conflicts")
-    };
+    let title = title(resolutions);
+    let mut files: Vec<String> = written.iter().map(|file| file.path.clone()).collect();
+    files.extend(resolutions.recorded.iter().cloned());
     Plan {
         title: Text::from(title),
         steps,
         danger: Danger::None,
-        undo: Undo::Journal(UndoRecord::ConflictsResolved {
-            files: written.iter().map(|file| file.path.clone()).collect(),
-        }),
+        undo: Undo::Journal(UndoRecord::ConflictsResolved { files }),
         after: Vec::new(),
         on_failure: Vec::new(),
+    }
+}
+
+/// The title of the plan: the resolutions written, or, with none, the files git resolved as before staged.
+fn title(resolutions: &Resolutions) -> String {
+    match (resolutions.accepted(), resolutions.recorded.len()) {
+        (0, 1) => String::from("Stage the file git resolved as before"),
+        (0, recorded) => format!("Stage the {recorded} files git resolved as before"),
+        (1, _) => String::from("Write the resolution of 1 conflict"),
+        (accepted, _) => format!("Write the resolutions of {accepted} conflicts"),
     }
 }
 
@@ -143,6 +149,12 @@ pub fn detail(resolutions: &Resolutions) -> Vec<String> {
             )
         })
         .collect();
+    lines.extend(
+        resolutions
+            .recorded
+            .iter()
+            .map(|path| format!("{path}: staged as git resolved it before")),
+    );
     lines.push(match resolutions.left() {
         0 => String::from("No conflict will be left."),
         1 => String::from("1 conflict will be left to resolve by hand, with the markers as they are."),

@@ -51,6 +51,8 @@ pub enum Page {
     Help,
     /// The page of what a rewrite changed, commit by commit (`range-diff.page`).
     RangeDiff,
+    /// The Large files page (`lfs.page`).
+    LargeFiles,
 }
 
 impl Page {
@@ -73,6 +75,7 @@ impl Page {
             Page::Search => crate::text::file_search::PAGE,
             Page::Help => crate::text::help::PAGE,
             Page::RangeDiff => crate::text::range_diff::PAGE,
+            Page::LargeFiles => crate::text::lfs::PAGE,
         }
     }
 }
@@ -118,6 +121,8 @@ pub enum PageState<'a> {
     Help(crate::help::HelpState<'a>),
     /// The page of what a rewrite changed.
     RangeDiff(crate::range_diff::RewriteState<'a>),
+    /// The Large files page.
+    LargeFiles(crate::lfs::LfsPageState<'a>),
 }
 
 impl<'a> PageState<'a> {
@@ -141,6 +146,7 @@ impl<'a> PageState<'a> {
             PageState::Search(_) => Page::Search,
             PageState::Help(_) => Page::Help,
             PageState::RangeDiff(_) => Page::RangeDiff,
+            PageState::LargeFiles(_) => Page::LargeFiles,
         }
     }
 
@@ -155,7 +161,8 @@ impl<'a> PageState<'a> {
             | PageState::Rebase(_)
             | PageState::Files(_)
             | PageState::Search(_)
-            | PageState::Help(_) => self.page().title(),
+            | PageState::Help(_)
+            | PageState::LargeFiles(_) => self.page().title(),
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
             PageState::CompareBeside(beside) => beside.diff.title,
@@ -268,6 +275,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Search(search) => crate::file_search::page_view(search, ui),
         PageState::Help(help) => crate::help::page_view(help, ui),
         PageState::RangeDiff(rewrite) => crate::range_diff::page(rewrite, ui),
+        PageState::LargeFiles(large) => crate::lfs::page(large, ui),
     }));
     // `Alt+Left` is read after the page, which may use it in a field.
     if state.has_trail && trail::is_back_pressed(ui) {

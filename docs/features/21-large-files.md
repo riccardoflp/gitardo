@@ -26,15 +26,21 @@ stores with it.
 - **Uses**: `repo.read-state`, with which it runs, and again only when a `.gitattributes` or the configuration changed
   (`repo.watch-changes`).
 - **Extension**: read by the engine with the state of the repository: planned.
+- As built, its request carries the version read before (`LfsStatusRequest::version`), so that `git lfs version`
+  runs once for the engine, and the patterns read before (`LfsStatusRequest::patterns`), kept when no
+  `.gitattributes` changed; a pattern of a commented line is not one. With `repo.read-state`, which is read without
+  what was read before, it runs as `read_repository_status`: the patterns and the configuration at each read, and
+  `git lfs version` only when the repository has patterns or is set up, so that a repository that stores nothing
+  with Git LFS starts no process of it; the **Large files** page reads the version itself.
 
 Acceptance:
 
-- [ ] Without Git LFS, it says it is not installed, and still lists the patterns `*.psd filter=lfs diff=lfs merge=lfs
+- [x] Without Git LFS, it says it is not installed, and still lists the patterns `*.psd filter=lfs diff=lfs merge=lfs
       -text` of `.gitattributes` gives.
-- [ ] With Git LFS 3.7.1, it reads the version `3.7.1`.
-- [ ] A pattern in `assets/.gitattributes` is listed with that file; a line with `-filter` or `filter=other` is not.
-- [ ] A repository whose patterns are there but whose configuration has no `filter.lfs.` key is not set up.
-- [ ] A read after a change to a file of the working tree only does not read the attributes again.
+- [x] With Git LFS 3.7.1, it reads the version `3.7.1`.
+- [x] A pattern in `assets/.gitattributes` is listed with that file; a line with `-filter` or `filter=other` is not.
+- [x] A repository whose patterns are there but whose configuration has no `filter.lfs.` key is not set up.
+- [x] A read after a change to a file of the working tree only does not read the attributes again.
 
 ### `lfs.read-files` — The files stored with Git LFS
 
@@ -50,14 +56,17 @@ is downloaded.
   reads of the repository (Q1190).
 - **Uses**: `lfs.read-status`, by `lfs.page`.
 - **Extension**: read by the engine for what the extension shows of the files stored with Git LFS: planned.
+- As built, the output of `--json` is read one key on each line, as Git LFS indents it, since serde_json is kept to
+  the crates `protocol` and `server` (rule R1.7); its escapes, `\u003c` and the others, are read. The sizes of
+  `--long --size` are rounded by Git LFS, `1.2 KB` read as 1,200 bytes. Without Git LFS, an empty version, nothing is run.
 
 Acceptance:
 
-- [ ] A repository with `a.bin` downloaded and `b.bin` left as a pointer lists both, `a.bin` downloaded and checked
+- [x] A repository with `a.bin` downloaded and `b.bin` left as a pointer lists both, `a.bin` downloaded and checked
       out, `b.bin` neither, each with its size.
-- [ ] A path with spaces and non-ASCII letters comes back as git has it.
-- [ ] The output of `--long --size` of Git LFS 2.13 gives the same files.
-- [ ] Without Git LFS it is not run, and the page says so.
+- [x] A path with spaces and non-ASCII letters comes back as git has it.
+- [x] The output of `--long --size` of Git LFS 2.13 gives the same files.
+- [x] Without Git LFS it is not run, and the page says so.
 
 ### `lfs.pointer` — A file left as a pointer
 
@@ -78,9 +87,9 @@ Rules:
 
 Acceptance:
 
-- [ ] The three lines `git lfs` writes for a file of 2,000 bytes give its id and the size 2,000.
-- [ ] The same lines with CRLF, with the keys in another order, or with an id of 63 digits are not a pointer.
-- [ ] A text file that starts with `version https://git-lfs.github.com/spec/v1` and goes on past 1,024 bytes is not a
+- [x] The three lines `git lfs` writes for a file of 2,000 bytes give its id and the size 2,000.
+- [x] The same lines with CRLF, with the keys in another order, or with an id of 63 digits are not a pointer.
+- [x] A text file that starts with `version https://git-lfs.github.com/spec/v1` and goes on past 1,024 bytes is not a
       pointer.
 
 ### `lfs.read-content` — The content of a file stored with Git LFS, from the store of the repository
@@ -98,10 +107,10 @@ The content a pointer stands for, read from the store of Git LFS on this compute
 
 Acceptance:
 
-- [ ] For a file downloaded, the bytes read are those of the file once checked out.
-- [ ] For a pointer whose object is not in the store, it says not downloaded, and no process of Git LFS talks to the
+- [x] For a file downloaded, the bytes read are those of the file once checked out.
+- [x] For a pointer whose object is not in the store, it says not downloaded, and no process of Git LFS talks to the
       server.
-- [ ] An object of the store shorter than the size of its pointer is not downloaded.
+- [x] An object of the store shorter than the size of its pointer is not downloaded.
 
 ### `lfs.show-in-pages` — A file stored with Git LFS, in the pages
 
@@ -131,17 +140,27 @@ on this computer, and otherwise that it is not downloaded, with **Download**, ne
   removed and added, is shown as one line, **Stored with Git LFS: 2.0 MB → 2.1 MB**, with **Open it in the Diff
   page**.
 - Sizes are said in the units of the system, as the window says sizes elsewhere.
+- As built, the File page and the Diff page read the sides on their worker (`app::work::file_view::read_shown`,
+  `app::work::lfs_sides`): a side whose bytes are a pointer (`lfs.pointer`) and whose path `git check-attr` says
+  `lfs` for is read from the store. Each side not downloaded is said with its size, its first ten digits and
+  **Downloaded** or **Not downloaded**, the Diff page naming them **Before** and **After**; a page that shows one is
+  read again with the repository, so that **Download** shows the content once it ran. A file of the working tree that
+  is a pointer is said not downloaded even when the store has its content, since editing the content there would
+  change the file. The page of a commit marks a diff whose lines are those of two pointers, or of one and nothing,
+  when `git check-attr` says `lfs` for its path (`git::read::commit_page::read_patch`), and says it in the note of the
+  diff with **Open it in the Diff page**. **Stored with Git LFS** beside the title of the Diff page is in its bar,
+  after the buttons. The snapshots are those of the File page of a file not downloaded.
 
 Acceptance:
 
-- [ ] After a clone with `GIT_LFS_SKIP_SMUDGE=1`, opening `art/logo.psd` in the File page says **Stored with Git LFS,
+- [x] After a clone with `GIT_LFS_SKIP_SMUDGE=1`, opening `art/logo.psd` in the File page says **Stored with Git LFS,
       not downloaded** with its size and **Download**, and no line of its pointer.
-- [ ] The Diff page of a text file stored with Git LFS, changed and downloaded, shows the lines that changed in its
+- [x] The Diff page of a text file stored with Git LFS, changed and downloaded, shows the lines that changed in its
       content.
-- [ ] The page of a commit that changed `art/logo.psd` shows **Stored with Git LFS: 2.0 MB → 2.1 MB** in place of the
+- [x] The page of a commit that changed `art/logo.psd` shows **Stored with Git LFS: 2.0 MB → 2.1 MB** in place of the
       lines of the pointers.
-- [ ] A file whose text is a pointer at a path the repository does not store with Git LFS is shown as text.
-- [ ] Each of these matches its snapshot in each theme.
+- [x] A file whose text is a pointer at a path the repository does not store with Git LFS is shown as text.
+- [x] Each of these matches its snapshot in each theme.
 
 ### `lfs.download` — Download files stored with Git LFS
 
@@ -167,16 +186,22 @@ for another commit.
 - **Uses**: `lfs.read-status`, `lfs.show-in-pages`, `lfs.page`, `remote.default`.
 - **Extension**: planned: **Download** in the message that a side is not downloaded, sending `feature/run` of
   `lfs.download` to the engine (`Controller.runOnEngine`).
+- As built, it runs on `Target::LfsFiles`, the paths and the commit; a commit that is the one checked out is pulled.
+  A refusal offers an operation only, so the refusal without Git LFS says the message with no **Open git-lfs.com**,
+  which the **Large files** page has. A commit not checked out in a repository with no remote is refused: **This
+  repository has no remote to download the files of another commit from.** **Download** on a folder of the Files
+  page waits for that page to read which files are pointers (Q1190); the folder is downloaded from the **Large
+  files** page.
 
 Acceptance:
 
-- [ ] **Download** on `art/logo.psd` runs `git lfs pull --include=art/logo.psd`, and the File page shows its content
+- [x] **Download** on `art/logo.psd` runs `git lfs pull --include=art/logo.psd`, and the File page shows its content
       after.
-- [ ] **Download** on the folder `art` runs `git lfs pull --include=art/**`.
-- [ ] **Download all** runs `git lfs pull`, and the page lists every file downloaded after.
-- [ ] **Download** in the Diff page of a commit that is not checked out runs `git lfs fetch --include=<path> origin
+- [x] **Download** on the folder `art` runs `git lfs pull --include=art/**`.
+- [x] **Download all** runs `git lfs pull`, and the page lists every file downloaded after.
+- [x] **Download** in the Diff page of a commit that is not checked out runs `git lfs fetch --include=<path> origin
       <commit>`, the working tree unchanged, and the diff then shows the contents.
-- [ ] Without Git LFS, it refuses with the message, and nothing runs.
+- [x] Without Git LFS, it refuses with the message, and nothing runs.
 
 ### `lfs.page` — The Large files page
 
@@ -207,11 +232,24 @@ their sizes and whether they are downloaded, and the locks.
 
 Acceptance:
 
-- [ ] In a repository with `*.psd` tracked and two files, one not downloaded, the page lists the pattern, both files
+- [x] In a repository with `*.psd` tracked and two files, one not downloaded, the page lists the pattern, both files
       with their sizes, and **Download all (1, 2.0 MB)**.
-- [ ] Without Git LFS, the head says it is not installed, and the patterns are listed all the same.
-- [ ] A file locked by someone else shows their name, and its menu has **Unlock** with the warning of `lfs.unlock`.
-- [ ] The page matches its snapshots in each theme, with files and with none.
+- [x] Without Git LFS, the head says it is not installed, and the patterns are listed all the same.
+- [x] A file locked by someone else shows their name, and its menu has **Unlock** with the warning of `lfs.unlock`.
+- [x] The page matches its snapshots in each theme, with files and with none.
+
+- As built (phase 3), the page reads on its worker (`app::work::large_files::read_large_files`) the status with the
+  version of Git LFS and the files of the commit checked out, again once the repository was read since, on
+  **Refresh**, and for another repository; the menu of the row of a repository not shown shows it first. A file is
+  said **Downloaded** when its content is in the store and in the working tree, so that **Download all** counts the
+  files left as pointers. `git lfs ls-files --json` prints `"files": null` in a repository with no file, which lists
+  none.
+- As built (phase 4), the locks are read on the same worker, only when the page opens, on **Refresh** and once **Lock**
+  or **Unlock** ended; a read of the files after a read of the repository keeps the locks read before. The name of
+  whoever locked a file is in a column between the path and the size, **You** for a lock of this user when the server
+  verifies. **Lock** and **Unlock** have no icon, as no icon says a lock. A note under **Files** says **Reading the
+  locks…**, **The server of `<remote>` does not support locks.**, or what git said when the locks could not be read;
+  the remote is the one `remote.default` chooses, as Git LFS asks it.
 
 ### `lfs.set-up` — Set up Git LFS for a repository
 
@@ -233,8 +271,12 @@ with Git LFS at commit.
 
 Acceptance:
 
-- [ ] It runs `git lfs install --local`, and the page no longer says the repository is not set up.
-- [ ] After it, **Download all** is offered while a file is a pointer.
+- [x] It runs `git lfs install --local`, and the page no longer says the repository is not set up.
+- [x] After it, **Download all** is offered while a file is a pointer.
+
+- As built, the files left as pointers are read before the plan (`Query::LfsPointers`), and **Download all
+  (`<count>`)** is offered with them; it refuses once the repository is set up. The message of Git LFS about hooks of
+  the repository's own is in the log of the operation, not said apart.
 
 ### `lfs.track` — Store files with Git LFS
 
@@ -262,11 +304,20 @@ Has Git LFS store the files that a pattern takes, from their next commit on.
 
 Acceptance:
 
-- [ ] On `art/logo.psd`, **All `.psd` files** runs `git lfs track *.psd` at the top, and `.gitattributes` has
+- [x] On `art/logo.psd`, **All `.psd` files** runs `git lfs track *.psd` at the top, and `.gitattributes` has
       `*.psd filter=lfs diff=lfs merge=lfs -text` after.
-- [ ] **This file** on `art/logo [1].psd` runs `git lfs track --filename "art/logo [1].psd"`.
-- [ ] With `logo.psd` committed before, the message after counts 1 file and offers to store it with Git LFS.
-- [ ] Not set up, it refuses with **Set up**, and nothing runs.
+- [x] **This file** on `art/logo [1].psd` runs `git lfs track --filename "art/logo [1].psd"`.
+- [x] With `logo.psd` committed before, the message after counts 1 file and offers to store it with Git LFS.
+- [x] Not set up, it refuses with **Set up**, and nothing runs.
+
+- As built, the files committed before are read ahead of the plan with the pathspec that takes what the pattern
+  takes (`Query::LfsToStore`: `:(glob)**/<pattern>` for a pattern with no `/`, `:(glob)<pattern>` for one with a `/`,
+  `:(literal)<path>` for **This file**), so that the message after can count them; the offer gives them to
+  `lfs.store-committed`, which does not read them again. **A pattern…** asks the pattern typed; from the page, with
+  no file, it is asked at once. **Store with Git LFS…** is in the menu of a file of the Files page only in a
+  repository that has patterns of Git LFS already, since Git for Windows sets Git LFS up for every repository and
+  would offer it everywhere: a repository that stores nothing with it starts from **Track a pattern…** on the
+  **Large files** page. The entry of the menu of the changes is not built yet.
 
 ### `lfs.store-committed` — Store with Git LFS the files committed before
 
@@ -289,10 +340,14 @@ pattern was there, so that the next commit stores them with Git LFS. The commits
 
 Acceptance:
 
-- [ ] With `logo.psd` committed as a plain file and `*.psd` tracked since, it runs
+- [x] With `logo.psd` committed as a plain file and `*.psd` tracked since, it runs
       `git add --renormalize -- logo.psd`, and the index then has a pointer for it.
-- [ ] A file stored with Git LFS already is not named.
-- [ ] The commits before keep `logo.psd` as they had it (Q1193).
+- [x] A file stored with Git LFS already is not named.
+- [x] The commits before keep `logo.psd` as they had it (Q1193).
+
+- As built, `git lfs ls-files --name-only` also lists the files staged as pointers, so a file added again and not
+  committed yet is not named twice. With nothing left to store it refuses: **Every file the patterns of Git LFS take
+  is stored with it already.**
 
 ### `lfs.untrack` — Stop storing a pattern with Git LFS
 
@@ -314,8 +369,11 @@ commit on.
 
 Acceptance:
 
-- [ ] On `*.psd` it runs `git lfs untrack *.psd`, and the line is no longer in `.gitattributes`.
-- [ ] A pattern of `assets/.gitattributes` has **Open assets/.gitattributes** and no **Stop storing with Git LFS**.
+- [x] On `*.psd` it runs `git lfs untrack *.psd`, and the line is no longer in `.gitattributes`.
+- [x] A pattern of `assets/.gitattributes` has **Open assets/.gitattributes** and no **Stop storing with Git LFS**.
+
+- As built, the menu of a pattern gives the pattern as the answer `pattern`; with none given it asks among the
+  patterns of the `.gitattributes` at the top, and a pattern of another file is refused with where it is.
 
 ### `lfs.read-locks` — The locks of the files stored with Git LFS
 
@@ -334,10 +392,16 @@ holds each lock.
 
 Acceptance:
 
-- [ ] Parsing `{"ours":[{"id":"1","path":"a.psd","owner":{"name":"reviewer"},"locked_at":"…"}],"theirs":[]}` gives
+- [x] Parsing `{"ours":[{"id":"1","path":"a.psd","owner":{"name":"reviewer"},"locked_at":"…"}],"theirs":[]}` gives
       one lock of this user on `a.psd`.
-- [ ] A server that answers that it does not support locks gives no lock and that fact.
-- [ ] Opening the **Large files** page runs it once; a read of the repository never does.
+- [x] A server that answers that it does not support locks gives no lock and that fact.
+- [x] Opening the **Large files** page runs it once; a read of the repository never does.
+
+- As built, Git LFS 3.7.1 answers `git lfs locks` with no lock and success when the server answers `404`, cannot be
+  reached, or the remote is a folder: only a failure whose message says that locking is not supported is taken for a
+  server without locks, and another failure is said as git said it. The JSON is read by a small reader of the crate
+  `git`, which may not depend on `crates/json` (rule R1.3). The tests ask a server of the tests on 127.0.0.1, set as
+  `lfs.url` of a clone.
 
 ### `lfs.lock` — Lock a file stored with Git LFS
 
@@ -357,7 +421,7 @@ Locks a file on the server, so that others know not to change it.
 
 Acceptance:
 
-- [ ] **Lock** on `art/logo.psd` runs `git lfs lock --json art/logo.psd`, and the page then shows the lock as this
+- [x] **Lock** on `art/logo.psd` runs `git lfs lock --json art/logo.psd`, and the page then shows the lock as this
       user's.
 
 ### `lfs.unlock` — Unlock a file stored with Git LFS
@@ -380,6 +444,9 @@ Takes a lock away: one's own, or, after a warning, someone else's.
 
 Acceptance:
 
-- [ ] **Unlock** on a lock of this user runs `git lfs unlock art/logo.psd`.
-- [ ] **Unlock** on a lock of someone else asks with the warning, then runs `git lfs unlock --force --id=<id>`.
-- [ ] With the file changed and not committed, Git LFS's refusal is followed by **Unlock anyway**.
+- [x] **Unlock** on a lock of this user runs `git lfs unlock art/logo.psd`.
+- [x] **Unlock** on a lock of someone else asks with the warning, then runs `git lfs unlock --force --id=<id>`.
+- [x] With the file changed and not committed, Git LFS's refusal is followed by **Unlock anyway**.
+
+- As built, a lock whose owner the server did not say (it does not verify) is unlocked as one of this user's, and
+  **Unlock anyway** is offered when what Git LFS said names uncommitted changes.

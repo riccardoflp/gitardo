@@ -22,6 +22,8 @@ pub const CONTINUE: &str = "conflicts.continue-operation";
 pub const RESTORE: &str = "conflicts.restore";
 /// The operation that takes one side of a whole file.
 pub const TAKE_SIDE: &str = "conflicts.take-side";
+/// What **Forget it** runs on a file git resolved as before.
+pub const FORGET: &str = "rerere.forget";
 
 /// A choice put in place of what is proposed for a conflict, accepted at once, its card unfolded.
 fn record_choice(state: &mut State, key: &ConflictKey, kind: model::review::ChoiceKind) {
@@ -47,6 +49,7 @@ pub fn reduce(state: &mut State, intent: ReviewIntent) -> Vec<Effect> {
     match intent {
         ReviewIntent::Open(only) => return super::open(state, only),
         ReviewIntent::TakeSide(path, taken) => return take_side(state, path, taken),
+        ReviewIntent::ForgetRecorded(path) => return run(state, FORGET, Target::File(path)),
         ReviewIntent::ShowResult => return show_result(state),
         ReviewIntent::Write => return write(state),
         ReviewIntent::Undo => return undo(state),
@@ -116,6 +119,12 @@ fn change_page(page: &mut ReviewPage, intent: ReviewIntent) {
         ReviewIntent::AcceptAll => {
             for key in acceptable(page, None) {
                 accept(page, &key);
+            }
+        }
+        ReviewIntent::AcceptRecorded(path, is_accepted) => {
+            page.recorded_accepted.retain(|accepted| *accepted != path);
+            if is_accepted {
+                page.recorded_accepted.push(path);
             }
         }
         ReviewIntent::Clear => {
@@ -196,7 +205,10 @@ fn resolutions(state: &State) -> Option<Resolutions> {
             }
         })
         .collect();
-    Some(Resolutions { files })
+    Some(Resolutions {
+        files,
+        recorded: page.recorded_accepted.clone(),
+    })
 }
 
 /// What the report will say once the write ran.
@@ -212,9 +224,9 @@ fn report_of(resolutions: &Resolutions, page: &ReviewPage) -> Report {
         .map_or(0, |readout| readout.read.deleted.len() + readout.read.others.len());
     Report {
         conflicts: resolutions.accepted(),
-        files: written.len(),
+        files: written.len() + resolutions.recorded.len(),
         from_ai: resolutions.from_ai(),
-        staged: written.iter().filter(|file| file.is_whole()).count(),
+        staged: written.iter().filter(|file| file.is_whole()).count() + resolutions.recorded.len(),
         conflicts_left: written.iter().map(|file| file.conflicts - file.accepted.len()).sum(),
         files_left: resolutions.files.iter().filter(|file| !file.is_whole()).count() + others,
     }
@@ -310,6 +322,7 @@ pub fn ended(state: &mut State, feature: Option<FeatureId>, has_run: bool) -> Ve
     if has_run {
         page.report = writing;
         page.accepted.clear();
+        page.recorded_accepted.clear();
         page.folds.clear();
         page.file_folds.clear();
         Vec::new()

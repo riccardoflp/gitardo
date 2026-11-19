@@ -39,6 +39,11 @@ pub fn reduce_page(state: &mut State, id: DiffPageId, intent: DiffPageIntent) ->
     match intent {
         DiffPageIntent::Next(at) => return step(state, id, (Direction::Next, at)),
         DiffPageIntent::Previous(at) => return step(state, id, (Direction::Previous, at)),
+        DiffPageIntent::ShowSvgText(shows_text) => {
+            if let Some(page) = page_mut(state, id) {
+                super::images::show_text(page, shows_text);
+            }
+        }
         DiffPageIntent::Resize(width) => {
             state.diff_pages.last_width = width;
             if let Some(page) = page_mut(state, id) {
@@ -197,7 +202,12 @@ fn go_to_file(state: &mut State, id: DiffPageId, (direction, at): (Direction, Du
 pub(super) fn shown(state: &mut State, (id, file): (DiffPageId, usize), result: DiffRead) -> Vec<Effect> {
     let diff = match result {
         DiffRead::Text(text) => FileDiff::Text(text),
+        DiffRead::Image(images) => match page_mut(state, id) {
+            Some(page) => super::images::file_diff(page, file, images),
+            None => return Vec::new(),
+        },
         DiffRead::Binary => FileDiff::Binary,
+        DiffRead::StoredWithLfs(stored) => FileDiff::StoredWithLfs(stored),
         DiffRead::TooComplex | DiffRead::Large => FileDiff::TooComplex,
         DiffRead::Failed(error) => {
             state.last_error = Some(error);
@@ -208,7 +218,7 @@ pub(super) fn shown(state: &mut State, (id, file): (DiffPageId, usize), result: 
     let Some(page) = page_mut(state, id) else {
         return Vec::new();
     };
-    let is_text = matches!(diff, FileDiff::Text(_));
+    let is_text = matches!(diff, FileDiff::Text(_) | FileDiff::Image(_));
     if let Some((direction, _)) = page.going.clone() {
         if !is_text {
             return go_to_file(state, id, (direction, Duration::ZERO));

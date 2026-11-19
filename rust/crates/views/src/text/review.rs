@@ -73,6 +73,8 @@ pub struct Summary {
     pub nothing: usize,
     /// The files deleted on one side and changed on the other.
     pub deleted: usize,
+    /// The files git resolved as before (`review.recorded`).
+    pub recorded: usize,
 }
 
 /// *5 conflicts in 2 files: 3 proposed by the rules, 1 by the AI, 1 with nothing proposed; 1 file deleted on one side
@@ -105,6 +107,9 @@ pub fn summary(summary: &Summary) -> String {
         said.push_str("; ");
         said.push_str(&counted(summary.deleted, "file"));
         said.push_str(" deleted on one side and changed on the other");
+    }
+    if summary.recorded > 0 {
+        said.push_str(&super::rerere::summary(summary.recorded));
     }
     said.push_str(". Nothing is written until you write what you accepted.");
     said

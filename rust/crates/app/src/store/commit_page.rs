@@ -3,13 +3,13 @@
 //! (`commit-page.show-in-graph`), which points the window back at the repository of the page and loads the history until
 //! the commit is in it.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use model::CommitId;
 use model::commit_page::{Fold, FoldSet, PatchLines, initial_folds};
 use model::details::{CommitDetail, TreeNode};
-use views::commit_page::{CommitPageId, CommitPageIntent, CommitPageState, PageData, PageRead, PageTarget};
+use views::commit_page::{CommitPageId, CommitPageIntent, CommitPageState, PageData, PageImages, PageRead, PageTarget};
 use views::details::FilesIntent;
 use views::page::Page;
 use views::text::details::page_title;
@@ -82,6 +82,10 @@ pub struct CommitPage {
     /// The commit the reference of notes was at when the page was read: once a note is written or removed, the page is
     /// read again for the note it shows (`note.show`).
     pub notes: Option<CommitId>,
+    /// The two versions of its image files, read as their diffs are shown (`commit-page.images`).
+    pub images: PageImages,
+    /// The reads of those images running, by the place of the file.
+    pub image_jobs: BTreeMap<usize, JobId>,
 }
 
 /// Opens the page of a commit of a repository, or shows the one it has: there is never a second page for the same
@@ -128,6 +132,8 @@ pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect>
         version: 0,
         signature: None,
         notes,
+        images: PageImages::default(),
+        image_jobs: BTreeMap::new(),
     });
     super::pages::show_page(state, Page::Commit(id));
     let mut effects = vec![Effect::Start(job)];
@@ -178,14 +184,16 @@ pub fn page_read(
     };
     let asked = matches!(page.read, PageReadState::Read(_)) && !page.is_stash;
     let (id, folder, commit) = (page.id, page.folder.clone(), page.commit.clone());
+    let mut effects = super::commit_images::refresh(state, id);
     if !asked {
-        return Vec::new();
+        return effects;
     }
     let (check, effect) = super::signature::check(state, folder, commit);
     if let Some(page) = state.commit_pages.pages.iter_mut().find(|page| page.id == id) {
         page.signature = Some(check);
     }
-    vec![effect]
+    effects.push(effect);
+    effects
 }
 
 /// The commit the reference of notes of a repository is at, as the read of the repository shown found it.
@@ -237,7 +245,7 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
     state.commit_pages.pages = kept;
     closed
         .into_iter()
-        .filter_map(|page| page.job)
+        .flat_map(|page| page.job.into_iter().chain(page.image_jobs.into_values()))
         .map(|job| {
             let _cancelled = state.jobs.remove(&job);
             Effect::Cancel(job)
@@ -276,8 +284,9 @@ pub fn reduce_page(state: &mut State, id: CommitPageId, intent: CommitPageIntent
             page.reveal = Some((serial, PageTarget::Top));
             state.commit_pages.serial = serial;
         }
+        CommitPageIntent::ShowImages(index, shows) => super::commit_images::show_images(page, index, shows),
     }
-    Vec::new()
+    super::commit_images::refresh(state, id)
 }
 
 /// Changes the files of a page as the user asked: the layout chosen is the one the next pages open with.
@@ -291,7 +300,7 @@ fn reduce_files(state: &mut State, id: CommitPageId, intent: FilesIntent) -> Vec
             if let PageReadState::Read(data) = &page.read {
                 page.tree = tree_of(&data.detail.files, true);
             }
-            Vec::new()
+            super::commit_images::refresh(state, id)
         }
         FilesIntent::Layout(layout) => {
             state.persisted.file_layouts.page = layout;
@@ -386,6 +395,7 @@ pub fn page_state(state: &State, id: CommitPageId) -> Option<CommitPageState<'_>
         tree: &page.tree,
         folded: &page.folded,
         is_all_files_shown: page.is_all_files_shown,
+        images: &page.images,
         labels,
         lane,
         reveal: page.reveal,

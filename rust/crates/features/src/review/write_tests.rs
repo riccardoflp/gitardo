@@ -44,6 +44,7 @@ fn file(path: &str, accepted: Vec<Proposal>) -> FileResolutions {
 /// The resolutions of `a.rs`, both by the rules, and of `b.rs`, its first by some source.
 fn two_files(second: ProposalSource) -> Resolutions {
     Resolutions {
+        recorded: Vec::new(),
         files: vec![
             file("a.rs", vec![proposal(RULES, 1), proposal(RULES, 7)]),
             file("b.rs", vec![proposal(second, 1)]),
@@ -144,6 +145,7 @@ fn review_write__a_file_changed_on_disk_since_it_was_read_writes_nothing() {
 #[test]
 fn review_write__two_proposals_on_the_same_lines_are_refused() {
     let resolutions = Resolutions {
+        recorded: Vec::new(),
         files: vec![file("a.rs", vec![proposal(RULES, 1), proposal(RULES, 3)])],
     };
     let context = context(state(), Target::Resolutions(Box::new(resolutions)));
@@ -153,6 +155,7 @@ fn review_write__two_proposals_on_the_same_lines_are_refused() {
 #[test]
 fn review_write__nothing_accepted_is_refused() {
     let resolutions = Resolutions {
+        recorded: Vec::new(),
         files: vec![file("a.rs", Vec::new())],
     };
     let context = context(state(), Target::Resolutions(Box::new(resolutions)));
@@ -166,6 +169,7 @@ fn review_write__nothing_accepted_is_refused() {
 fn review_choose__a_choice_written_counts_as_chosen_by_you() {
     let chosen = ProposalSource::Choice(ChoiceKind::CurrentOnly);
     let alone = Resolutions {
+        recorded: Vec::new(),
         files: vec![file("a.rs", vec![proposal(chosen.clone(), 1)])],
     };
     assert_eq!(
@@ -173,6 +177,7 @@ fn review_choose__a_choice_written_counts_as_chosen_by_you() {
         Some("a.rs: 1 of 2 conflicts (chosen by you)")
     );
     let among = Resolutions {
+        recorded: Vec::new(),
         files: vec![file("a.rs", vec![proposal(RULES, 1), proposal(chosen, 7)])],
     };
     assert_eq!(
@@ -221,4 +226,23 @@ fn review_write__a_file_saved_while_its_question_was_open_is_not_written_over() 
         refusal.message.as_str(),
         "b.rs has changed since it was read, so nothing was written. Try again."
     );
+}
+
+#[test]
+fn review_recorded__accept_and_write_stage_the_file_git_resolved_as_before() {
+    let resolutions = Resolutions {
+        files: vec![file("a.rs", Vec::new())],
+        recorded: vec![String::from("m.txt")],
+    };
+    let plan = written(&resolutions);
+    assert_eq!(plan.title.as_str(), "Stage the file git resolved as before");
+    let lines: Vec<String> = plan.steps.iter().map(Step::log_line).collect();
+    assert!(lines.iter().any(|line| line == "git add -- m.txt"), "{lines:?}");
+    assert!(!lines.iter().any(|line| line.starts_with("write")), "{lines:?}");
+    let with_others = Resolutions {
+        recorded: vec![String::from("m.txt")],
+        ..two_files(RULES)
+    };
+    let lines: Vec<String> = written(&with_others).steps.iter().map(Step::log_line).collect();
+    assert!(lines.iter().any(|line| line == "git add -- a.rs m.txt"), "{lines:?}");
 }

@@ -120,6 +120,7 @@ pub(super) fn read(state: &mut State, message: super::message::Message) -> Vec<E
         super::message::Message::NewWorktreesRead { job, result } => {
             super::new_worktrees::setup_read(state, job, *result)
         }
+
         _ => Vec::new(),
     }
 }
@@ -174,6 +175,11 @@ pub fn page_state(state: &State) -> FilesPageState<'_> {
             .and_then(|id| state.file_pages.pages.iter().find(|file| file.id == id))
             .map(|file| file.path.as_str()),
         skipped: state.shown_read().map_or(&[], |read| read.state.skipped.as_slice()),
+        // Only a repository that stores files with Git LFS already: Git for Windows sets it up for every repository.
+        can_store_with_lfs: state.shown_read().is_some_and(|read| {
+            let lfs = &read.state.lfs;
+            lfs.version.is_some() && lfs.is_set_up && !lfs.patterns.is_empty()
+        }),
     }
 }
 

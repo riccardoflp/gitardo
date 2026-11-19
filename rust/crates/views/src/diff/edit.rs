@@ -40,7 +40,7 @@ pub struct DrawnSides<'a> {
     /// The rows in sight.
     pub(super) rows: Vec<(usize, Rect)>,
     /// The rectangle of the rows.
-    list: Rect,
+    pub(super) list: Rect,
 }
 
 impl<'a> DrawnSides<'a> {
@@ -70,6 +70,8 @@ enum MenuChoice {
     Paste,
     /// **Jump to source**.
     JumpToSource,
+    /// **Stage lines**, **Unstage lines** or **Revert lines** (`diff.select-lines`).
+    Lines(super::select::LinesAction),
 }
 
 /// The two sides of a page over the rows its list drew: what the pointer and the keys ask of them, the caret and the
@@ -150,13 +152,33 @@ fn side_event(
             modifiers,
             click_count,
         } => pressed(sides, ui, side, (button, position, modifiers, click_count)),
-        ui::WidgetEvent::Dragged { position, .. } if side == CaretSide::Right => {
-            let Some((file, at)) = text_position(sides, ui, position) else {
+        ui::WidgetEvent::Dragged { position, .. } => {
+            let Some((page_line, _)) = row_at(sides, position.y) else {
                 return Vec::new();
             };
-            text_commands(state, file, vec![Command::PlaceAt(at, true)], ui.now())
+            match state.lines.get(page_line) {
+                Some(PageLine::Row(file, _)) if side == CaretSide::Right && is_editable(state, *file) => {
+                    let Some((file, at)) = text_position(sides, ui, position) else {
+                        return Vec::new();
+                    };
+                    text_commands(state, file, vec![Command::PlaceAt(at, true)], ui.now())
+                }
+                Some(PageLine::Row(file, row)) => super::select::select_to(state, (*file, side, *row)),
+                _ => Vec::new(),
+            }
         }
-        ui::WidgetEvent::Key(key) if side == CaretSide::Right => typed_key(sides, ui, id, key),
+        ui::WidgetEvent::Key(key) => {
+            let is_edited = side == CaretSide::Right && (0..state.files.len()).any(|file| is_editable(state, file));
+            if let Some(intents) = super::select::side_key(sides, (side, is_edited), &key, ui) {
+                ui.claim_key(id, key);
+                return intents;
+            }
+            if side == CaretSide::Right {
+                typed_key(sides, ui, id, key)
+            } else {
+                Vec::new()
+            }
+        }
         ui::WidgetEvent::Text(text) if side == CaretSide::Right => {
             let typed: String = text.chars().filter(|character| !character.is_control()).collect();
             caret_commands(
@@ -193,6 +215,15 @@ fn pressed(
         return Vec::new();
     };
     if side == CaretSide::Left || !is_editable(state, *file) {
+        if button == ui::PointerButton::Primary && modifiers.shift() {
+            return super::select::select_to(state, (*file, side, *row));
+        }
+        let is_selected = state
+            .selection
+            .is_some_and(|selection| selection.file == *file && selection.rows().contains(row));
+        if button == ui::PointerButton::Secondary && is_selected {
+            return Vec::new();
+        }
         let line = DiffEditIntent::Line {
             file: *file,
             side,
@@ -394,6 +425,7 @@ fn menu(sides: &DrawnSides<'_>, ui: &mut Ui<'_>, (side, response): (CaretSide, &
         (words::JUMP_TO_SOURCE_KEYS, MenuChoice::JumpToSource),
         true,
     ));
+    entries.extend(super::select::menu_entries(state, MenuChoice::Lines));
     let chosen = ui.context_menu(
         ("diff side menu", state.id, side == CaretSide::Right),
         response,
@@ -408,6 +440,7 @@ fn menu(sides: &DrawnSides<'_>, ui: &mut Ui<'_>, (side, response): (CaretSide, &
             Vec::new()
         }
         (Some(MenuChoice::JumpToSource), _) => open_at_caret(state).into_iter().collect(),
+        (Some(MenuChoice::Lines(action)), _) => super::select::act(state, action),
         _ => Vec::new(),
     }
 }

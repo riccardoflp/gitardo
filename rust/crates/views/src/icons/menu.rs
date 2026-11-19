@@ -13,7 +13,23 @@ use ui::{Icon, MenuItem};
 /// Feature: ui.menu-icons
 #[must_use]
 pub(crate) fn operation_icon(feature: &str) -> Option<Icon> {
-    history_icon(feature).or_else(|| place_icon(feature))
+    history_icon(feature)
+        .or_else(|| place_icon(feature))
+        .or_else(|| file_icon(feature))
+}
+
+/// The icon of an operation on some lines of a file, or on the files stored with Git LFS.
+fn file_icon(feature: &str) -> Option<Icon> {
+    let icon = match feature {
+        "diff.stage-lines" | "lfs.track" | "lfs.store-committed" => super::ADD,
+        "diff.unstage-lines" => super::UNSTAGE,
+        "diff.revert-lines" | "rerere.forget" => super::UNDO,
+        "lfs.download" => super::PULL,
+        "lfs.untrack" => super::DELETE,
+        "lfs.set-up" => super::SETTINGS,
+        _ => return None,
+    };
+    Some(icon)
 }
 
 /// The icon of an operation on the history, its branches, tags, stashes and remotes.

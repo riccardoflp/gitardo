@@ -43,6 +43,7 @@ fn summary(state: &ReviewState<'_>) -> String {
     let mut counted = words::Summary {
         files: state.files.len(),
         deleted: state.deleted.len(),
+        recorded: state.recorded.len(),
         ..words::Summary::default()
     };
     for card in state.conflicts() {
@@ -126,7 +127,7 @@ fn buttons(state: &ReviewState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> 
     let spacing = ui.theme().sizes.spacing;
     let mut intents = Vec::new();
     let mut area = Area::with_gap(rect, spacing.small);
-    let accepted = state.accepted();
+    let accepted = state.to_write();
     let write_said = words::write(accepted);
     let write = Button::primary(&write_said).with_tooltip(words::WRITE_TOOLTIP);
     let write = if accepted == 0 || state.is_running {

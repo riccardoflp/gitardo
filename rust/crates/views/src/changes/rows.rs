@@ -11,13 +11,16 @@ use ui::{
 };
 
 use super::ChangesRepository;
-use super::actions::{buttons_kept, conflict_actions, file_actions, heading_actions, open_page, run, staying};
+use super::actions::{
+    buttons_kept, conflict_actions, file_actions, heading_actions, open_page, resolved_actions, run, staying,
+};
 use super::menu::{RowMenuState, more_menu, row_menu};
 use super::skipped::{SkippedListState, SkippedRow, skipped_list, skipped_rows};
-use crate::conflicts::{OpenFileState, open_file_row};
+use crate::conflicts::{OpenFileState, ResolvedAsBeforeState, open_file_row, resolved_as_before};
 use crate::details::{CappedList, FileRow, FilesOwner, FilesState, directory_row, file_rows};
 use crate::intent::Intent;
 use crate::text::changes as words;
+use model::rerere::ResolvedAsBefore;
 
 /// A row of the lists.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -157,11 +160,15 @@ fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (
         return Vec::new();
     };
     let start = status_start(ui, rect, (words::CONFLICTED, ui.theme().colors.removed, &file.path));
+    let resolved = resolved_of(state, &file.path);
+    let (start, mut intents) = with_resolved_words(ui, start, resolved);
     let opened = OpenFileState { file };
-    let (mut intents, row) = ui.clip(start, |ui| open_file_row(opened, ui));
+    let (opened_intents, row) = ui.clip(start, |ui| open_file_row(opened, ui));
+    intents.extend(opened_intents);
+    let actions = resolved.map_or_else(|| conflict_actions(state, file), resolved_actions);
     let menu = RowMenuState {
         path: &file.path,
-        actions: &conflict_actions(state, file),
+        actions: &actions,
         is_running: state.is_running,
         row,
     };
@@ -264,14 +271,18 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
     }
     let (letter, color) = letter_of(row.status, ui);
     let name = status_start(ui, parts.rest(), (letter, color, &row.path));
+    let resolved = resolved_of(state, path);
+    let (name, resolved_intents) = with_resolved_words(ui, name, resolved);
+    intents.extend(resolved_intents);
     file_name(state, ui, (name, index));
     if response.clicked {
         intents.extend(open_page(row, OpenAction::Click, state.on_click));
     }
     // The right button on the box opens the menu of the row too.
+    let actions = resolved.map_or_else(|| file_actions(row), resolved_actions);
     let menu = RowMenuState {
         path,
-        actions: &file_actions(row),
+        actions: &actions,
         is_running: state.is_running,
         row: ui::Response {
             secondary_clicked: response.secondary_clicked || ticked.secondary_clicked,
@@ -280,6 +291,24 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
     };
     intents.extend(row_menu(&menu, ui));
     intents
+}
+
+/// The file of a row that git resolved as before, when it is one.
+fn resolved_of<'a>(state: &ChangesRepository<'a>, path: &str) -> Option<&'a ResolvedAsBefore> {
+    state.resolved_as_before.iter().find(|file| file.path == path)
+}
+
+/// **Resolved as before** at the right of a row of a file git resolved as before (`rerere.resolved-as-before`); gives
+/// the rest of the row, all of it for another file.
+fn with_resolved_words(ui: &mut Ui<'_>, rect: Rect, resolved: Option<&ResolvedAsBefore>) -> (Rect, Vec<Intent>) {
+    let Some(file) = resolved else {
+        return (rect, Vec::new());
+    };
+    let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.small);
+    let cell = parts.right(crate::conflicts::resolved_words_width(ui).min(rect.width * 0.5));
+    let state = ResolvedAsBeforeState { file };
+    let intents = ui.clip(cell, |ui| resolved_as_before(&state, ui));
+    (parts.rest(), intents)
 }
 
 /// The box of a file: ticked, half ticked or empty as much of it is staged; greyed out for a file only an editor has

@@ -124,6 +124,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::ChooseWhatNewWorktreesGet => {
             vec![Intent::WorktreeSetup(views::worktree_setup::SetupIntent::Open)]
         }
+        QuickCommand::LargeFiles => vec![Intent::LargeFiles(views::lfs::LargeFilesIntent::Open)],
         _ => Vec::new(),
     };
     intents

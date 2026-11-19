@@ -540,6 +540,9 @@ What it shows, from the top:
 A page stays of the repository its commit is in, also after the window is pointed at another; it is not read again
 when the repository changes, as a commit does not change.
 
+- The diff of the pointers of a file stored with Git LFS is said in one line, **Stored with Git LFS: 2.0 MB → 2.1
+  MB**, with **Open it in the Diff page** (`lfs.show-in-pages`, M39).
+
 Acceptance:
 
 - [ ] The page shows the message in full, unwrapped as `details.message-unwrap` says, with no **Show more**.
@@ -614,20 +617,29 @@ Rules:
 - In the header of the file, **binary** stays where the count of lines would be.
 - An image counts as one line for the folds of `commit-page.initial-folds`, and is unfolded at first as a binary file
   is.
+- The page reads as images the binary files whose name ends as an image does: `.png`, `.jpg`, `.jpeg`, `.gif`,
+  `.webp`, `.bmp`, `.ico`, in any case, and an SVG on **Show the images**; a binary file of another name says **Binary
+  file.** without reading its two versions, and one that was read and is not an image says it too
+  ([Q1301](../08-decisions.md#open-questions)). The block of the two pictures takes the rows of a picture 240 pixels
+  high, read or not, so that the page does not jump.
 - Extension: the webview draws the two as `<img>` of `data:` URIs, which its policy of content allows for images
   alone; in an `<img>` nothing of an SVG runs and nothing is fetched. A side over 10 MB is not sent: *Too large to show
-  here.* with **Open it in the Diff page**.
+  here.* with **Open it in the diff editor**, as the other notes of the page say: the extension opens a diff of an
+  image in VS Code's diff editor (`diff.image`). The page reads as images the same files as the desktop's
+  ([Q1301](../08-decisions.md#open-questions)), each version's type told by its first bytes as `file-view.read-image`
+  tells it; the size in pixels under a picture is the one the webview reads from it.
 
 Acceptance:
 
-- [ ] The page of a commit that changed `media/logo.png` shows, with the changes shown, its two versions side by side
+- [x] The page of a commit that changed `media/logo.png` shows, with the changes shown, its two versions side by side
       in place of **Binary file.**
-- [ ] A commit that added a PNG shows **Empty** on the left and the picture on the right.
-- [ ] A folded diff of an image reads nothing until it is unfolded.
-- [ ] A click on the picture opens the Diff page of the file at that commit.
-- [ ] An SVG shows its lines; **Show the images** shows its two pictures.
-- [ ] A comparison of two branches that differ in a PNG shows its two versions.
-- [ ] Extension: the page of a commit that changed a PNG shows its two versions in the webview; one of 12 MB says *Too
+- [x] A commit that added a PNG shows **Empty** on the left and the picture on the right.
+- [x] A folded diff of an image reads nothing until it is unfolded.
+- [x] A click on the picture opens the Diff page of the file at that commit.
+- [x] An SVG shows its lines; **Show the images** shows its two pictures.
+- [x] A comparison of two branches that differ in a PNG shows its two versions: in the desktop the page of a
+      comparison lists its files, and a file opens in the Diff page, which draws them (`diff.image`).
+- [x] Extension: the page of a commit that changed a PNG shows its two versions in the webview; one of 12 MB says *Too
       large to show here.*
 
 ### `commit-page.show-in-graph` — Show a commit in the timeline

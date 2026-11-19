@@ -164,6 +164,8 @@ pub enum QuickCommand {
     TrustedFolders,
     /// **Choose What New Worktrees Get…** (`worktree-setup.page`).
     ChooseWhatNewWorktreesGet,
+    /// **Large Files (Git LFS)…**: the Large files page (`lfs.page`).
+    LargeFiles,
     /// **Show file history** (`file-history.file`), for the File page in front.
     ShowFileHistory,
     /// **Show history of selected lines** (`file-history.lines`).
@@ -182,11 +184,15 @@ pub enum QuickCommand {
     ToggleIgnoreWhitespace,
     /// **Toggle file blame in every file** (`blame.every-file`).
     ToggleEveryFile,
+    /// **Remember How Conflicts Are Resolved…** (`rerere.turn-on`).
+    RememberResolutions,
+    /// **Stop Remembering How Conflicts Are Resolved** (`rerere.turn-off`).
+    StopRememberingResolutions,
 }
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 66] = [
+    pub const ALL: [QuickCommand; 69] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -217,6 +223,7 @@ impl QuickCommand {
         QuickCommand::ShowFiles,
         QuickCommand::SearchInFiles,
         QuickCommand::ChooseWhatNewWorktreesGet,
+        QuickCommand::LargeFiles,
         QuickCommand::ShowFileHistory,
         QuickCommand::ShowLinesHistory,
         QuickCommand::ToggleFileBlame,
@@ -253,6 +260,8 @@ impl QuickCommand {
         QuickCommand::ReviewConflicts,
         QuickCommand::ChooseAiModel,
         QuickCommand::TrustedFolders,
+        QuickCommand::RememberResolutions,
+        QuickCommand::StopRememberingResolutions,
     ];
 
     /// Whether what the command runs is built: the others are listed with **Not yet**, and choosing them does
@@ -268,6 +277,7 @@ impl QuickCommand {
                     | QuickCommand::ShowFiles
                     | QuickCommand::SearchInFiles
                     | QuickCommand::ChooseWhatNewWorktreesGet
+                    | QuickCommand::LargeFiles
             )
     }
 
@@ -329,6 +339,8 @@ impl QuickCommand {
             QuickCommand::CreateWorktree => Some("worktree.create"),
             QuickCommand::ChooseAiModel => Some("ai.choose-model"),
             QuickCommand::TrustedFolders => Some("trust.manage"),
+            QuickCommand::RememberResolutions => Some("rerere.turn-on"),
+            QuickCommand::StopRememberingResolutions => Some("rerere.turn-off"),
             _ => self.file_page_operation(),
         }
     }

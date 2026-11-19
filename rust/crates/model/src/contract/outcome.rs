@@ -267,6 +267,19 @@ pub enum Query {
     CommittedLines(Box<crate::file_history::CommittedLinesQuery>),
     /// Who last changed each line of a file (`blame.read-file`). The answer is [`super::Answer::Blame`].
     Blame(Box<crate::blame::BlameQuery>),
+    /// The files git tracks that these pathspecs take and that Git LFS does not store yet
+    /// (`lfs.store-committed`): `git ls-files -z -- <pathspec>…`, without those `git lfs ls-files --name-only` lists.
+    /// The answer is [`super::Answer::Names`].
+    LfsToStore {
+        /// The pathspecs: `:(attr:filter=lfs)` for every pattern of Git LFS.
+        pathspecs: Vec<String>,
+    },
+    /// The files stored with Git LFS left as pointers in the working tree (`lfs.read-files`). The answer is
+    /// [`super::Answer::Names`].
+    LfsPointers {
+        /// The version of Git LFS, which says how its files are listed.
+        version: String,
+    },
     /// Whether something is at a path on disk, a file, a folder or a link (`worktree.create`). The answer is
     /// [`super::Answer::Flag`].
     PathExists {

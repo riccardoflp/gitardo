@@ -107,6 +107,9 @@ fn repository() -> RepositoryState {
         }],
         is_looked_after: true,
         notes: notes(),
+        lfs: model::lfs::LfsStatus::default(),
+        rerere: model::rerere::RerereState::default(),
+        resolved_as_before: Vec::new(),
     }
 }
 

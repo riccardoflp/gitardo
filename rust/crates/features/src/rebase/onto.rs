@@ -43,7 +43,9 @@ pub fn onto(context: &Context, answers: &Answers) -> Outcome {
         | Target::LineOfFile(_)
         | Target::ListedFile(_)
         | Target::TaskGroups(_)
-        | Target::Task(_) => return refuse("Choose a commit or a branch to rebase onto."),
+        | Target::Task(_)
+        | Target::LfsFiles(_)
+        | Target::LfsLock(_) => return refuse("Choose a commit or a branch to rebase onto."),
     };
     let tip = stack::checked_out_tip(context);
     let decided = match stack::decide(context, answers, (Some(&argument), &tip)) {

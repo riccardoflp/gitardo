@@ -56,6 +56,8 @@ impl FileResolutions {
 pub struct Resolutions {
     /// The files, in the order of the review.
     pub files: Vec<FileResolutions>,
+    /// The files git resolved as before that were accepted: staged as they are (`review.recorded`).
+    pub recorded: Vec<String>,
 }
 
 impl Resolutions {

@@ -67,7 +67,8 @@ import {
 } from './actions';
 import { pickCoAuthors } from './coAuthors';
 import { ConflictReviewTab } from './conflictReview';
-import { INDEX, contentUri, proposalUri } from './content';
+import { INDEX, contentUri, isAbsent, proposalUri } from './content';
+import { imagePair } from '../shared/images';
 import { githubSession } from './github';
 import { changeSetup, editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
 import { EngineError, ErrorCode } from '../engine/connection';
@@ -3002,6 +3003,8 @@ export class Controller implements vscode.Disposable {
         return this.keepMessage(webview, message.root, message.message, message.shown);
       case 'openDiff':
         return this.openDiff(message.source, message.file, repo);
+      case 'readImages':
+        return this.readImages(message.source, message.file, webview, repo);
       case 'compareFile':
         return this.compareFile(message.source, message.file, message.names, repo);
       case 'openFile':
@@ -3156,6 +3159,27 @@ export class Controller implements vscode.Disposable {
     await vscode.commands.executeCommand('vscode.open', uri);
   }
 
+  /**
+   * Sends a page the two versions of an image file of a commit or of a comparison, as the diff editor would compare
+   * them, each as a `data:` URI unless it is over 10 MB (`commit-page.images`).
+   */
+  private async readImages(source: DiffSource, file: FileChange, webview: vscode.Webview, repo = this.repo): Promise<void> {
+    const sides = repo && source.kind === 'commit' ? this.sides(repo, source, file) : null;
+    const read = async (uri: vscode.Uri, filePath: string) => {
+      if (isAbsent(uri)) return null;
+      try {
+        return { bytes: await vscode.workspace.fs.readFile(uri), path: filePath };
+      } catch {
+        return null;
+      }
+    };
+    const [before, after] = sides
+      ? await Promise.all([read(sides.left, file.originalPath ?? file.path), read(sides.right, file.path)])
+      : [null, null];
+    const images = imagePair(before, after, (bytes) => Buffer.from(bytes).toString('base64'));
+    return this.post({ type: 'images', source, path: file.path, images }, webview);
+  }
+
   private async openDiff(source: DiffSource, file: FileChange, repo = this.repo): Promise<void> {
     if (!repo) return;
     const onDisk = vscode.Uri.file(path.join(repo.root, file.path));
@@ -3218,8 +3242,9 @@ export class Controller implements vscode.Disposable {
     const script = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.js'));
     const style = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.css'));
     // The scripts of the extension itself, besides the page's own: those that color code are imported once it shows some.
-    // Images and fonts also for the icons of the file icon theme.
-    const csp = `default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; img-src ${webview.cspSource}; script-src 'nonce-${nonce}' ${webview.cspSource};`;
+    // Images and fonts also for the icons of the file icon theme; `data:` for the images of a commit, in which nothing
+    // of an SVG runs and nothing is fetched (`commit-page.images`).
+    const csp = `default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; img-src ${webview.cspSource} data:; script-src 'nonce-${nonce}' ${webview.cspSource};`;
     return `<!DOCTYPE html>
 <html lang="en">
 <head>

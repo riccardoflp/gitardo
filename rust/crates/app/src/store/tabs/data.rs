@@ -153,6 +153,10 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
                     .shown_read()
                     .filter(|_| is_shown)
                     .map(|read| read.state.is_looked_after),
+                remembers_resolutions: state
+                    .shown_read()
+                    .filter(|_| is_shown)
+                    .map(|read| read.state.rerere.is_on),
             }
         })
         .collect()

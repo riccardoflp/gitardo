@@ -1,5 +1,6 @@
 //! The body of the review page: the files and the filters beside the cards, or over them in a narrow window; each
-//! file's header with its arrow and **Accept the file**, its cards under it, and the files deleted on one side.
+//! file's header with its arrow and **Accept the file**, its cards under it, the files deleted on one side, and those
+//! git resolved as before.
 
 use ui::layout::{Align, Area, place};
 use ui::{Label, Rect, TextKind, Ui};
@@ -8,6 +9,7 @@ use super::card::{CardState, card_height, card_view, fold_arrow};
 use super::deleted::{DeletedState, deleted_card_view, deleted_height};
 use super::files::{file_list_view, list_height};
 use super::head::{FileState, accept_file_view};
+use super::recorded::{RecordedState, recorded_card_view, recorded_height};
 use super::{FileCards, ReviewIntent, ReviewState};
 use crate::icons;
 use crate::intent::Intent;
@@ -26,6 +28,8 @@ enum Block<'a> {
     Card(CardState<'a>),
     /// A file deleted on one side.
     Deleted(DeletedState<'a>),
+    /// A file git resolved as before.
+    Recorded(RecordedState<'a>),
 }
 
 /// The blocks of the cards' column.
@@ -65,6 +69,19 @@ fn blocks<'a>(state: &ReviewState<'a>) -> Vec<Block<'a>> {
                 })
             }),
     );
+    blocks.extend(
+        state
+            .recorded
+            .iter()
+            .filter(|file| state.is_recorded_shown(file))
+            .map(|file| {
+                Block::Recorded(RecordedState {
+                    file,
+                    is_accepted: state.is_recorded_accepted(file),
+                    is_running: state.is_running,
+                })
+            }),
+    );
     blocks
 }
 
@@ -74,6 +91,7 @@ fn block_height(block: &Block<'_>, ui: &Ui<'_>, width: f32) -> f32 {
         Block::File(_) => ui.theme().sizes.control_height,
         Block::Card(card) => card_height(card, ui, width),
         Block::Deleted(deleted) => deleted_height(deleted.file, ui),
+        Block::Recorded(recorded) => recorded_height(recorded.file, ui),
     }
 }
 
@@ -110,6 +128,7 @@ pub(super) fn body(state: &ReviewState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<
                 Block::File(file) => file_header(state, ui, file),
                 Block::Card(card) => card_view(card, ui),
                 Block::Deleted(deleted) => deleted_card_view(deleted, ui),
+                Block::Recorded(recorded) => recorded_card_view(recorded, ui),
             }));
         }
     });

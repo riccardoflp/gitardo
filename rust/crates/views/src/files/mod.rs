@@ -35,6 +35,9 @@ pub struct FilesPageState<'a> {
     pub marked: Option<&'a str>,
     /// The files hidden from git, which have an eye struck through at the end of their row (`changes.skipped-list`).
     pub skipped: &'a [model::state::SkippedFile],
+    /// Whether the menu of a file offers **Store with Git LFS…**: Git LFS is installed and set up, and the repository
+    /// stores files with it already (`lfs.track`).
+    pub can_store_with_lfs: bool,
 }
 
 /// The files of the page, or why there are none to show.
@@ -115,6 +118,8 @@ enum MenuChoice {
     Skip,
     /// **Show its changes to git again** (`changes.unskip`).
     Unskip,
+    /// **Store with Git LFS…** (`lfs.track`).
+    StoreWithLfs,
 }
 
 /// The Files page over the rectangle its caller clipped it to: the tree of the files of the working tree under the row
@@ -247,7 +252,13 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
             FilesRow::Top => {}
         }
     }
-    intents.extend(row_menu(ui, &response, (row, path, is_hidden)));
+    let menu = RowMenuFor {
+        row,
+        path,
+        is_hidden,
+        can_store_with_lfs: state.can_store_with_lfs,
+    };
+    intents.extend(row_menu(ui, &response, &menu));
     intents
 }
 
@@ -277,16 +288,29 @@ fn row_icons(ui: &mut Ui<'_>, parts: &mut Area, row: &FilesRow<'_>) {
     }
 }
 
+/// What the context menu of a row is drawn for: the row, its path, whether it is a file hidden from git, and whether
+/// the repository stores files with Git LFS.
+#[derive(Clone, Copy)]
+struct RowMenuFor<'r, 'f> {
+    row: &'r FilesRow<'f>,
+    path: &'r str,
+    is_hidden: bool,
+    can_store_with_lfs: bool,
+}
+
 /// The context menu of a row: **Open file**, **Show file history**, **Compare with…** and **Search here** for a file;
 /// **Show folder history**, **Compare with…** and **Search here** for a folder; **Compare with…** and **Search here**
 /// for the top folder, whose history is all of it. A file or a folder then has **Ignore…** and **Stop tracking, keep
 /// on disk…**, the second not on a file git does not track, and neither on a file deleted or in conflict; a file git
 /// tracks has **Hide its changes from git…** too, and a file hidden from git **Show its changes to git again** alone.
-fn row_menu(
-    ui: &mut Ui<'_>,
-    response: &ui::Response,
-    (row, path, is_hidden): (&FilesRow<'_>, &str, bool),
-) -> Option<Intent> {
+/// A file also has **Store with Git LFS…** in a repository that stores files with Git LFS.
+fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, menu: &RowMenuFor<'_, '_>) -> Option<Intent> {
+    let RowMenuFor {
+        row,
+        path,
+        is_hidden,
+        can_store_with_lfs,
+    } = *menu;
     let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
     let compare = item(icons::COMPARE, words::COMPARE_WITH, MenuChoice::Compare);
     let search_here = item(
@@ -311,6 +335,13 @@ fn row_menu(
         FilesRow::Top => vec![compare, search_here],
     };
     entries.extend(ignore_entries(row, is_hidden));
+    if can_store_with_lfs && matches!(row, FilesRow::File { .. }) {
+        entries.push(MenuEntry::Item(icons::action(
+            icons::ADD,
+            crate::text::lfs::STORE_WITH_LFS,
+            MenuChoice::StoreWithLfs,
+        )));
+    }
     let run = |feature: &'static str| files_intent(FilesPageIntent::Run(FeatureId(feature), path.to_owned()));
     match ui.context_menu(("files row menu", path), response, &entries)? {
         MenuChoice::Open => Some(files_intent(FilesPageIntent::OpenFile(path.to_owned()))),
@@ -321,6 +352,7 @@ fn row_menu(
         MenuChoice::StopTracking => Some(run("changes.stop-tracking")),
         MenuChoice::Skip => Some(run("changes.skip")),
         MenuChoice::Unskip => Some(run("changes.unskip")),
+        MenuChoice::StoreWithLfs => Some(run("lfs.track")),
         MenuChoice::SearchHere => {
             let place = |is_file| model::file_search::Place {
                 path: path.to_owned(),

@@ -230,6 +230,8 @@ Under them are the files the commit changed, each with the lines it gained and l
 
 ![The tab of a commit: its message, author, date, hash and parent, the file it changed, and its diff in the colors of the theme](media/screenshots/commit-tab.png)
 
+An image the commit changed, a PNG, a JPEG, a GIF, a WebP, a BMP or an ICO, shows its version before and its version after side by side in place of *Binary file.*, each at most 240 pixels high and half the width of the page, with its size and weight under it, **Empty** on a side that has none; a click on either opens the two in the diff editor. They are read once the diff is shown, and a version over 10 MB says *Too large to show here.* An SVG shows its lines, with **Show the images** on its header for its two pictures and **Show the lines** back. They are drawn as images, so nothing in an SVG runs or is fetched. A comparison shows its images the same way.
+
 A file changed in more than 800 lines starts folded, and so do the ones that come after 5,000 lines are showing. A commit is sent to its tab up to 20,000 lines: the files past that say so, with a link to the diff editor. A merge is shown against its first parent, as in the details. `Ctrl`+`F` searches the page with the search box of VS Code.
 
 Each commit has one tab: asking for it again shows the one it has. A tab stays of the repository its commit is in, also after the other views are pointed at another, and **Show in the graph** brings them back to it.
@@ -568,6 +570,10 @@ Another way to look at the diff of a file, beside the diff editor of VS Code. Th
 - The buttons in the gutter, on each change: revert it in the file, stage it, or unstage it once it is staged. A change already in the index is drawn dimmed. Staging and unstaging run as Gitardo's operations, in its log and, with the preview on, shown first.
 - The file can be edited where it is shown: what is typed goes into the file, unsaved until `Ctrl`+`S`. `F4` opens the file at the line of the cursor.
 - The title has **Open File**, the previous and next change, and **Stage File**, **Unstage File** and **Discard Changes** where they apply.
+
+### Images
+
+An image at a commit, in the index or in a conflict, opened from Gitardo (**Open the file at this revision**, the history of a file, a diff from the Gitardo Changes view, the graph, the tab of a commit or a comparison), opens in VS Code's preview of images, and the diff of an image in VS Code's diff editor with its two pictures, its bytes read by Gitardo's engine. A text file opens as before.
 
 ### Mermaid diagrams in the preview of Markdown
 

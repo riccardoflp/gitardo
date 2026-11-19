@@ -6,6 +6,14 @@ use views::diff::{ChangePlace, FileDiff, PageLine};
 
 use super::DiffPage;
 
+/// The height of a row the pictures of an image are counted in: about that of a line of code, which the view draws
+/// them in, fitting them to the rows it is given.
+const IMAGE_ROW_HEIGHT: f32 = 20.0;
+
+/// The rows the message of a file stored with Git LFS takes besides one for each side: its heading, **Download** and
+/// the room around them, in rows of a line of code.
+const LFS_MESSAGE_ROWS: usize = 5;
+
 /// Makes the rows of a page and the places of its changes again, after a file was read or a fold changed; the current
 /// change is kept while there are as many.
 pub(super) fn rebuild(page: &mut DiffPage) {
@@ -13,6 +21,26 @@ pub(super) fn rebuild(page: &mut DiffPage) {
     page.changes.clear();
     for (file, diff) in page.diffs.iter().enumerate() {
         page.lines.push(PageLine::Header(file));
+        if let FileDiff::Image(images) = diff {
+            // An image is one change, which `F7` stops on once.
+            if !images.is_same_bytes {
+                page.changes.push(ChangePlace {
+                    file,
+                    change: 0,
+                    line: page.lines.len(),
+                });
+            }
+            let rows = images.rows(IMAGE_ROW_HEIGHT);
+            page.lines
+                .extend((0..rows).map(|part| PageLine::Image(file, part, rows)));
+            continue;
+        }
+        if let FileDiff::StoredWithLfs(stored) = diff {
+            let rows = stored.sides.len() + LFS_MESSAGE_ROWS;
+            page.lines
+                .extend((0..rows).map(|part| PageLine::StoredWithLfs(file, part, rows)));
+            continue;
+        }
         let FileDiff::Text(text) = diff else {
             page.lines.push(PageLine::Note(file));
             continue;
@@ -43,4 +71,5 @@ pub(super) fn rebuild(page: &mut DiffPage) {
     if page.current.is_some_and(|current| current >= page.changes.len()) {
         page.current = None;
     }
+    super::select::keep_if_same(page);
 }

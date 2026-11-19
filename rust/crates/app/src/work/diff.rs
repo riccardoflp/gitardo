@@ -8,9 +8,10 @@ use std::time::{Duration, Instant};
 
 use git::read::diff::{DiffRequest, FileVersion, VersionRequest, read_sides};
 use git::{CancelToken, Git};
-use model::diff::{AlignInput, LineChange, StagedInput, align, staged_changes, unchanged_folds};
+use model::diff::{AlignInput, DiffSides, LineChange, StagedInput, align, staged_changes, unchanged_folds};
+use render::image::{ImageFormat, image_format, read_image};
 use text::diff::{LineDiffInput, TooComplex, WordDiffInput, line_diff, line_ranges, word_diff};
-use views::diff::{DiffPageId, DiffText};
+use views::diff::{DiffImages, DiffPageId, DiffText};
 
 /// The longest a diff is computed for a page before it says it has too many differences.
 pub const TIME_LIMIT: Duration = Duration::from_secs(5);
@@ -37,6 +38,10 @@ pub struct DiffJob {
 pub enum DiffRead {
     /// The two sides in rows.
     Text(Box<DiffText>),
+    /// The two versions of an image, and for an SVG the diff of its lines (`diff.image`).
+    Image(Box<DiffImages>),
+    /// A file stored with Git LFS with a side whose content is not on this computer (`lfs.show-in-pages`).
+    StoredWithLfs(Box<model::lfs::StoredWithLfs>),
     /// A side has a NUL byte.
     Binary,
     /// It took longer than its time.
@@ -55,9 +60,75 @@ pub fn read_diff(folder: &Path, job: &DiffJob, cancel: &CancelToken) -> DiffRead
         Ok(sides) => sides,
         Err(error) => return DiffRead::Failed(error.to_string()),
     };
+    let (sides, is_stored_with_lfs) = match super::lfs_sides::contents(&git, &job.request, sides) {
+        Ok(contents) => contents,
+        Err(stored) => return DiffRead::StoredWithLfs(stored),
+    };
+    if let Some(images) = images_of(&git, job, &sides, cancel) {
+        return DiffRead::Image(Box::new(images));
+    }
     if sides.looks_binary() {
         return DiffRead::Binary;
     }
+    match text_diff(&git, job, &sides, cancel) {
+        DiffRead::Text(mut text) => {
+            text.is_stored_with_lfs = is_stored_with_lfs;
+            DiffRead::Text(text)
+        }
+        other => other,
+    }
+}
+
+/// The two versions of an image file of the page of a commit, drawn, without the diff of their lines
+/// (`commit-page.images`); none when neither side is an image, or git could not read them.
+#[must_use]
+pub fn read_images(folder: &Path, request: &DiffRequest, cancel: &CancelToken) -> Option<DiffImages> {
+    let git = Git::new(folder).with_cancel(cancel.clone());
+    let sides = read_sides(&git, request).ok()?;
+    pictures(request, &sides)
+}
+
+/// The two versions of a file that is an image on either side, drawn, and for an SVG the diff of its lines; none for
+/// a file that is an image on neither side.
+fn images_of(git: &Git, job: &DiffJob, sides: &DiffSides, cancel: &CancelToken) -> Option<DiffImages> {
+    let mut images = pictures(&job.request, sides)?;
+    let is_svg = |bytes: &Option<Vec<u8>>, path: &str| {
+        bytes
+            .as_deref()
+            .is_none_or(|bytes| image_format(bytes, path) == Some(ImageFormat::Svg))
+    };
+    if is_svg(&sides.left, &job.request.left.path) && is_svg(&sides.right, &job.request.right.path) {
+        images.text = match text_diff(git, job, sides, cancel) {
+            DiffRead::Text(text) => Some(text),
+            _ => None,
+        };
+    }
+    Some(images)
+}
+
+/// The two versions of a file that is an image on either side, drawn; none for a file that is an image on neither.
+fn pictures(request: &DiffRequest, sides: &DiffSides) -> Option<DiffImages> {
+    let paths = (&request.left.path, &request.right.path);
+    let format = |bytes: &Option<Vec<u8>>, path: &str| bytes.as_deref().and_then(|bytes| image_format(bytes, path));
+    let formats = (format(&sides.left, paths.0), format(&sides.right, paths.1));
+    if formats == (None, None) {
+        return None;
+    }
+    let read = |bytes: &Option<Vec<u8>>, path: &str| {
+        bytes
+            .as_deref()
+            .map(|bytes| read_image(bytes, path, super::file_view::DRAW_SCALE))
+    };
+    Some(DiffImages {
+        left: read(&sides.left, paths.0),
+        right: read(&sides.right, paths.1),
+        text: None,
+        is_same_bytes: sides.left == sides.right,
+    })
+}
+
+/// The diff of the lines of two versions of a file that is text.
+fn text_diff(git: &Git, job: &DiffJob, sides: &DiffSides, cancel: &CancelToken) -> DiffRead {
     let has = (sides.left.is_some(), sides.right.is_some());
     let left = String::from_utf8_lossy(sides.left.as_deref().unwrap_or_default()).into_owned();
     let right = String::from_utf8_lossy(sides.right.as_deref().unwrap_or_default()).into_owned();
@@ -81,7 +152,7 @@ pub fn read_diff(folder: &Path, job: &DiffJob, cancel: &CancelToken) -> DiffRead
         word_marks: &|left, right| word_diff(&WordDiffInput { left, right }),
     });
     let staged = if job.reads_index {
-        staged_of(&git, job, (&texts.right, &changes), &keep_going)
+        staged_of(git, job, (&texts.right, &changes), &keep_going)
     } else {
         Vec::new()
     };
@@ -100,6 +171,7 @@ pub fn read_diff(folder: &Path, job: &DiffJob, cancel: &CancelToken) -> DiffRead
         left,
         right,
         changes,
+        is_stored_with_lfs: false,
     }))
 }
 

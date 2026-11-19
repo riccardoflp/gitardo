@@ -55,6 +55,8 @@ pub const LISTING_FILES: &str = "Listing the files";
 pub const SEARCHING_FILES: &str = "Searching the files";
 /// Why the page of new worktrees reads.
 pub const LOOKING_AT_IGNORED: &str = "Looking at what git ignores";
+/// What the Large files page reads (`lfs.page`).
+pub const READING_LARGE_FILES: &str = "Reading the files stored with Git LFS";
 /// Why git is asked which files it ignores: the files not saved (`changes.unsaved`), and the files that changed
 /// (`repo.watch-changes`).
 pub const CHECKING_IGNORED: &str = "Asking git which files it ignores";

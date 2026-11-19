@@ -82,6 +82,10 @@ pub const FOLD_DIFF: &str = "Fold";
 pub const BINARY: &str = "binary";
 /// The note of a binary file.
 pub const BINARY_FILE: &str = "Binary file.";
+/// The button on the header of the diff of an SVG that shows its two pictures in place of its lines.
+pub const SHOW_THE_IMAGES: &str = "Show the images";
+/// The button on the header of the diff of an SVG that shows its lines again in place of its pictures.
+pub const SHOW_THE_LINES: &str = "Show the lines";
 /// The note of a file past the cap of lines.
 pub const TOO_LONG: &str = "Too long to show with the others.";
 /// The note of a file whose text did not change.
@@ -129,6 +133,12 @@ pub fn lines_changed(added: usize, removed: usize) -> String {
 #[must_use]
 pub fn person(name: &str, email: &str) -> String {
     format!("{name} <{email}>")
+}
+
+/// What a screen reader says of the two pictures of an image file, which open it in the Diff page when clicked.
+#[must_use]
+pub fn open_images(path: &str) -> String {
+    format!("Open the images of {path} in the Diff page")
 }
 
 /// A renamed file: `old → new`.

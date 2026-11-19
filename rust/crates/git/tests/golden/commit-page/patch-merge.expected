@@ -23,6 +23,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "notes.txt",
@@ -55,6 +56,7 @@ Files(
             removed: 1,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
     ],
 )

@@ -4294,6 +4294,64 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('gives VS Code the bytes of an image at a commit, opens the diff of a PNG, and sends the page of a commit its two versions', async () => {
+    const home = (await git(app, ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim();
+    const png = (base64: string) => Buffer.from(base64, 'base64');
+    const red = png('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==');
+    const blue = png('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==');
+    let failed: unknown;
+    try {
+      await git(app, ['checkout', '--quiet', '-b', 'images']);
+      fs.writeFileSync(path.join(app, 'logo.png'), red);
+      await git(app, ['add', '--', 'logo.png']);
+      await git(app, ['commit', '--quiet', '-m', 'Add the logo']);
+      fs.writeFileSync(path.join(app, 'logo.png'), blue);
+      await git(app, ['commit', '--quiet', '--all', '-m', 'Make the logo blue']);
+      const [hash, parent] = (await git(app, ['log', '-1', '--format=%H %P'])).stdout.trim().split(' ');
+      await controller.refresh();
+
+      // The scheme of Gitardo gives the bytes as they are, which VS Code's preview of images draws.
+      assert.deepEqual(Buffer.from(await vscode.workspace.fs.readFile(contentUri(app, parent, 'logo.png'))), red);
+      assert.deepEqual(Buffer.from(await vscode.workspace.fs.readFile(contentUri(app, hash, 'logo.png'))), blue);
+
+      // The diff of the PNG changed in the working tree, from the Gitardo Changes view, and that of the commit.
+      fs.writeFileSync(path.join(app, 'logo.png'), red);
+      await until('the change read', () => state().workingTree.unstaged.some((file) => file.path === 'logo.png'));
+      const file: FileChange = { kind: 'modified', path: 'logo.png', originalPath: null };
+      await fromWebview({ type: 'openDiff', source: { kind: 'change' }, file });
+      await until('the diff of the image', () => /logo\.png/.test(vscode.window.tabGroups.activeTabGroup.activeTab?.label ?? '') || undefined);
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      await fromWebview({ type: 'openDiff', source: { kind: 'commit', hash, parent }, file });
+      await until('the diff of the commit', () => /logo\.png/.test(vscode.window.tabGroups.activeTabGroup.activeTab?.label ?? '') || undefined);
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+
+      // The page of the commit gets its two versions, as `data:` URIs its policy of content lets it draw.
+      posted.length = 0;
+      await fromWebview({ type: 'readImages', source: { kind: 'commit', hash, parent }, file });
+      const images = await until('the images', () => posted.find((outgoing) => outgoing.type === 'images'));
+      assert.ok(images.type === 'images' && images.images);
+      assert.deepEqual(images.images.before, { uri: `data:image/png;base64,${red.toString('base64')}`, weight: red.length });
+      assert.deepEqual(images.images.after, { uri: `data:image/png;base64,${blue.toString('base64')}`, weight: blue.length });
+      await controller.openCommit(hash);
+      const commitView = () => [...internals.views.entries()].find(([, kind]) => kind === 'commit')?.[0] as vscode.Webview | undefined;
+      const page = await until('the tab of the commit', commitView);
+      assert.match(page.html, /img-src [^;]* data:;/);
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    } catch (error) {
+      failed = error;
+      throw error;
+    } finally {
+      try {
+        await git(app, ['checkout', '--force', '--quiet', home]);
+        await git(app, ['branch', '-D', 'images']);
+      } catch (error) {
+        if (!failed) throw error;
+      }
+      fs.rmSync(path.join(app, 'logo.png'), { force: true });
+      await controller.refresh();
+    }
+  });
+
   await step('logged no unexpected errors', async () => {
     // The conflicting merge is the one failure the tests provoke on purpose.
     assert.deepEqual(

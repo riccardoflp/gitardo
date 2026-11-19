@@ -54,6 +54,9 @@ pub struct TabEntry {
     /// Whether git's scheduled maintenance looks after its repository, as its last read says
     /// (`upkeep.read-background`); none on a row not shown, whose repository is not read here.
     pub looked_after: Option<bool>,
+    /// Whether git remembers how conflicts are resolved in what it shows, known for the row shown
+    /// (`rerere.read-state`).
+    pub remembers_resolutions: Option<bool>,
 }
 
 /// The worktree or the submodule a row shows, when it is not the repository's own folder.
@@ -118,6 +121,11 @@ enum TabCommand {
     /// **Look after it in the background…**, unticked (`upkeep.start-background`), or ticked
     /// (`upkeep.stop-background`).
     LookAfter,
+    /// **Large files…** (`lfs.page`).
+    LargeFiles,
+    /// **Remember how conflicts are resolved…**, or the same ticked, which turns it off (`rerere.turn-on`,
+    /// `rerere.turn-off`).
+    RememberResolutions,
 }
 
 /// The height of a row of **Repositories**: one line, its name and what it is on.
@@ -170,7 +178,8 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// The context menu of a row: **Close tab**, **Close other tabs**, then **Reveal in File Explorer** on the row shown,
-/// and **Copy path**, which copies the folder of what the row shows.
+/// and **Copy path**, which copies the folder of what the row shows; **Large files…**, and on the row shown **Remember
+/// how conflicts are resolved…**, ticked while git does.
 pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, response: &ui::Response) -> Option<Intent> {
     let mut entries = vec![
         MenuEntry::Item(icons::action(icons::CLOSE, words::CLOSE_TAB, TabCommand::Close)),
@@ -193,6 +202,25 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
         worktree_words::COPY_PATH,
         TabCommand::CopyPath,
     )));
+    entries.extend([
+        MenuEntry::Separator,
+        MenuEntry::Item(icons::without_icon(
+            crate::text::lfs::MENU_ENTRY,
+            TabCommand::LargeFiles,
+        )),
+    ]);
+    if let Some(is_on) = tab.remembers_resolutions {
+        let label = if is_on {
+            crate::text::rerere::REMEMBERING
+        } else {
+            crate::text::rerere::REMEMBER
+        };
+        entries.push(MenuEntry::Item(icons::choice(
+            label,
+            TabCommand::RememberResolutions,
+            is_on,
+        )));
+    }
     // The upkeep runs on the repository the views show, and so is offered on its row alone (`upkeep.clean-up`).
     if tab.is_shown && !tab.is_running {
         entries.push(MenuEntry::Separator);
@@ -223,7 +251,18 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
         TabCommand::CleanUp => run("upkeep.clean-up"),
         TabCommand::LookAfter if tab.looked_after == Some(true) => run("upkeep.stop-background"),
         TabCommand::LookAfter => run("upkeep.start-background"),
+        TabCommand::LargeFiles => Some(Intent::LargeFiles(crate::lfs::LargeFilesIntent::OpenForTab(index))),
+        TabCommand::RememberResolutions => Some(remember_resolutions(tab.remembers_resolutions == Some(true))),
     }
+}
+
+/// **Remember how conflicts are resolved…**, which turns git's rerere on, or off when it is ticked.
+fn remember_resolutions(is_on: bool) -> Intent {
+    let feature = if is_on { "rerere.turn-off" } else { "rerere.turn-on" };
+    Intent::Feature(crate::feature::FeatureIntent::Run(
+        model::contract::FeatureId(feature),
+        model::contract::Target::Head,
+    ))
 }
 
 /// A name that does not fit cut at its start with `…`, so that its last part, the repository's own folder, stays.

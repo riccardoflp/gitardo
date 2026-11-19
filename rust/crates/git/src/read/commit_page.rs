@@ -60,7 +60,9 @@ pub fn parse_patch(output: &[u8], files: &[FileChange]) -> PatchLines {
 }
 
 /// What a commit changed in each of its files, as lines, in the order and number `details.read-commit` lists them; when
-/// git's output does not match those files, the lines are not shown rather than shown against the wrong files.
+/// git's output does not match those files, the lines are not shown rather than shown against the wrong files. The
+/// diff of the pointers of a file the repository stores with Git LFS is marked with the sizes of their contents
+/// (`lfs.show-in-pages`).
 ///
 /// Feature: commit-page.read-patch
 ///
@@ -69,5 +71,14 @@ pub fn parse_patch(output: &[u8], files: &[FileChange]) -> PatchLines {
 /// When git cannot be started or fails.
 pub fn read_patch(git: &Git, request: &PatchRequest) -> Result<PatchLines, GitError> {
     let output = git.run_read(&patch_arguments(request))?;
-    Ok(parse_patch(&output, &request.files))
+    let mut patch = parse_patch(&output, &request.files);
+    if let PatchLines::Files(files) = &mut patch {
+        for file in files {
+            file.stored_with_lfs = match model::lfs::pointer_change(file) {
+                Some(change) if crate::read::lfs::read_is_stored(git, &file.path)? => Some(change),
+                _ => None,
+            };
+        }
+    }
+    Ok(patch)
 }

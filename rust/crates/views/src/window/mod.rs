@@ -159,7 +159,7 @@ pub enum TimelineState<'a> {
         search: Box<(SearchBox<'a>, Option<ListMode<'a>>)>,
         /// The banner of an operation that stopped, or of a rebase stopped to edit or split a commit, above the
         /// commits (`conflicts.banner`, `rebase.edit-stop`).
-        conflicts: Option<crate::conflicts::BannerState<'a>>,
+        conflicts: Option<Box<crate::conflicts::BannerState<'a>>>,
         /// The banner of the bisect under way, above the commits (`bisect.banner`).
         bisect: Option<BisectBanner<'a>>,
         /// The banner of another worktree shown in this window, above the commits (`worktree.banner`).

@@ -23,6 +23,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "accentué.txt",
@@ -55,6 +56,7 @@ Files(
             removed: 1,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "copy.txt",
@@ -67,6 +69,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "deleted.txt",
@@ -91,6 +94,7 @@ Files(
             removed: 1,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "empty.txt",
@@ -101,6 +105,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "image.bin",
@@ -111,6 +116,7 @@ Files(
             removed: 0,
             is_binary: true,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "link",
@@ -154,6 +160,7 @@ Files(
             removed: 1,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "no newline.txt",
@@ -208,6 +215,7 @@ Files(
             removed: 1,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "pages/[id].tsx",
@@ -240,6 +248,7 @@ Files(
             removed: 1,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "q\"uote.txt",
@@ -264,6 +273,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "renamed to.txt",
@@ -312,6 +322,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "script.sh",
@@ -322,6 +333,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "sub",
@@ -346,6 +358,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "tab\tname.txt",
@@ -370,6 +383,7 @@ Files(
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
         FilePatch {
             path: "with space.txt",
@@ -402,6 +416,7 @@ Files(
             removed: 1,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         },
     ],
 )

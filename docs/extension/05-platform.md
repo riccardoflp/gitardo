@@ -16,7 +16,7 @@ Windows, macOS and Linux. VS Code for the Web is not supported: there is no `git
 | Area | What Gitardo uses | Notes |
 | --- | --- | --- |
 | Views | `registerWebviewViewProvider` for the seven views; `createWebviewPanel` for the graph in a tab, a commit, a comparison, the review, what new worktrees get, the Flow Diff and the Flow Merge | One page per view; the Content Security Policy allows only the extension's own files and a nonce. |
-| Editors | `vscode.diff`, `vscode.changes`, `vscode.open`, `_open.mergeEditor`, a `TextDocumentContentProvider` for the versions of files (`src/extension/content.ts`), decorations for the blame | `_open.mergeEditor` is internal to VS Code: it may change in a release. |
+| Editors | `vscode.diff`, `vscode.changes`, `vscode.open`, `_open.mergeEditor`, a `FileSystemProvider` that can only be read for the versions of files, as bytes, so that an image opens in the preview of images (`src/extension/content.ts`), decorations for the blame | `_open.mergeEditor` is internal to VS Code: it may change in a release. |
 | Commands and menus | 82 commands, menus of the Explorer, the editor title, the Source Control view, `setContext` keys | Declared in `package.json`. |
 | Settings | `getConfiguration('gitardo')`, and `git.*` of VS Code's Git extension as fallbacks | Three settings of scope `resource`. |
 | State | `ExtensionContext.workspaceState`; each webview's `getState` and `setState` | See [11-data.md](11-data.md). |

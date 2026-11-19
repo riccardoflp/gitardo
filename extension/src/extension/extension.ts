@@ -7,7 +7,7 @@ import { checkedOutBranch } from '../shared/state';
 import { answerLanguageModel, languageModels } from './ai';
 import { SHOW_ACTIVITY } from './activity';
 import { BlameAnnotator, BlameSource } from './blame';
-import { GitContentProvider, SCHEME } from './content';
+import { GitFileSystem, SCHEME } from './content';
 import { Controller } from './controller';
 import { FileBlame } from './fileBlame';
 import { hostingTokenKey, tokenOfHost } from './github';
@@ -260,7 +260,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ),
     command('gitardo.addSubmodule', () => controller.action({ kind: 'submoduleAdd' })),
     command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
-    vscode.workspace.registerTextDocumentContentProvider(SCHEME, new GitContentProvider()),
+    vscode.workspace.registerFileSystemProvider(SCHEME, new GitFileSystem(), { isReadonly: true, isCaseSensitive: true }),
     vscode.window.registerWebviewViewProvider(GRAPH_VIEW, graphProvider, webviewOptions),
     vscode.window.registerWebviewViewProvider(REPOSITORIES_VIEW, repositoriesProvider, webviewOptions),
     // Hidden until it is asked for: VS Code has its own list of changes just above.

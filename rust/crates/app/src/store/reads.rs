@@ -274,10 +274,7 @@ fn one_wake(state: &State, effects: Vec<Effect>, is_moved: bool) -> Vec<Effect> 
 /// Notes what asks nothing of the window: the summaries of the repositories read, and how long a read took.
 pub(super) fn noted(state: &mut State, message: Message) -> Vec<Effect> {
     match message {
-        Message::SummariesRead(reads) => {
-            super::tabs::summaries_read(state, reads);
-            Vec::new()
-        }
+        Message::SummariesRead(reads) => super::tabs::summaries_read(state, reads),
         Message::ReadTook { line, took, time } => read_took(state, (line, took, time)),
         _ => Vec::new(), // The other messages are reduced elsewhere.
     }

@@ -891,9 +891,11 @@ that folder. Each row and each chevron takes the keyboard with `Tab`, `Enter` or
 the screen reader its name and whether it is the one shown, or whether its rows are unfolded. The **×** of a row is on
 the row under the pointer and the row shown, and stays while the pointer is on it, the row still lit as a row under
 the pointer; a middle click closes it; its context menu has **Close tab** and **Close other tabs**
-(`repo.close-tab`), **Reveal in the file manager** and **Copy path**, and, on the row shown while nothing runs in
-it, **Clean up…** (`upkeep.clean-up`) and **Look after it in the background…**, ticked while git's maintenance looks
-after the repository (`upkeep.start-background`, `upkeep.stop-background`). Its tooltip is the folder of what it
+(`repo.close-tab`), **Reveal in the file manager** and **Copy path**, then **Large files…**, which shows the
+repository and opens its **Large files** page (`lfs.page`), and, on the row shown, **Remember how conflicts are
+resolved…**, ticked while git does (`rerere.turn-on`, `rerere.turn-off`), and, while nothing runs in it, **Clean
+up…** (`upkeep.clean-up`) and **Look after it in the background…**, ticked while git's maintenance looks after the
+repository (`upkeep.start-background`, `upkeep.stop-background`). Its tooltip is the folder of what it
 shows. A name too long for the row is cut at its start with `…`, so that the name of the repository's own folder
 stays. When the rows do not fit the height of the section, it scrolls.
 

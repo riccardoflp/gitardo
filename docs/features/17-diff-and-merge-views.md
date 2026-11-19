@@ -58,6 +58,10 @@ What it shows, left and right:
 - The page is computed again when either version changes: the file on disk or in a page that edits it, the index, or
   what `HEAD` is. When nothing it is made from changed, nothing is redrawn.
 
+- A file stored with Git LFS shows the diff of its contents, read from the store of the repository, with **Stored
+  with Git LFS** in the bar; a side not downloaded makes the file say so with **Download** in place of its rows
+  (`lfs.show-in-pages`, M39).
+
 Acceptance:
 
 - [ ] Opening the changes of an edited file shows `HEAD` on the left and the working tree on the right, titled
@@ -502,15 +506,18 @@ Selects some lines of a Diff page, on either side, so that only those are staged
   lines** and **Revert lines**, each where its card offers it, and the keys of the page do them: `Alt+S`, `Alt+U` and
   `Alt+R` on Windows and Linux, `Ctrl+Option+S`, `Ctrl+Option+U` and `Ctrl+Option+R` on macOS (Q1071). With no changed
   line among them, the menu has the three items greyed out, and the keys do nothing.
+- The rows of the side that is edited are those of the text selected as the editor of code selects it, `Shift` with
+  the arrows included; a selection that ends at the start of a line does not take that line. `Ctrl+Option` on macOS is
+  read as `Alt` held, and the menu shows the keys of Windows and Linux.
 
 Acceptance:
 
-- [ ] Dragging over the numbers of lines 10 to 14 on the left side selects rows 10 to 14 on both sides, and the
+- [x] Dragging over the numbers of lines 10 to 14 on the left side selects rows 10 to 14 on both sides, and the
       context menu has **Stage lines**.
-- [ ] `Shift+↓` three times from line 20 of the side of `HEAD` selects four rows, and no text.
-- [ ] Selecting the new text of a line changed into another selects the row where the two face each other.
-- [ ] `Escape` clears the selection, and an edit that takes away a selected line clears it too.
-- [ ] Rows selected with no changed line among them give the three items greyed out.
+- [x] `Shift+↓` three times from line 20 of the side of `HEAD` selects four rows, and no text.
+- [x] Selecting the new text of a line changed into another selects the row where the two face each other.
+- [x] `Escape` clears the selection, and an edit that takes away a selected line clears it too.
+- [x] Rows selected with no changed line among them give the three items greyed out.
 
 ### `diff.lines-patch` — The patch of the lines selected
 
@@ -542,21 +549,26 @@ working tree to stage, `HEAD` to unstage), the rows selected, and where each row
 - For a file the index does not have (untracked), the patch creates it in the index with the lines taken alone:
   `new file mode 100644`, `100755` for a file git sees as executable, and `--- /dev/null`.
 - None when no line taken differs: nothing selected changed.
+- Its input gives the rows selected as the lines they have in the index and in the other text, two runs of lines; in a
+  change, the n-th old line faces the n-th new one, as `diff.align` lays them out. The store places the rows of a side
+  that is neither text in the index through the lines that do not change between the two
+  ([Q1302](../08-decisions.md#open-questions)).
 
 Acceptance:
 
-- [ ] Of a change of five added lines after line 12, the rows of the second and third give `@@ -12,0 +13,2 @@` and
+- [x] Of a change of five added lines after line 12, the rows of the second and third give `@@ -12,0 +13,2 @@` and
       those two lines.
-- [ ] Of a change of lines 4 to 6 into new lines 4 to 6, the row of line 5 alone gives `@@ -5,1 +5,1 @@`, its old line
+- [x] Of a change of lines 4 to 6 into new lines 4 to 6, the row of line 5 alone gives `@@ -5,1 +5,1 @@`, its old line
       and its new one.
-- [ ] Rows that cross two changes, with the unchanged lines between them, give two hunks, the second starting where the
+- [x] Rows that cross two changes, with the unchanged lines between them, give two hunks, the second starting where the
       first left the index.
-- [ ] Of three removed lines, selecting the first and the third gives two hunks, and the second line stays.
-- [ ] Lines added after a last line with no line break take its change too, and `git apply --cached --unidiff-zero`
+- [x] Of three removed lines, selecting the first and the third gives two hunks, and the second line stays: a selection
+      is one run of rows, so the first and the third are two selections, each its own hunk, the second left in place.
+- [x] Lines added after a last line with no line break take its change too, and `git apply --cached --unidiff-zero`
       applies the patch.
-- [ ] Two of the five lines of an untracked file give a patch that creates the file in the index with those two
+- [x] Two of the five lines of an untracked file give a patch that creates the file in the index with those two
       lines.
-- [ ] Rows with no changed line give none.
+- [x] Rows with no changed line give none.
 
 ### `diff.stage-lines` — Stage the lines selected
 
@@ -587,19 +599,23 @@ Puts into the index only the lines selected of the changes of the working tree
   index and the working tree: *These lines are staged already.*
 - **Settings**: `commandPreview`.
 - **Uses**: `diff.select-lines`, `diff.lines-patch`, `diff.staged-changes`, `diff.read-sides`.
+- As built, the question of `commandPreview` shows the command with the patch under it, as for a change; the detail
+  sentence over the `@@` lines is not shown. A file the index does not have is created there with mode `100644`, which
+  the versions read do not tell from `100755` ([Q1303](../08-decisions.md#open-questions)). A patch that is not UTF-8
+  or touches the first line after a byte order mark is refused with the sentences of `diff.stage-change`.
 
 Acceptance:
 
-- [ ] Of a change of five added lines, staging the second and the third leaves `git diff --cached` with those two
+- [x] Of a change of five added lines, staging the second and the third leaves `git diff --cached` with those two
       lines alone, and the log has the `git apply` line exactly.
-- [ ] Selecting rows across three changes, with the second staged already, stages what is selected of the first and
+- [x] Selecting rows across three changes, with the second staged already, stages what is selected of the first and
       the third.
-- [ ] Of a line changed into another, staging its row puts the new line in the index in place of the old.
-- [ ] Staging two lines of an untracked file adds the file to the index with those two lines; `git status` says it is
+- [x] Of a line changed into another, staging its row puts the new line in the index in place of the old.
+- [x] Staging two lines of an untracked file adds the file to the index with those two lines; `git status` says it is
       added and changed.
-- [ ] In a file with CRLF in the index, the lines staged have CRLF there.
-- [ ] Editing the file in another program between the selection and **Stage lines** refuses, and stages nothing.
-- [ ] With `commandPreview` set to `all`, the question shows the command and the patch before it runs.
+- [x] In a file with CRLF in the index, the lines staged have CRLF there.
+- [x] Editing the file in another program between the selection and **Stage lines** refuses, and stages nothing.
+- [x] With `commandPreview` set to `all`, the question shows the command and the patch before it runs.
 
 ### `diff.unstage-lines` — Unstage the lines selected
 
@@ -628,10 +644,10 @@ Takes only the lines selected back out of the index, the working tree unchanged
 
 Acceptance:
 
-- [ ] Of five lines staged, unstaging the first two leaves the other three staged, and the working tree unchanged.
-- [ ] In the diff of the working tree against `HEAD`, unstaging the rows of a staged change drawn dimmed takes them out
+- [x] Of five lines staged, unstaging the first two leaves the other three staged, and the working tree unchanged.
+- [x] In the diff of the working tree against `HEAD`, unstaging the rows of a staged change drawn dimmed takes them out
       of the index, and they are drawn as not staged.
-- [ ] All the lines of a file added to the index and not in `HEAD` unstage with `git restore --staged -- <file>`.
+- [x] All the lines of a file added to the index and not in `HEAD` unstage with `git restore --staged -- <file>`.
 
 ### `diff.revert-lines` — Revert the lines selected
 
@@ -656,15 +672,18 @@ Puts back in the working tree what the left side has in place of the lines selec
 - **After**: the page is computed again; the lines reverted are no longer changed, and the selection is cleared.
 - **Refuses**: *The file changed since the diff was shown. Try again.*
 - **Uses**: `diff.select-lines`, `diff.align`, `diff.edit`, `file-view.save`, `diff.revert-change`.
+- When no line selected differs between the two sides: *These lines are as the left side has them.* The window does not
+  run the plan: it makes the same text with `features::diff::reverted_lines` as one edit of the side of the working
+  tree and saves it, as **Revert this change** does.
 
 Acceptance:
 
-- [ ] Of a change of three lines changed into three others, reverting the row of the second gives the file its old
+- [x] Of a change of three lines changed into three others, reverting the row of the second gives the file its old
       second line, the other two left as they were.
-- [ ] Reverting rows that cross two changes reverts what is selected of both, in one edit that one `Ctrl+Z` takes
+- [x] Reverting rows that cross two changes reverts what is selected of both, in one edit that one `Ctrl+Z` takes
       back.
-- [ ] Reverting the rows of lines removed puts them back after the line before them.
-- [ ] Against a commit, the lines reverted are those of the commit.
+- [x] Reverting the rows of lines removed puts them back after the line before them.
+- [x] Against a commit, the lines reverted are those of the commit.
 
 ### `diff.edit` — Editing the working tree side
 
@@ -811,7 +830,9 @@ Rules:
   page of several files they stop on it once.
 - The page is drawn again when either side changes, as `diff.page` is: a picture of the working tree saved by another
   program shows its new pixels.
-- In a page of several files an image takes its place among them, its height that of its pictures.
+- In a page of several files an image takes its place among them, its height that of its pictures, between 8 and 26
+  rows of the page, the pictures fit to the rows. A file whose two sides have the same bytes, as against the index
+  once it is staged, says *No changes.* over them and is no change for `F7`.
 - Extension: a diff of an image opened from Gitardo (the Gitardo Changes view, the graph, the page of a commit, a
   comparison) opens VS Code's diff editor, which draws the two pictures with its preview of images; the side of a
   revision, of the index or of a conflict is read as bytes from the engine. With the Flow Diff on, an image opens
@@ -819,18 +840,18 @@ Rules:
 
 Acceptance:
 
-- [ ] A PNG changed in the working tree opens the Diff page with `HEAD` on the left and the working tree on the right,
+- [x] A PNG changed in the working tree opens the Diff page with `HEAD` on the left and the working tree on the right,
       both drawn, and the line over them says their sizes.
-- [ ] A PNG of 100 × 100 that became 200 × 200 is drawn half as wide on the left as on the right.
-- [ ] An added PNG shows **Empty** on the left and the picture on the right.
-- [ ] A PNG saved again with the same pixels says *Only the bytes of the file changed; the pixels are the same.*
-- [ ] An SVG opens on **Image** with its two pictures; **Text** shows the diff of its lines, and the right side of the
+- [x] A PNG of 100 × 100 that became 200 × 200 is drawn half as wide on the left as on the right.
+- [x] An added PNG shows **Empty** on the left and the picture on the right.
+- [x] A PNG saved again with the same pixels says *Only the bytes of the file changed; the pixels are the same.*
+- [x] An SVG opens on **Image** with its two pictures; **Text** shows the diff of its lines, and the right side of the
       working tree can be edited there.
-- [ ] **Stage file** on an image of the working tree stages it, and the page against the index has no change left.
-- [ ] A file with a NUL byte that is not an image still refuses with *This file looks binary.*
-- [ ] In a page of a text file and an image, `F7` goes from the last change of the text to the image, and on to the
+- [x] **Stage file** on an image of the working tree stages it, and the page against the index has no change left.
+- [x] A file with a NUL byte that is not an image still refuses with *This file looks binary.*
+- [x] In a page of a text file and an image, `F7` goes from the last change of the text to the image, and on to the
       next file.
-- [ ] Extension: opening a changed PNG from the Gitardo Changes view shows VS Code's diff editor with the two pictures,
+- [x] Extension: opening a changed PNG from the Gitardo Changes view shows VS Code's diff editor with the two pictures,
       not their bytes as text.
 
 ### `merge-view.page` — The Merge page
@@ -1163,6 +1184,10 @@ read-only.
 - A file of the working tree that changes on disk while it has no unsaved edits is read again.
 - A file that is not text (a NUL byte) shows *This file is not text.* and nothing else.
 
+- A file stored with Git LFS left as its pointer says **Stored with Git LFS, not downloaded** with its size and
+  **Download** in place of its text; at a revision, its content is read from the store when it is there
+  (`lfs.show-in-pages`, M39).
+
 Acceptance:
 
 - [ ] Clicking `src/app.rs` in the Files page opens a page **app.rs** with the file, editable.
@@ -1343,8 +1368,9 @@ Rules:
   in its File page, at the revision of the page when it shows one, at the line of a `#L12` after it; a link to a
   heading of the file scrolls to it, the heading named as GitHub names it (`#getting-started`). Another scheme, such as
   `javascript:`, and a path out of the repository go nowhere. An image of the repository is drawn, as wide as the page
-  at most, read on a worker; only PNG is read, and an image of another format shows its text, as an image from the
-  web, which is not fetched ([Q581](../08-decisions.md#open-questions)).
+  at most, read on a worker by `file-view.read-image`, so that an SVG of the repository is drawn as a PNG is, one pixel
+  of it to a pixel of the page; an image it cannot read shows its text, as an image from the web, which is not fetched
+  ([Q581](../08-decisions.md#open-questions), answered by D74).
 - The preview follows the text: edits made in **Source** show in **Preview** when it is shown again; a file of the
   working tree changed on disk is read again, as in **Source**.
 - With `markdown.openAsPreview` on, a Markdown file opens in **Preview**; otherwise in **Source**. The switch is kept
@@ -1449,8 +1475,8 @@ Rules:
 - PNG is read by the library `tiny-skia` reads it with, SVG drawn by `resvg` as `file-view.mermaid` draws a diagram:
   at the scale of the screen so that it stays sharp, with the fonts of the program, nothing outside the file read,
   neither an image it names nor a font of the system. JPEG, GIF, WebP, BMP and ICO are read by one library chosen as
-  D22 says. A GIF, and an animated PNG or WebP, gives its first frame ([Q841](../08-decisions.md#open-questions)); an
-  ICO its largest image.
+  D22 says: `image`, with only those five formats. A GIF, and an animated PNG or WebP, gives its first frame
+  ([Q841](../08-decisions.md#open-questions)); an ICO its largest image.
 - An image with more than 64 million pixels is not read: *This image is too large to draw.* Bytes the format cannot
   read: *This image could not be read.* An SVG with an error: *This SVG could not be drawn: \<what the library
   says\>*.
@@ -1460,17 +1486,17 @@ Rules:
 
 Acceptance:
 
-- [ ] The bytes of a PNG of 32 × 16 give 32 × 16 pixels, the format PNG and its weight.
-- [ ] The same PNG named `logo.dat` is read as a PNG.
-- [ ] An SVG with `width="10" height="20"` at a scale of 2 gives 20 × 40 pixels and a size of 10 × 20.
-- [ ] An SVG that names `<image href="secret.png">` and a font not of the program is drawn without either, and reads no
+- [x] The bytes of a PNG of 32 × 16 give 32 × 16 pixels, the format PNG and its weight.
+- [x] The same PNG named `logo.dat` is read as a PNG.
+- [x] An SVG with `width="10" height="20"` at a scale of 2 gives 20 × 40 pixels and a size of 10 × 20.
+- [x] An SVG that names `<image href="secret.png">` and a font not of the program is drawn without either, and reads no
       file.
-- [ ] A JPEG, a GIF, a WebP, a BMP and an ICO of the tests are each read with their size; an animated GIF gives its
+- [x] A JPEG, a GIF, a WebP, a BMP and an ICO of the tests are each read with their size; an animated GIF gives its
       first frame.
-- [ ] A PNG cut short gives *This image could not be read.*; a PNG of 10,000 × 10,000 gives *This image is too large
+- [x] A PNG cut short gives *This image could not be read.*; a PNG of 10,000 × 10,000 gives *This image is too large
       to draw.*
-- [ ] `notes.txt` is not an image; `<svg` cut short in `a.svg` gives *This SVG could not be drawn:* with what is wrong.
-- [ ] `![logo](media/logo.svg)` in a Markdown file is drawn in its preview.
+- [x] `notes.txt` is not an image; `<svg` cut short in `a.svg` gives *This SVG could not be drawn:* with what is wrong.
+- [x] `![logo](media/logo.svg)` in a Markdown file is drawn in its preview.
 
 ### `file-view.image` — An image as it is drawn
 
@@ -1497,7 +1523,8 @@ Rules:
   `1280 × 720 · PNG · 84 KB · 200%`.
 - `Ctrl` with the wheel, `Ctrl+=` and `Ctrl+-` zoom in steps (25%, 50%, 100%, 200%, 400%, 800%) about the pointer,
   and `Ctrl+0` goes back to the fit (`Cmd` on macOS). Larger than the page, it is moved by dragging and by the
-  scroll bars. Above 100% its pixels stay square and sharp, not smoothed, so that a small icon can be looked at.
+  wheel, across with `Shift` ([Q1300](../08-decisions.md#open-questions)). Above 100% its pixels stay square and
+  sharp, not smoothed, so that a small icon can be looked at.
 - An SVG has the title buttons **Preview** and **Source**, the one shown filled, as a Markdown file has: **Preview**
   is the picture, **Source** its text in the editor, which can be edited and saved; **Preview** draws the text as it
   is now. It opens in **Preview** ([Q840](../08-decisions.md#open-questions)), and the switch is kept for the page
@@ -1515,16 +1542,16 @@ Rules:
 
 Acceptance:
 
-- [ ] Clicking `media/logo.png` in the Files page opens a page **logo.png** with the picture and
+- [x] Clicking `media/logo.png` in the Files page opens a page **logo.png** with the picture and
       `512 × 512 · PNG · 18 KB` under it.
-- [ ] A picture of 4000 × 3000 in a page of 800 pixels is drawn 800 wide; one of 16 × 16 is drawn 16 wide.
-- [ ] `Ctrl+=` twice from 100% draws it at 400%, its pixels square; `Ctrl+0` brings back the fit.
-- [ ] `icons/check.svg` opens in **Preview** as its picture; **Source** shows its text, and an edit of its `fill` shows
+- [x] A picture of 4000 × 3000 in a page of 800 pixels is drawn 800 wide; one of 16 × 16 is drawn 16 wide.
+- [x] `Ctrl+=` twice from 100% draws it at 400%, its pixels square; `Ctrl+0` brings back the fit.
+- [x] `icons/check.svg` opens in **Preview** as its picture; **Source** shows its text, and an edit of its `fill` shows
       in **Preview**.
-- [ ] Saving the PNG from another program draws the new picture.
-- [ ] A PNG cut short says *This image could not be read.* and nothing else.
-- [ ] `media/logo.png` at `3f2a1c9` opens a read-only page **logo.png (3f2a1c9)** with the picture of that commit.
-- [ ] Extension: **Open the file at this revision** on a PNG opens VS Code's preview of images with the picture of
+- [x] Saving the PNG from another program draws the new picture.
+- [x] A PNG cut short says *This image could not be read.* and nothing else.
+- [x] `media/logo.png` at `3f2a1c9` opens a read-only page **logo.png (3f2a1c9)** with the picture of that commit.
+- [x] Extension: **Open the file at this revision** on a PNG opens VS Code's preview of images with the picture of
       the commit.
 
 ### `file-view.read-revision` — A file at a revision

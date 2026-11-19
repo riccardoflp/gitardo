@@ -831,7 +831,7 @@ the page comes back as it was after the window is closed and opened; on the work
 under half a second; every card of the milestone passes its tests, and the snapshots of the page match, empty, with
 results in each mode and with a match lit in the preview, in the dark and in the light theme.
 
-## M27 — Images, and SVG, drawn where their files are shown
+## M27 — Images, and SVG, drawn where their files are shown (done)
 
 An image in the File page, two versions of it side by side in the Diff page and in the page of a commit, an SVG as its
 picture or as its text, in both apps
@@ -873,6 +873,16 @@ it beside **Empty**; a Markdown file that names the SVG draws it; an SVG that na
 in VS Code, the diff of the PNG opened from the Gitardo Changes view shows the two pictures and the page of that
 commit shows its two versions; every card of the milestone is Built in both apps, or Host only in the extension, and
 the snapshots of the File page and the Diff page with an image match in the dark and in the light theme.
+
+All six phases are built. In the desktop: `file-view.read-image` reads PNG with `tiny-skia`, SVG with `resvg`, and
+JPEG, GIF, WebP, BMP and ICO with the library `image`, only those five; the File page draws an image with its zoom and
+**Preview** and **Source** of an SVG; the Diff page draws the two versions at one scale, with **Image** and **Text** of
+an SVG; the page of a commit draws them under the header of a diff, read once it is shown unfolded, for the binary
+files whose name is of an image (Q1301), and a comparison opens its files in the Diff page, which draws them. In the
+extension: the scheme `gitardo` is a `FileSystemProvider` that can only be read, so that VS Code's preview of images
+and its diff editor draw an image at a revision; the tab of a commit and of a comparison draw the two versions as
+`<img>` of `data:` URIs. The snapshots `file-image`, `diff-image` and `commit-images` are recorded in both themes; the
+step of the end-to-end suite is written and runs with the suite.
 
 ## M28 — Gitardo, by its name (done)
 
@@ -1084,7 +1094,7 @@ clone.**; **Load more history** with `3` lists five, and **Load the whole histor
 away; the cards of the milestone are Built in the desktop, and the snapshots of the end of a shallow history match in
 each theme.
 
-## M33 — Stage the lines selected
+## M33 — Stage the lines selected (done)
 
 The Diff page stages, unstages and reverts the lines selected, where it could only take a whole change
 ([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)). Asked by the
@@ -1105,7 +1115,14 @@ editor already has **Stage Selected Ranges**.
    where its card says; the patch applied, or the edit made and saved for a revert; the page computed again. Cards:
    `diff.stage-lines`, `diff.unstage-lines`, `diff.revert-lines`, `diff.staged-changes`.
 
-Nothing is built yet.
+All three phases are built. `text::diff::lines_patch` gives the patch of the lines selected and `lines_taken` the
+text it leaves; the Diff page selects rows on a side that is not edited by a drag, by `Shift` with a click or with the
+arrows and the page keys, and on the side that is edited by the text selected, draws them on both sides and in the
+gutter, and clears them with `Escape`, a click elsewhere or an edit; **Stage lines**, **Unstage lines** and **Revert
+lines** are in the context menu of either side, greyed out with no changed row, and `Alt+S`, `Alt+U` and `Alt+R` do
+them. The rows of a side that is not the index are placed in it through the lines that do not change between the two
+(Q1302); a file the index does not have is created with mode `100644` (Q1303). The places tests apply each patch with
+git in a repository of the tests.
 
 Exit: in a file with a change of five added lines, the second and third selected on the right and **Stage lines**
 leave `git diff --cached` with those two lines, drawn as staged; selecting them again and `Alt+U` takes them out of
@@ -1427,7 +1444,7 @@ its reason, **Remove…** on it says the reason first, and **Prune** leaves it o
 do the same in the extension; every card of the milestone passes its tests, and the snapshots of the group and of a
 locked worktree match in each theme.
 
-## M39 — Large files and remembered resolutions
+## M39 — Large files and remembered resolutions (done)
 
 Files stored with Git LFS shown by their content, or as not downloaded with **Download**, never as the text of their
 pointer; storing a pattern with Git LFS; the **Large files** page with the files and the locks; and git's rerere,
@@ -1461,7 +1478,21 @@ there. The tests of Git LFS need the program, which the runners of the pipeline 
    `rerere.resolved-as-before`, `rerere.forget`, `review.recorded`, `review.file-list`, `conflicts.banner`,
    `conflicts.stopped`, `changes.row-menu`.
 
-Nothing is built yet.
+Phase 1 is built: `model::lfs::pointer` tells a pointer from a file, and `git::read::lfs` reads whether Git LFS is
+installed and set up with the patterns of the files of attributes, the files with their sizes, and the content of a
+pointer from the store of the repository, tested against repositories made with Git LFS. Phase 2 is built: the File
+page, the Diff page and the page of a commit show a file stored with Git LFS by its content or as not downloaded with
+**Download**, tested on a clone made with `GIT_LFS_SKIP_SMUDGE=1` from a remote beside it. Phase 3 is built: the
+**Large files** page with the patterns and the files, **Set up**, **Store with Git LFS…** in the Files page and on the
+page, **Store them with Git LFS in the next commit** and **Stop storing with Git LFS**. Phase 4 is built: the locks
+read when the page opens and on **Refresh**, never with the reads of the repository, the name of whoever locked a file,
+**Lock**, and **Unlock**, someone else's after the warning, tested against a server of the tests set as `lfs.url`.
+Phase 5 is built: whether git remembers resolutions, read with the repository, and **Remember how conflicts are
+resolved…** in the menu of the row of the repository shown and in Quick search, ticked while it is on. Phase 6 is built:
+the files git resolved as before, read with the repository from the paths `git rerere remaining` leaves out and from
+`git ls-files --resolve-undo` against the resolutions recorded, said in the banner, the message of the stop and the
+rows of the changes, **Show what git wrote**, **Forget this resolution…**, and their card in the review, accepted and
+staged by **Write**.
 
 Exit: in a clone of a repository that stores `*.psd` with Git LFS, made without downloading, the File page of a `.psd`
 says it is not downloaded, with its size, and **Download** shows its content after; the page of a commit that changed

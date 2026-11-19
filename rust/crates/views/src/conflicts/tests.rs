@@ -22,6 +22,7 @@ fn merge_stopped() -> BannerState<'static> {
         auto_resolve: false,
         ai: false,
         is_running: false,
+        resolved_as_before: 0,
     }
 }
 
@@ -130,6 +131,7 @@ fn stopped(counts: Option<RuleCounts>, (auto_resolve, ai): (bool, bool)) -> Stop
         counts,
         auto_resolve,
         ai,
+        resolved_as_before: 0,
     }
 }
 

@@ -70,6 +70,8 @@ pub struct ReviewPage {
     pub job: Option<JobId>,
     /// The conflicts accepted.
     pub accepted: BTreeSet<Fingerprinted>,
+    /// The files git resolved as before that are accepted (`review.recorded`).
+    pub recorded_accepted: Vec<String>,
     /// The conflicts folded or unfolded by hand.
     pub folds: BTreeMap<Fingerprinted, bool>,
     /// The files folded or unfolded by hand.
@@ -145,6 +147,7 @@ pub fn open(state: &mut State, only: Option<Vec<String>>) -> Vec<Effect> {
             is_failed: false,
             job: None,
             accepted: BTreeSet::new(),
+            recorded_accepted: Vec::new(),
             folds: BTreeMap::new(),
             file_folds: BTreeMap::new(),
             sides_shown: BTreeSet::new(),
@@ -168,6 +171,13 @@ fn read_again(state: &mut State) -> Vec<Effect> {
         return Vec::new();
     };
     let (folder, only, running) = (page.folder.clone(), page.only.clone(), page.job);
+    let recorded = page
+        .repository
+        .resolved_as_before
+        .iter()
+        .filter(|file| !file.is_staged)
+        .map(|file| file.path.clone())
+        .collect();
     let mut effects = Vec::new();
     if let Some(job) = running {
         let _cancelled = state.jobs.remove(&job);
@@ -177,7 +187,7 @@ fn read_again(state: &mut State) -> Vec<Effect> {
         state,
         JobKind::ReadReview {
             folder,
-            request: ReviewRequest { only },
+            request: ReviewRequest { only, recorded },
         },
     );
     if let Some(page) = state.reviews.page.as_mut() {
@@ -196,6 +206,9 @@ pub fn review_read(state: &mut State, job: JobId, result: Result<Box<ReviewReado
     page.job = None;
     match result {
         Ok(readout) => {
+            let recorded = &readout.read.recorded;
+            page.recorded_accepted
+                .retain(|path| recorded.iter().any(|file| file.path == *path));
             page.readout = Some(readout);
             page.is_failed = false;
         }
@@ -292,6 +305,8 @@ pub fn page_state(state: &State) -> Option<ReviewState<'_>> {
         sides: readout.map_or(&cards::NO_SIDES, |readout| &readout.read.sides),
         files: &page.cards,
         deleted: readout.map_or(&[], |readout| &readout.read.deleted),
+        recorded: readout.map_or(&[], |readout| &readout.read.recorded),
+        recorded_accepted: &page.recorded_accepted,
         others: readout.map_or(&[], |readout| &readout.read.others),
         filter: page.filter,
         kept_in_view: &page.kept_in_view,

@@ -56,6 +56,8 @@ mod number;
 mod paint;
 mod widget;
 
+/// An image file read, which the pages that draw one show with its size, format and weight (`file-view.read-image`).
+pub use render::image::{ImageFormat, ImageRead, NotRead};
 /// The types of `render` that the toolkit's own interface takes and gives (rectangles, points, colors, icons, themes,
 /// and the frame buffer and fonts a frame is drawn into), so that the views, which use the toolkit and not `render`
 /// itself, can name them.

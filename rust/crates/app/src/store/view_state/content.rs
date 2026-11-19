@@ -61,6 +61,7 @@ impl ViewData {
             )))),
             Page::Help => Some(PageState::Help(crate::store::help::page_state(state))),
             Page::RangeDiff => crate::store::range_diff::page_state(state).map(PageState::RangeDiff),
+            Page::LargeFiles => Some(PageState::LargeFiles(crate::store::large_files::page_state(state))),
             Page::NewWorktrees => Some(PageState::NewWorktrees(
                 crate::store::new_worktrees::page_state(state),
                 &state.new_worktrees.title,

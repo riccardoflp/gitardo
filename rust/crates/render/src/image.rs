@@ -1,9 +1,11 @@
-//! Images read from files, drawn scaled into a rectangle: the images of a repository a preview of Markdown shows
-//! (`file-view.markdown-preview`), and its diagrams of Mermaid, drawn from their SVG (`file-view.mermaid`). Only PNG is
-//! read, by the library `tiny-skia` takes for it.
+//! Images read from files, drawn scaled into a rectangle: the images of a repository wherever their files are shown
+//! (`file-view.read-image`), and the diagrams of Mermaid, drawn from their SVG (`file-view.mermaid`).
 
+mod raster;
+mod read;
 mod svg;
 
+pub use read::{ImageFormat, ImageRead, NotRead, image_format, read_image};
 pub use svg::SvgImage;
 
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -55,6 +57,19 @@ impl Image {
         Image {
             width: pixmap.width(),
             height: pixmap.height(),
+            pixels: pixels.into(),
+            key: hasher.finish(),
+        }
+    }
+
+    /// The image of pixels of four bytes each, red, green, blue and opacity, not multiplied by the opacity.
+    fn of_rgba(width: u32, height: u32, pixels: Vec<u8>) -> Image {
+        let mut hasher = DefaultHasher::new();
+        pixels.hash(&mut hasher);
+        (width, height).hash(&mut hasher);
+        Image {
+            width,
+            height,
             pixels: pixels.into(),
             key: hasher.finish(),
         }
@@ -158,7 +173,12 @@ impl FrameBuffer {
 
 /// The color of the part of an image under a pixel of the frame, from its top left corner in pixels of the image and
 /// its size: the mean of the image at its four quarters, weighted by their opacity.
+/// A pixel of the frame smaller than a pixel of the image takes the color of the one pixel under its middle, so that
+/// an image drawn larger than it is keeps its pixels square and sharp (`file-view.image`).
 fn sampled(image: &Image, (left, top): (f64, f64), (width, height): (f64, f64)) -> [u8; 4] {
+    if width < 1.0 && height < 1.0 {
+        return image.pixel(number::whole(left + width * 0.5), number::whole(top + height * 0.5));
+    }
     let mut sums = [0u32; 4];
     for (across, down) in [(0.25, 0.25), (0.75, 0.25), (0.25, 0.75), (0.75, 0.75)] {
         let column = number::whole(left + width * across);

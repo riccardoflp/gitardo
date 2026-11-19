@@ -306,6 +306,7 @@ fn later_command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::ChooseAiModel => "Choose the model that resolves conflicts",
         QuickCommand::TrustedFolders => "Trusted folders\u{2026}",
         QuickCommand::ChooseWhatNewWorktreesGet => crate::text::worktree_setup::COMMAND,
+        QuickCommand::LargeFiles => crate::text::lfs::COMMAND,
         QuickCommand::ShowFileHistory => crate::text::blame::SHOW_FILE_HISTORY,
         QuickCommand::ShowLinesHistory => crate::text::blame::SHOW_LINES_HISTORY,
         QuickCommand::ToggleFileBlame => crate::text::blame::TOGGLE_FILE_BLAME,
@@ -315,6 +316,8 @@ fn later_command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::BlamePrevious => crate::text::blame::BLAME_BEFORE,
         QuickCommand::ToggleIgnoreWhitespace => crate::text::blame::TOGGLE_IGNORE_WHITESPACE,
         QuickCommand::ToggleEveryFile => crate::text::blame::TOGGLE_EVERY_FILE,
+        QuickCommand::RememberResolutions => crate::text::rerere::TURN_ON_COMMAND,
+        QuickCommand::StopRememberingResolutions => crate::text::rerere::TURN_OFF_COMMAND,
         _ => command_name(command),
     }
 }

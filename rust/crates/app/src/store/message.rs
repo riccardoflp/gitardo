@@ -139,6 +139,8 @@ pub enum Message {
         job: JobId,
         /// The bytes, none when the file is not there, or what the system or git said.
         result: Result<Option<Vec<u8>>, String>,
+        /// The file when its bytes are a pointer of Git LFS whose content is not shown (`lfs.show-in-pages`).
+        stored: Option<Box<model::lfs::StoredWithLfs>>,
     },
     /// A job that read an image of the preview of a Markdown file is done (`file-view.markdown-preview`).
     ImageRead {
@@ -146,6 +148,20 @@ pub enum Message {
         job: JobId,
         /// The image, none when it is not there or could not be read as an image.
         image: Option<render::Image>,
+    },
+    /// A job that read the two versions of an image file of the page of a commit is done (`commit-page.images`).
+    ImagesRead {
+        /// The job.
+        job: JobId,
+        /// The two versions, none when neither side is an image or git could not read them.
+        images: Option<Box<views::diff::DiffImages>>,
+    },
+    /// A job that drew the picture of an image file of a File page is done (`file-view.image`).
+    ImageDrawn {
+        /// The job.
+        job: JobId,
+        /// The image read, or why it is not.
+        result: Result<render::image::ImageRead, render::image::NotRead>,
     },
     /// A job that drew a diagram of Mermaid of the preview of a Markdown file is done (`file-view.mermaid`).
     DiagramDrawn {
@@ -204,6 +220,8 @@ pub enum Message {
         /// What it says.
         answer: crate::work::file_search::SearchAnswer,
     },
+    /// A job that read Git LFS and the files it stores for the Large files page is done, with what it read (`lfs.page`).
+    LargeFilesRead(JobId, Box<Result<crate::work::large_files::LargeFilesRead, String>>),
     /// A job that read the settings of new worktrees, and what git ignores, for their page is done
     /// (`worktree-setup.page`).
     NewWorktreesRead {
@@ -424,6 +442,22 @@ pub enum JobKind {
         /// The image read.
         job: crate::work::file_view::FileJob,
     },
+    /// Reads the two versions of an image file of the page of a commit and draws them (`commit-page.images`).
+    ReadImages {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// The two versions.
+        request: git::read::diff::DiffRequest,
+    },
+    /// Draws the picture of the bytes of an image file of a File page (`file-view.image`).
+    DrawImage {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// The path of the file, which tells an SVG.
+        path: String,
+        /// Its bytes.
+        bytes: Vec<u8>,
+    },
     /// Draws a diagram of Mermaid of the preview of a Markdown file in a theme (`file-view.mermaid`).
     DrawDiagram {
         /// The top folder of the working tree of the file.
@@ -476,6 +510,9 @@ pub enum JobKind {
         /// What is read.
         job: crate::work::file_search::SearchJob,
     },
+    /// Reads Git LFS and the files it stores, in the top folder of a working tree, for the Large files page, and the
+    /// locks of the server when asked (`lfs.read-locks`).
+    ReadLargeFiles(PathBuf, bool),
     /// Reads the settings of new worktrees, and what git ignores when the page looks, for their page
     /// (`worktree-setup.page`).
     ReadNewWorktrees {

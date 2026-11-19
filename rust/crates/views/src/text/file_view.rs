@@ -109,3 +109,22 @@ pub fn line_between(count: usize) -> String {
 pub fn at_revision(name: &str, short: &str) -> String {
     format!("{name} ({short})")
 }
+
+/// What the page of an image says when its bytes are not what its format says (`file-view.read-image`).
+pub const IMAGE_UNREADABLE: &str = "This image could not be read.";
+/// What the page of an image says of one with more pixels than an image may have.
+pub const IMAGE_TOO_LARGE: &str = "This image is too large to draw.";
+/// What the title button **Preview** of an SVG does (`file-view.image`).
+pub const IMAGE_PREVIEW_TOOLTIP: &str = "Show the picture the file draws";
+
+/// What the page of an SVG with an error says: **This SVG could not be drawn: unexpected end of stream.**
+#[must_use]
+pub fn svg_error(reason: &str) -> String {
+    format!("This SVG could not be drawn: {reason}")
+}
+
+/// The size of an image in pixels: **1280 × 720**.
+#[must_use]
+pub fn image_size(width: u32, height: u32) -> String {
+    format!("{width} \u{d7} {height}")
+}

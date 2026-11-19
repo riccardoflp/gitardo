@@ -148,11 +148,11 @@ pub fn conflict_actions(state: &ChangesRepository<'_>, file: &ConflictedFile) ->
     };
     let only = || Some(vec![file.path.clone()]);
     let mut actions = Vec::new();
-    if state.banner.is_some_and(|banner| banner.ai) {
+    if state.banner.as_ref().is_some_and(|banner| banner.ai) {
         let review = Intent::Review(crate::review::ReviewIntent::ResolveWithAi(only()));
         actions.push(RowAction::changes(words::RESOLVE_WITH_AI, icons::DRAFTED, review));
     }
-    if state.banner.is_some_and(|banner| banner.auto_resolve) {
+    if state.banner.as_ref().is_some_and(|banner| banner.auto_resolve) {
         let review = Intent::Review(crate::review::ReviewIntent::Open(only()));
         actions.push(RowAction::shows(
             words::RESOLVE_AUTOMATICALLY,
@@ -177,6 +177,31 @@ pub fn conflict_actions(state: &ChangesRepository<'_>, file: &ConflictedFile) ->
         icons::TAKE_CURRENT,
         take("current"),
     ));
+    actions
+}
+
+/// What can be done to a file git resolved as before, in the order its menu lists them, in place of the actions of a
+/// file in conflict or of a changed file: **Show what git wrote**, then **Mark as resolved** while it is in conflict,
+/// and **Forget this resolution…** (`rerere.resolved-as-before`).
+#[must_use]
+pub fn resolved_actions(file: &model::rerere::ResolvedAsBefore) -> Vec<RowAction> {
+    let shown = crate::conflicts::show_what_git_wrote(file);
+    let mut actions = vec![RowAction::shows(
+        crate::text::rerere::SHOW_WHAT_GIT_WROTE,
+        icons::SHOW,
+        Some(shown),
+    )];
+    let target = || Target::File(file.path.clone());
+    if !file.is_staged {
+        let mark = run("conflicts.mark-resolved", target());
+        actions.push(RowAction::changes(words::MARK_AS_RESOLVED, icons::ADD, mark).starting_group());
+    }
+    let forget = RowAction::changes(crate::text::rerere::FORGET, icons::UNDO, run("rerere.forget", target()));
+    actions.push(if file.is_staged {
+        forget.starting_group()
+    } else {
+        forget
+    });
     actions
 }
 

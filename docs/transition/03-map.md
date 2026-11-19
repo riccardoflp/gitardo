@@ -250,7 +250,7 @@ The field `firstParent` (`controller.ts:568`) is a setting of `state`; the deskt
 | `parseGitHubRemote` (`src/git/github.ts:9`), `detectGitHub` (`controller.ts:1921`) | Which remote is on GitHub | `github.detect-remote` (Derivation) | same |
 | `BlameAnnotator.update` (`src/extension/blame.ts:98-113`) | Current-line blame | `blame::read_line` (`blame.read-line`, view `blame.current-line`) | same |
 | `FileBlame.read` / `underCursor` (`fileBlame.ts:358`, `271`) | File blame | `blame::read_file` (`blame.read-file`) | same |
-| `GitContentProvider` (`src/extension/content.ts:55-62`) | `gitardo:` documents for VS Code's diff editor (revision, index `:0`, stages `:1-3`, proposals) | `file_view::read_revision`, `diff::read_sides`, `merge_view::read_sides`; the URI scheme is host-only | same |
+| `GitFileSystem` (`src/extension/content.ts`) | `gitardo:` files, as bytes, for VS Code's editors, its preview of images and its diff editor (revision, index `:0`, stages `:1-3`, proposals) | `file_view::read_revision`, `diff::read_sides`, `merge_view::read_sides`; the URI scheme is host-only | same |
 | `readVersion` (`src/flow/sides.ts:91-118`) | Sides of a Flow Diff | `diff::read_sides` (`diff.read-sides`) | same |
 | Flow Merge stages (`flow/merge.ts:199-205`, `458-465`) | Base/ours/theirs | `merge_view::read_sides` (`merge-view.read-sides`) | same |
 | `scanIgnored` (`src/git/worktreeSetup.ts:344`) | What git ignores, with sizes | `worktree_setup::ignored::read_ignored` (`worktree_setup/ignored.rs:28`, `worktree-setup.read-ignored`) | same |

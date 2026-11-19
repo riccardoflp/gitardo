@@ -99,11 +99,31 @@ pub fn read_state_counting(
     } else {
         None
     };
+    let resolved_as_before = read_resolved_as_before(&git, &location, &parts)?;
     let state = RepositoryState {
         rebase_stop,
+        resolved_as_before,
         ..assemble(location, parts)
     };
     Ok((state, counted))
+}
+
+/// The files git resolved as before, while it remembers resolutions and an operation is stopped or files are in
+/// conflict (`rerere.read-resolved`); none otherwise, without starting git.
+fn read_resolved_as_before(
+    git: &Git,
+    location: &Location,
+    parts: &Parts,
+) -> Result<Vec<model::rerere::ResolvedAsBefore>, GitError> {
+    let conflicted = &parts.working_tree.conflicted;
+    if !parts.rerere.is_on || (parts.operation.is_none() && conflicted.is_empty()) {
+        return Ok(Vec::new());
+    }
+    let request = model::rerere::ResolvedRequest {
+        git_folder: location.git_folder.clone(),
+        conflicted: conflicted.iter().map(|file| file.path.clone()).collect(),
+    };
+    crate::read::rerere::read_resolved(git, &request)
 }
 
 /// Which parts of the state a read of the graph needs besides what is checked out.
@@ -166,6 +186,8 @@ struct Parts {
     skipped: Vec<model::state::SkippedFile>,
     is_looked_after: bool,
     notes: model::note::Notes,
+    lfs: model::lfs::LfsStatus,
+    rerere: model::rerere::RerereState,
 }
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
@@ -204,6 +226,11 @@ fn read_parts(
         };
         let shallow = scope.spawn(move || read_shallow(git, &shallow_request));
         let kept = scope.spawn(|| read_kept(git, location, before));
+        let lfs = scope.spawn(|| crate::read::lfs::read_repository_status(git));
+        let rerere_request = model::rerere::RerereStateRequest {
+            git_folder: location.git_folder.clone(),
+        };
+        let rerere = scope.spawn(move || crate::read::rerere::read_state(git, &rerere_request));
         let operation = operation::read_operation(&location.git_folder);
         let (worktrees, mut counted) = joined(worktrees)?;
         let kept = joined(kept)?;
@@ -228,6 +255,8 @@ fn read_parts(
             skipped: kept.skipped.files.clone(),
             is_looked_after: kept.background.is_registered,
             notes: kept.notes.clone(),
+            lfs: joined(lfs)?,
+            rerere: joined(rerere)?,
         };
         counted.skipped = Some(kept.skipped);
         counted.background = Some(kept.background);
@@ -305,6 +334,9 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         skipped: parts.skipped,
         is_looked_after: parts.is_looked_after,
         notes: parts.notes,
+        lfs: parts.lfs,
+        rerere: parts.rerere,
+        resolved_as_before: Vec::new(),
     }
 }
 

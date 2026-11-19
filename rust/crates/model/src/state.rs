@@ -65,6 +65,14 @@ pub struct RepositoryState {
     pub is_looked_after: bool,
     /// The commits with a note, in the reference of notes git uses (`note.read`).
     pub notes: crate::note::Notes,
+    /// Whether Git LFS is set up for the repository and the patterns it stores with it, with the version of Git LFS
+    /// once the repository has patterns or is set up (`lfs.read-status`).
+    pub lfs: crate::lfs::LfsStatus,
+    /// Whether git remembers how conflicts are resolved, and stages what it writes (`rerere.read-state`).
+    pub rerere: crate::rerere::RerereState,
+    /// The files git resolved as before during the operation under way, while it remembers resolutions
+    /// (`rerere.read-resolved`).
+    pub resolved_as_before: Vec<crate::rerere::ResolvedAsBefore>,
 }
 
 impl RepositoryState {

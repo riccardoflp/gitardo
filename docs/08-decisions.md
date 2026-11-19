@@ -4351,7 +4351,8 @@ the reading given until the card says otherwise.
   GitHub draws it.
 - **Q581** — `file-view.markdown-preview`: which formats of images are drawn. Built: PNG only, read by the library
   `tiny-skia` takes for it (its feature `png-format`), on a worker; an SVG, a JPEG or a GIF of the repository shows its
-  text, as an image of the web does. SVG would need a library that draws it, JPEG and GIF one each.
+  text, as an image of the web does. SVG would need a library that draws it, JPEG and GIF one each. Answered by D74:
+  every image `file-view.read-image` reads is drawn, SVG since M27 phase 1.
 - **Q582** — `file-view.markdown-preview`: what **Find** in the preview finds. Built: the find in page of the window,
   `Ctrl+F`, which finds in the text the preview draws in sight, as on the page of a commit; a word of a part not
   scrolled into sight is found once it is. Finding in the whole text would need the preview drawn as a list of rows
@@ -5110,6 +5111,13 @@ built; each is built as it says until the maintainer answers otherwise.
   images** on its header. Should its pictures show instead, or above its lines?
 - **Q847** — `diff.image`: in the extension a diff of an image opens VS Code's diff editor with its preview of images,
   also when the Flow Diff is on, since the Flow Diff draws lines. Should the Flow Diff draw the two images itself?
+- **Q1300** — `file-view.image`: a picture larger than the page is moved by dragging and by the wheel, across with
+  `Shift`, with no scroll bars: the scroll bars of the toolkit belong to its scroll areas, which take the wheel that
+  `Ctrl` with the wheel zooms with. Should the page have scroll bars of its own around the picture?
+- **Q1301** — `commit-page.images`: the page of a commit reads as images only the binary files whose name ends as an
+  image does, so that a commit of hundreds of binary files does not read them all, and keeps their place before they
+  are read; a PNG named `logo.dat` says **Binary file.** there, while the Diff page, which reads one file, draws it.
+  Should the page read every binary file shown, and take the place of a picture only once it is read?
 
 ### Of the name, Wayland and GitHub Copilot, from Q860
 
@@ -5287,6 +5295,12 @@ while it is planned; each is built as it says until the maintainer answers other
 - **Q1076** — `diff.lines-patch`: the lines of an untracked file are staged by a patch that creates the file in the index
   with mode `100644`, or `100755` when git sees it as executable. Is `git add --intent-to-add -- <file>` before the
   patch wanted instead, so that the file is in the index, empty, first?
+- **Q1302** — `diff.lines-patch`: the rows selected in a diff of the working tree against `HEAD` are placed in the
+  index by the lines of `HEAD` that the index has unchanged, and a line of `HEAD` changed in the index by the line it
+  faces there. Should a selection that touches a line staged already be refused, rather than placed so?
+- **Q1303** — `diff.stage-lines`: the lines of a file the index does not have create it there with mode `100644`, since
+  the versions an operation reads are bytes without the mode git gives the file; a script staged by lines loses its
+  executable bit until it is staged whole. Should the read give the mode, so that `100755` is used as Q1076 says?
 
 ### Of the signature of a commit and the options of the commit box, from Q1090
 

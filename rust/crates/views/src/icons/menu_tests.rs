@@ -17,13 +17,24 @@ use super::menu::operation_icon;
 use super::*;
 
 /// The items made without an icon, by the file that makes them and the words it gives them, and why no icon says them.
-const WITHOUT_ICON: [(&str, &str, &str); 14] = [
+const WITHOUT_ICON: [(&str, &str, &str); 17] = [
+    ("lfs/page.rs", "words::LOCK", "a lock of Git LFS: no icon says it"),
+    (
+        "lfs/page.rs",
+        "words::UNLOCK",
+        "a lock of Git LFS taken away: no icon says it",
+    ),
     (
         "graph/commit_menu.rs",
         "label.as_str()",
         "the interactive rebase page: a rewrite of the history",
     ),
     ("settings/controls.rs", "name", "a font: a value of a setting"),
+    (
+        "repo/tabs.rs",
+        "crate::text::lfs::MENU_ENTRY",
+        "the page of what Git LFS stores: no icon says it",
+    ),
     ("settings/row.rs", "choice", "a value of a setting"),
     ("page/trail.rs", "name.words", "a page of the way back"),
     (
@@ -68,7 +79,11 @@ const WITHOUT_ICON: [(&str, &str, &str); 14] = [
 
 /// The operations offered in a menu that have no icon: they rewrite the history (rebase, reset, squash, split,
 /// fixup), or no icon of Lucide says them, as a branch that stops following its upstream.
-const OPERATIONS_WITHOUT_ICON: [&str; 14] = [
+const OPERATIONS_WITHOUT_ICON: [&str; 18] = [
+    "rerere.turn-on",
+    "rerere.turn-off",
+    "lfs.lock",
+    "lfs.unlock",
     "rebase.onto",
     "rebase.branch-onto",
     "reset.to-commit",

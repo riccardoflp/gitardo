@@ -2597,6 +2597,42 @@ body.vscode-high-contrast-light .app.islands {
   padding: 8px 12px;
 }
 
+/* The two versions of an image under the header of its diff (`commit-page.images`): each at most 240 pixels high and
+   half the width, never larger than it is, on squares that show what is transparent. */
+.image-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.image-side {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 48px;
+  min-width: 0;
+}
+
+.image-picture {
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  max-width: 100%;
+  background-color: var(--vscode-editor-background);
+  background-image: conic-gradient(var(--vscode-editorWidget-background) 25%, transparent 0 50%, var(--vscode-editorWidget-background) 0 75%, transparent 0);
+  background-size: 16px 16px;
+}
+
+.image-picture img {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+}
+
 .diff-lines {
   --number: calc(var(--digits) * 1ch + 14px);
   font-family: var(--vscode-editor-font-family);

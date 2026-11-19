@@ -12,8 +12,10 @@ mod columns;
 mod data;
 mod edit;
 mod gutter;
+mod image;
 mod question;
 mod rows;
+mod select;
 mod targets;
 
 use std::time::Duration;
@@ -33,7 +35,9 @@ pub use data::{
 pub use edit::{DrawnSides, RECOMPUTE_AFTER, edit_view, open_at_line_view};
 #[cfg(test)]
 pub(crate) use gutter::revert_change_icon;
+pub use image::{DiffImages, IMAGE_ROWS, ImageBlock, image_view, what_changed};
 pub use question::{LargeDiffQuestion, large_diff_question_view};
+pub use select::{LineSelectionState, LinesAction, RowSelection, lines_of_rows, select_lines_view, selected_rows};
 pub use targets::{
     changes_file, changes_files, commit_file, commit_files, commit_sides, file_sides, listed_file, untracked_file,
 };
@@ -44,6 +48,10 @@ pub struct DiffPageId(pub u64);
 
 /// What a Diff page shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each says something of its own about the page"
+)]
 pub struct DiffPageState<'a> {
     /// Which page it is.
     pub id: DiffPageId,
@@ -80,6 +88,14 @@ pub struct DiffPageState<'a> {
     pub edited_at: Option<Duration>,
     /// Whether the rows were moved by an edit and the diff not computed again since: the buttons of the gutter wait.
     pub is_stale: bool,
+    /// Whether a file of the page is an SVG, and whether it shows the diff of its lines, **Text**, rather than its
+    /// pictures, **Image** (`diff.image`).
+    pub svg_text: Option<bool>,
+    /// The rows selected on a side that is not edited (`diff.select-lines`).
+    pub selection: Option<RowSelection>,
+    /// Whether **Download** is offered for a file stored with Git LFS not downloaded: Git LFS is installed
+    /// (`lfs.show-in-pages`).
+    pub can_download_lfs: bool,
 }
 
 /// Something asked of the Diff pages.
@@ -128,6 +144,26 @@ pub enum DiffEditIntent {
     Save,
     /// **Revert this change** (`diff.revert-change`): a file, and a change among its changes.
     Revert(usize, usize),
+    /// `Shift` with a click, an arrow or a drag on a side that is not edited: the rows selected from the line chosen
+    /// to this row (`diff.select-lines`).
+    Select {
+        /// The file.
+        file: usize,
+        /// The side.
+        side: CaretSide,
+        /// The row reached.
+        row: usize,
+    },
+    /// `Escape`, or the lines selected staged or unstaged: the selection cleared.
+    ClearSelection,
+    /// **Revert lines** (`diff.revert-lines`): the rows of a file selected, reverted as one edit of the working tree
+    /// side.
+    RevertLines {
+        /// The file.
+        file: usize,
+        /// The rows.
+        rows: std::ops::Range<usize>,
+    },
 }
 
 /// Something asked of a Diff page.
@@ -143,6 +179,8 @@ pub enum DiffPageIntent {
     Unfold(usize, usize),
     /// The gutter dragged: the width of the left side in whole logical pixels, or none after a double click.
     Resize(Option<u32>),
+    /// **Text** of an SVG, the diff of its lines, or **Image**, its pictures (`diff.image`).
+    ShowSvgText(bool),
 }
 
 /// The Diff page, over the rectangle its caller clipped it to: its bar, the names of its columns, and its rows.
@@ -165,6 +203,8 @@ pub fn page_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         intents.extend(row_intents);
         let sides = DrawnSides::new(state, (columns, list_rect), drawn);
         intents.extend(ui.clip(list_rect, |ui| edit_view(&sides, ui)));
+        let selection = LineSelectionState { sides: &sides };
+        intents.extend(ui.clip(list_rect, |ui| select_lines_view(&selection, ui)));
         intents.extend(ui.clip(list_rect, |ui| resize_sides_view(state, ui)));
     });
     intents

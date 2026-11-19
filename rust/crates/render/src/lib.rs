@@ -24,7 +24,7 @@ mod file_icon;
 mod frame;
 mod geometry;
 mod icon;
-mod image;
+pub mod image;
 mod mask;
 mod number;
 mod path;

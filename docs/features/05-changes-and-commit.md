@@ -421,6 +421,8 @@ read whole in a narrow column, and keep their box
   conflicts), **Resolve its conflicts automatically, after looking at what is proposed** (only when the rules can
   resolve some of them), **Mark as resolved**, **Take the incoming side for the whole file** and **Take the current
   side for the whole file**.
+- A file git resolved as before (`rerere.resolved-as-before`), in conflict or staged by git: **Show what git wrote**,
+  **Mark as resolved** while it is in conflict, and **Forget this resolution…**.
 - Each item does what the button of the same name did, and draws the icon that button drew (`ui.menu-icons`). While
   an operation runs, the items that change something cannot be chosen.
 - The row takes the keyboard: `Enter` does what a click on it does, and the menu key opens its menu at the row.

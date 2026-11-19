@@ -6,6 +6,10 @@ use std::ops::{Range, RangeInclusive};
 
 use super::{Change, LineDiffInput, Span, line_diff};
 
+mod lines;
+
+pub use lines::{LinesPatchInput, lines_patch, lines_taken};
+
 #[cfg(test)]
 mod tests;
 

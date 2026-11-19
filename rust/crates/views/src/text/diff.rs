@@ -36,6 +36,23 @@ pub const NO_OTHER_FILES: &str = "No other changed files.";
 pub const LOOKS_BINARY: &str = "This file looks binary.";
 /// What a diff too long to compute says, and why the page does not open.
 pub const TOO_MANY_DIFFERENCES: &str = "This file has too many differences to display.";
+/// What the line over the two pictures of an image says when they decode to the same pixels (`diff.image`).
+pub const SAME_PIXELS: &str = "Only the bytes of the file changed; the pixels are the same.";
+/// The title button that shows the pictures of an SVG.
+pub const IMAGE: &str = "Image";
+/// What **Image** does.
+pub const IMAGE_TOOLTIP: &str = "Show the pictures of the two versions";
+/// The title button that shows the diff of the lines of an SVG.
+pub const TEXT: &str = "Text";
+/// What **Text** does.
+pub const TEXT_TOOLTIP: &str = "Show the diff of the lines of the file";
+
+/// What the line over the two pictures of an image says: **640 × 480 → 1280 × 960 · 24 KB → 81 KB**.
+#[must_use]
+pub fn image_change((size_before, size_after): (&str, &str), (weight_before, weight_after): (&str, &str)) -> String {
+    format!("{size_before} \u{2192} {size_after} \u{b7} {weight_before} \u{2192} {weight_after}")
+}
+
 /// What a diff git could not read says.
 pub const COULD_NOT_READ: &str = "Git could not read this file.";
 /// What a diff being read says.
@@ -58,6 +75,18 @@ pub const UNSTAGE_CHANGE: &str = "Unstage this change";
 pub const STAGED_UNSTAGE_CHANGE: &str = "Staged \u{2014} unstage this change";
 /// The **⟲** button of a change in the gutter.
 pub const REVERT_CHANGE: &str = "Revert this change";
+/// The entry of the context menu of a side that stages the lines selected (`diff.select-lines`).
+pub const STAGE_LINES: &str = "Stage lines";
+/// The keys of **Stage lines**; `Ctrl+Option+S` on macOS.
+pub const STAGE_LINES_KEYS: &str = "Alt+S";
+/// The entry that unstages the lines selected.
+pub const UNSTAGE_LINES: &str = "Unstage lines";
+/// The keys of **Unstage lines**; `Ctrl+Option+U` on macOS.
+pub const UNSTAGE_LINES_KEYS: &str = "Alt+U";
+/// The entry that reverts the lines selected.
+pub const REVERT_LINES: &str = "Revert lines";
+/// The keys of **Revert lines**; `Ctrl+Option+R` on macOS.
+pub const REVERT_LINES_KEYS: &str = "Alt+R";
 /// The title button that stages the file.
 pub const STAGE_FILE: &str = "Stage file";
 /// The title button that opens the file in the File page (`diff.open-file`).
