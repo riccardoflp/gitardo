@@ -17,7 +17,10 @@ first, in its own commit, with the reason.
   theirs. `macro_rules!` only where it removes repetition that a function cannot, and never to hide control flow.
 - **R1.3** The edges between crates are those of [02-architecture.md](02-architecture.md#who-may-use-whom). A new edge
   changes that picture first.
-- **R1.4** External programs: only `git`, only through `crates/git`.
+- **R1.4** External programs: `git`, only through `crates/git`; the commands of the user (the steps `run`, the tasks
+  and the terminals), only through `crates/engine` and `crates/terminal`; and the GitHub Copilot CLI, only through
+  `engine::ai` ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)),
+  which asks GitHub Copilot as the user's own sign-in lets it.
 - **R1.5** TLS ([D13](../08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
   `rustls-native-certs`, used by `crates/tls` only, with only the features named there. No type of theirs appears in
   the interface of `crates/tls`, and no other library does TLS or cryptography.
