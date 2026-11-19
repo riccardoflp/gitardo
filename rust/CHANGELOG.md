@@ -6,7 +6,6 @@
   author and its date, and the message has its line to itself. The labels take what the author and the date leave,
   those that do not fit are counted in `+N`, and the pointer resting on them lists them all, as before. With
   **Compact rows** on, the labels come first on the one line of each commit, as before.
-
 - The setting `hosting.selfHosted`, under **Pull and commits** on the settings page, names the GitLab, Gitea or
   Forgejo of one's own by the host name of its remotes, with the address of its pages when they are on another name.
   Gitardo now knows which hosting service the main remote is on, GitHub, GitLab, Bitbucket, Azure DevOps, Gitea or
