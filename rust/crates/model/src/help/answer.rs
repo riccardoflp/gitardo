@@ -1,9 +1,9 @@
 //! The answer of Ask Gitardo, read (`help.read-answer`): `[[id]]` made the title of its card as a link that **Show me**
-//! follows, and the features it names listed.
+//! follows, or in bold in the extension, whose Chat follows no link of its own, and the features it names listed.
 
 use std::fmt::Write as _;
 
-use super::guide::Guide;
+use super::guide::{App, Guide};
 use crate::commit::clean_draft;
 use crate::contract::FeatureId;
 
@@ -13,7 +13,8 @@ pub const SHOW_ME_LINK: &str = "show-me:";
 /// The answer as the page draws it.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct HelpAnswer {
-    /// The Markdown of the answer, each feature it names a link to [`SHOW_ME_LINK`] and its identifier.
+    /// The Markdown of the answer, each feature it names a link to [`SHOW_ME_LINK`] and its identifier, or its title in
+    /// bold in the extension.
     pub markdown: String,
     /// The features it names, each once, in the order first named.
     pub named: Vec<FeatureId>,
@@ -28,8 +29,9 @@ pub fn shown_feature(link: &str) -> Option<&str> {
 }
 
 /// The answer read: a code fence around all of it taken off, each `[[id]]` of a card of the guide made the title of its
-/// card as a link, any other `[[id]]` taken out, and a `[[` that has no `]]` after it yet, while the answer comes, left
-/// out with what follows it.
+/// card as a link, or in bold with the guide of the extension, whose Chat writes the buttons of the features itself; any
+/// other `[[id]]` taken out, and a `[[` that has no `]]` after it yet, while the answer comes, left out with what follows
+/// it.
 ///
 /// Feature: help.read-answer
 #[must_use]
@@ -45,7 +47,10 @@ pub fn read_answer(text: &str, guide: &Guide) -> HelpAnswer {
             break;
         };
         if let Some(card) = guide.card(identifier.trim()) {
-            let _ = write!(answer.markdown, "[{}]({SHOW_ME_LINK}{})", card.title, card.id.0);
+            let _ = match guide.app {
+                App::Desktop => write!(answer.markdown, "[{}]({SHOW_ME_LINK}{})", card.title, card.id.0),
+                App::Extension => write!(answer.markdown, "**{}**", card.title),
+            };
             if !answer.named.contains(&card.id) {
                 answer.named.push(card.id);
             }

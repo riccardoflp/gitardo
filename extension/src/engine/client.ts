@@ -17,6 +17,8 @@ import {
   type DiscoveredRepository,
   type DraftResult,
   type LanguageModelInfo,
+  type HelpAnswerResult,
+  type HelpAskParams,
   type LanguageModelRequest,
   type LanguageModelResult,
   type Answer,
@@ -48,6 +50,7 @@ import {
   type LogLineParams,
   type Matches,
   type MergeSides,
+  HelpMethod,
   MermaidMethod,
   Method,
   PROTOCOL,
@@ -158,8 +161,11 @@ export class EngineClient {
   private readonly askers = new Map<number, FeatureAsker>();
   /** The follow-ups of the runs, sent before their answers. */
   private readonly followUps = new Map<number, FollowUp[]>();
-  /** Where the answer of a language model is shown as it comes, by the id of the read that asked for it (area 6). */
-  private readonly modelText = new Map<number, (text: string) => void>();
+  /**
+   * Where the answer of a language model is shown as it comes, by the id of the read that asked for it (area 6), given
+   * the question too, whose `features` an answer of Ask Gitardo names (1.11).
+   */
+  private readonly modelText = new Map<number, (text: string, request: LanguageModelRequest) => void>();
   /** Who takes the pages of each read of the commits sent as they are read, by the id of its request (1.8). */
   private readonly graphRows = new Map<number, (rows: EngineRow[]) => void>();
   private stopping = false;
@@ -557,6 +563,22 @@ export class EngineClient {
     }
   }
 
+  /**
+   * A question of VS Code's Chat to Ask Gitardo, asked of the model of the Chat (`help.ask`, 1.11): `onText` is given
+   * the whole answer so far as the model writes it, with the features it may name, and the answer read comes back. No
+   * repository is read, so none is opened for it.
+   */
+  async askHelp(params: HelpAskParams, onText: (text: string, request: LanguageModelRequest) => void, signal?: AbortSignal): Promise<HelpAnswerResult> {
+    const connection = await this.ready();
+    const { id, answer } = connection.send<HelpAnswerResult>(HelpMethod.ask, params, signal);
+    this.modelText.set(id, onText);
+    try {
+      return await answer;
+    } finally {
+      this.modelText.delete(id);
+    }
+  }
+
   /** A read of a repository, opened first when it is not. */
   private async read<T>(method: string, repository: string, params: object, signal?: AbortSignal): Promise<T> {
     const connection = await this.ready();
@@ -653,7 +675,8 @@ export class EngineClient {
     connection.onRequest(AiMethod.languageModel, async (params, signal) => {
       const request = params as LanguageModelRequest;
       if (!this.options.languageModel) return { refused: 'This window of VS Code asks no language model.' };
-      const onText = typeof request.read === 'number' ? this.modelText.get(request.read) : undefined;
+      const shown = typeof request.read === 'number' ? this.modelText.get(request.read) : undefined;
+      const onText = shown && ((text: string) => shown(text, request));
       return this.options.languageModel(request, onText, signal);
     });
     connection.onRequest(AiMethod.languageModels, async () => ({ models: this.options.languageModels ? await this.options.languageModels() : [] }));

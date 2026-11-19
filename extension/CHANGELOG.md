@@ -2,6 +2,12 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- **Ask Gitardo** in VS Code's Chat: ask `@gitardo` how to do something with Gitardo, in your own words and in any language, and it answers in a few steps with the names of the controls as they are on screen and where they are, written as the answer comes, with a button under it for each feature it names that has a command, as **Stash Changes** for `@gitardo how do I put my changes aside`. It is asked of the model chosen in the Chat, with your question, the earlier questions of the Chat and a guide to Gitardo's features, never anything of your repository. **Gitardo: Ask How To…** opens the Chat with `@gitardo ` typed, and says so when VS Code has no language model.
+
 ## 1.2.0 - 2026-11-18
 
 ### Added

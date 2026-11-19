@@ -211,6 +211,11 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
 - `test/engineSummaries.test.ts` follows repositories and their worktrees through the engine (1.10, milestone M22), and
   checks what each is said to be on, that a folder said changed is said again, that a worktree added is followed once
   its repository lists it, and that the folders are followed again after the engine was ended and started again.
+- `test/engineHelp.test.ts` asks Ask Gitardo through the engine (1.11, milestone M31) with a fake model of the Chat,
+  and checks that the model chosen there is asked both requests, that the text of the second is written as it comes
+  with each feature as the bold title of its card, and that `stash.push` has the button **Stash Changes**;
+  `test/help.test.ts` checks the table of the features and their commands against `package.json` and the guide of the
+  extension, what `@gitardo` writes and **Gitardo: Ask How To…**, without the engine.
 - `test/engineGraph.test.ts` reads the graph through the engine (`src/engine/graph.ts`), in every way the graph can be
   shown, as one read whose pages come as git prints them (1.8, D54), each page laid out under the rows before it as all
   the rows at once, with a stash of a later page placed where all the commits read at once put it, the commits kept

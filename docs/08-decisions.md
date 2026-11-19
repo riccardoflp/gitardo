@@ -5198,6 +5198,15 @@ planned and built; each is built as it says until the maintainer answers otherwi
   page of a rebase's steps while one is under way) cannot be opened by a button with nothing to open it on, so its
   button is **Show where**, which shows the place it is opened from. Should the button open it on the file selected when
   there is one?
+- **Q1366** — `help.ask`: the Chat writes the answer as the model writes it, and cannot take back what it wrote, but
+  the model writes a feature as `[[` its identifier `]]`, which the engine reads into the title of its card only once
+  the answer is whole. So `host/languageModel` of the second request carries `features` (version 1.11), the identifiers
+  and titles of the cards chosen, and the extension writes each `[[id]]` as the bold title as it comes, holding back a
+  `[[` not closed yet; the engine's answer then adds only what came after. Should the engine rather stream the read
+  answer itself, with a notification of its pieces, so that the extension reads nothing of the answer?
+- **Q1367** — `help.show-me`: the desktop has at most 4 buttons under an answer; the card of the extension has a
+  button for each feature named that has a command, so the Chat has as many as the answer names. Should it have 4 at
+  most too?
 
 ### Of cloning and creating a repository, and of a shallow clone, from Q1050
 

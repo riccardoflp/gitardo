@@ -15,9 +15,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15); 1.9 has `read/file-view.mermaid`, a diagram of
  * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17); 1.10 has `read/repo.worktree-summary`, what the
  * folders of the rows of the Repositories view are on, with `repository/summaries` and `repository/folderChanged`
- * (milestone M22).
+ * (milestone M22); 1.11 has `read/help.ask`, a question of VS Code's Chat to Ask Gitardo, and `features` in
+ * `host/languageModel`, the titles of the features its answer may name (milestone M31).
  */
-export const PROTOCOL = '1.10';
+export const PROTOCOL = '1.11';
 
 /** The names of the methods. */
 export const Method = {
@@ -571,7 +572,7 @@ export const AiMethod = {
 /** A question of the engine to a language model of VS Code (`host/languageModel`). */
 export interface LanguageModelRequest {
   /** What it is for, which says the justification VS Code shows. */
-  purpose: 'commitMessage' | 'conflict';
+  purpose: 'commitMessage' | 'conflict' | 'help';
   /** The id of the model; null for the first VS Code has. */
   model: string | null;
   /** How much the model thinks, as `ai.effort` names it; null for as the model is set up. */
@@ -579,6 +580,17 @@ export interface LanguageModelRequest {
   messages: Array<{ role: 'user' | 'assistant'; text: string }>;
   /** The id of the extension's read it is asked for, where the answer is shown as it comes; null when a feature asks. */
   read: number | string | null;
+  /**
+   * The features the answer may name as `[[` their identifier `]]`, with their titles, written in their place as it
+   * comes; left out but for the answer of a `help` question (1.11).
+   */
+  features?: FeatureTitle[];
+}
+
+/** A feature an answer of Ask Gitardo may name, by the identifier of its card, with its title. */
+export interface FeatureTitle {
+  id: string;
+  title: string;
 }
 
 /** The answer of `host/languageModel`: the whole text and the name of the model, or why it could not be asked. */
@@ -682,3 +694,27 @@ export const SummariesMethod = {
 export interface SummariesResult {
   summaries: FolderSummary[];
 }
+
+// Milestone M31, from 1.11 (`rust/crates/protocol/src/help.rs`): a question of VS Code's Chat to Ask Gitardo, answered
+// with the guide of the extension. Nothing of a repository is read or sent, so it names none and opens none.
+
+/** The name of the read of Ask Gitardo. */
+export const HelpMethod = {
+  ask: 'read/help.ask',
+} as const;
+
+/** A question asked earlier in the Chat, with its answer as the Chat wrote it. */
+export interface HelpExchange {
+  question: string;
+  answer: string;
+}
+
+/** The parameters of `read/help.ask`: the question, the earlier ones of the Chat, oldest first, and the id of the model chosen in the Chat. */
+export interface HelpAskParams {
+  question: string;
+  earlier: HelpExchange[];
+  model: string | null;
+}
+
+/** The answer of `read/help.ask`: its Markdown, each feature named in bold by its title, and the features named; or why there is none. */
+export type HelpAnswerResult = { kind: 'answered'; markdown: string; named: string[]; model: string } | { kind: 'failed'; message: string };

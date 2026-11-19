@@ -17,12 +17,13 @@ Windows, macOS and Linux. VS Code for the Web is not supported: there is no `git
 | --- | --- | --- |
 | Views | `registerWebviewViewProvider` for the seven views; `createWebviewPanel` for the graph in a tab, a commit, a comparison, the review, what new worktrees get, the Flow Diff and the Flow Merge | One page per view; the Content Security Policy allows only the extension's own files and a nonce. |
 | Editors | `vscode.diff`, `vscode.changes`, `vscode.open`, `_open.mergeEditor`, a `TextDocumentContentProvider` for the versions of files (`src/extension/content.ts`), decorations for the blame | `_open.mergeEditor` is internal to VS Code: it may change in a release. |
-| Commands and menus | 81 commands, menus of the Explorer, the editor title, the Source Control view, `setContext` keys | Declared in `package.json`. |
+| Commands and menus | 82 commands, menus of the Explorer, the editor title, the Source Control view, `setContext` keys | Declared in `package.json`. |
 | Settings | `getConfiguration('gitardo')`, and `git.*` of VS Code's Git extension as fallbacks | Three settings of scope `resource`. |
 | State | `ExtensionContext.workspaceState`; each webview's `getState` and `setState` | See [11-data.md](11-data.md). |
 | Files | `createFileSystemWatcher` on `.git` and on the working tree | Reads follow the files. |
 | Sign-in | `authentication.getSession('github', ['repo'])`, silent unless the user asks to sign in | The token is never stored by Gitardo. |
-| Language models | `vscode.lm.selectChatModels`, `sendRequest` | For drafting a message and resolving conflicts, when the user asks. |
+| Language models | `vscode.lm.selectChatModels`, `sendRequest` | For drafting a message, resolving conflicts and answering `@gitardo`, when the user asks. |
+| Chat | `chat.createChatParticipant` (`chatParticipants` in `package.json`), `stream.markdown`, `stream.button`, `workbench.action.chat.open` | The participant `@gitardo` of Ask Gitardo (D76), asked of the model chosen in the Chat; **Gitardo: Ask How To…** opens the Chat with `@gitardo ` typed. |
 | Terminals | `createTerminal` | To open a terminal in a worktree or submodule, and to run the setup commands of a new worktree. |
 | VS Code's Git extension | the `git.close` command | So that it lets go of a worktree before it is renamed or removed. |
 | The Agents window | `workbench.action.openAgentsWindow` | Internal; offered only when the command exists. It selects the folder only once the user is signed in, so no test can confirm it. |

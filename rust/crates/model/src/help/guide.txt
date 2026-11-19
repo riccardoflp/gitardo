@@ -22,7 +22,8 @@ Gitardo Repositories, Commits, Gitardo Graph, Branches, Stashes and Gitardo Chan
 Tabs of the editor: a commit, a comparison, the review of the resolutions of conflicts, what new worktrees get, the Flow Diff and the Flow Merge.
 The editor itself: the blame of the line under the cursor, the blame of the whole file beside its lines, and the buttons on the titles of the diff and merge editors that switch to the Flow Diff and the Flow Merge.
 The Explorer and the Source Control view of VS Code: entries in their context menus (history of a file or folder, compare with, stash this file, link into new worktrees).
-The Command Palette: 81 commands, all named Gitardo: …, listed in `package.json` under `contributes.commands`.
+The Command Palette: 82 commands, all named Gitardo: …, listed in `package.json` under `contributes.commands`.
+The Chat of VS Code: the participant `@gitardo`, which answers how to do something with Gitardo, with a button under the answer for each feature it names that has a command (Gitardo: Ask How To… opens it).
 The Gitardo output channel: the log of every command run.
 The walkthrough *Get started with Gitardo* (`media/walkthrough/`), which VS Code opens once after installing.
 @card desktop repo.read-repositories

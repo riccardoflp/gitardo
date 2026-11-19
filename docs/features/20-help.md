@@ -128,7 +128,9 @@ Sends the two requests of a question to the AI provider, and gives the answer as
   question, the earlier questions and answers of the Chat's history, and the id of the model chosen in the Chat. The
   engine asks both requests with `host/languageModel`, `purpose` `help`, `model` that id and `effort` null, and `read`
   the id of the read for the second, so that the extension writes its text in the Chat as it comes; then it reads the
-  answer with the guide of the extension. VS Code shows the justification *Gitardo sends your question and a guide to
+  answer with the guide of the extension. The second request carries `features`, the identifiers and titles of the
+  cards chosen, so that the extension writes each `[[id]]` as the bold title of its card while the answer comes, as
+  the engine reads it after (Q1366). VS Code shows the justification *Gitardo sends your question and a guide to
   its features to the model, nothing of your repository.* When the engine's binary is missing, it says so (D49).
 
 Nothing of the repository is read or sent: no path, no name of a branch, no message, no diff. With no `ai.provider`,
@@ -229,7 +231,8 @@ Under an answer, a button for each feature it named, that does it or shows where
 - **Uses**: `help.guide`, `help.read-answer`, Quick search.
 - **Extension**: a button of the Chat (`stream.button`) for each feature named that has a command of the extension,
   with the title of the command; a table of the extension gives the command of each feature, and a test checks that
-  each command of it is in `package.json`. A feature with no command has no button.
+  each command of it is in `package.json`. A feature with no command has no button, and a command two features named
+  have has one.
 
 What the button of a feature does, from its place in the guide:
 

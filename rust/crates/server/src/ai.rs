@@ -140,6 +140,6 @@ fn ask_conflict(asking: &Asking<'_>, params: AskConflictParams) -> Result<Value,
 }
 
 /// The error of a read cancelled with `$/cancel`.
-fn cancelled() -> ResponseError {
+pub fn cancelled() -> ResponseError {
     ResponseError::new(codes::CANCELLED, "The read was cancelled.")
 }

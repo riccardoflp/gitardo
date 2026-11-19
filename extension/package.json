@@ -36,6 +36,14 @@
   ],
   "contributes": {
     "markdown.markdownItPlugins": true,
+    "chatParticipants": [
+      {
+        "id": "gitardo.ask",
+        "name": "gitardo",
+        "fullName": "Gitardo",
+        "description": "Ask how to do something with Gitardo"
+      }
+    ],
     "viewsContainers": {
       "panel": [
         {
@@ -177,6 +185,11 @@
         "title": "Sync",
         "category": "Gitardo",
         "icon": "$(sync)"
+      },
+      {
+        "command": "gitardo.askHowTo",
+        "title": "Ask How To…",
+        "category": "Gitardo"
       },
       {
         "command": "gitardo.showLog",

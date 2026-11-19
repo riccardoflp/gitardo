@@ -40,7 +40,17 @@ export async function conflictModelName(): Promise<string | null> {
 const JUSTIFICATIONS: Record<LanguageModelRequest['purpose'], string> = {
   commitMessage: 'Gitardo sends your uncommitted changes to the model to draft a commit message.',
   conflict: 'Gitardo sends the conflicts of the merge, and the lines around them, to the model to propose how to resolve them.',
+  help: 'Gitardo sends your question and a guide to its features to the model, nothing of your repository.',
 };
+
+/** The models chosen in the Chat for the questions to `@gitardo` being answered, by their id: VS Code may not list them. */
+const chatModels = new Map<string, vscode.LanguageModelChat>();
+
+/** Asks the engine's questions about this model of the Chat of it, until the disposable is disposed. */
+export function useChatModel(model: vscode.LanguageModelChat): vscode.Disposable {
+  chatModels.set(model.id, model);
+  return new vscode.Disposable(() => chatModels.get(model.id) === model && chatModels.delete(model.id));
+}
 
 /** The language models of VS Code, in its order, as the engine lists them. */
 export async function languageModels(): Promise<LanguageModelInfo[]> {
@@ -57,10 +67,12 @@ export async function answerLanguageModel(
   onText: ((text: string) => void) | undefined,
   signal: AbortSignal,
 ): Promise<LanguageModelResult> {
-  const models = await vscode.lm.selectChatModels();
+  const chosenInChat = request.model ? chatModels.get(request.model) : undefined;
+  const models = chosenInChat ? [chosenInChat] : await vscode.lm.selectChatModels();
   if (!models.length) return { refused: 'No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.' };
   const model = request.model ? models.find((each) => each.id === request.model) : models[0];
-  if (!model) return { refused: `The model chosen to resolve conflicts, ${request.model}, is not available in VS Code: choose another one.` };
+  const chosenFor = request.purpose === 'help' ? 'in the Chat' : 'to resolve conflicts';
+  if (!model) return { refused: `The model chosen ${chosenFor}, ${request.model}, is not available in VS Code: choose another one.` };
   const messages = request.messages.map((message) =>
     message.role === 'user' ? vscode.LanguageModelChatMessage.User(message.text) : vscode.LanguageModelChatMessage.Assistant(message.text),
   );

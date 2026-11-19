@@ -45,3 +45,16 @@ fn help_read_answer__a_piece_ending_in_half_a_feature_shows_the_text_before_it()
     let coming = read_answer("```\nSelect the commits", &guide);
     assert_eq!(coming.markdown, "Select the commits");
 }
+
+#[test]
+fn help_read_answer__the_extensions_answer_writes_a_feature_as_the_bold_title_of_its_card_and_names_it() {
+    let answer = read_answer(
+        "Open the Command Palette and run [[stash.push]].",
+        &guide(App::Extension),
+    );
+    assert_eq!(
+        answer.markdown,
+        "Open the Command Palette and run **Stash all changes**."
+    );
+    assert_eq!(answer.named, [FeatureId("stash.push")]);
+}

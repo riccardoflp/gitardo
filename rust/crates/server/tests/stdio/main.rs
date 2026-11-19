@@ -7,6 +7,7 @@
 mod ai;
 mod feature;
 mod harness;
+mod help;
 mod journal;
 mod mermaid;
 mod reads;
