@@ -9,6 +9,7 @@ mod feature;
 mod harness;
 mod journal;
 mod mermaid;
+mod range_diff;
 mod reads;
 mod reads_graph;
 mod reads_repository;

@@ -1437,7 +1437,11 @@ once the push has ended without a step. The menu of **Sync** says **Compare with
 the name of the upstream, which the menu does not carry. A fetch finds a force push when a local branch has more
 commits its upstream has not than before the fetch (`FollowUp::CheckForcePushed`), which only an upstream that lost
 commits gives; it says it of the first such upstream. A force push of a remote branch that no local branch follows is
-found only by **What the force push changed** in its menu. It also refuses "`<branch>` has not been force pushed
+found only by **What the force push changed** in its menu. In the extension, a message that names nothing else
+after a rewrite says "`<title of the plan>`: done." with **See What Changed**, as the desktop does; a force push found by
+a fetch is told by the extension itself, which compares the upstreams before and after (`forcePushed` in
+`src/shared/rangeDiff.ts`), the engine's `FollowUp::CheckForcePushed` not crossing; and **Compare with `<upstream>`
+commit by commit** is in the menu beside **Push**. It also refuses "`<branch>` has not been force pushed
 lately." for a remote branch whose reflog has no forced update, "`<branch>` follows no remote branch." when asked
 against an upstream it has not, and the amend of a root commit, which has no commit to compare from.
 
@@ -1467,7 +1471,9 @@ changed in each, the ones added and the ones dropped.
   on a hash opens the tab of that commit.
 
 As built, there is one page of what a rewrite changed in a window (`Page::RangeDiff`): opening another replaces it.
-`Ctrl+F` does not find in it yet. The activity says **Comparing the commits of a rewrite**, without the branch.
+`Ctrl+F` does not find in it yet. The activity says **Comparing the commits of a rewrite**, without the branch. In
+the extension the tab is one too (`src/extension/rangeDiffTab.ts`, `src/webview/RangeDiffApp.tsx`), where `Ctrl+F` is
+VS Code's find in a webview, and its activity names the branch.
 
 What it shows, from the top:
 

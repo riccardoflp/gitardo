@@ -15,6 +15,9 @@ const RENAMED: Record<string, string> = {
 /** The extension's keys that are never sent: VS Code's Source Control only, and the place of the engine itself. */
 const KEPT = new Set(['scm.stashButtons', 'engine.path']);
 
+/** The extension's keys whose null is **As git says**: not sent, for the engine to take them as not set. */
+const NULL_IS_UNSET = new Set(['rebase.updateRefs']);
+
 /** `contributes.configuration` of `package.json`: one category, or a list of them, each with its settings. */
 export type Configuration = { properties?: Record<string, unknown> } | { properties?: Record<string, unknown> }[];
 
@@ -42,7 +45,7 @@ export interface GitFallbacks {
 export function engineSettings(values: Record<string, unknown>, unset: ReadonlySet<string>, git: GitFallbacks, utcOffsetMinutes: number): Settings {
   const settings: Settings = {};
   for (const [key, value] of Object.entries(values)) {
-    if (KEPT.has(key) || value === undefined) continue;
+    if (KEPT.has(key) || value === undefined || (value === null && NULL_IS_UNSET.has(key))) continue;
     settings[RENAMED[key] ?? key] = value;
   }
   if (unset.has('branches.sortOrder') && git.branchSortOrder !== undefined) {

@@ -78,6 +78,8 @@ import { type CommitsReader, EngineGraph, completed, graphState, historyOf, laid
 import type { EngineClient } from '../engine/client';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
 import { extensionKey } from '../engine/settings';
+import { RangeDiffTab } from './rangeDiffTab';
+import { COMPARE_REWRITE, SEE_WHAT_CHANGED, buttonWords, forcePushed, type RangeDiffTarget } from '../shared/rangeDiff';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
 const PAGE_SIZE = 1000;
@@ -347,6 +349,8 @@ export class Controller implements vscode.Disposable {
   private readonly subscriptions: vscode.Disposable[];
   /** What Gitardo is doing that takes time, in the status bar. */
   readonly activity: Activity;
+  /** The tab of what a rewrite changed, commit by commit (`range-diff.page`). */
+  private readonly rangeDiffTab: RangeDiffTab;
 
   /** Fires whenever the repository state has been reloaded. */
   readonly onDidChangeState = this.stateEmitter.event;
@@ -370,6 +374,12 @@ export class Controller implements vscode.Disposable {
     this.fileIcons = new FileIcons(log);
     this.roots = this.resourceRoots();
     this.activity = new Activity(log);
+    this.rangeDiffTab = new RangeDiffTab({
+      attach: (webview, kind, data) => this.attach(webview, kind, data),
+      pin: (webview, repo) => (repo ? this.pinned.set(webview, repo) : this.pinned.delete(webview)),
+      track: (title, work) => this.activity.track(title, work),
+      post: (message, to) => this.post(message, to),
+    });
     this.repositoriesView = new RepositoriesView(log);
     this.subscriptions = [
       this.stateEmitter,
@@ -1850,6 +1860,14 @@ export class Controller implements vscode.Disposable {
         )
         .then((choice) => choice && vscode.commands.executeCommand('gitardo.openStashes'));
     }
+    // A fetch that found the upstream of a branch force pushed says so, with what it changed (M36).
+    const forced = this.state && forcePushed(before, this.state);
+    if (forced && this.repo) {
+      const repo = this.repo;
+      void vscode.window.showInformationMessage(`Gitardo: ${forced} was force pushed.`, SEE_WHAT_CHANGED).then((choice) => {
+        if (choice) void this.runOnEngine([{ feature: COMPARE_REWRITE, target: { kind: 'remoteBranch', name: forced } }], repo);
+      });
+    }
     // The first push of a branch is the natural moment to open a pull request for it: it had no upstream, and has one now.
     const branch = checkedOutBranch(before);
     const hadUpstream = before.branches.some((each) => each.isCheckedOut && each.upstream);
@@ -1936,14 +1954,16 @@ export class Controller implements vscode.Disposable {
       const { finished, followUps } = result ?? { finished: undefined, followUps: [] };
       if (finished?.kind === 'ran') {
         // What a new worktree runs and offers once made is VS Code's.
-        await this.followUpsBeforeRead(this.worktreeMade(feature, finished, followUps, repo), { feature, target, repo });
+        await this.followUpsBeforeRead(this.worktreeMade(feature, finished, followUps, repo), { feature, target, repo, title: finished.plan.title });
       }
       await this.refresh();
       // Said once the repository is read again, which tells whether it stopped on conflicts.
       if (failed !== undefined) this.reportEngineFailure(failed, asker.confirmed, repo);
       if (finished?.kind === 'refused') this.offerAfterRefusal(finished.message, finished.offer, target, repo);
+      // **Compare First** in the warning of a force push: nothing of the plan ran, and what it offered instead runs now.
+      if (asker.instead) return this.runOnEngine([{ feature: asker.instead.feature, target: asker.instead.target, answers: asker.instead.answers }], repo);
       if (finished?.kind !== 'ran') return true;
-      this.followUpsAfterRead(followUps);
+      this.followUpsAfterRead(followUps, repo);
     }
     ran?.();
     return true;
@@ -2049,11 +2069,17 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Carries out what a plan of the engine leaves for the host before the repository is read again. */
-  private async followUpsBeforeRead(followUps: FollowUp[], run: { feature: string; target: Target; repo: Repository }): Promise<void> {
+  private async followUpsBeforeRead(followUps: FollowUp[], run: { feature: string; target: Target; repo: Repository; title?: string }): Promise<void> {
     for (const [index, followUp] of followUps.entries()) {
       switch (followUp.kind) {
         case 'say':
           this.say(String(followUp.text), followUps.slice(index + 1), run);
+          break;
+        // **See What Changed** after a rewrite that said nothing of its own (M36): said as the desktop says it.
+        case 'offerRun':
+          if (followUp.feature === COMPARE_REWRITE && !followUps.slice(0, index).some((before) => before.kind === 'say')) {
+            this.say(`${run.title ?? 'The operation'}: done.`, followUps.slice(index), run);
+          }
           break;
         case 'rememberInputs': {
           const last = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
@@ -2103,23 +2129,32 @@ export class Controller implements vscode.Disposable {
    * Resolving automatically keeps the **Undo** it had beside them (stage 4, area 4).
    */
   private say(text: string, rest: FollowUp[], run: { feature: string; target: Target; repo: Repository }): void {
-    const offers: { feature: string; label: string }[] = [];
+    const offers: Array<EngineRun & { label: string }> = [];
     for (const next of rest) {
       if (next.kind !== 'offer') break;
-      offers.push({ feature: String(next.feature), label: String(next.label) });
+      offers.push({ feature: String(next.feature), label: String(next.label), target: run.target });
+    }
+    // **See What Changed** after a rewrite, until what is said next (M36), on its own target.
+    const until = rest.findIndex((next) => next.kind === 'say');
+    for (const next of until < 0 ? rest : rest.slice(0, until)) {
+      if (next.kind !== 'offerRun' || next.feature !== COMPARE_REWRITE) continue;
+      const offered = next as OfferedRun;
+      offers.push({ feature: offered.feature, label: buttonWords(offered.label), target: offered.target, answers: offered.answers });
     }
     const undo = run.feature === 'conflicts.resolve-automatically' ? ['Undo'] : [];
     const words = text.startsWith('Gitardo ') ? text : `Gitardo: ${text}`;
     void vscode.window.showInformationMessage(words, ...offers.map((offer) => offer.label), ...undo).then((choice) => {
       const offer = offers.find((each) => each.label === choice);
-      if (offer) void this.runOnEngine([{ feature: offer.feature, target: run.target }], run.repo);
+      if (offer) void this.runOnEngine([{ feature: offer.feature, target: offer.target, answers: offer.answers }], run.repo);
       if (choice === 'Undo') void this.action({ kind: 'undo' });
     });
   }
 
   /** Carries out what a plan of the engine leaves for the host once the repository was read again: what to select. */
-  private followUpsAfterRead(followUps: FollowUp[]): void {
+  private followUpsAfterRead(followUps: FollowUp[], repo: Repository): void {
     for (const followUp of followUps) {
+      // The tab of what a rewrite changed (M36), in the repository the operation ran in.
+      if (followUp.kind === 'openRangeDiff') void this.rangeDiffTab.open(followUp as RangeDiffTarget, repo);
       if (followUp.kind === 'selectHead' && this.state?.head.commit) this.show(this.state.head.commit);
       if (followUp.kind === 'selectCommit') this.show(String(followUp.commit));
       if (followUp.kind === 'selectBeforeHead' && this.state?.head.commit && this.repo) {
@@ -2626,6 +2661,8 @@ export class Controller implements vscode.Disposable {
     const review = this.reviewTab?.webview === webview ? this.reviewTab : undefined;
     // The tab of the review reads the files in conflict by itself.
     if (review && message.type === 'ready') return review.reload();
+    // The tab of what a rewrite changed is sent its pairs, which it does not read again with the repository.
+    if (message.type === 'ready' && this.rangeDiffTab.shows(webview)) return this.rangeDiffTab.ready();
     switch (message.type) {
       case 'focus':
         return this.setFocused(webview, message.focused === true);

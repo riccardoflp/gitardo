@@ -1355,6 +1355,30 @@
             "default": false,
             "markdownDescription": "Whether a commit that Gitardo cherry-picks ends its message with the commit it was picked from: `(cherry picked from commit …)`, as `git cherry-pick -x` writes it. For one commit, for several selected in the graph and for one dropped on what is checked out.",
             "order": 7
+          },
+          "gitardo.rebase.updateRefs": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "enum": [
+              null,
+              true,
+              false
+            ],
+            "enumItemLabels": [
+              "As git says",
+              "Move them",
+              "Leave them"
+            ],
+            "enumDescriptions": [
+              "As Git's own `rebase.updateRefs` says, and moved when that is not set either.",
+              "The other branches of a stack move with the commits they are on: `git rebase --update-refs`.",
+              "The other branches stay on the old commits: `git rebase --no-update-refs`."
+            ],
+            "default": null,
+            "markdownDescription": "Whether rebasing a branch, the interactive rebase, editing the message of an older commit, squashing, splitting and the fixup move with it the other local branches on the commits they make again, a stack of branches each started from the one under it. One **Undo** puts them all back. A branch checked out in another worktree stays, and so do all of them with a Git older than 2.38.",
+            "order": 8
           }
         }
       },

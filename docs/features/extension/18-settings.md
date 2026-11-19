@@ -47,6 +47,7 @@ Acceptance:
 | `gitardo.pull.rebase` | `true` | window | **Pull** adds `--rebase`. | `sync.pull` |
 | `gitardo.submodules.updateOnCheckout` | `true` | window | A checkout is followed by `git submodule update --init --recursive`. | `submodule.update-on-checkout`, `branch.checkout`, `branch.checkout-remote`, `branch.checkout-detached`, `branch.create`, `stash.branch` |
 | `gitardo.cherryPick.recordOrigin` | `false` | window | Cherry-picks end their message with the commit they come from (`-x`). | `cherry-pick.one`, `cherry-pick.many` |
+| `gitardo.rebase.updateRefs` | `null` | window | Rebases move the other branches of a stack: **As git says** (null, not sent to the engine), **Move them** or **Leave them**. | `rebase.update-refs` |
 | `gitardo.branches.openIn` | `checkout` | window | What a double click on a local branch does: check it out, or open it in a worktree. | `branch.checkout`, `worktree.open-in-worktree` |
 | `gitardo.readOnStartup` | `true` | window | Read the repository when VS Code starts. | Repositories and identities (no cards yet) |
 | `gitardo.repositories.keepOpen` | `false` | window | Each repository left keeps what the views showed of it, and is read again only once it is shown after a change. | `repo.keep-open`, `repo.watch-hidden` |

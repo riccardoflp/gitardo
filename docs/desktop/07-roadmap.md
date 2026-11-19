@@ -1226,9 +1226,15 @@ line and the subjects now (`git::read::range_diff::read_pairs`), tested on outpu
 Phase 5 is built: the page of what a rewrite changed (`range-diff.page`), opened by `range-diff.compare` from **See
 what changed** after a rewrite, the menus of a branch and of a remote branch, the menu of **Sync**, **Compare first** in
 the warning of a force push, and what is said after a fetch that found an upstream force pushed; not after a pull, nor
-with `Ctrl+F` on the page. Phase 6 is not built yet.
+with `Ctrl+F` on the page.
+Phase 6 is built: protocol 1.14 with `read/range-diff.read-pairs`, `openRangeDiff` and `offerBeforeRun`; the setting
+`gitardo.rebase.updateRefs`, a choice of **As git says**, **Move them** and **Leave them**; the tab of what a rewrite
+changed; **What its last rewrite changed**, **Compare with `<upstream>` commit by commit** and **What the force push
+changed** in the menus, the comparison also beside **Push**; **Compare First** in the modal dialog of a force push; and
+**See What Changed** on the messages after a rewrite and after a fetch that found an upstream force pushed. The
+end-to-end step that rebases a stack and undoes it is written; the integration tests run the same against the engine.
 
-Nothing is built yet.
+Built: the six phases, in Gitardo Desktop and in the extension.
 
 Exit: in a repository with `p1`, `p2` on it and `p3` on `p2`, all above an older `main`, **Rebase p3 onto main**
 runs `git rebase --update-refs main`, and `p1` and `p2` are on the new commits after, what is said naming them; with

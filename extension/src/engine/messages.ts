@@ -5,6 +5,7 @@
  * which the views take as they are (stage 6).
  */
 
+import type { RangeDiffTarget } from '../shared/rangeDiff';
 import type { FolderSummary } from '../shared/summaries';
 import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shared/state';
 
@@ -15,9 +16,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15); 1.9 has `read/file-view.mermaid`, a diagram of
  * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17); 1.10 has `read/repo.worktree-summary`, what the
  * folders of the rows of the Repositories view are on, with `repository/summaries` and `repository/folderChanged`
- * (milestone M22).
+ * (milestone M22); 1.14 has `read/range-diff.read-pairs`, the follow-up `openRangeDiff` that opens the tab of what a
+ * rewrite changed, and `offerBeforeRun`, an operation offered in the warning of a plan in its place (milestone M36).
  */
-export const PROTOCOL = '1.10';
+export const PROTOCOL = '1.14';
 
 /** The names of the methods. */
 export const Method = {
@@ -189,10 +191,17 @@ export type FollowUp =
   | { kind: 'rememberInputs'; values: Record<string, string> }
   /** An operation offered with a button, run on its own target with the answers given (1.3). */
   | { kind: 'offerRun'; label: string; feature: string; target: Target; answers: Record<string, Answer> }
+  /** The tab of what a rewrite changed opens (1.14, `range-diff.page`). */
+  | ({ kind: 'openRangeDiff' } & RangeDiffTarget)
+  /** An operation offered in the warning of the plan, in its place: **Compare First** before a force push (1.14). */
+  | { kind: 'offerBeforeRun'; label: string; feature: string; target: Target; answers: Record<string, Answer> }
   | ({ kind: string } & Record<string, unknown>);
 
 /** An operation a plan offers with a button. */
 export type OfferedRun = Extract<FollowUp, { kind: 'offerRun' }>;
+
+/** An operation the warning of a plan offers in its place (1.14). */
+export type OfferedBeforeRun = Extract<FollowUp, { kind: 'offerBeforeRun' }>;
 
 /** How a feature ended: the answer of `feature/run`. */
 export type Finished =
@@ -682,3 +691,8 @@ export const SummariesMethod = {
 export interface SummariesResult {
   summaries: FolderSummary[];
 }
+
+// Milestone M36, from 1.14 (`rust/crates/protocol/src/range_diff.rs`): what a rewrite changed, commit by commit.
+export const RangeDiffMethod = {
+  pairs: 'read/range-diff.read-pairs',
+} as const;

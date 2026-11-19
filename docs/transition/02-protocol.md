@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.10** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.14** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -80,6 +80,12 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
+Version 1.14 adds what milestone M36 needed
+([D81](../08-decisions.md#d81--the-branches-of-a-stack-move-with-a-rewrite-and-what-a-rewrite-changed-is-shown-commit-by-commit-proposed)):
+`read/range-diff.read-pairs`, the pairs of what a rewrite changed ([What a rewrite changed](#what-a-rewrite-changed));
+the follow-up `openRangeDiff`, which opens the tab of those pairs; and `offerBeforeRun`, an operation the warning of a
+plan offers in its place ([`feature/followUps`](#featurefollowups)).
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -138,7 +144,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.10",
+  protocol: "1.14",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -456,6 +462,28 @@ measured as a browser measures it, since the preview draws the SVG as an image w
 and `height` are those of its `viewBox`, in pixels; `title` and `description` its `accTitle` and `accDescr`. It is not
 logged, having no repository to log it in.
 
+### What a rewrite changed
+
+`read/range-diff.read-pairs` (1.14, `range-diff.read-pairs`) reads, in a repository opened, the pairs of the two lines
+of commits that the follow-up `openRangeDiff` gave, as they came (`crates/protocol/src/range_diff.rs`).
+
+```ts
+params: { repository: string, ranges: { arguments: string[], before: Line, now: Line } }   // Line: { from, to }
+result: {
+  pairs: Array<{
+    kind: "same" | "changed" | "added" | "dropped",
+    before: string | null, now: string | null,   // full ids; none for one added, or one dropped
+    subject: string,                             // now, or before for one dropped
+    messageChanged: boolean, changesChanged: boolean,
+    diff: string[],                              // its diff of diffs, empty unless it changed
+  }>,
+  beforeCount: number, nowCount: number,
+  counts: string,                                // "2 the same · 1 changed · 1 dropped"
+}
+```
+
+It fails as git does, or when a line has more than 1,000 commits, which Gitardo does not compare.
+
 ## Features
 
 ### `feature/run`
@@ -541,13 +569,19 @@ the follow-ups that are the host's to carry out, in their order. The engine keep
 object with a `kind` and the fields of its variant. Stage 2 sends `say`, `selectHead`, `selectCommit`,
 `selectBeforeHead`, `openCommitPage`, `emptyCommitMessage`, `preparedMessage`, `fillCommitMessage`,
 `readPullRequests`, `offer`, `copyToClipboard`, `openUrl`, `openReview`, `closeMergePage`, `openWindow`, `showFolder`,
-`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); version 1.3 adds `offerRun`; the others
-are sent from the stage that moves their features.
+`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); version 1.3 adds `offerRun`; version 1.14
+adds `openRangeDiff` and `offerBeforeRun`; the others are sent from the stage that moves their features.
 
 `offerRun` is `{ kind: "offerRun", label, feature, target: Target, answers: Record<string, Answer> }`: a button named
 `label` that runs `feature` on `target` with `answers` given, as **Remove anyway** after git refuses a worktree with
 changes, or **Choose What It Gets…** (`worktree-setup.page`) after a worktree is made. An offer whose target or answers
 cannot cross (an answer of the engine's own reads, such as a list of names) is left out.
+
+`offerBeforeRun` (1.14) has the fields of `offerRun`, and comes in the `after` of a plan that `feature/confirm` asks
+about: its `label` is a third button of the warning, **Compare First** before a force push, which answers
+`{ run: false }` and sends `feature/run` of `feature` once the plan backed out. `openRangeDiff` (1.14) is
+`{ kind: "openRangeDiff", title, branch, ranges }`: the tab of what a rewrite changed opens, named `<branch> · what
+changed`, and asks `read/range-diff.read-pairs` with `ranges`.
 
 | `FollowUp` | Carried out by | In the extension |
 | --- | --- | --- |
@@ -575,6 +609,9 @@ cannot cross (an answer of the engine's own reads, such as a list of names) is l
 | `EditFile` | extension | an editor of that file at that line |
 | `OpenFileDiff` | extension | VS Code's diff editor or the Flow Diff |
 | `TrustFolder`, `ForgetTrustedFolders` | not sent | VS Code's workspace trust (Q396) |
+| `OpenRangeDiff` (1.14) | extension | the tab of what a rewrite changed |
+| `OfferBeforeRun` (1.14) | extension | a third button of the modal dialog of `feature/confirm` |
+| `CheckForcePushed` | not sent | the extension compares the upstreams before and after a fetch itself |
 | `WriteSetting` (1.6, Q399) | extension | `WorkspaceConfiguration.update` in the user's settings, `{ key, value }` by the desktop's name, `value` null to remove it; `ai.model` and `ai.effort` are `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400) |
 
 ## Undo and the journal
