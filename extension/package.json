@@ -400,6 +400,16 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.pushTags",
+        "title": "Push Tags…",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.checkTags",
+        "title": "Check Tags on Remote",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.setUpstream",
         "title": "Set Upstream of the Current Branch…",
         "category": "Gitardo"

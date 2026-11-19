@@ -86,7 +86,11 @@ Version 1.13 adds what milestone M34 needed
 the signature of a commit; and `read/commit.read-authors`, the people who made commits, for the co-authors of the
 commit box. The co-authors given to `commit.create` and `commit.amend` in `feature/run` (`co-authors`, `choices`) are known
 from the first call, as a `flag` is, since no question asks them. An older extension leaves the field out and asks
-none of the reads.
+none of the reads. It also adds what milestone M35 needed
+([D80](../08-decisions.md#d80--upstreams-set-and-taken-away-the-tags-of-a-remote-checked-branches-with-no-history-proposed)):
+`read/tag.read-remote-tags`, the tags of a remote asked of it and compared with those of the repository, and the
+follow-up `tagsOnRemote`, what an operation on tags changed of them on a remote; an older extension asks no such read
+and leaves the follow-up unknown, as it does any other.
 
 ## Transport
 
@@ -344,6 +348,7 @@ change the repository and run at the same time as each other and as an operation
 | `read/identity.read` | — | `{ identity: { name, email }, localKeys: string[] }` | `identity.read` |
 | `read/details.read-signature` | `{ commit }` | `{ verdict: "good" \| "goodUnknownValidity" \| "goodExpired" \| "goodExpiredKey" \| "goodRevokedKey" \| "bad" \| "cannotCheck" \| "signedNotChecked" \| "notSigned", kind: "openpgp" \| "x509" \| "ssh" \| null, signer, key, fingerprint, trust }` | `details.read-signature` (1.13) |
 | `read/commit.read-authors` | — | `{ authors: { name, email, commits }[] }` | `commit.read-authors` (1.13) |
+| `read/tag.read-remote-tags` | `{ remote }` | `{ remote, tags: { name, onRemote: "pushed" \| "differentThere" \| "notPushed" }[], onlyThere: string[] }`, asked of the remote over the network | `tag.read-remote-tags`, `tag.compare-remote` (1.13) |
 | `read/submodule.read-list` | — | `Submodule[]` | `submodule.read-list` |
 | `read/worktree.read-folder-links` | `{ worktree }` | `{ paths: string[] }` | `worktree.read-folder-links` |
 | `read/worktree-setup.read-ignored` | `{ worktree }` | `IgnoredEntry[]` | `worktree-setup.read-ignored` |
@@ -585,6 +590,7 @@ cannot cross (an answer of the engine's own reads, such as a list of names) is l
 | `EditFile` | extension | an editor of that file at that line |
 | `OpenFileDiff` | extension | VS Code's diff editor or the Flow Diff |
 | `TrustFolder`, `ForgetTrustedFolders` | not sent | VS Code's workspace trust (Q396) |
+| `TagsOnRemote` (1.13) | extension | `{ remote, pushed, notPushed }`, `remote` null for a tag made here: the marks of the tags (`tag.remote-marks`) follow it when that remote is the one checked |
 | `WriteSetting` (1.6, Q399) | extension | `WorkspaceConfiguration.update` in the user's settings, `{ key, value }` by the desktop's name, `value` null to remove it; `ai.model` and `ai.effort` are `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400) |
 
 ## Undo and the journal

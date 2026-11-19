@@ -1,6 +1,7 @@
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
 import type { RepositoryRow, ShownParts } from './repositories';
+import type { TagMarks } from './tagMarks';
 import type { Choice, ConflictRef, ConflictReview } from './resolution';
 import type { CommitOptions } from './commitOptions';
 import type { CommitDetail, CommitSignature, FileChange, RepositoryState } from './state';
@@ -214,6 +215,8 @@ export interface RepoState extends RepoParts {
   keepOpen: boolean;
   /** Whether **Add Signed-off-by** starts ticked for each commit, as `gitardo.commit.signOff` says. */
   signOff: boolean;
+  /** What the last **Check tags on `<remote>`** said of the tags, as Gitardo's operations changed it; null before it (`tag.remote-marks`). */
+  tagMarks: TagMarks | null;
 }
 
 /** The commits of what is checked out, for the view that lists them apart from the graph. */
@@ -485,6 +488,10 @@ export type Action =
   | { kind: 'unsetUpstream'; name: string }
   | { kind: 'createBranchWithNoHistory' }
   | { kind: 'pushTag'; name: string }
+  /** **Push tags…**: the tags the remote lacks, ticked in a pick (`tag.push-all`). */
+  | { kind: 'pushTags' }
+  /** **Check tags on `<remote>`**: asks the remote of `remote.default` for its tags and marks those it lacks (`tag.remote-marks`). */
+  | { kind: 'checkTags' }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }

@@ -116,6 +116,16 @@ pub enum FollowUpJson {
         /// Its value; null removes it.
         value: Option<serde_json::Value>,
     },
+    /// The marks of the tags a remote lacks follow what the operation changed of the tags on it, without asking it
+    /// again (1.13, `tag.remote-marks`).
+    TagsOnRemote {
+        /// The remote; null for a tag made here, which no remote has.
+        remote: Option<String>,
+        /// The tags pushed to it.
+        pushed: Vec<String>,
+        /// The tags it does not have after the operation.
+        not_pushed: Vec<String>,
+    },
 }
 
 fn text_of(text: &Text) -> String {
@@ -189,6 +199,11 @@ impl FollowUpJson {
                     Some(text) => Some(serde_json::from_str(text).ok()?),
                     None => None,
                 },
+            },
+            FollowUp::TagsOnRemote(changed) => FollowUpJson::TagsOnRemote {
+                remote: changed.remote.clone(),
+                pushed: changed.pushed.clone(),
+                not_pushed: changed.not_pushed.clone(),
             },
             _ => return None,
         })

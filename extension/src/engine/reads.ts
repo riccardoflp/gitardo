@@ -40,6 +40,7 @@ import {
 } from '../shared/protocol';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
 import type { FolderSummary } from '../shared/summaries';
+import type { TagComparison } from '../shared/tagMarks';
 import { type Author, type CommitSignature, uncommittedDetail } from '../shared/state';
 import type { CommandProposal, IgnoredEntry, SetupPatterns, SetupPreview } from '../shared/worktreeSetup';
 
@@ -367,6 +368,11 @@ export class Reads {
     if (hash === WORKTREE) return null;
     const commit = await this.fullId(repo, hash);
     return commit ? this.client().signature(repo.root, commit, signal) : null;
+  }
+
+  /** Which tags a remote has, against those of the repository, for **Check tags on `<remote>`** (`tag.remote-marks`). */
+  async remoteTags(repo: Repository, remote: string): Promise<TagComparison> {
+    return this.client().remoteTags(repo.root, remote);
   }
 
   /** The people who made commits in the repository, for the co-authors of a commit. */

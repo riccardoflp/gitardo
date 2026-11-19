@@ -282,10 +282,10 @@ earns it.
 | [`branch.read-log`](06-branches-tags-remotes.md#branchread-log--read-the-commits-of-what-is-checked-out) | Read the commits of what is checked out | Read | Built | Built |
 | [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Built | Built |
 | [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Built | Built |
-| [`tag.read-remote-tags`](06-branches-tags-remotes.md#tagread-remote-tags--read-the-tags-a-remote-has) | Read the tags a remote has | Read | Built | Planned |
-| [`tag.compare-remote`](06-branches-tags-remotes.md#tagcompare-remote--which-tags-a-remote-lacks) | Which tags a remote lacks | Derivation | Built | Planned |
-| [`tag.remote-marks`](06-branches-tags-remotes.md#tagremote-marks--the-tags-a-remote-lacks-marked) | The tags a remote lacks, marked | View | Built | Planned |
-| [`tag.push-all`](06-branches-tags-remotes.md#tagpush-all--push-the-tags-a-remote-lacks) | Push the tags a remote lacks | Operation | Built | Planned |
+| [`tag.read-remote-tags`](06-branches-tags-remotes.md#tagread-remote-tags--read-the-tags-a-remote-has) | Read the tags a remote has | Read | Built | Built |
+| [`tag.compare-remote`](06-branches-tags-remotes.md#tagcompare-remote--which-tags-a-remote-lacks) | Which tags a remote lacks | Derivation | Built | Built |
+| [`tag.remote-marks`](06-branches-tags-remotes.md#tagremote-marks--the-tags-a-remote-lacks-marked) | The tags a remote lacks, marked | View | Built | Built |
+| [`tag.push-all`](06-branches-tags-remotes.md#tagpush-all--push-the-tags-a-remote-lacks) | Push the tags a remote lacks | Operation | Built | Built |
 | [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Built | Built |
 | [`tag.delete-remote`](06-branches-tags-remotes.md#tagdelete-remote--delete-a-tag-from-a-remote) | Delete a tag from a remote | Operation | Built | Built |
 | [`tag.checkout`](06-branches-tags-remotes.md#tagcheckout--check-out-a-tag) | Check out a tag | Operation | Built | Built |

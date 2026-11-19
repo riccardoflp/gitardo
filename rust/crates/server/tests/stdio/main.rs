@@ -13,5 +13,6 @@ mod reads;
 mod reads_commit_box;
 mod reads_graph;
 mod reads_repository;
+mod reads_tags;
 mod repository;
 mod summaries;

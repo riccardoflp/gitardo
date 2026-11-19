@@ -917,7 +917,8 @@ commits it fetches, but never says which tags of this repository the remote lack
   - The tags of the repository, with the same objects:
     `git for-each-ref --format=%(objectname)%00%(refname)%00 refs/tags`.
 - **Uses**: `activity.track`, which says **Asking `<remote>` for its tags** while it runs for more than half a second.
-- **Extension**: the engine's read, asked by the extension as it asks the pull requests (`src/engine/reads.ts`).
+- **Extension**: the engine's read, `read/tag.read-remote-tags` (protocol 1.13), asked by the extension as it asks the
+  pull requests (`reads.remoteTags` in `src/engine/reads.ts`), only for **Check tags on `<remote>`**.
 
 It reaches the remote over the network, so it runs only when the user asks for something that needs it
 (`tag.remote-marks`, `tag.push-all`), never with the reads of the repository (Q1114).
@@ -940,7 +941,7 @@ and the tags only the remote has.
 - **Kind**: Derivation
 - **Function**: `model::tag::compare_remote(here: &[TagObject], there: &RemoteTags) -> TagComparison`
 - **Uses**: `tag.read-remote-tags`; by `tag.remote-marks`, `tag.push-all` and `tag.delete-remote`.
-- **Extension**: the engine's, with the read.
+- **Extension**: the engine's, given with the read: `read/tag.read-remote-tags` answers with the comparison.
 
 Rules:
 
@@ -1005,6 +1006,13 @@ Acceptance:
 - [ ] A tag made here after the check is marked as not pushed.
 - [ ] `v1` moved here after it was pushed is marked `origin has another tag of this name`.
 - [ ] Extension: after **Check tags on origin**, the references beside the graph mark the tag that is not pushed.
+
+As built in the extension, the marks are kept by the controller for each repository until VS Code is closed and sent
+with the state (`tagMarks`), and follow the follow-up `tagsOnRemote` (`src/shared/tagMarks.ts`). The Codicons have
+neither `cloud-off` nor `cloud-alert`, so a tag not pushed has `cloud-upload` and one different there `warning`, in the
+badge of its row in `RefsTree` and among the icons of its label, with the same tooltips. **Gitardo: Check Tags on
+Remote** in the Command Palette asks too, and the **…** of the Tags list has the entries of `remoteTagsEntries`
+(`src/webview/menus.ts`).
 
 ### `tag.push-all` — Push the tags a remote lacks
 

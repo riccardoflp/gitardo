@@ -20,6 +20,7 @@ import {
 import { submoduleFolder } from '../shared/submodules';
 import { subjectAndBody } from '../shared/message';
 import { checkedOutBranch, operationName, worktreeBranch } from '../shared/state';
+import { checkedMarks, followMarks, type TagMarks } from '../shared/tagMarks';
 import { groupRepositories } from '../shared/repositoryGroups';
 import { pruneScope } from '../shared/scope';
 import { Activity } from './activity';
@@ -317,6 +318,8 @@ export class Controller implements vscode.Disposable {
   private readonly views = new Map<vscode.Webview, ViewKind>();
   /** The read of the signature each view waits for, cancelled when it asks for another (`details.signature`). */
   private readonly signatureReads = new Map<vscode.Webview, AbortController>();
+  /** What the last **Check tags on `<remote>`** of each repository said, by its folder, until VS Code is closed (`tag.remote-marks`). */
+  private readonly tagMarks = new Map<string, TagMarks>();
   /** The tabs of the commits, by repository and hash, and the repository each is of: not always the one being shown. */
   private readonly commitTabs = new Map<string, vscode.WebviewPanel>();
   /** The tabs of the comparisons, by their webview. */
@@ -551,6 +554,7 @@ export class Controller implements vscode.Disposable {
           home: this.homeOf(read.root),
           keepOpen: keepOpen(),
           signOff: vscode.workspace.getConfiguration('gitardo').get('commit.signOff') === true,
+          tagMarks: this.tagMarks.get(read.root) ?? null,
         }));
         this.setState(shown);
         for (const resolve of waiting.splice(0)) resolve();
@@ -1883,6 +1887,7 @@ export class Controller implements vscode.Disposable {
         .then((choice) => choice && vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.conflicts.autoResolve'));
       return;
     }
+    if (action.kind === 'checkTags') return this.checkTags(state, repo);
     try {
       if (await hostAction(action, state)) return;
     } catch (error) {
@@ -2053,6 +2058,32 @@ export class Controller implements vscode.Disposable {
     });
   }
 
+  /**
+   * **Check tags on `<remote>`**: the remote of `remote.default` asked for its tags by the engine, and the tags it lacks
+   * marked in the references and on the labels until VS Code is closed (`tag.remote-marks`).
+   */
+  private async checkTags(state: RepoState, repo: Repository): Promise<void> {
+    const remote = state.remotes.includes('origin') ? 'origin' : state.remotes[0];
+    if (!remote) {
+      void vscode.window.showWarningMessage('Gitardo: this repository has no remote.');
+      return;
+    }
+    if (!reads.available) return sayEngineMissing();
+    try {
+      const title = `Gitardo: asking ${remote} for its tags`;
+      const comparison = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title }, () => reads.remoteTags(repo, remote));
+      this.markTags(repo.root, checkedMarks(comparison, state.tags));
+    } catch (error) {
+      void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
+    }
+  }
+
+  /** Keeps the marks of the tags of a repository, and shows them while it is the one shown. */
+  private markTags(root: string, marks: TagMarks): void {
+    this.tagMarks.set(root, marks);
+    if (this.state && samePath(this.state.root, root)) this.setState({ ...this.state, tagMarks: marks });
+  }
+
   /** Carries out what a plan of the engine leaves for the host before the repository is read again. */
   private async followUpsBeforeRead(followUps: FollowUp[], run: { feature: string; target: Target; repo: Repository }): Promise<void> {
     for (const [index, followUp] of followUps.entries()) {
@@ -2097,6 +2128,13 @@ export class Controller implements vscode.Disposable {
         case 'fillCommitMessage':
           if (String(followUp.message)) this.post({ type: 'commitMessage', message: String(followUp.message) });
           break;
+        // A tag made, pushed or deleted from a remote changes its mark without asking the remote again (`tag.remote-marks`).
+        case 'tagsOnRemote': {
+          const marks = this.tagMarks.get(run.repo.root);
+          const changed = { remote: (followUp.remote as string | null) ?? null, pushed: followUp.pushed as string[], notPushed: followUp.notPushed as string[] };
+          if (marks) this.markTags(run.repo.root, followMarks(marks, changed, this.state?.tags ?? []));
+          break;
+        }
         default:
           break;
       }

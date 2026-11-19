@@ -23,6 +23,7 @@ import { submoduleFolder, submoduleStatus } from '../shared/submodules';
 
 export { pullOf, pushedName };
 import { scopeRefs, toggleScopeRef } from '../shared/scope';
+import { notPushedCount } from '../shared/tagMarks';
 import type { MenuEntry } from './ContextMenu';
 import type { DragSource } from './drag';
 import { shortHash } from './util';
@@ -451,6 +452,21 @@ export function tagMenu(tag: Tag, state: RepoState, onCompare: (comparing: Compa
     ...deleteOnRemoteEntries(name, state),
     'separator',
     { label: 'Copy name', run: () => copy(name) },
+  ];
+}
+
+/**
+ * **Check tags on `<remote>`**, for the remote of `remote.default`, and **Push tags…**, before any check or while the
+ * remote checked lacks a tag, in the **…** of the Tags list; none without a remote (`tag.remote-marks`, `tag.push-all`).
+ */
+export function remoteTagsEntries(state: Pick<RepoState, 'remotes' | 'tags' | 'tagMarks'>): MenuEntry[] {
+  const remote = state.remotes.includes('origin') ? 'origin' : state.remotes[0];
+  if (!remote) return [];
+  const lacksOne = !state.tagMarks || notPushedCount(state.tagMarks, state.tags) > 0;
+  return [
+    'separator',
+    { label: `Check tags on ${remote}`, run: () => act({ kind: 'checkTags' }) },
+    state.tags.length > 0 && lacksOne && { label: 'Push tags…', run: () => act({ kind: 'pushTags' }) },
   ];
 }
 

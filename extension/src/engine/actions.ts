@@ -133,6 +133,8 @@ export function engineRuns(
       return [{ feature: 'tag.delete', target: { kind: 'tag', name: action.name } }];
     case 'pushTag':
       return [{ feature: 'tag.push', target: { kind: 'tag', name: action.name } }];
+    case 'pushTags':
+      return [{ feature: 'tag.push-all', target: { kind: 'head' } }];
     case 'deleteTagOnRemote':
       return [{ feature: 'tag.delete-remote', target: { kind: 'tag', name: action.name }, answers: action.here ? { here: { kind: 'flag', value: true } } : {} }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).

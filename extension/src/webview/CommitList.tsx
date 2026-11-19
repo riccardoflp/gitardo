@@ -34,6 +34,8 @@ export interface Label {
   remote?: string;
   /** For a branch: its open pull request, and the name of the branch on GitHub. */
   pull?: { request: PullRequest; branch: string };
+  /** For a tag: the mark of the remote checked, which lacks it or has another tag of its name (`tag.remote-marks`). */
+  mark?: { icon: string; title: string };
 }
 
 /** A plain click selects one commit; with Ctrl or Cmd it adds or removes one; with Shift it selects up to the clicked one. */
@@ -131,12 +133,13 @@ export const LABEL_ICONS = {
 
 /** The icons of a label: of a branch, also the worktree that has it checked out and the upstream it is the same as. */
 export function LabelIcons({ label }: { label: Label }) {
-  if (!label.worktree && !label.remote) return <Icon name={LABEL_ICONS[label.kind]} />;
+  if (!label.worktree && !label.remote && !label.mark) return <Icon name={LABEL_ICONS[label.kind]} />;
   return (
     <span className="icons">
       {label.worktree && <Icon name="worktree" />}
       <Icon name={LABEL_ICONS[label.kind]} />
       {label.remote && <Icon name={LABEL_ICONS.remote} />}
+      {label.mark && <Icon name={label.mark.icon} />}
     </span>
   );
 }
@@ -146,6 +149,7 @@ export function labelTitle(label: Label): string {
   const lines = [label.name];
   if (label.worktree) lines.push(`In the worktree ${label.worktree}`);
   if (label.remote) lines.push(`Up to date with ${label.remote}`);
+  if (label.mark) lines.push(label.mark.title);
   return lines.join('\n');
 }
 

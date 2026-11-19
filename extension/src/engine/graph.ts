@@ -123,6 +123,7 @@ export async function graphState(
     home: null,
     keepOpen: false,
     signOff: false,
+    tagMarks: null,
   };
 }
 

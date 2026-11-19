@@ -1118,7 +1118,7 @@ commit whose message ends with the three lines, once each; **Skip the hooks** co
 fails, and the next commit runs it; the cards of the milestone are Built in the desktop, and the snapshots of the
 menu and of the line of a signature match in each theme.
 
-## M35 — Upstreams, tags on remotes and new roots
+## M35 — Upstreams, tags on remotes and new roots (done)
 
 The upstream of a local branch set, changed and taken away; which tags a remote has, the ones it lacks marked, pushed
 in one go, and a tag deleted from a remote as well as here; a branch started with no history
@@ -1170,8 +1170,13 @@ Phase 5 is built for what the desktop has: **Set upstream…**, **Change upstrea
 the menu of a local branch (`trackingEntries` in `src/webview/menus.ts`), **Delete from `<remote>`** and **Delete here
 and from `<remote>`** in the menu of a tag (`deleteOnRemoteEntries`), **Gitardo: Set Upstream of the Current Branch…**
 and **Gitardo: Create Branch with No History…** in the Command Palette, the second also in the **…** of the Branches
-view, each run on the engine. **Check tags on `<remote>`**, **Push tags…** and the marks in `RefsTree` wait for their
-cards in the desktop. No version of the protocol changed: the extension sends `feature/run` as before.
+view, each run on the engine; then **Check tags on `<remote>`** and **Push tags…** in the **…** of the Tags list of the
+references and of the Branches view (`remoteTagsEntries`), **Gitardo: Check Tags on Remote** and **Gitardo: Push
+Tags…** in the Command Palette, and the marks in `RefsTree` and on the labels, Codicons `cloud-upload` and `warning`
+since the Codicons have no `cloud-off` nor `cloud-alert`. Protocol 1.13 has `read/tag.read-remote-tags` and the
+follow-up `tagsOnRemote`.
+
+Done: every card of the milestone is Built in both apps.
 
 Exit: in a repository whose `feature` follows nothing and whose `origin` has `feature` and `release`, **Set upstream…**
 on `feature` lists `origin/feature` first, and once picked the branch rail says how far `feature` is from it;
