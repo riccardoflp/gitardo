@@ -63,19 +63,13 @@ impl engine::Host for HostQuestions {
     /// VS Code's token for github.com, when the extension answers `host/githubToken`; none when it does not, gives
     /// none, cannot answer, or the user backed out of signing in.
     fn github_token(&mut self, ask: bool) -> Option<Token> {
-        if !self.session.host().github_token {
-            return None;
-        }
-        let params = GitHubTokenParams {
-            host: String::from("github.com"),
-            ask,
-        };
-        let answer = self.request(methods::HOST_GITHUB_TOKEN, &params).ok()?;
-        serde_json::from_value::<GitHubTokenResult>(answer)
-            .ok()
-            .and_then(|result| result.token)
-            .filter(|token| !token.is_empty())
-            .map(Token)
+        self.token_of("github.com", ask)
+    }
+
+    /// The token the extension keeps for a GitLab, by its host name, asked with the same host question as GitHub's
+    /// (`hosting.token`, since 1.11); the extension may ask the user for one when `ask` is set.
+    fn hosting_token(&mut self, host: &str, ask: bool) -> Option<Token> {
+        self.token_of(host, ask)
     }
 
     /// VS Code's language models, in its order: with none, the words of [`NO_MODEL`].
@@ -128,5 +122,25 @@ fn no_answer(no_answer: NoAnswer) -> AiError {
     match no_answer {
         NoAnswer::Cancelled => AiError::Cancelled,
         NoAnswer::Failed(message) => AiError::Host(message),
+    }
+}
+
+impl HostQuestions {
+    /// The token the extension gives for a host name with `host/githubToken`; none when it does not answer that
+    /// question, gives none, cannot answer, or the user backed out.
+    fn token_of(&mut self, host: &str, ask: bool) -> Option<Token> {
+        if !self.session.host().github_token {
+            return None;
+        }
+        let params = GitHubTokenParams {
+            host: host.to_owned(),
+            ask,
+        };
+        let answer = self.request(methods::HOST_GITHUB_TOKEN, &params).ok()?;
+        serde_json::from_value::<GitHubTokenResult>(answer)
+            .ok()
+            .and_then(|result| result.token)
+            .filter(|token| !token.is_empty())
+            .map(Token)
     }
 }

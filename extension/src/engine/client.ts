@@ -103,7 +103,7 @@ export interface EngineOptions {
    * The token of GitHub that VS Code keeps, for `read/github.read-pull-requests`; null when there is none. Without it the
    * engine is told the host does not answer `host/githubToken`, and reads no pull requests.
    */
-  githubToken?: (ask: boolean) => Promise<string | null>;
+  githubToken?: (ask: boolean, host: string) => Promise<string | null>;
   // Area 6 of stage 4: VS Code's language models, for the engine's questions to a model.
   /**
    * Asks a language model of VS Code; `onText` is given the whole answer so far as it comes, when a read of this client
@@ -646,8 +646,9 @@ export class EngineClient {
       return { run: asker ? await asker.confirm(plan) : false };
     });
     connection.onRequest(HostMethod.githubToken, async (params) => {
-      const { ask } = params as { host: string; ask: boolean };
-      return { token: this.options.githubToken ? await this.options.githubToken(ask) : null };
+      // Since 1.11 it names the host: github.com, or a GitLab whose token the extension keeps (`hosting.token`).
+      const { ask, host } = params as { host: string; ask: boolean };
+      return { token: this.options.githubToken ? await this.options.githubToken(ask, host ?? 'github.com') : null };
     });
     // Area 6 of stage 4: the engine's questions to VS Code's language models.
     connection.onRequest(AiMethod.languageModel, async (params, signal) => {

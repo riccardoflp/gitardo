@@ -5426,6 +5426,14 @@ it was planned; each is built as it says until the maintainer answers otherwise.
 - **Q1503** — `hosting.read-pull-request-list`: the pick reads with the token kept for the service and never runs git's
   credential helper; with none kept, nothing is listed and the box says to sign in. Should the pick offer **Sign in to
   GitHub** or **Sign in to GitLab** there?
+- **Q1504** — milestone M37, phase 5: the extension knows the service of the main remote only for GitHub
+  (`parseGitHubRemote`), so its labels, the menus of its branches, the offer after a push and its Compare tab say
+  nothing of GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo yet; it has **Gitardo: Check Out Pull Request…**,
+  **Gitardo: Sign In to GitLab**, the token of a GitLab in its secret storage and `gitardo.hosting.selfHosted`. Should
+  the service and the addresses come from a read of the engine (`read/hosting.detect-remote`), with the merge requests
+  in `read/github.read-pull-requests`, as phase 5 plans?
+- **Q1505** — `hosting.token`: the extension is asked for the token of a GitLab with `host/githubToken`, which names the
+  host since 1.11, rather than with a host question of its own. Should it have one, `host/hostingToken`?
 - **Q1164** — `compare.open-on-service`: Bitbucket, Gitea and Forgejo compare only since the two diverged, so the entry
   is not there in **Everything that differs**. Should it open the comparison since they diverged there, saying so?
 

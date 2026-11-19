@@ -1231,7 +1231,12 @@ comparison page (`compare.open-on-service`); the token of a GitLab (`git::read::
 `HostingToken` of the engine), **Load merge requests from GitLab** in the **…** menu and **Sign in to GitLab** in Quick
 search, `engine::hosting::read_merge_requests`, and `!<n>` on the labels in the color of the pipeline;
 `engine::hosting::read_pull_request_list` and **Check out a pull request…** in Quick search, in the **…** menu and on
-a remote branch whose label shows one, with the questions Q1500–Q1503.
+a remote branch whose label shows one, with the questions Q1500–Q1503. Of phase 5, the extension has **Gitardo: Check
+Out Pull Request…** and **Gitardo: Sign In to GitLab** run on the engine, **Check out a pull request…** in the **…**
+menu of the graph on GitHub, the token of a GitLab asked in an input box and kept in its secret storage, and
+`gitardo.hosting.selfHosted`; the service and the addresses from the engine in place of `parseGitHubRemote` and
+`compareUrl`, the numbers of merge requests on its labels and **Open on `<service>`** in its Compare tab are not built
+yet (Q1504), and the milestone stays open.
 
 Exit: in a clone of a project on gitlab.com, **Create merge request…** on a pushed branch opens GitLab's page with the
 branch filled in, and the first push of a new branch offers it; **Load merge requests from GitLab**, given a token,

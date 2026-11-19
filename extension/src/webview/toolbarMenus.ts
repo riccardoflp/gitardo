@@ -105,5 +105,6 @@ export function moreMenu(state: RepoState, compact: boolean): MenuEntry[] {
     { label: 'Switch identity…', run: run('switchIdentity') },
     state.github && 'separator',
     state.github && { label: 'Load pull requests from GitHub', run: run('signInGitHub') },
+    state.github && { label: 'Check out a pull request…', run: run('checkOutPullRequest') },
   ];
 }

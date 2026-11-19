@@ -579,6 +579,10 @@ export type UiCommand =
   | 'cleanupBranches'
   | 'activeFileHistory'
   | 'signInGitHub'
+  /** `hosting.load-merge-requests` on the engine. */
+  | 'signInGitLab'
+  /** `hosting.checkout-pull-request` on the engine. */
+  | 'checkOutPullRequest'
   | 'draftMessage'
   | 'switchIdentity'
   | 'selectRepository'

@@ -1601,6 +1601,8 @@ export class Controller implements vscode.Disposable {
       if (command === 'showLog') return this.log.show();
       if (command === 'activeFileHistory') return await this.fileHistory();
       if (command === 'signInGitHub') return await this.refreshPulls(true, true);
+      if (command === 'signInGitLab') return await this.runHostingFeature('hosting.load-merge-requests');
+      if (command === 'checkOutPullRequest') return await this.runHostingFeature('hosting.checkout-pull-request');
       if (command === 'reflog') return await this.browseReflog();
       if (command === 'goToCommit') return await this.goToCommit();
       if (command === 'cleanupBranches') return await this.cleanupBranches();
@@ -1716,6 +1718,17 @@ export class Controller implements vscode.Disposable {
       this.post({ type: 'drafting', active: false });
       throw error;
     }
+  }
+
+  /**
+   * Runs an operation of the pull requests of the hosting service of the main remote on the engine, which refuses it,
+   * saying why, when the remote is not on a service that has it (`hosting.load-merge-requests`,
+   * `hosting.checkout-pull-request`).
+   */
+  private async runHostingFeature(feature: 'hosting.load-merge-requests' | 'hosting.checkout-pull-request'): Promise<void> {
+    const repo = this.repo;
+    if (!repo) return;
+    await this.runOnEngine([{ feature, target: { kind: 'head' } }], repo);
   }
 
   /**

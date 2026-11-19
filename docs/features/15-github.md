@@ -391,8 +391,9 @@ anything.
      `password=` is the token; nothing printed, or an exit code other than 0, is no token.
 - **Uses**: `github.token`, whose rules it follows.
 - **Extension**: VS Code has no sign-in to GitLab of its own; the engine asks the extension with the host question of
-  the token, which the extension answers from its secret storage (`ExtensionContext.secrets`), keyed by the host name, and,
-  when it is asked to, with an input box that hides what is typed (Q1159).
+  the token, `host/githubToken` naming the host name (since 1.11, Q1505), which the extension answers from its secret
+  storage (`ExtensionContext.secrets`), under `hosting.token:<host>`, and, when it is asked to, with an input box titled
+  **GitLab token** that hides what is typed, keeping what is typed (Q1159; `tokenOfHost` in `src/extension/github.ts`).
 
 The token never appears in the command log, in a message or in an error, and is not written to any file. A password
 that a credential helper gives in place of a token is refused by GitLab's API, and `hosting.load-merge-requests` then

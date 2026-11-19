@@ -2,6 +2,13 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- **Gitardo: Check Out Pull Request…**, in the Command Palette and in the **…** menu of the graph, picks one of the open pull requests of GitHub or merge requests of GitLab, those from forks included, or takes its number typed, also on Gitea and Forgejo, and checks it out with Gitardo's engine: one from a branch of the repository as its remote branch, one from a fork into a local branch named `<owner>/<branch>`.
+- **Gitardo: Sign In to GitLab** asks for a personal access token of the GitLab of the main remote, kept in the secret storage of the extension for its host name. `gitardo.hosting.selfHosted`, under **Pull and commits**, names a GitLab, Gitea or Forgejo of one's own by the host name of its remotes.
+
 ## 1.2.0 - 2026-11-18
 
 ### Added
