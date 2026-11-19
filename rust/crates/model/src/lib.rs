@@ -24,6 +24,7 @@ pub mod filter;
 pub mod github;
 pub mod graph;
 mod identifier;
+pub mod lfs;
 pub mod markdown;
 pub mod merge_view;
 pub mod patch;

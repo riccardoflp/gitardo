@@ -26,15 +26,19 @@ stores with it.
 - **Uses**: `repo.read-state`, with which it runs, and again only when a `.gitattributes` or the configuration changed
   (`repo.watch-changes`).
 - **Extension**: read by the engine with the state of the repository: planned.
+- As built, its request carries the version read before (`LfsStatusRequest::version`), so that `git lfs version`
+  runs once for the engine, and the patterns read before (`LfsStatusRequest::patterns`), kept when no
+  `.gitattributes` changed; a pattern of a commented line is not one. It runs with `repo.read-state` from the phases
+  that show it.
 
 Acceptance:
 
-- [ ] Without Git LFS, it says it is not installed, and still lists the patterns `*.psd filter=lfs diff=lfs merge=lfs
+- [x] Without Git LFS, it says it is not installed, and still lists the patterns `*.psd filter=lfs diff=lfs merge=lfs
       -text` of `.gitattributes` gives.
-- [ ] With Git LFS 3.7.1, it reads the version `3.7.1`.
-- [ ] A pattern in `assets/.gitattributes` is listed with that file; a line with `-filter` or `filter=other` is not.
-- [ ] A repository whose patterns are there but whose configuration has no `filter.lfs.` key is not set up.
-- [ ] A read after a change to a file of the working tree only does not read the attributes again.
+- [x] With Git LFS 3.7.1, it reads the version `3.7.1`.
+- [x] A pattern in `assets/.gitattributes` is listed with that file; a line with `-filter` or `filter=other` is not.
+- [x] A repository whose patterns are there but whose configuration has no `filter.lfs.` key is not set up.
+- [x] A read after a change to a file of the working tree only does not read the attributes again.
 
 ### `lfs.read-files` — The files stored with Git LFS
 
@@ -50,14 +54,17 @@ is downloaded.
   reads of the repository (Q1190).
 - **Uses**: `lfs.read-status`, by `lfs.page`.
 - **Extension**: read by the engine for what the extension shows of the files stored with Git LFS: planned.
+- As built, the output of `--json` is read one key on each line, as Git LFS indents it, since serde_json is kept to
+  the crates `protocol` and `server` (rule R1.7); its escapes, `\u003c` and the others, are read. The sizes of
+  `--long --size` are rounded by Git LFS, `1.2 KB` read as 1,200 bytes. Without Git LFS, an empty version, nothing is run.
 
 Acceptance:
 
-- [ ] A repository with `a.bin` downloaded and `b.bin` left as a pointer lists both, `a.bin` downloaded and checked
+- [x] A repository with `a.bin` downloaded and `b.bin` left as a pointer lists both, `a.bin` downloaded and checked
       out, `b.bin` neither, each with its size.
-- [ ] A path with spaces and non-ASCII letters comes back as git has it.
-- [ ] The output of `--long --size` of Git LFS 2.13 gives the same files.
-- [ ] Without Git LFS it is not run, and the page says so.
+- [x] A path with spaces and non-ASCII letters comes back as git has it.
+- [x] The output of `--long --size` of Git LFS 2.13 gives the same files.
+- [x] Without Git LFS it is not run, and the page says so.
 
 ### `lfs.pointer` — A file left as a pointer
 
@@ -78,9 +85,9 @@ Rules:
 
 Acceptance:
 
-- [ ] The three lines `git lfs` writes for a file of 2,000 bytes give its id and the size 2,000.
-- [ ] The same lines with CRLF, with the keys in another order, or with an id of 63 digits are not a pointer.
-- [ ] A text file that starts with `version https://git-lfs.github.com/spec/v1` and goes on past 1,024 bytes is not a
+- [x] The three lines `git lfs` writes for a file of 2,000 bytes give its id and the size 2,000.
+- [x] The same lines with CRLF, with the keys in another order, or with an id of 63 digits are not a pointer.
+- [x] A text file that starts with `version https://git-lfs.github.com/spec/v1` and goes on past 1,024 bytes is not a
       pointer.
 
 ### `lfs.read-content` — The content of a file stored with Git LFS, from the store of the repository
@@ -98,10 +105,10 @@ The content a pointer stands for, read from the store of Git LFS on this compute
 
 Acceptance:
 
-- [ ] For a file downloaded, the bytes read are those of the file once checked out.
-- [ ] For a pointer whose object is not in the store, it says not downloaded, and no process of Git LFS talks to the
+- [x] For a file downloaded, the bytes read are those of the file once checked out.
+- [x] For a pointer whose object is not in the store, it says not downloaded, and no process of Git LFS talks to the
       server.
-- [ ] An object of the store shorter than the size of its pointer is not downloaded.
+- [x] An object of the store shorter than the size of its pointer is not downloaded.
 
 ### `lfs.show-in-pages` — A file stored with Git LFS, in the pages
 

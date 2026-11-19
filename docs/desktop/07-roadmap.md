@@ -1325,7 +1325,10 @@ there. The tests of Git LFS need the program, which the runners of the pipeline 
    `rerere.resolved-as-before`, `rerere.forget`, `review.recorded`, `review.file-list`, `conflicts.banner`,
    `conflicts.stopped`, `changes.row-menu`.
 
-Nothing is built yet.
+Phase 1 is built: `model::lfs::pointer` tells a pointer from a file, and `git::read::lfs` reads whether Git LFS is
+installed and set up with the patterns of the files of attributes, the files with their sizes, and the content of a
+pointer from the store of the repository, tested against repositories made with Git LFS. Phases 2 to 6 are not built
+yet: the pages, **Download**, the **Large files** page, the locks and rerere wait for a later run of this milestone.
 
 Exit: in a clone of a repository that stores `*.psd` with Git LFS, made without downloading, the File page of a `.psd`
 says it is not downloaded, with its size, and **Download** shows its content after; the page of a commit that changed
