@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 481 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 485 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -20,7 +20,7 @@ earns it.
 | [01-repositories.md](01-repositories.md) | Repositories | 30 |
 | [02-graph.md](02-graph.md) | Graph | 58 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
-| [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
+| [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 18 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 24 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 37 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
@@ -33,7 +33,7 @@ earns it.
 | [14-patches.md](14-patches.md) | Patches | 7 |
 | [15-github.md](15-github.md) | GitHub | 6 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
-| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 45 |
+| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 48 |
 | [18-settings.md](18-settings.md) | Settings | 7 |
 | [19-tasks.md](19-tasks.md) | Tasks | 9 |
 
@@ -192,6 +192,7 @@ earns it.
 | [`commit-page.diff-lines`](04-details-and-commit-page.md#commit-pagediff-lines--the-lines-of-each-diff-and-how-many-are-sent) | The lines of each diff, and how many are sent | Derivation | Built | Built |
 | [`commit-page.view`](04-details-and-commit-page.md#commit-pageview--the-page-of-a-commit) | The page of a commit | View | Built | Built |
 | [`commit-page.initial-folds`](04-details-and-commit-page.md#commit-pageinitial-folds--which-diffs-start-folded) | Which diffs start folded | Derivation | Built | Built |
+| [`commit-page.images`](04-details-and-commit-page.md#commit-pageimages--the-images-of-a-commit-in-its-page) | The images of a commit in its page | View | Specified | Planned |
 | [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-timeline) | Show a commit in the timeline | View | Built | Built |
 
 ## Changes and commit
@@ -562,6 +563,7 @@ earns it.
 | [`diff.stage-file`](17-diff-and-merge-views.md#diffstage-file--stage-file) | Stage file | Operation | Built | Built |
 | [`diff.unstage-file`](17-diff-and-merge-views.md#diffunstage-file--unstage-file) | Unstage file | Operation | Built | Built |
 | [`diff.discard-file`](17-diff-and-merge-views.md#diffdiscard-file--discard-changes) | Discard changes | Operation | Built | Differs (A4) |
+| [`diff.image`](17-diff-and-merge-views.md#diffimage--two-versions-of-an-image-side-by-side) | Two versions of an image side by side | View | Specified | Planned |
 | [`merge-view.page`](17-diff-and-merge-views.md#merge-viewpage--the-merge-page) | The Merge page | View | Built | Built |
 | [`merge-view.read-sides`](17-diff-and-merge-views.md#merge-viewread-sides--the-versions-of-a-file-in-conflict) | The versions of a file in conflict | Read | Built | Built |
 | [`merge-view.three-way`](17-diff-and-merge-views.md#merge-viewthree-way--the-regions-of-a-file-in-conflict) | The regions of a file in conflict | Derivation | Built | Built |
@@ -579,6 +581,8 @@ earns it.
 | [`file-view.file-icons`](17-diff-and-merge-views.md#file-viewfile-icons--the-icon-of-a-file-or-a-folder) | The icon of a file or a folder | View | Built | Host only |
 | [`file-view.markdown-preview`](17-diff-and-merge-views.md#file-viewmarkdown-preview--a-markdown-file-as-it-reads) | A Markdown file as it reads | View | Built | Built |
 | [`file-view.mermaid`](17-diff-and-merge-views.md#file-viewmermaid--a-mermaid-diagram-as-it-is-drawn) | A Mermaid diagram as it is drawn | Derivation | Built | Built |
+| [`file-view.read-image`](17-diff-and-merge-views.md#file-viewread-image--the-pixels-of-an-image-file) | The pixels of an image file | Derivation | Specified | Host only |
+| [`file-view.image`](17-diff-and-merge-views.md#file-viewimage--an-image-as-it-is-drawn) | An image as it is drawn | View | Specified | Planned |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built | Host only |
 | [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built | Host only |

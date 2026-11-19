@@ -831,6 +831,49 @@ the page comes back as it was after the window is closed and opened; on the work
 under half a second; every card of the milestone passes its tests, and the snapshots of the page match, empty, with
 results in each mode and with a match lit in the preview, in the dark and in the light theme.
 
+## M27 — Images, and SVG, drawn where their files are shown
+
+An image in the File page, two versions of it side by side in the Diff page and in the page of a commit, an SVG as its
+picture or as its text, in both apps
+([D74](../08-decisions.md#d74--images-are-drawn-where-their-files-are-shown)). Asked by the maintainer, who met
+*This file is not text.* and **Binary file.** where a picture was. Built in six phases, each one commit or more, each
+ending with the cards it names built where it says and their tests passing: the window first, the extension last.
+
+1. **Images read.** `file-view.read-image` tells an image by its first bytes or, for SVG, by its name; reads PNG with
+   `tiny-skia` and draws SVG with `resvg` as the diagrams of Mermaid are drawn, nothing outside the file read; says why
+   an image is not read; runs on a worker and keeps what it read for the bytes and the scale. The preview of Markdown
+   draws through it, so that an SVG of the repository is drawn there; Q581 is answered in its card. Cards:
+   `file-view.read-image` (PNG and SVG), `file-view.markdown-preview`.
+2. **The File page.** An image drawn in place of *This file is not text.*: fit to the page, on its ground of squares,
+   with its size, format and weight under it; the zoom with `Ctrl` and the wheel or the keys, moved by dragging, its
+   pixels square above 100%; **Preview** and **Source** for an SVG, the picture drawn again from the text edited; a
+   file changed on disk drawn again. Card: `file-view.image`.
+3. **The Diff page.** The two versions side by side at one scale, **Empty** for a side with none, the line that says
+   what changed, *Only the bytes of the file changed; the pixels are the same.*; **Image** and **Text** for an SVG; the
+   buttons of the file kept, `F7` stopping once on an image in a page of several files. Card: `diff.image`.
+4. **The page of a commit and a comparison.** The two versions in place of **Binary file.**, read when the diff is
+   shown, a click that opens the Diff page; **Show the images** on an SVG. Card: `commit-page.images`.
+5. **The other formats.** JPEG, GIF, WebP, BMP and ICO, read by one library weighed as D22 says, its first frame for
+   an animation and its largest image for an ICO; every place of the phases before draws them with nothing more.
+   Card: `file-view.read-image`, Built once this phase is done.
+6. **The extension.** The files of the scheme `gitardo` given to VS Code as bytes by a `FileSystemProvider` that can
+   only be read, in place of the `TextDocumentContentProvider`, the URIs as they are, so that an image at a revision,
+   of the index or of a conflict opens in VS Code's preview of images, and its diff in its diff editor with two
+   pictures; a text file opens as before. The page of a commit and the tab of a comparison draw the two versions as
+   `<img>` of `data:` URIs from `read/diff.read-sides`, the policy of content of the webview allowing `data:` for
+   images; a side over 10 MB is not sent. The README of each app and its CHANGELOG say what is new; a step of the
+   end-to-end suite opens the diff of a PNG from the Gitardo Changes view and the page of a commit that changed one.
+   Cards: `file-view.image`, `diff.image`, `commit-page.images`, Built in the extension.
+
+Exit: in a repository with `media/logo.png`, `icons/check.svg` and a photo in JPEG, the Files page opens each as its
+picture, the size under it; `Ctrl+=` zooms the PNG with its pixels square; **Source** of the SVG edits its text and
+**Preview** draws the edit; changing the PNG in another program and opening its changes shows the two versions side
+by side with what changed over them, and **Stage file** stages it; the page of the commit that added the photo shows
+it beside **Empty**; a Markdown file that names the SVG draws it; an SVG that names an image of the disk reads no file;
+in VS Code, the diff of the PNG opened from the Gitardo Changes view shows the two pictures and the page of that
+commit shows its two versions; every card of the milestone is Built in both apps, or Host only in the extension, and
+the snapshots of the File page and the Diff page with an image match in the dark and in the light theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

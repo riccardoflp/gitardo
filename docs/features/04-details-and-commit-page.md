@@ -504,6 +504,51 @@ Acceptance:
       be unfolded.
 - [ ] Folding a short diff by hand keeps it folded while the page is open.
 
+### `commit-page.images` — The images of a commit in its page
+
+The two versions of an image that a commit changed, drawn in its page and in a comparison in place of **Binary
+file.** ([D74](../08-decisions.md#d74--images-are-drawn-where-their-files-are-shown)).
+
+- **Kind**: View
+- **Function**: `views::commit_page::images_view(state, ui) -> Vec<Intent>`
+- **Entry points**: **Show the changes** in the page of a commit (`commit-page.view`) and in a comparison
+  (`compare.`), for a file that is an image on either side.
+- **Reads**: `diff.read-sides`, each side read as an image by `file-view.read-image`, when the diff of the file is
+  shown.
+- **Uses**: `commit-page.view`, `file-view.read-image`, `diff.image`.
+- **Extension**: the page of a commit and the tab of a comparison, Gitardo's webview, with the two versions as images
+  of `data:` URIs from the bytes of `read/diff.read-sides`.
+
+Rules:
+
+- The diff of a file that is an image on either side shows, under its header, the version before and the version after
+  side by side, each at most 240 pixels high and half the width of the page, never larger than it is, on the ground of
+  squares of `file-view.image`, **Empty** where a side has none; under each its size in pixels and its weight.
+- A click on either picture opens the file in the Diff page (`diff.image`).
+- The two are read when the diff is shown, unfolded, not when the page opens; a diff folded reads nothing. Until they
+  are read, the place they take is kept, so that the page does not jump.
+- An SVG shows its lines, as any text file, with **Show the images** on its header, which shows its pictures in their
+  place, and **Show the lines** back ([Q846](../08-decisions.md#open-questions)).
+- An image that cannot be read says why in its place; a file that is not an image still says **Binary file.**
+- In the header of the file, **binary** stays where the count of lines would be.
+- An image counts as one line for the folds of `commit-page.initial-folds`, and is unfolded at first as a binary file
+  is.
+- Extension: the webview draws the two as `<img>` of `data:` URIs, which its policy of content allows for images
+  alone; in an `<img>` nothing of an SVG runs and nothing is fetched. A side over 10 MB is not sent: *Too large to show
+  here.* with **Open it in the Diff page**.
+
+Acceptance:
+
+- [ ] The page of a commit that changed `media/logo.png` shows, with the changes shown, its two versions side by side
+      in place of **Binary file.**
+- [ ] A commit that added a PNG shows **Empty** on the left and the picture on the right.
+- [ ] A folded diff of an image reads nothing until it is unfolded.
+- [ ] A click on the picture opens the Diff page of the file at that commit.
+- [ ] An SVG shows its lines; **Show the images** shows its two pictures.
+- [ ] A comparison of two branches that differ in a PNG shows its two versions.
+- [ ] Extension: the page of a commit that changed a PNG shows its two versions in the webview; one of 12 MB says *Too
+      large to show here.*
+
 ### `commit-page.show-in-graph` — Show a commit in the timeline
 
 Brings the timeline to a commit, from the page of that commit.

@@ -1535,6 +1535,58 @@ side column (too narrow for lines of code); searching while typing in Quick sear
 preview, and its entries are commands); matching the names in git with a pathspec at each key (a process for each
 letter, and no ranking).
 
+## D74 — Images are drawn where their files are shown
+
+*Asked by the maintainer for milestone M27, who wants SVG files and images seen in both apps; the details proposed by
+the agent.*
+
+An image in a repository was a wall in Gitardo. The File page said *This file is not text.*; the Diff page refused it
+with *This file looks binary.*; the page of a commit and a comparison said **Binary file.**; an SVG opened as its XML;
+the preview of Markdown drew the PNG files of the repository alone (Q581). In the extension, VS Code shows an image of
+the working tree itself, but a file at a revision or a side of a diff reaches it through a provider of text, so an
+image opened from Gitardo shows its bytes as text. Now an image is drawn wherever its file is shown:
+
+- **Which files.** A file is an image by its contents, for PNG, JPEG, GIF, WebP, BMP and ICO, which start with bytes
+  of their own; and by its name for SVG, which is text: `.svg`. A file that says it is an image and cannot be read
+  says why, in place of the picture. One function reads them all, `file-view.read-image`, on a worker, with the most
+  pixels an image may have that the window has already (64 million).
+- **The File page** draws an image in place of its text (`file-view.image`): as large as it is, smaller to fit the
+  page, never larger until it is zoomed; on a ground of squares that shows what is transparent; with a line under it
+  that says its size in pixels, its format and its weight. An SVG has **Preview** and **Source**, as a Markdown file
+  has, and opens in **Preview**.
+- **The Diff page** shows the two versions of an image side by side, each in its column, at one scale for both so that
+  a change of size shows, **Empty** where a side has none, and what changed between them (`diff.image`). An SVG has
+  **Image** and **Text**: its pictures, or the diff of its lines that it has now.
+- **The page of a commit and a comparison** show the two versions in place of **Binary file.**, smaller, each read
+  when its diff is shown (`commit-page.images`).
+- **The preview of Markdown** draws every image `file-view.read-image` reads, not PNG alone; Q581 is answered.
+
+**PNG and SVG first, with what the window has.** `tiny-skia` reads PNG and `resvg` draws SVG already, for the preview
+of Markdown and for Mermaid (D60). SVG is drawn as D60 draws a diagram: with the fonts of the program, no font of the
+system looked for, and nothing outside the file read, neither an image it names nor a stylesheet. JPEG, GIF, WebP,
+BMP and ICO need a library; whoever builds the phase that reads them weighs it as
+[D22](#d22--libraries-with-judgment) says, the `image` library with only these decoders being the first to weigh.
+A GIF shows its first frame (Q841).
+
+**The extension shows them through VS Code.** The File page and the Diff page are VS Code's editors there, and VS Code
+has a preview of images that draws in its diff editor too. What it lacks is the bytes: the files of the scheme
+`gitardo` are given as text by a `TextDocumentContentProvider`. They are given as bytes instead, by a
+`FileSystemProvider` of the same scheme that can only be read, with the bytes the engine reads already
+(`read/file-view.read-revision`, `read/diff.read-sides`); a text file opens as before, an image in VS Code's preview of
+images. The URIs keep their form, so nothing that makes them changes. The page of a commit and the tab of a comparison
+are Gitardo's webview: they draw the two versions as images of `data:` URIs, which the webview may then show; an SVG
+there is an `<img>`, in which nothing runs and nothing is fetched. No message of the protocol is added.
+
+What is left for later, each a question: playing an animated GIF (Q841); the ways to compare two images other than side
+by side, as a slider over both or one drawn over the other (Q842); the color of the ground behind a transparent image
+(Q843); editing an SVG beside its picture (Q844).
+
+Rejected: drawing an image in the window by asking the system to decode it (a third way to read images, and one for
+each system, where one library serves all three); drawing SVG with the fonts of the system (a file would look different
+on each machine, and the fonts of the system would be read for it); showing an image of the extension's commit page through a
+URI of the webview's resources (it serves files of the disk, and the versions of a commit are not on it); a custom
+editor of Gitardo in VS Code for images (VS Code has one, which the user knows).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -4454,3 +4506,27 @@ while it is planned and built; each is built as it says until the maintainer ans
 - **Q821** — `file-search.open`: `Ctrl+Shift+F` shows the page wherever no widget uses the key, a File page with the
   keyboard too; the terminal of the bottom panel sends it to the shell while it has the keyboard, as `Ctrl+F`, where
   it lets `Ctrl+K` and `` Ctrl+` `` through to the window. Should the terminal let it through as well?
+
+### Of the images, from Q840
+
+Questions of milestone M27 ([D74](#d74--images-are-drawn-where-their-files-are-shown)), asked while it is planned and
+built; each is built as it says until the maintainer answers otherwise.
+
+- **Q840** — `file-view.image`: an SVG opens in **Preview**, and the switch is kept for the page while it is open, as
+  for Markdown; there is no setting such as `markdown.openAsPreview`. Should one say whether an SVG opens as its
+  picture or as its text?
+- **Q841** — `file-view.read-image`: a GIF shows its first frame, and an animated WebP or PNG too. Should an animation
+  play in the File page, and stop while the window is in the background?
+- **Q842** — `diff.image`: the two versions are side by side. Should the page offer the other ways image tools have: a
+  slider that shows one side left of it and the other right of it, one drawn over the other with a weight to choose,
+  or the pixels that differ marked?
+- **Q843** — `file-view.image`: the ground behind what is transparent is a pattern of squares in two greys close to the
+  ground of the page. Should it be chosen, as plain dark, plain light or the squares?
+- **Q844** — `file-view.image`: an SVG is either a picture or its text. Should **Source** show the picture beside the
+  text, drawn again as it is edited?
+- **Q845** — `diff.image`: an SVG opens in the Diff page as its pictures, **Image**, with **Text** for the diff of its
+  lines. Is **Text** the better start for a file most people change by its text?
+- **Q846** — `commit-page.images`: an SVG shows its lines in the page of a commit, as any text file, with **Show the
+  images** on its header. Should its pictures show instead, or above its lines?
+- **Q847** — `diff.image`: in the extension a diff of an image opens VS Code's diff editor with its preview of images,
+  also when the Flow Diff is on, since the Flow Diff draws lines. Should the Flow Diff draw the two images itself?

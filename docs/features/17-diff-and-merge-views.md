@@ -586,6 +586,64 @@ Acceptance:
       `git restore -- <file>`; the staged changes stay.
 - [ ] On an untracked file it runs `git clean -f -- <file>` and the page closes with the file.
 
+### `diff.image` — Two versions of an image side by side
+
+The two versions of an image in the Diff page, drawn side by side, so that what changed in a picture is seen and not
+refused ([D74](../08-decisions.md#d74--images-are-drawn-where-their-files-are-shown)).
+
+- **Kind**: View
+- **Function**: `views::diff::image_view(state, ui) -> Vec<Intent>`
+- **Entry points**: every entry point of `diff.page`, for a file that is an image on at least one side.
+- **Reads**: `diff.read-sides`, each side read as an image by `file-view.read-image`.
+- **Refuses**: a file that is not an image on either side and has a NUL byte, as `diff.page` does: *This file looks
+  binary.*
+- **Uses**: `diff.page`, `file-view.read-image`, `file-view.image`, `diff.stage-file`, `diff.unstage-file`,
+  `diff.discard-file`, `diff.open-file`, `diff.navigate`.
+- **Extension**: VS Code's diff editor with its preview of images on both sides, the sides given as bytes by the
+  `FileSystemProvider` of the scheme `gitardo`.
+
+Rules:
+
+- A file whose two sides are images, or whose one side is an image and the other has no file, shows the two pictures
+  in place of the two columns of text, each named over its column as `diff.page` names it, **Empty** on a side with no
+  file.
+- The two are drawn at one scale, the largest at which both fit their columns and neither is larger than it is, so
+  that a picture that grew looks larger than the other. Each is on the ground of squares of `file-view.image`, centered
+  in its column, with its size in pixels, its format and its weight under it.
+- Over the two, one line says what changed: `640 × 480 → 1280 × 960 · 24 KB → 81 KB`, or *Only the bytes of the file
+  changed; the pixels are the same.* when both decode to the same pixels.
+- A side that is an image and cannot be read says why in its column, as `file-view.image` does; the other side is still
+  drawn.
+- An SVG has the title buttons **Image** and **Text**, the one shown filled: **Image** draws its two pictures, **Text**
+  shows the diff of its lines as `diff.page` does, with everything that page has. The page opens on **Image**
+  ([Q845](../08-decisions.md#open-questions)); the switch is kept while the page is open.
+- The title buttons of the file stay: **Open file**, **Stage file**, **Unstage file**, **Discard changes**. The
+  buttons of one change are not there, an image being one change; `F7` and `Shift+F7` count it as one, so that in a
+  page of several files they stop on it once.
+- The page is drawn again when either side changes, as `diff.page` is: a picture of the working tree saved by another
+  program shows its new pixels.
+- In a page of several files an image takes its place among them, its height that of its pictures.
+- Extension: a diff of an image opened from Gitardo (the Gitardo Changes view, the graph, the page of a commit, a
+  comparison) opens VS Code's diff editor, which draws the two pictures with its preview of images; the side of a
+  revision, of the index or of a conflict is read as bytes from the engine. With the Flow Diff on, an image opens
+  VS Code's diff editor all the same ([Q847](../08-decisions.md#open-questions)).
+
+Acceptance:
+
+- [ ] A PNG changed in the working tree opens the Diff page with `HEAD` on the left and the working tree on the right,
+      both drawn, and the line over them says their sizes.
+- [ ] A PNG of 100 × 100 that became 200 × 200 is drawn half as wide on the left as on the right.
+- [ ] An added PNG shows **Empty** on the left and the picture on the right.
+- [ ] A PNG saved again with the same pixels says *Only the bytes of the file changed; the pixels are the same.*
+- [ ] An SVG opens on **Image** with its two pictures; **Text** shows the diff of its lines, and the right side of the
+      working tree can be edited there.
+- [ ] **Stage file** on an image of the working tree stages it, and the page against the index has no change left.
+- [ ] A file with a NUL byte that is not an image still refuses with *This file looks binary.*
+- [ ] In a page of a text file and an image, `F7` goes from the last change of the text to the image, and on to the
+      next file.
+- [ ] Extension: opening a changed PNG from the Gitardo Changes view shows VS Code's diff editor with the two pictures,
+      not their bytes as text.
+
 ### `merge-view.page` — The Merge page
 
 A file in conflict in three columns: what the current side has, the result, and what the incoming side has, each
@@ -1180,6 +1238,105 @@ Acceptance:
 - [x] **Source** shows the block of the diagram as its text.
 - [x] Extension: with a `mermaid` block, VS Code's preview of Markdown shows the diagram the engine drew for the theme
       of VS Code; without the engine it shows the code.
+
+### `file-view.read-image` — The pixels of an image file
+
+Reads the bytes of a file as an image, whatever its format, for every place that draws one
+([D74](../08-decisions.md#d74--images-are-drawn-where-their-files-are-shown)).
+
+- **Kind**: Derivation
+- **Function**: `render::image::read_image(bytes: &[u8], path: &str, scale: f32) -> Result<ImageRead, NotRead>`
+- **Entry points**: the File page (`file-view.image`), the Diff page (`diff.image`), the page of a commit and a
+  comparison (`commit-page.images`), the preview of Markdown (`file-view.markdown-preview`).
+- **Extension**: VS Code reads its images in its preview; the engine gives it their bytes.
+
+Rules:
+
+- **Input**: the bytes of the file, its path, and the scale of the screen. **Output**: its pixels, its size in pixels,
+  its format and its weight; or why it is not read.
+- The format is told by the first bytes: PNG, JPEG, GIF, WebP, BMP and ICO each start with bytes of their own. A file
+  that starts with none of them is an SVG when its name ends in `.svg`, in any case; otherwise it is not an image, and
+  none of the reasons below is given.
+- PNG is read by the library `tiny-skia` reads it with, SVG drawn by `resvg` as `file-view.mermaid` draws a diagram:
+  at the scale of the screen so that it stays sharp, with the fonts of the program, nothing outside the file read,
+  neither an image it names nor a font of the system. JPEG, GIF, WebP, BMP and ICO are read by one library chosen as
+  D22 says. A GIF, and an animated PNG or WebP, gives its first frame ([Q841](../08-decisions.md#open-questions)); an
+  ICO its largest image.
+- An image with more than 64 million pixels is not read: *This image is too large to draw.* Bytes the format cannot
+  read: *This image could not be read.* An SVG with an error: *This SVG could not be drawn: \<what the library
+  says\>*.
+- It runs on a worker; the result is kept for the bytes and the scale while a page that drew it is open.
+- The preview of Markdown draws an image of the repository through it, so that an SVG, a JPEG or a GIF named there is
+  drawn as a PNG is.
+
+Acceptance:
+
+- [ ] The bytes of a PNG of 32 × 16 give 32 × 16 pixels, the format PNG and its weight.
+- [ ] The same PNG named `logo.dat` is read as a PNG.
+- [ ] An SVG with `width="10" height="20"` at a scale of 2 gives 20 × 40 pixels and a size of 10 × 20.
+- [ ] An SVG that names `<image href="secret.png">` and a font not of the program is drawn without either, and reads no
+      file.
+- [ ] A JPEG, a GIF, a WebP, a BMP and an ICO of the tests are each read with their size; an animated GIF gives its
+      first frame.
+- [ ] A PNG cut short gives *This image could not be read.*; a PNG of 10,000 × 10,000 gives *This image is too large
+      to draw.*
+- [ ] `notes.txt` is not an image; `<svg` cut short in `a.svg` gives *This SVG could not be drawn:* with what is wrong.
+- [ ] `![logo](media/logo.svg)` in a Markdown file is drawn in its preview.
+
+### `file-view.image` — An image as it is drawn
+
+An image file in the File page, drawn as a picture in place of its bytes
+([D74](../08-decisions.md#d74--images-are-drawn-where-their-files-are-shown)).
+
+- **Kind**: View
+- **Function**: `views::file_view::image_view(state, ui) -> Vec<Intent>`
+- **Entry points**: every entry point of `file-view.page`, for a file that `file-view.read-image` reads as an image:
+  a click on it in the Files page, **Open file** in a Diff page, **Open the file at this revision** on a file of a
+  commit.
+- **Reads**: the file from the disk; at a revision, `file-view.read-revision`.
+- **Uses**: `file-view.page`, `file-view.read-image`, `file-view.read-revision`, `file-view.edit`, `file-view.save`,
+  `file-view.open-external`.
+- **Extension**: VS Code's preview of images, the file at a revision given as bytes by a `FileSystemProvider` of the
+  scheme `gitardo`.
+
+Rules:
+
+- The picture is drawn centered in the page, as large as it is, smaller to fit the page, never larger until it is
+  zoomed. Behind it a pattern of squares in two greys close to the ground of the page shows what is transparent
+  ([Q843](../08-decisions.md#open-questions)).
+- Under it, one line: its size in pixels, its format, its weight, and the zoom when it is not the fit:
+  `1280 × 720 · PNG · 84 KB · 200%`.
+- `Ctrl` with the wheel, `Ctrl+=` and `Ctrl+-` zoom in steps (25%, 50%, 100%, 200%, 400%, 800%) about the pointer,
+  and `Ctrl+0` goes back to the fit (`Cmd` on macOS). Larger than the page, it is moved by dragging and by the
+  scroll bars. Above 100% its pixels stay square and sharp, not smoothed, so that a small icon can be looked at.
+- An SVG has the title buttons **Preview** and **Source**, the one shown filled, as a Markdown file has: **Preview**
+  is the picture, **Source** its text in the editor, which can be edited and saved; **Preview** draws the text as it
+  is now. It opens in **Preview** ([Q840](../08-decisions.md#open-questions)), and the switch is kept for the page
+  while it is open.
+- A file that is not an SVG has no **Source**: its bytes are not text. It cannot be edited; **Open in external editor**
+  opens it in the program of the system.
+- A file of the working tree changed on disk is read and drawn again; the zoom stays.
+- An image that cannot be read shows, in place of the picture, the line `file-view.read-image` gives, *This image
+  could not be read.* or *This image is too large to draw.*; an SVG with an error shows that line over **Source**.
+- A file at a revision is drawn the same way, read-only; it is titled as `file-view.page` titles it.
+- The screen reader reads *Image*, its name, its size and its format.
+- Extension: VS Code opens an image of the working tree in its preview of images. An image at a revision, opened from
+  Gitardo (**Open the file at this revision**, the history of a file), opens there too, its bytes read by the engine;
+  before, it opened as its bytes in a text editor.
+
+Acceptance:
+
+- [ ] Clicking `media/logo.png` in the Files page opens a page **logo.png** with the picture and
+      `512 × 512 · PNG · 18 KB` under it.
+- [ ] A picture of 4000 × 3000 in a page of 800 pixels is drawn 800 wide; one of 16 × 16 is drawn 16 wide.
+- [ ] `Ctrl+=` twice from 100% draws it at 400%, its pixels square; `Ctrl+0` brings back the fit.
+- [ ] `icons/check.svg` opens in **Preview** as its picture; **Source** shows its text, and an edit of its `fill` shows
+      in **Preview**.
+- [ ] Saving the PNG from another program draws the new picture.
+- [ ] A PNG cut short says *This image could not be read.* and nothing else.
+- [ ] `media/logo.png` at `3f2a1c9` opens a read-only page **logo.png (3f2a1c9)** with the picture of that commit.
+- [ ] Extension: **Open the file at this revision** on a PNG opens VS Code's preview of images with the picture of
+      the commit.
 
 ### `file-view.read-revision` — A file at a revision
 
