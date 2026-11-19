@@ -3,6 +3,7 @@
 use model::compare::{CompareSide, Side};
 use model::contract::{AnswerKey, Answers, Context, FollowUp, Outcome, Query, Refusal, Target};
 use model::github::{ComparedOnGitHub, comparison_url, detect_remote, main_remote};
+use model::hosting::SideKind;
 use model::state::RepositoryState;
 
 use super::no_step;
@@ -50,11 +51,22 @@ pub fn open_on_github(context: &Context, answers: &Answers) -> Outcome {
     Outcome::Run(no_step(title, vec![FollowUp::OpenUrl(url)]))
 }
 
-/// The name of a side on GitHub: a followed local branch by the branch of its upstream, when that upstream is on the
-/// main remote and not gone; a followed remote branch of the main remote by its name without the remote; a followed
-/// tag by its name; anything else by its full hash, which GitHub knows once it is pushed.
+/// The name of a side on GitHub.
 fn name_on_github(repository: &RepositoryState, main: &str, side: &CompareSide, commit: &model::CommitId) -> String {
-    let full = || commit.as_str().to_owned();
+    named_on_service(repository, main, side, commit).0
+}
+
+/// The name of a side on the hosting service of the main remote, and what it is there: a followed local branch by the
+/// branch of its upstream, when that upstream is on the main remote and not gone; a followed remote branch of the main
+/// remote by its name without the remote; a followed tag by its name; anything else by its full hash, which the
+/// service knows once it is pushed.
+pub(super) fn named_on_service(
+    repository: &RepositoryState,
+    main: &str,
+    side: &CompareSide,
+    commit: &model::CommitId,
+) -> (String, SideKind) {
+    let full = || (commit.as_str().to_owned(), SideKind::Commit);
     if !side.is_followed || side.is_gone {
         return full();
     }
@@ -65,7 +77,7 @@ fn name_on_github(repository: &RepositoryState, main: &str, side: &CompareSide, 
             .filter(|upstream| upstream.remote == main && !upstream.is_gone)
             .map_or_else(full, |upstream| {
                 let name = upstream.remote_branch.strip_prefix("refs/heads/");
-                name.unwrap_or(&upstream.remote_branch).to_owned()
+                (name.unwrap_or(&upstream.remote_branch).to_owned(), SideKind::Branch)
             });
     }
     let on_main = side
@@ -74,10 +86,10 @@ fn name_on_github(repository: &RepositoryState, main: &str, side: &CompareSide, 
         .and_then(|rest| rest.strip_prefix('/'))
         .filter(|_| repository.remote_branches.iter().any(|remote| remote.name == side.name));
     if let Some(name) = on_main {
-        return name.to_owned();
+        return (name.to_owned(), SideKind::Branch);
     }
     if repository.tags.iter().any(|tag| tag.name == side.name) {
-        return side.name.clone();
+        return (side.name.clone(), SideKind::Tag);
     }
     full()
 }

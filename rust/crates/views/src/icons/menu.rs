@@ -50,7 +50,7 @@ fn history_icon(feature: &str) -> Option<Icon> {
         "stash.push" | "stash.push-staged" | "stash.push-file" => super::STASH,
         "stash.apply" => super::APPLY,
         "stash.pop" => super::POP,
-        "github.open-pull-request" | "github.load-pull-requests" => super::PULL_REQUEST,
+        "github.open-pull-request" | "github.load-pull-requests" | "hosting.load-merge-requests" => super::PULL_REQUEST,
         "reflog.browse" | "file-history.file" | "file-history.folder" | "file-history.lines" => super::HISTORY,
         "remote.manage" => super::REMOTE,
         "blame.toggle-file" | "blame.previous" => super::BLAME,

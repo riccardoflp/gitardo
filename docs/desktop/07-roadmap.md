@@ -1223,8 +1223,11 @@ Desktop, the last in the extension.
    storage of the extension; **Gitardo: Check Out Pull Request…**, the entries of the menus and of the Compare tab; the
    numbers of merge requests on the labels of the graph. Cards: every card above.
 
-Phase 1 is built: `model::hosting::detect_remote` and `web_link`, and `hosting.selfHosted` read with the other
-settings and listed on the settings page.
+Phases 1 and 2 are built: `model::hosting::detect_remote` and `web_link`, and `hosting.selfHosted` read with the
+other settings and listed on the settings page; the project of the main remote looked for with the repository on
+GitHub, with the default branch of its remote; **Create merge request…**, **Create pull request…** and **Open merge
+request !`<n>`** in the menus of the branches, the offer after a first push, and **Open on `<service>`** in the
+comparison page (`compare.open-on-service`).
 
 Exit: in a clone of a project on gitlab.com, **Create merge request…** on a pushed branch opens GitLab's page with the
 branch filled in, and the first push of a new branch offers it; **Load merge requests from GitLab**, given a token,

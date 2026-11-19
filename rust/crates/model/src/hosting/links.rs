@@ -1,8 +1,11 @@
-//! The addresses of the pages of a hosting service (`hosting.web-links`).
+//! The addresses of the pages of a hosting service (`hosting.web-links`), and the link that opens or creates the pull
+//! request of a branch there (`hosting.open-pull-request`).
 
 use super::{HostingPage, HostingRepo, HostingService};
 use crate::compare::CompareMode;
+use crate::contract::Text;
 use crate::github::link::percent_encoded;
+use crate::github::{BranchOf, PullLink, PullLinkKind, PullRequests};
 
 /// What a side of a comparison is on the service.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,4 +97,54 @@ fn azure_kind(kind: SideKind) -> &'static str {
 /// A name with each part between `/` percent-encoded, the `/` kept.
 fn encoded(name: &str) -> String {
     name.split('/').map(percent_encoded).collect::<Vec<_>>().join("/")
+}
+
+/// What the link of a branch on a hosting service is worked out from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HostingPullLinkInput<'a> {
+    /// The project of the main remote; none when it is on no service Gitardo knows.
+    pub repository: Option<&'a HostingRepo>,
+    /// The branch.
+    pub branch: BranchOf<'a>,
+    /// The open merge requests known, by the name of their branch; none known before they are loaded, and none read on
+    /// the services other than GitLab.
+    pub pull_requests: &'a PullRequests,
+}
+
+/// The entry that opens the merge request of a branch on GitLab when one is known, or the page of the service that
+/// creates a pull request for a local branch whose upstream is on the main remote and not gone; none on GitHub, where
+/// `github.open-pull-request` makes it, for a local branch with no such upstream, and for a remote branch with no merge
+/// request known.
+///
+/// Feature: hosting.open-pull-request
+#[must_use]
+pub fn pull_request_link(input: &HostingPullLinkInput<'_>) -> Option<PullLink> {
+    let repository = input
+        .repository
+        .filter(|repository| repository.service != HostingService::GitHub)?;
+    let service = repository.service;
+    let (name, may_create) = match input.branch {
+        BranchOf::Local { upstream, .. } => {
+            let upstream = upstream.filter(|upstream| !upstream.is_gone && upstream.remote == repository.remote)?;
+            let name = upstream
+                .remote_branch
+                .strip_prefix("refs/heads/")
+                .unwrap_or(&upstream.remote_branch);
+            (name, true)
+        }
+        BranchOf::Remote { name } => (name, false),
+    };
+    let words = service.pull_request_words();
+    if let Some(pull_request) = input.pull_requests.of_branch(name) {
+        return Some(PullLink {
+            kind: PullLinkKind::Open(pull_request.number),
+            label: Text::from(format!("Open {words} {}", service.number(pull_request.number))),
+            url: pull_request.url.clone(),
+        });
+    }
+    may_create.then(|| PullLink {
+        kind: PullLinkKind::Create,
+        label: Text::from(format!("Create {words}\u{2026}")),
+        url: web_link(repository, &HostingPage::Create(name)),
+    })
 }

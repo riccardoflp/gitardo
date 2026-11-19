@@ -61,6 +61,8 @@ pub struct CompareState<'a> {
     pub now: i64,
     /// Whether the main remote of the repository of the page is on github.com (`compare.open-on-github`).
     pub is_on_github: bool,
+    /// The hosting service of the main remote when it is another than GitHub (`compare.open-on-service`).
+    pub service: Option<model::hosting::HostingService>,
 }
 
 /// What is asked of a comparison page.
@@ -105,6 +107,8 @@ pub enum CompareIntent {
     CopyPatch(ComparePageId),
     /// **Open on GitHub** (`compare.open-on-github`).
     OpenOnGitHub(ComparePageId),
+    /// **Open on GitLab**, or on the hosting service of the main remote (`compare.open-on-service`).
+    OpenOnService(ComparePageId),
     /// The close button of the comparison in the inspector.
     CloseInPlace,
     /// **Swap** in the inspector.

@@ -10,10 +10,12 @@ use std::thread;
 use engine::{Activities, GITHUB_TOKEN, SecretStore, SystemSecrets};
 use git::Git;
 use git::read::github::read_http_proxy;
+use git::read::hosting::read_default_branch;
 use git::read::remote::{RemotesRequest, read_remotes};
 use http::{Cancel, Http, Proxies, ProxySettings, Trust};
 use model::contract::Text;
 use model::github::{GitHubRepo, Token, detect_remote};
+use model::hosting::{HostingRepo, KnownHosts};
 use model::remote::Remote;
 use views::text::github as words;
 
@@ -113,10 +115,14 @@ impl GitHubReader {
 #[must_use]
 pub fn run(access: &GitHubAccess, job: &GitHubJob) -> Message {
     let message = match &job.work {
-        GitHubWork::Detect => GitHubMessage::Detected {
-            job: job.id,
-            repository: detect(&access.git(&job.folder)),
-        },
+        GitHubWork::Detect { known } => {
+            let (repository, hosting) = detect(&access.git(&job.folder), known);
+            GitHubMessage::Detected {
+                job: job.id,
+                repository,
+                hosting,
+            }
+        }
         GitHubWork::Read { repository, token } => GitHubMessage::Read {
             job: job.id,
             result: read(access, job, (repository, token.clone())),
@@ -125,9 +131,12 @@ pub fn run(access: &GitHubAccess, job: &GitHubJob) -> Message {
     Message::GitHub(message)
 }
 
-/// The repository on GitHub of the main remote; none when the remotes cannot be read.
-fn detect(git: &Git) -> Option<GitHubRepo> {
-    let remotes = read_remotes(git, &RemotesRequest).ok()?;
+/// The repository on GitHub of the main remote, and its project on its hosting service with the default branch of the
+/// remote; none when the remotes cannot be read.
+fn detect(git: &Git, known: &KnownHosts) -> (Option<GitHubRepo>, Option<HostingRepo>) {
+    let Ok(remotes) = read_remotes(git, &RemotesRequest) else {
+        return (None, None);
+    };
     let remotes: Vec<Remote> = remotes
         .into_iter()
         .map(|remote| Remote {
@@ -135,7 +144,12 @@ fn detect(git: &Git) -> Option<GitHubRepo> {
             url: remote.url,
         })
         .collect();
-    detect_remote(&remotes)
+    let hosting = model::hosting::detect_remote(&remotes, known).map(|mut repo| {
+        // Without the remote's `HEAD`, a new pull request on Gitea and Forgejo goes into `main`.
+        repo.default_branch = read_default_branch(git, &repo.remote).ok().flatten();
+        repo
+    });
+    (detect_remote(&remotes), hosting)
 }
 
 /// Reads the pull requests with the token given, or the one kept; a 401 takes the kept token out of the store.

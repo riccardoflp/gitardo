@@ -19,6 +19,7 @@ pub mod file_view;
 pub mod files;
 pub mod github;
 pub mod graph;
+pub mod hosting;
 pub mod identity;
 pub mod ignored;
 pub mod log_records;

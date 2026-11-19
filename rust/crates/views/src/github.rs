@@ -3,6 +3,7 @@
 //! (`github.open-pull-request`) are made.
 
 use model::github::{BranchOf, GitHubRepo, PullLink, PullLinkInput, PullRequest, PullRequests, pull_request_link};
+use model::hosting::{self, HostingPullLinkInput, HostingRepo};
 use model::state::{Branch, RemoteBranch, RepositoryState};
 
 /// The pull requests of GitHub, as the views are given them.
@@ -10,6 +11,9 @@ use model::state::{Branch, RemoteBranch, RepositoryState};
 pub struct GitHubShown<'a> {
     /// The repository on GitHub of the main remote; none when it is on another host, or not known yet.
     pub repository: Option<&'a GitHubRepo>,
+    /// The project of the main remote on its hosting service, GitHub included; none when it is on none Gitardo knows,
+    /// or not known yet (`hosting.detect-remote`).
+    pub hosting: Option<&'a HostingRepo>,
     /// The open pull requests; none before they are loaded.
     pub pull_requests: Option<&'a PullRequests>,
 }
@@ -51,29 +55,40 @@ impl<'a> GitHubShown<'a> {
         self.pull_requests?.of_branch(name)
     }
 
-    /// The entry of the menu of a local branch that opens its pull request, or GitHub's page to create one.
+    /// The entry of the menu of a local branch that opens its pull request, or the page of the service to create one:
+    /// GitHub's (`github.open-pull-request`), or another service's (`hosting.open-pull-request`).
     #[must_use]
     pub fn link_of_branch(&self, branch: &Branch) -> Option<PullLink> {
         let none = PullRequests::default();
-        pull_request_link(&PullLinkInput {
-            repository: self.repository,
-            branch: BranchOf::Local {
-                name: &branch.name,
-                upstream: branch.upstream.as_ref(),
-            },
-            pull_requests: self.pull_requests.unwrap_or(&none),
-        })
+        let branch = BranchOf::Local {
+            name: &branch.name,
+            upstream: branch.upstream.as_ref(),
+        };
+        self.link(branch, self.pull_requests.unwrap_or(&none))
     }
 
     /// The entry of the menu of a remote branch that opens its pull request, when one is known.
     #[must_use]
     pub fn link_of_remote_branch(&self, remote: &RemoteBranch) -> Option<PullLink> {
+        let branch = BranchOf::Remote {
+            name: remote_name(remote),
+        };
+        self.link(branch, self.pull_requests?)
+    }
+
+    /// The link of a branch on GitHub, or on the service of the main remote.
+    fn link(&self, branch: BranchOf<'_>, pull_requests: &PullRequests) -> Option<PullLink> {
         pull_request_link(&PullLinkInput {
             repository: self.repository,
-            branch: BranchOf::Remote {
-                name: remote_name(remote),
-            },
-            pull_requests: self.pull_requests?,
+            branch,
+            pull_requests,
+        })
+        .or_else(|| {
+            hosting::pull_request_link(&HostingPullLinkInput {
+                repository: self.hosting,
+                branch,
+                pull_requests,
+            })
         })
     }
 }
@@ -152,6 +167,7 @@ mod tests {
         let known = pull_requests();
         let github = GitHubShown {
             repository: Some(&on_github),
+            hosting: None,
             pull_requests: Some(&known),
         };
         let (tracked, remote) = repository(true);

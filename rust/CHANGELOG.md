@@ -7,6 +7,11 @@
   Gitardo now knows which hosting service the main remote is on, GitHub, GitLab, Bitbucket, Azure DevOps, Gitea or
   Forgejo (codeberg.org), and the addresses of a pull request, of the page that creates one and of a comparison on
   each.
+- On GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo, the menu of a pushed branch has **Create merge request…**
+  (GitLab) or **Create pull request…**, which opens the page of the service that creates one for the branch, and the
+  first push of a new branch offers it, as on GitHub. The comparison page has **Open on GitLab**, **Open on Azure
+  DevOps** and the like, which opens the same comparison on the service; on Bitbucket, Gitea and Forgejo, whose pages
+  compare only since the two diverged, only in **Since they diverged**.
 
 ## 1.2.0 - 2026-11-18
 
