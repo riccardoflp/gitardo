@@ -242,6 +242,7 @@ fn head_of<'a>(state: &DetailsState<'_>, (read, is_stash): (&'a ReadDetails, boo
         read: detail,
         files: (detail.files.len(), state.layout),
         is_stash,
+        is_shallow_end: detail.id.as_ref().is_some_and(|id| state.shallow_ends.contains(id)),
     }
 }
 

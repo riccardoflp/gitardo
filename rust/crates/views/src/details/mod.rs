@@ -52,6 +52,8 @@ pub struct DetailsState<'a> {
     pub in_place: Option<crate::compare::InPlaceState<'a>>,
     /// The file whose diff is shown beside the inspector, which it marks (`diff.beside-inspector`).
     pub shown_file: Option<ShownFile<'a>>,
+    /// The commits whose parents were not fetched, where the history of a shallow clone ends (`graph.shallow-end`).
+    pub shallow_ends: &'a [CommitId],
 }
 
 /// The file whose diff the Diff page beside the inspector shows.

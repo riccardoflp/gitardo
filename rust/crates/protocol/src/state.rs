@@ -43,6 +43,10 @@ pub struct StateJson {
     pub bisect: Option<BisectJson>,
     /// The submodules, each followed by its own.
     pub submodules: Vec<SubmoduleJson>,
+    /// The commits whose parents were not fetched, where the history of a shallow clone ends; empty when the
+    /// repository is not shallow (since 1.11).
+    #[serde(default)]
+    pub shallow: Vec<String>,
 }
 
 /// What is checked out.

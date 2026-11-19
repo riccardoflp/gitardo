@@ -58,6 +58,7 @@ impl From<&RepositoryState> for StateJson {
             rebase_stop: state.rebase_stop.as_ref().map(RebaseStopJson::from),
             bisect: state.bisect.as_ref().map(BisectJson::from),
             submodules: state.submodules.iter().map(SubmoduleJson::from).collect(),
+            shallow: ids(&state.shallow.ends),
         }
     }
 }

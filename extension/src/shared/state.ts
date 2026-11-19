@@ -222,6 +222,11 @@ export interface RepositoryState {
   bisect: Bisect | null;
   /** The submodules and theirs, each after the one it is in. */
   submodules: Submodule[];
+  /**
+   * The commits whose parents were not fetched, where the history of a shallow clone ends (protocol 1.11); the graph
+   * does not show them yet (`graph.shallow-end` is Planned in the extension).
+   */
+  shallow?: string[];
 }
 
 /** Who made a commit, or committed it, and when. */

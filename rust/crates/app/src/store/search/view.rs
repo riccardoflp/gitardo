@@ -165,8 +165,10 @@ fn settings_entries() -> impl Iterator<Item = QuickEntry> {
 /// branches, the remote branches and the tags of the repository
 /// shown, then its commits loaded.
 fn quick_entries(state: &State) -> Vec<QuickEntry> {
+    let is_shallow = state.shown_read().is_some_and(|read| read.state.shallow.is_shallow());
     let mut entries: Vec<QuickEntry> = QuickCommand::ALL
         .into_iter()
+        .filter(|command| is_shallow || !command.is_for_shallow_clones())
         .map(|command| QuickEntry {
             label: words::command_name(command).to_owned(),
             detail: if is_built(command) {

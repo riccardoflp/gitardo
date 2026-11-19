@@ -1,6 +1,7 @@
 //! The state of a repository as last read: everything the window shows of it but its commits.
 
 mod references;
+mod shallow;
 mod working_tree;
 
 use std::path::PathBuf;
@@ -8,6 +9,7 @@ use std::path::PathBuf;
 use crate::CommitId;
 
 pub use references::{Branch, RemoteBranch, Stash, Tag, Upstream, Worktree};
+pub use shallow::Shallow;
 pub use working_tree::{ChangeKind, ConflictKind, ConflictedFile, FileChange, WorkingTree};
 
 /// What one read of a repository found. It does not change once read: a new read makes a new state.
@@ -50,6 +52,8 @@ pub struct RepositoryState {
     pub bisect: Option<crate::bisect::Bisect>,
     /// The submodules, and theirs, each followed by its own (`submodule.read-list`).
     pub submodules: Vec<crate::submodule::Submodule>,
+    /// Where the history ends, when the repository is a shallow clone (`repo.read-shallow`).
+    pub shallow: Shallow,
 }
 
 impl RepositoryState {

@@ -379,6 +379,7 @@ operation that stopped half way.
     `split.commit`.
   - The bisect in progress (`BISECT_START`), with its marks: see `bisect.start`.
   - The submodules: see `submodule.read-list`.
+  - Whether the repository is a shallow clone, and where its history ends: see `repo.read-shallow`.
   - With the setting `conflicts.autoResolve`, what can be resolved without a choice in the files in conflict: see
     `conflicts.resolve-by-rules`.
 - **Settings**: `readOnStartup` (on by default): when the window opens a workspace as it starts, the repository shown is
@@ -408,6 +409,7 @@ Acceptance:
 - [ ] Stopped in a cherry-pick, the operation is a cherry-pick; between two commits of a revert of a series, it is a
       revert; during `git am`, a patch, not a rebase.
 - [ ] Another worktree with three files not committed counts 3; a missing one counts nothing and is marked missing.
+- [ ] The state of a clone made with `--depth 1` says where its history ends: its one commit.
 - [ ] With five other worktrees and nothing changed in their git folders, a read after a change to a file of this one
       runs `git status` here only, and each other worktree keeps its count; after `git add` in one of them, the next
       read runs `git status` there too; **Refresh** runs it in all of them.
@@ -496,7 +498,7 @@ What is watched, and what each change asks for:
 
 | Change | Asks for a read | After | Said as |
 | --- | --- | --- | --- |
-| In the common git folder (`git rev-parse --git-common-dir`): `HEAD`, `FETCH_HEAD`, `ORIG_HEAD`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `index`, `config`, `packed-refs`, anything under `refs/`, `logs/refs/stash`, anything under `worktrees/`, and `modules/**/HEAD`, `modules/**/refs/**` of the submodules | yes | 400 ms | `.git/<path> changed` |
+| In the common git folder (`git rev-parse --git-common-dir`): `HEAD`, `FETCH_HEAD`, `ORIG_HEAD`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `index`, `config`, `packed-refs`, `shallow`, anything under `refs/`, `logs/refs/stash`, anything under `worktrees/`, and `modules/**/HEAD`, `modules/**/refs/**` of the submodules | yes | 400 ms | `.git/<path> changed` |
 | A file of the working tree, anywhere but in a `.git`, that git does not ignore and that is not in the folder of another worktree nested in this one | yes | 1,000 ms (builds and installs write many files at once) | `<path> changed` |
 | A file of the working tree that git ignores (`git check-ignore --stdin`, asked once for the files of a burst), such as the output of a build | no | | |
 | A file in the folder of another worktree nested in this one, such as `.claude/worktrees/<name>/` | no | | |
@@ -533,6 +535,8 @@ Acceptance:
 - [ ] A change to `.git/worktrees/feature/fsmonitor--daemon.ipc` asks for nothing.
 - [ ] A change to `.git/index.lock` asks for nothing.
 - [ ] With `core.fsmonitor=true` and nothing changing, the repository is read once and then not again.
+- [ ] A fetch that changes `.git/shallow` asks for a read after 400 ms, said as `.git/shallow changed`
+      (`repo.read-shallow`).
 
 ### `repo.schedule-reads` — Read again when something changed
 

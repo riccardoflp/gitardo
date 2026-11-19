@@ -15,6 +15,11 @@
   `git init` in a folder chosen, with the first branch of `init.defaultBranch`, or the one asked, `main` by default; a
   folder that is a repository already is refused, and one inside a repository asks first. **Create a repository here**,
   on the timeline of a workspace with no repository, makes it in the folder of the workspace.
+- A shallow clone says where its history ends: the line of a commit whose parents were not fetched goes on under its
+  dot, dashed, with a tooltip that says so; the inspector says **Not fetched** for its parents, with **Load more
+  history**; and the last row of the timeline says **The history ends here: this is a shallow clone.** with **Load
+  more history**, which fetches a number of commits further back, `100` by default (`git fetch --deepen`), and **Load
+  the whole history** (`git fetch --unshallow`), both in Quick search too while the repository is shallow.
 
 ## 1.2.0 - 2026-11-18
 

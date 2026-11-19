@@ -101,6 +101,7 @@ mod settings_page;
 mod settings_reveal;
 mod settings_search;
 mod settings_values;
+mod shallow;
 mod show_in_graph;
 mod side_column;
 mod side_room;

@@ -54,7 +54,7 @@ earns it.
 | [`repo.owner-of-file`](01-repositories.md#repoowner-of-file--the-repository-a-file-is-in) | The repository a file is in | Derivation | Built | Built |
 | [`repo.no-repository`](01-repositories.md#repono-repository--no-repository-in-the-workspace) | No repository in the workspace | View | Built | Built |
 | [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built | Built |
-| [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Specified | Planned |
+| [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Built | Planned |
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
 | [`repo.read-git-version`](01-repositories.md#reporead-git-version--read-the-version-of-git) | Read the version of git | Read | Specified | Planned |
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Built | Built |
@@ -109,7 +109,7 @@ earns it.
 | [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Built | Host only |
 | [`ui.page-trail`](02-graph.md#uipage-trail--the-way-back-in-the-title-of-a-page) | The way back, in the title of a page | Derivation | Built | Host only |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
-| [`graph.shallow-end`](02-graph.md#graphshallow-end--where-the-history-of-a-shallow-clone-ends) | Where the history of a shallow clone ends | View | Specified | Planned |
+| [`graph.shallow-end`](02-graph.md#graphshallow-end--where-the-history-of-a-shallow-clone-ends) | Where the history of a shallow clone ends | View | Built | Planned |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built | Built |
 | [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Built | Built |
 | [`graph.resize-graph`](02-graph.md#graphresize-graph--give-the-graph-less-room-or-more) | Give the graph less room or more | View | Built | Built |
@@ -299,8 +299,8 @@ earns it.
 | [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Built | Built |
 | [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built | Built |
 | [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Built | Built |
-| [`sync.deepen`](06-branches-tags-remotes.md#syncdeepen--load-more-history) | Load more history | Operation | Specified | Planned |
-| [`sync.unshallow`](06-branches-tags-remotes.md#syncunshallow--load-the-whole-history) | Load the whole history | Operation | Specified | Planned |
+| [`sync.deepen`](06-branches-tags-remotes.md#syncdeepen--load-more-history) | Load more history | Operation | Built | Planned |
+| [`sync.unshallow`](06-branches-tags-remotes.md#syncunshallow--load-the-whole-history) | Load the whole history | Operation | Built | Planned |
 | [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Built | Built |
 | [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Built | Built |
 | [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Built | Built |

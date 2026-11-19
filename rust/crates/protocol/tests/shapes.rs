@@ -97,6 +97,9 @@ fn repository() -> RepositoryState {
             remaining: Some(4),
         }),
         submodules: vec![submodule()],
+        shallow: model::state::Shallow {
+            ends: vec![commit('2')],
+        },
     }
 }
 

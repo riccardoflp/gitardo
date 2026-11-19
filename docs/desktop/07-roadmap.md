@@ -998,7 +998,7 @@ up; in VS Code, `@gitardo how do I put my changes aside` in the Chat answers wit
 Changes**; every card of the milestone is Built in both apps, and the snapshots of the page match in the dark and in the
 light theme.
 
-## M32 — Clone and create a repository, and the history of a shallow clone
+## M32 — Clone and create a repository, and the history of a shallow clone (done)
 
 The window clones a repository and creates one, where it could only open a folder already on disk, and a shallow clone
 says where its history ends and fetches more of it
@@ -1026,11 +1026,13 @@ there; the shallow history is *Planned* in the extension, for a later milestone.
    fetches behind them. Cards: `repo.read-shallow`, `repo.read-state`, `repo.watch-changes`, `graph.shallow-end`,
    `sync.deepen`, `sync.unshallow`.
 
-Phases 1 to 3 are built: the engine reads what git prints on its standard error while a step with `--progress` runs,
-and the row of the operation in the **Activity** tab says its last line; `repo.clone` and `repo.init` run with the
-context of no repository, from the Welcome page, the menu of **+**, the timeline of a workspace with no repository and
-Quick search, the folder of the last clone kept as `cloneFolder`. Clone and create are one commit, since they share the
-question of a folder and their entries.
+Done: the four phases are built. The engine reads what git prints on its standard error while a step with
+`--progress` runs, and the row of the operation in the **Activity** tab says its last line; `repo.clone` and
+`repo.init` run with the context of no repository, from the Welcome page, the menu of **+**, the timeline of a
+workspace with no repository and Quick search, the folder of the last clone kept as `cloneFolder` (clone and create
+are one commit, since they share the question of a folder and their entries); the state says where the history of a
+shallow clone ends (`shallow` in the state of the protocol, 1.11), the timeline and the inspector show it, and
+`sync.deepen` and `sync.unshallow` fetch more of it. The shallow history stays *Planned* in the extension.
 
 Exit: on the Welcome page, **Clone a repository…** with the URL of a public repository, into a folder chosen, with
 nothing else ticked than the submodules, shows the clone in the **Activity** tab with git's progress under it, then

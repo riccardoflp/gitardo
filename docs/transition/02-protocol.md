@@ -83,7 +83,8 @@ one of them; and `repository/summaries`, the engine saying what it read again
 Version 1.11 adds what milestone M32 needed
 ([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)): the
 question `openFolder`, a folder chosen in the system's dialog, and the validations `cloneFolder`, the name of the folder
-of a clone, and `count`, a whole number of at least 1 ([Types](#types)). The extension clones and creates a repository
+of a clone, and `count`, a whole number of at least 1 ([Types](#types)); and `shallow` in `RepositoryState`, where the
+history of a shallow clone ends. The extension clones and creates a repository
 with VS Code's own commands, so it sends none of them yet; they travel as every question and validation does.
 
 ## Transport
@@ -691,7 +692,8 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `tags: Tag[]`, `stashes: Stash[]`, `worktrees: Worktree[]`, `remotes: string[]`, `identity: { name, email }`,
   `branchSort: string | null`, `reflogSubjects: string[]`, `workingTree: WorkingTree`, `operation: "merge" |
   "rebase" | "cherryPick" | "revert" | "patch" | … | null`, `rebaseStop: RebaseStop | null`, `bisect: Bisect | null`,
-  `submodules: Submodule[]`.
+  `submodules: Submodule[]`, `shallow: CommitId[]` (1.11), the commits whose parents were not fetched, empty when the
+  repository is not shallow (`repo.read-shallow`).
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,

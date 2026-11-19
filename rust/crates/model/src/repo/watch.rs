@@ -16,8 +16,9 @@ pub const LATER: Duration = Duration::from_millis(1_000);
 /// How long after the last read the window getting the focus asks for another (M15).
 pub const FOCUS_AFTER: Duration = Duration::from_secs(60);
 
-/// The files of the common git folder whose change asks for a read, by their names at its top.
-const GIT_FILES: [&str; 10] = [
+/// The files of the common git folder whose change asks for a read, by their names at its top: `shallow` lists where
+/// the history of a shallow clone ends (`repo.read-shallow`).
+const GIT_FILES: [&str; 11] = [
     "HEAD",
     "FETCH_HEAD",
     "ORIG_HEAD",
@@ -28,6 +29,7 @@ const GIT_FILES: [&str; 10] = [
     "index",
     "config",
     "packed-refs",
+    "shallow",
 ];
 
 /// The sections of the settings whose change asks for a read: what they change is read with the repository.
@@ -291,6 +293,13 @@ mod tests {
             assert_eq!(request.delay, Duration::from_millis(400), "{path}");
             assert_eq!(request.cause, ReadCause::GitFile(PathBuf::from(path)));
         }
+    }
+
+    #[test]
+    fn repo_watch_changes__a_fetch_that_changes_the_file_shallow_asks_for_a_read_after_400_ms() {
+        let request = git("shallow").unwrap();
+        assert_eq!(request.delay, Duration::from_millis(400));
+        assert_eq!(request.cause, ReadCause::GitFile(PathBuf::from("shallow")));
     }
 
     #[test]

@@ -61,6 +61,10 @@ pub enum QuickCommand {
     CloneRepository,
     /// **Create Repository…** (`repo.init`).
     CreateRepository,
+    /// **Load More History** (`sync.deepen`), offered in a shallow clone.
+    LoadMoreHistory,
+    /// **Load the Whole History** (`sync.unshallow`), offered in a shallow clone.
+    LoadWholeHistory,
     /// **Select Repository** (`repo.select`).
     SelectRepository,
     /// **Open workspace file…** (`repo.open-code-workspace`).
@@ -161,7 +165,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 55] = [
+    pub const ALL: [QuickCommand; 57] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -169,6 +173,8 @@ impl QuickCommand {
         QuickCommand::OpenFolder,
         QuickCommand::CloneRepository,
         QuickCommand::CreateRepository,
+        QuickCommand::LoadMoreHistory,
+        QuickCommand::LoadWholeHistory,
         QuickCommand::SelectRepository,
         QuickCommand::OpenWorkspaceFile,
         QuickCommand::OpenRepositoryInTab,
@@ -252,6 +258,13 @@ impl QuickCommand {
         }
     }
 
+    /// Whether the command is offered only in a shallow clone: the fetches of more history (`sync.deepen`,
+    /// `sync.unshallow`).
+    #[must_use]
+    pub fn is_for_shallow_clones(self) -> bool {
+        matches!(self, QuickCommand::LoadMoreHistory | QuickCommand::LoadWholeHistory)
+    }
+
     /// The operation of the catalog the command runs at `HEAD`, for the commands that run one: the window runs it once
     /// it is built.
     #[must_use]
@@ -259,6 +272,8 @@ impl QuickCommand {
         match self {
             QuickCommand::CloneRepository => Some("repo.clone"),
             QuickCommand::CreateRepository => Some("repo.init"),
+            QuickCommand::LoadMoreHistory => Some("sync.deepen"),
+            QuickCommand::LoadWholeHistory => Some("sync.unshallow"),
             QuickCommand::CreateBranch => Some("branch.create"),
             QuickCommand::Fetch => Some("sync.fetch"),
             QuickCommand::Push => Some("sync.push"),

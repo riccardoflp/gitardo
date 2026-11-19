@@ -340,6 +340,9 @@ impl ViewData {
             },
             has_no_commits,
             has_more: timeline.has_more,
+            shallow_ends: state
+                .shown_read()
+                .map_or(&[], |read| read.state.shallow.ends.as_slice()),
             reading,
             asked_at: timeline.asked_at,
             selected: timeline.selected.as_ref(),

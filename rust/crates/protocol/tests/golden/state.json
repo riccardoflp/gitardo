@@ -103,5 +103,6 @@
   "operation": "merge",
   "rebaseStop": null,
   "bisect": null,
-  "submodules": []
+  "submodules": [],
+  "shallow": []
 }

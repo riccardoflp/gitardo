@@ -123,6 +123,7 @@ impl Fixture {
             },
             has_no_commits: false,
             has_more: false,
+            shallow_ends: &[],
             reading: Reading::Nothing,
             asked_at: None,
             selected: self.selected.as_ref(),

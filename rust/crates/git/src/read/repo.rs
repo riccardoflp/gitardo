@@ -13,13 +13,14 @@ mod references;
 mod reflog_subjects;
 mod remotes;
 mod repositories;
+mod shallow;
 mod stashes;
 pub(crate) mod status;
 
 use std::path::PathBuf;
 use std::thread::{self, ScopedJoinHandle};
 
-use model::state::{Head, Identity, Operation, RepositoryState, Stash, WorkingTree, Worktree};
+use model::state::{Head, Identity, Operation, RepositoryState, Shallow, Stash, WorkingTree, Worktree};
 
 use crate::read::worktree::{self, CountedWorktrees, WorktreeListRequest};
 use crate::{Git, GitError};
@@ -37,6 +38,7 @@ pub use repositories::{
     RepositoriesRequest, parse_submodule_paths, parse_top_level, read_repositories, submodule_paths_arguments,
     top_level_arguments,
 };
+pub use shallow::{ShallowRequest, parse_shallow_file, parse_shallow_location, read_shallow, shallow_arguments};
 pub use stashes::{parse_stashes, read_stashes, stashes_arguments};
 pub use status::{parse_status, status_arguments, worktree_status_arguments};
 
@@ -53,7 +55,8 @@ pub struct StateRequest {
 /// Everything the window shows of a repository but its commits: what is checked out, the branches and how far each is
 /// from its upstream, the remote branches, the tags, the stashes, the worktrees with what is not committed in each,
 /// the remotes, who commits are made as, git's order of the branches, where `HEAD` has been, what is not committed here, the operation that
-/// stopped half way and the bisect under way (`bisect.read`). The reads run at once, each in a thread of its own, and
+/// stopped half way, the bisect under way (`bisect.read`) and where the history of a shallow clone ends
+/// (`repo.read-shallow`). The reads run at once, each in a thread of its own, and
 /// none takes a lock.
 ///
 /// While a rebase is under way, where it stopped to edit or to split a commit is read too (`rebase.read-stop`), and
@@ -156,6 +159,7 @@ struct Parts {
     operation: Option<Operation>,
     bisect: Option<model::bisect::Bisect>,
     submodules: Vec<model::submodule::Submodule>,
+    shallow: Shallow,
 }
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
@@ -188,6 +192,10 @@ fn read_parts(
             folder: location.folder.clone(),
         };
         let submodules = scope.spawn(move || crate::read::submodule::read_list(git, &submodules_request));
+        let shallow_request = ShallowRequest {
+            folder: location.folder.clone(),
+        };
+        let shallow = scope.spawn(move || read_shallow(git, &shallow_request));
         let operation = operation::read_operation(&location.git_folder);
         let (worktrees, counted) = joined(worktrees)?;
         let parts = Parts {
@@ -206,6 +214,7 @@ fn read_parts(
             operation,
             bisect: joined(bisect)?,
             submodules: joined(submodules)?,
+            shallow: joined(shallow)?,
         };
         Ok((parts, counted))
     })
@@ -245,6 +254,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         rebase_stop: None,
         bisect: parts.bisect,
         submodules: parts.submodules,
+        shallow: parts.shallow,
     }
 }
 

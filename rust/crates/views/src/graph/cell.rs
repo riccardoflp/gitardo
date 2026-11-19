@@ -1,6 +1,7 @@
 //! The cell of the graph of a row (`graph.lanes`): the lines through it and its dot, a dot for a commit, a ring for a
 //! merge, a dashed ring for the draft and a fold, a square for a stash, and the ring of a commit not pushed
-//! (`graph.unpushed`); what is not in the history brought out fades (`graph.trace-history`), and so does the rest of
+//! (`graph.unpushed`), and the dashed line under the dot of a commit whose parents were not fetched (`graph.shallow-end`);
+//! what is not in the history brought out fades (`graph.trace-history`), and so does the rest of
 //! its row (`graph.hover-history`, `graph.trace-selected`).
 
 use model::graph::{CellLine, CellTrace, GraphCell, Half};
@@ -48,6 +49,8 @@ pub(crate) struct CellPlace {
     pub dot: Dot,
     /// Whether the commit is not pushed: a ring around its dot.
     pub is_unpushed: bool,
+    /// Whether the parents of the commit were not fetched, in a shallow clone: a dashed line under its dot.
+    pub is_shallow_end: bool,
 }
 
 /// The middle of a lane, across.
@@ -103,6 +106,14 @@ pub(crate) fn draw_cell(
     let color = faded(theme.lane(cell.color), is_in, strength);
     let center = Point::new(lane_x(rect, place.lane_width, cell.lane), middle);
     let radius = theme.sizes.graph_dot.min(place.lane_width * 0.45).max(2.0);
+    if place.is_shallow_end {
+        let stroke = Stroke {
+            width: theme.sizes.graph_line,
+            cap: ui::LineCap::Butt,
+            color,
+        };
+        ui.dashed_lane_line(center, Point::new(center.x, rect.bottom()), stroke, DASH);
+    }
     draw_dot(ui, place.dot, (center, radius), color);
     if place.is_unpushed {
         let stroke = Stroke {

@@ -24,6 +24,8 @@ pub const COMMIT: &str = "Commit";
 pub const PARENT: &str = "Parent";
 /// The parents of a merge.
 pub const PARENTS: &str = "Parents";
+/// What the inspector says of the parents of a commit whose parents were not fetched, in a shallow clone.
+pub const NOT_FETCHED: &str = "Not fetched";
 /// What a click on the short hash in the inspector does.
 pub const COPY_FULL_HASH: &str = "Copy full hash";
 /// What a click on the hash in the page does.

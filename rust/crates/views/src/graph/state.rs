@@ -33,6 +33,9 @@ pub struct HistoryState<'a> {
     pub has_no_commits: bool,
     /// Whether the history has more commits than those read.
     pub has_more: bool,
+    /// The commits whose parents were not fetched, where the history of a shallow clone ends; none when it is not
+    /// shallow (`graph.shallow-end`).
+    pub shallow_ends: &'a [CommitId],
     /// What is being read.
     pub reading: Reading,
     /// The commits loaded when the next page was asked for last, which is not asked for again.
@@ -99,8 +102,15 @@ impl HistoryState<'_> {
     /// before while the same history is read again.
     #[must_use]
     pub fn row_count(&self) -> usize {
-        let shown = self.layout.len() + usize::from(self.has_more);
+        let shown = self.layout.len() + usize::from(self.has_more || self.has_shallow_end());
         self.awaited.map_or(shown, |awaited| shown.max(awaited.layout.len()))
+    }
+
+    /// Whether the last row says where the history of a shallow clone ends: its last page is read, and it is shallow
+    /// (`graph.shallow-end`).
+    #[must_use]
+    pub fn has_shallow_end(&self) -> bool {
+        !self.has_more && !self.shallow_ends.is_empty()
     }
 
     /// The most lanes a row has, or had before the same history was read again.
