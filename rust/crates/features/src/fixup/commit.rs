@@ -72,7 +72,7 @@ pub fn commit(context: &Context, answers: &Answers) -> Outcome {
         after: Vec::new(),
         on_failure: Vec::new(),
     };
-    Outcome::Run(stack::with_todo_stack(plan, &decided))
+    Outcome::Run(stack::with_todo_stack(plan, answers, &decided))
 }
 
 #[cfg(test)]

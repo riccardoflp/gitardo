@@ -61,7 +61,12 @@ pub fn onto(context: &Context, answers: &Answers) -> Outcome {
         after: Vec::new(),
         on_failure: Vec::new(),
     };
-    Outcome::Run(stack::with_stack(plan, &decided, (current_name(context), &said)))
+    Outcome::Run(stack::with_stack(
+        plan,
+        answers,
+        &decided,
+        (current_name(context), &said),
+    ))
 }
 
 #[cfg(test)]

@@ -140,7 +140,7 @@ pub(crate) fn rewrite_plan(context: &Context, answers: &Answers, rewrite: Rewrit
         after,
         on_failure: vec![FollowUp::DeleteWhenRebaseEnded(folder)],
     };
-    Ok(stack::with_todo_stack(plan, &decided))
+    Ok(stack::with_todo_stack(plan, answers, &decided))
 }
 
 /// `git -c core.editor=true rebase --continue`, which keeps the messages git prepared, then the files of the rebase

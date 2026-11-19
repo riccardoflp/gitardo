@@ -108,6 +108,7 @@ mod side_column;
 mod side_room;
 mod signature;
 mod speed;
+mod stack_undo;
 mod stashes;
 mod submodules;
 mod summaries;

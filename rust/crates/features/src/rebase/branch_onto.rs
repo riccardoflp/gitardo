@@ -75,7 +75,7 @@ pub fn branch_onto(context: &Context, answers: &Answers) -> Outcome {
         after: Vec::new(),
         on_failure: Vec::new(),
     };
-    Outcome::Run(stack::with_stack(plan, &decided, (name, onto.short())))
+    Outcome::Run(stack::with_stack(plan, answers, &decided, (name, onto.short())))
 }
 
 /// The answers of a branch dropped on a commit: the branch to rebase.

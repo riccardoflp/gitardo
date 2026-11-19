@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- One **Undo** after a rewrite that moved the other branches of a stack puts them back too: the branch rewritten by
+  its reflog, then the others in one `git update-ref --stdin`, which git makes whole or not at all. A branch moved since
+  the rewrite stays where it is, and the dialog of Undo says so.
 - Rebasing a branch onto another, or a branch dropped on a commit, moves with it the other local branches on the commits
   it makes again, a stack of branches each started from the one under it: `git rebase --update-refs`, and what is said
   after names them. A branch checked out in another worktree stays, and so do all of them with a git older than 2.38;

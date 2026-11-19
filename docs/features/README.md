@@ -609,7 +609,7 @@ earns it.
 | [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Built | Host only |
 | [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Built | Built |
 | [`undo.journal`](16-undo-preview-log.md#undojournal--remember-what-undo-needs) | Remember what Undo needs | Derivation | Built | Built |
-| [`undo.moved-branches`](16-undo-preview-log.md#undomoved-branches--take-back-the-branches-a-rewrite-moved) | Take back the branches a rewrite moved | Derivation | Specified | Planned |
+| [`undo.moved-branches`](16-undo-preview-log.md#undomoved-branches--take-back-the-branches-a-rewrite-moved) | Take back the branches a rewrite moved | Derivation | Built | Planned |
 | [`activity.track`](16-undo-preview-log.md#activitytrack--say-what-is-running) | Say what is running | Operation | Built | Built |
 
 ## Diff, Merge and File pages

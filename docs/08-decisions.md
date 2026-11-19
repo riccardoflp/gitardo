@@ -5509,9 +5509,13 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1205** — `lfs.show-in-pages`: the content of a file stored with Git LFS is diffed as text, or said binary. Should
   an image stored with Git LFS be shown as images are, once the window shows images?
 - **Q1400** — `rebase.update-refs`: Gitardo's `rebase.updateRefs` has three states, `true`, `false` and not set, and
-  the settings page draws a setting of `true` or `false` as a switch, which cannot say "not set". It is read from the
-  two settings files and is not on the settings page yet. Should the page give it a choice of three, **Move them**,
-  **Leave them** and **As git says**?
+  the settings page draws a setting of `true` or `false` as a switch, which cannot say "not set". The page gives it a
+  choice of three, **Move them**, **Leave them** and **As git says**, the last taking it out of the file of the tab
+  shown. Is that right, or should it be a switch, off meaning not set?
+- **Q1425** — `undo.moved-branches`: a rewrite that stopped on a conflict or to edit a commit moves the other
+  branches of the stack only once it is continued, and the plan that continued it, **Continue** of
+  `conflicts.continue-operation` or of the banner of `rebase.edit-stop`, is taken back by the reflog, so that the branch rewritten goes back alone. Should the journal
+  keep the branches of the rewrite across the stop, so that one Undo puts them back too?
 
 ### Of notes, archives and upkeep, from Q1210
 

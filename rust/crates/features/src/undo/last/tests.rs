@@ -321,3 +321,59 @@ fn undo_last__refuses_while_an_operation_is_under_way_but_for_a_squash_merge_or_
     };
     assert!(matches!(last(&context, &journal(resolved)), Outcome::Run(_)));
 }
+
+/// The answers of an Undo of a rebase of `main` from `a` to `c`, whose journal entry has a record.
+fn rebase_entry(record: UndoRecord) -> Answers {
+    reflogs(
+        vec![entry('c', "rebase (finish): returning to refs/heads/main")],
+        vec![
+            entry('c', "rebase (finish): refs/heads/main onto 9999999"),
+            entry('a', "commit: First"),
+        ],
+    )
+    .with(
+        JOURNAL,
+        Answer::Journal(Some(JournalEntry {
+            number: 4,
+            title: Text::from("Rebase main onto 9999999"),
+            record,
+            head: state().head,
+        })),
+    )
+}
+
+#[test]
+fn undo_moved_branches__after_a_rebase_that_moved_no_other_branch_the_undo_has_no_update_ref() {
+    let plan = plan(last(&context(state(), Target::Head), &rebase_entry(UndoRecord::Reflog)));
+    assert_eq!(lines(&plan), [format!("git reset --keep {}", commit('a'))]);
+}
+
+#[test]
+fn undo_moved_branches__the_undo_of_a_rebase_that_moved_p1_puts_it_back_from_standard_input() {
+    let mut state = state();
+    state.branches.push(crate::testing::branch("p1", 'b', false));
+    let moved = vec![model::contract::MovedBranch {
+        name: String::from("p1"),
+        before: commit('1'),
+        after: Some(commit('b')),
+    }];
+    let plan = plan(last(
+        &context(state, Target::Head),
+        &rebase_entry(UndoRecord::Rewrite { moved }),
+    ));
+    assert_eq!(
+        lines(&plan),
+        [
+            format!("git reset --keep {}", commit('a')),
+            String::from("git update-ref -m \"undo: back to before the rebase\" --stdin"),
+        ]
+    );
+    let Some(model::contract::Step::Git { input: Some(input), .. }) = plan.steps.last() else {
+        panic!("the lines are read from standard input")
+    };
+    assert_eq!(
+        String::from_utf8_lossy(input),
+        format!("update refs/heads/p1 {} {}\n", commit('1'), commit('b'))
+    );
+    assert_eq!(plan.undo, Undo::TakesBack(4));
+}

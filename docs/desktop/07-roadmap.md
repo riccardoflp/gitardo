@@ -1214,7 +1214,11 @@ Phase 2 is built: the decision (`model::rebase::update_refs`), Gitardo's setting
 branch stays and what is said after; the `update-ref` lines of Gitardo's own todo lists, for the interactive rebase,
 `message.edit`, the squashes and the split, after the `exec` of a reword and after the squashes and fixups of a
 commit; the other branches on each commit on the interactive rebase page; and the setting on the settings page as a
-choice of three, **Move them**, **Leave them** and **As git says** (Q1400). Phases 3 to 6 are not built yet.
+choice of three, **Move them**, **Leave them** and **As git says** (Q1400).
+Phase 3 is built: the journal entry of a rewrite keeps each branch it moved (`UndoRecord::Rewrite`), and Undo resets
+the branch rewritten by its reflog, then puts the others back in one `git update-ref --stdin`
+(`model::contract::moved_branches`), leaving out and naming a branch moved since. A rewrite that stopped and was
+continued goes back by the reflog alone (Q1425). Phases 4 to 6 are not built yet.
 
 Nothing is built yet.
 

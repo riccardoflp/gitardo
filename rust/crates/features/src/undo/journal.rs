@@ -91,6 +91,8 @@ fn what_and_arguments(entry: &JournalEntry) -> (String, Vec<OsString>) {
             format!("the split of {}", commit.short()),
             words(&["reset", "--mixed", commit.as_str()]),
         ), // `undo.last` takes these back by the reflog, or refuses: never here.
-        UndoRecord::Reflog | UndoRecord::NotUndoable { .. } => (format!("\"{}\"", entry.title), Vec::new()),
+        UndoRecord::Reflog | UndoRecord::Rewrite { .. } | UndoRecord::NotUndoable { .. } => {
+            (format!("\"{}\"", entry.title), Vec::new())
+        }
     }
 }
