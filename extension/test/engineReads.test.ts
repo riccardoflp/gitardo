@@ -375,8 +375,11 @@ describe.skipIf(!built)('the reads of the engine', { timeout: 60_000 }, () => {
   it('github.read-pull-requests finds no repository on GitHub in a remote of another host, and reads nothing without a token', async () => {
     const root = await repository();
     const engine = client();
-    await git(root, ['remote', 'add', 'origin', 'https://gitlab.com/owner/app.git']);
+    await git(root, ['remote', 'add', 'origin', 'https://example.com/owner/app.git']);
     expect(await engine.pullRequests(root, null)).toEqual({ kind: 'notOnGitHub' });
+    // On a GitLab it reads the merge requests (`hosting.read-merge-requests`), with the token kept for its host name.
+    await git(root, ['remote', 'set-url', 'origin', 'https://gitlab.com/owner/app.git']);
+    expect(await engine.pullRequests(root, null)).toEqual({ kind: 'noToken' });
     await git(root, ['remote', 'add', 'hub', 'git@github.com:owner/app.git']);
     expect(await engine.pullRequests(root, 'hub')).toEqual({ kind: 'noToken' });
   });

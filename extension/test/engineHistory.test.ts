@@ -31,6 +31,8 @@ async function made(setup: (root: string) => Promise<void>): Promise<string> {
 
 const head = async (root: string, revision = 'HEAD') => (await git(root, ['rev-parse', revision])).stdout.trim();
 const subjects = async (root: string, count = 5) => (await git(root, ['log', '--format=%s', '-n', String(count)])).stdout.trim().split('\n');
+/** What an engine offers after a rewrite of the branch checked out: the page of what it changed (`range-diff.compare`). */
+const SEE_WHAT_CHANGED: FollowUp = { answers: {}, feature: 'range-diff.compare', kind: 'offerRun', label: 'See what changed', target: { kind: 'branch', name: 'main' } } as FollowUp;
 
 /**
  * Runs the runs of an action through the engine as the controller does, the answers it gives before asking given with
@@ -296,7 +298,7 @@ describe.skipIf(!built)('Rewriting, through the engine', { timeout: 60_000 }, ()
     expect(amended.followUps).toEqual([{ kind: 'selectHead' }]);
 
     const older = await scenario(line, async (root) => ({ kind: 'reword', hash: await head(root, 'HEAD~2'), message: 'Add one, new\n\nIts body.' }));
-    expect(older.followUps).toEqual([{ kind: 'selectBeforeHead', count: 2 }]);
+    expect(older.followUps).toEqual([{ kind: 'selectBeforeHead', count: 2 }, SEE_WHAT_CHANGED]);
     expect(older.engine.at(-1)).toMatch(/rebase -i --autostash [0-9a-f]{40}$/);
     expect(await subjects(older.root, 3)).toEqual(['Add three', 'Add two', 'Add one, new']);
     expect(fs.existsSync(path.join(older.root, '.git', 'gitardo-rebase'))).toBe(false);
@@ -336,7 +338,7 @@ describe.skipIf(!built)('Rewriting, through the engine', { timeout: 60_000 }, ()
       },
       { subject: text('Add one and two') },
     );
-    expect(squashed.followUps).toEqual([{ kind: 'selectBeforeHead', count: 1 }]);
+    expect(squashed.followUps).toEqual([{ kind: 'selectBeforeHead', count: 1 }, SEE_WHAT_CHANGED]);
     expect((await git(squashed.root, ['log', '-1', '--format=%B', 'HEAD~1'])).stdout.trim()).toBe(message);
     expect(await subjects(squashed.root, 3)).toEqual(['Add three', 'Add one and two', 'First commit']);
   });
@@ -376,7 +378,7 @@ describe.skipIf(!built)('Rewriting, through the engine', { timeout: 60_000 }, ()
       two = await head(root, 'HEAD~1');
       return { kind: 'split', hash: two };
     });
-    expect(older.followUps).toEqual([{ kind: 'fillCommitMessage', message: 'Add two\n\nKept under the new subject.' }]);
+    expect(older.followUps).toEqual([{ kind: 'fillCommitMessage', message: 'Add two\n\nKept under the new subject.' }, SEE_WHAT_CHANGED]);
     expect(fs.readFileSync(path.join(older.root, '.git', 'rebase-merge', 'gitardo-split'), 'utf8').trim()).toBe(two);
   });
 });
