@@ -874,7 +874,7 @@ in VS Code, the diff of the PNG opened from the Gitardo Changes view shows the t
 commit shows its two versions; every card of the milestone is Built in both apps, or Host only in the extension, and
 the snapshots of the File page and the Diff page with an image match in the dark and in the light theme.
 
-## M28 — Gitardo, by its name
+## M28 — Gitardo, by its name (done)
 
 The window, the taskbar and a release say **Gitardo**, no longer *Gitardo Desktop*
 ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider), Q1). One phase,
@@ -893,6 +893,11 @@ Exit: the title of the window in the taskbar of Windows is *\<repository\> — G
 **Gitardo** in the title; no text of the window says *Gitardo Desktop* (a search of `crates/views/src/text` and of
 the texts of `features` finds none); the settings and the secrets of a window of before are read as they were; a
 release made by the pipeline on a test tag holds three archives named `gitardo-<version>-…`.
+
+Built on 2026-11-19: `PROGRAM` is **Gitardo**, and `window_title_bar__the_title_of_the_window_is_the_repository_then_gitardo`
+reads it in the title; `gitardo-demo`, the setting `worktrees.openIn` and the cards of the new windows say the name;
+`release.yml` names the archives `gitardo-<version>-…` and the part of the notes **Gitardo**; the folder of the
+settings and the names of the secrets are as they were. The release on a test tag is left to the pipeline's next run.
 
 ## M29 — Wayland of its own
 

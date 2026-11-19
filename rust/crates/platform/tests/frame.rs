@@ -19,7 +19,7 @@ fn window_title_bar__the_window_opens_with_no_title_bar_of_the_system_and_keeps_
     }
     let mut event_loop = EventLoop::<u32>::new().unwrap();
     let options = WindowOptions {
-        title: String::from("Gitardo Desktop test"),
+        title: String::from("Gitardo test"),
         size: LogicalSize {
             width: 640.0,
             height: 400.0,
@@ -48,9 +48,9 @@ fn window_title_bar__the_window_opens_with_no_title_bar_of_the_system_and_keeps_
     // The title is the window's still, which the taskbar and the switcher of windows say, though it is not drawn; the
     // systems of Linux do not read it back.
     if cfg!(windows) {
-        assert_eq!(window.title(), "Gitardo Desktop test");
-        window.set_title("api \u{2014} Gitardo Desktop");
-        assert_eq!(window.title(), "api \u{2014} Gitardo Desktop");
+        assert_eq!(window.title(), "Gitardo test");
+        window.set_title("api \u{2014} Gitardo");
+        assert_eq!(window.title(), "api \u{2014} Gitardo");
     }
     // Where it is restored to is what it opened with.
     let placement = window.placement();

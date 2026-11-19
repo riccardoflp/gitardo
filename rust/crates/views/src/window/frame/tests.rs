@@ -97,3 +97,9 @@ fn hit_says_client_everywhere_when_the_system_draws_the_title_bar_and_has_no_but
     assert_eq!(hit(Point::new(1199.0, 20.0), size, &transparent), Hit::Caption);
     assert_eq!(hit(Point::new(3.0, 400.0), size, &transparent), Hit::Client);
 }
+
+#[test]
+fn window_title_bar__the_title_of_the_window_is_the_repository_then_gitardo() {
+    assert_eq!(crate::text::window_title(Some("api")), "api \u{2014} Gitardo");
+    assert_eq!(crate::text::window_title(None), "Gitardo");
+}

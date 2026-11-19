@@ -40,7 +40,7 @@ pub mod worktree;
 pub mod worktree_setup;
 
 /// The name of the program, in the title bar of its window.
-pub const PROGRAM: &str = "Gitardo Desktop";
+pub const PROGRAM: &str = "Gitardo";
 
 /// The title of the window: the repository shown, then the program.
 #[must_use]

@@ -254,7 +254,8 @@ moves the window from, maximizes and restores with a double click and opens its 
 and corners, which it resizes the window from with their cursors, and the maximize button, which shows Snap Layouts on
 Windows 11; the pointer on **Maximize** is then the system's, and `platform` hands it to Gitardo as input. `Alt+Space`
 opens the system's menu of the window. The title of the window is set as before, though not drawn, since the taskbar,
-`Alt+Tab` and the screen reader say it.
+`Alt+Tab` and the screen reader say it: *\<repository\> — Gitardo*, or **Gitardo** with no repository open
+([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)).
 
 The header bar is drawn dimmed while the window has not the focus, as the system dims the title bar of a window behind
 another; **Close** under the pointer is still red. When the window starts to be moved or resized (`WM_ENTERSIZEMOVE`
@@ -269,6 +270,7 @@ any screen is not used, and the system places the window.
 Acceptance:
 
 - [ ] The window opens with no title bar of the system, and keeps the title it is given, which the taskbar says.
+- [ ] The title of the window is the repository shown, then **Gitardo**, and **Gitardo** alone with no repository.
 - [ ] `hit` says Caption for a free place of the header bar, the logo and the name; Client for **Search**, **Sync**
       and the repository in the header.
 - [ ] `hit` says Edge for a place 3 pixels from the left edge, Corner for one 3 pixels from the bottom right corner,

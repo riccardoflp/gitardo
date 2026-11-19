@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The window, the taskbar and a release say **Gitardo**: the title of the window is *\<repository\> — Gitardo*, the
+  archives of a release are named `gitardo-<version>-<system>`, and the settings page says *a new window of Gitardo*.
+  The settings and the secrets are kept where they were.
+
 ## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of

@@ -36,7 +36,7 @@ impl Demo {
     /// The errors of [`Surface::open`].
     pub fn open(context: &Context<'_>, visibility: Visibility) -> Result<Demo, AppError> {
         let options = SurfaceOptions {
-            title: String::from("Gitardo Desktop widgets"),
+            title: String::from("Gitardo widgets"),
             size: LogicalSize {
                 width: 1280.0,
                 height: 800.0,

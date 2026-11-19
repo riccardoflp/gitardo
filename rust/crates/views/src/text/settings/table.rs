@@ -245,7 +245,7 @@ pub(super) const FIRST: [SettingInfo; 28] = [
         key: "worktrees.openIn",
         title: "Open worktrees in",
         section: Some(SettingsSection::Worktrees),
-        description: "Where a worktree opens: window (a new window of Gitardo Desktop), editor (the external editor) or terminal.",
+        description: "Where a worktree opens: window (a new window of Gitardo), editor (the external editor) or terminal.",
         default: "\"window\"",
         is_repository: false,
         is_experimental: false,
