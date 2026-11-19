@@ -701,10 +701,10 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`help.guide`](20-help.md#helpguide--the-guide-of-the-features) | The guide of the features | Derivation | Built | Planned |
-| [`help.choose-cards`](20-help.md#helpchoose-cards--which-cards-answer-a-question) | Which cards answer a question | Derivation | Specified | Planned |
-| [`help.question`](20-help.md#helpquestion--what-is-sent-to-answer-a-question) | What is sent to answer a question | Derivation | Specified | Planned |
-| [`help.ask`](20-help.md#helpask--ask-a-question) | Ask a question | Read | Specified | Planned |
-| [`help.read-answer`](20-help.md#helpread-answer--the-answer-read) | The answer, read | Derivation | Specified | Planned |
+| [`help.choose-cards`](20-help.md#helpchoose-cards--which-cards-answer-a-question) | Which cards answer a question | Derivation | Built | Planned |
+| [`help.question`](20-help.md#helpquestion--what-is-sent-to-answer-a-question) | What is sent to answer a question | Derivation | Built | Planned |
+| [`help.ask`](20-help.md#helpask--ask-a-question) | Ask a question | Read | Built | Planned |
+| [`help.read-answer`](20-help.md#helpread-answer--the-answer-read) | The answer, read | Derivation | Built | Planned |
 | [`help.page`](20-help.md#helppage--the-ask-gitardo-page) | The Ask Gitardo page | View | Specified | Planned |
 | [`help.show-me`](20-help.md#helpshow-me--show-me) | Show me | Derivation | Specified | Planned |
 

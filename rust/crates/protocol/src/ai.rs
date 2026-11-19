@@ -28,6 +28,8 @@ pub enum PurposeJson {
     CommitMessage,
     /// How to resolve one conflict.
     Conflict,
+    /// How to do something with Gitardo (`help.ask`, version 1.11).
+    Help,
 }
 
 impl From<Purpose> for PurposeJson {
@@ -35,6 +37,7 @@ impl From<Purpose> for PurposeJson {
         match purpose {
             Purpose::CommitMessage => PurposeJson::CommitMessage,
             Purpose::Conflict => PurposeJson::Conflict,
+            Purpose::Help => PurposeJson::Help,
         }
     }
 }

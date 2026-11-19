@@ -131,7 +131,8 @@ Sends the two requests of a question to the AI provider, and gives the answer as
   answer with the guide of the extension. VS Code shows the justification *Gitardo sends your question and a guide to
   its features to the model, nothing of your repository.* When the engine's binary is missing, it says so (D49).
 
-Nothing of the repository is read or sent: no path, no name of a branch, no message, no diff. The status bar says
+Nothing of the repository is read or sent: no path, no name of a branch, no message, no diff. With no `ai.provider`,
+the provider's model fails with no request sent, and `engine::help::said` gives the message of **Refuses**. The status bar says
 **asking Gitardo** while the requests run, and cancelling there, or **Stop** in the page, closes them.
 
 Acceptance:
@@ -159,6 +160,7 @@ the features it named.
 - `[[id]]` of a card of the guide becomes the title of its card, as a link that **Show me** of that card follows, and
   the card is added to the features named, each once, in the order first named.
 - `[[id]]` of no card of the guide is taken out, the words around it kept.
+- The link goes to `show-me:` and the identifier, `show-me:squash.commits`, which the page follows itself.
 - A code fence the model put around the whole answer is taken off, as `commit.draft-message` takes it off.
 - While the answer comes, what is written so far is read the same, without a `[[` cut in half: a `[[` with no `]]`
   after it yet is not shown.

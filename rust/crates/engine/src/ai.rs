@@ -47,6 +47,8 @@ pub enum Purpose {
     CommitMessage,
     /// How to resolve one conflict (`ai.ask-conflict`).
     Conflict,
+    /// How to do something with Gitardo (`help.ask`).
+    Help,
 }
 
 /// Who answers the questions to a language model: the AI provider over HTTP in Gitardo Desktop
