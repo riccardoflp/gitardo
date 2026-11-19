@@ -366,7 +366,7 @@ Which labels a commit has in the timeline, and what each says.
 title: All the labels of a commit, under the pointer
 place: the timeline
 show: none
-The labels of a commit start the line of its message and leave the message its room; those that do not fit are one label `+N`, and the pointer resting on the labels opens the list of all of them.
+The labels of a commit start the line under its message, or the one line of a compact row, and leave the author and the date or the message their room; those that do not fit are one label `+N`, and the pointer resting on the labels opens the list of all of them.
 Entry points: the pointer resting on `+N`, or on any label of a row that does not show all its labels whole.
 @card desktop graph.combine-upstream
 title: A branch and its upstream on one label
@@ -378,7 +378,7 @@ Entry points: **Put a branch and its upstream on one label** in the menu of the 
 title: Pull request on a label
 place: the timeline
 show: none
-Once the pull requests are loaded from GitHub, the label of a branch that has an open one ends with its number, in the color of its checks.
+Once the pull requests are loaded from GitHub, or the merge requests from GitLab (`hosting.load-merge-requests`), the label of a branch that has an open one ends with its number, in the color of its checks.
 Entry points: the labels of the timeline, the rows of the branch rail.
 @card desktop graph.unpushed
 title: Commits not pushed yet
@@ -406,7 +406,7 @@ Entry points: selecting a commit; **Bring out the history of the selected commit
 title: What is shown with each message
 place: the timeline
 show: none
-Who made each commit and when, on the line under its message, and its hash at the end of the row.
+Who made each commit and when, on the line under its message after its labels, and its hash at the end of the row.
 Entry points: **Show the author**, **Show the date** and **Show the hash** in the menu of the view.
 @card desktop graph.compact-rows
 title: Each commit on one line
@@ -1879,6 +1879,14 @@ Opens the same comparison on github.com, each side by the name it has there.
 Entry points: **Open on GitHub** in the comparison page (**Compare the two on GitHub, once they are pushed**).
 Offered when: the main remote of the repository is on github.com, neither side is the working tree, and the two are not the same commit.
 Refuses: when it is not offered: *GitHub does not have the working tree: compare two commits that are pushed.*, *The two sides are the same commit.*, *The main remote of this repository is not on github.com.*
+@card desktop compare.open-on-service
+title: Open the comparison on another hosting service
+place: the Compare page
+show: show where
+What `compare.open-on-github` does for GitHub, on GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo: opens the same comparison on the hosting service of the main remote, each side by the name it has there.
+Entry points: **Open on `<service>`** in the comparison page, `<service>` the name of the service (**Open on GitLab**, **Open on Azure DevOps**), where **Open on GitHub** is for GitHub.
+Offered when: the main remote is on one of those services (`hosting.detect-remote`), neither side is the working tree, and the two are not the same commit; on Bitbucket, Gitea and Forgejo, whose pages compare only since the two diverged, only in **Since they diverged**.
+Refuses: when it is not offered: *`<service>` does not have the working tree: compare two commits that are pushed.*, *The two sides are the same commit.*, *`<service>` compares only since the two diverged.*, *The main remote of this repository is not on a hosting service Gitardo knows.*
 @card desktop compare.path-with
 title: Compare a file or a folder with a branch, tag or commit
 place: the Compare page
@@ -2600,6 +2608,60 @@ place: the branch rail
 show: none
 The first push of a branch is when a pull request is usually wanted: Gitardo offers to open GitHub's page to create it.
 Entry points: after `sync.push`, `sync.push-force-with-lease` or `sync.push-force`.
+@card desktop hosting.detect-remote
+title: The hosting service of the main remote
+place: the branch rail
+show: none
+Works out which hosting service the main remote of the repository is on, GitHub, GitLab, Bitbucket, Azure DevOps, Gitea or Forgejo, and the project there, so that its pull requests can be opened, created, compared and checked out.
+@card desktop hosting.web-links
+title: The pages of a hosting service
+place: the branch rail
+show: none
+The addresses of the pages of a hosting service that Gitardo opens in the browser: a pull request, the page that creates one for a branch, and the comparison of two sides.
+@card desktop hosting.open-pull-request
+title: Open or create the pull request of a branch, on another hosting service
+place: the branch rail
+show: none
+What `github.open-pull-request` does for GitHub, on the other services: opens the merge request of a branch on GitLab, or the page of the service that creates a pull request for it.
+Entry points: in the context menu of a local branch, on GitLab **Open merge request !`<number>`** or **Create merge request…** when it has none known; on Bitbucket, Azure DevOps, Gitea and Forgejo **Create pull request…**, since nothing is read of their pull requests; a click on the number of a merge request on a label (`graph.pull-request-badge`).
+Offered when: the main remote is on one of those services (`hosting.detect-remote`), and, as in `github.open-pull-request`, the branch has an upstream that is not gone on that remote; for a remote branch, only **Open merge request** when one is known for its name.
+@card desktop hosting.offer-after-push
+title: Offer to create a pull request after the first push, on another hosting service
+place: the branch rail
+show: none
+What `github.offer-after-push` does for GitHub, on the other services.
+Entry points: after `sync.push`, `sync.push-force-with-lease` or `sync.push-force`.
+@card desktop hosting.token
+title: Read the token of a GitLab
+place: the branch rail
+show: none
+Finds the token that the API of a GitLab is asked with, as `github.token` finds GitHub's, without asking the user anything.
+@card desktop hosting.load-merge-requests
+title: Load merge requests from GitLab
+place: the branch rail
+show: quick search
+Reads the open merge requests of the project for the first time, asking for a token of GitLab if none is found, and keeps that token for the next times.
+Entry points: **Load merge requests from GitLab** in the **…** menu of the header; **Sign in to GitLab** in Quick search.
+Offered when: the main remote is on GitLab (`hosting.detect-remote`); in the **…** menu, only then.
+Refuses: "The main remote of this repository is not on a GitLab." when Quick search asks it elsewhere.
+@card desktop hosting.read-merge-requests
+title: Read the open merge requests of GitLab
+place: the branch rail
+show: none
+The open merge requests of the project on GitLab, each with the state of the pipeline of its last commit, by the name of its branch: what `github.read-pull-requests` gives for GitHub, for the same labels.
+@card desktop hosting.read-pull-request-list
+title: Read the open pull requests to pick from
+place: the branch rail
+show: none
+The open pull requests of the repository, those from forks included, with their number, title, author and branch, for the pick of `hosting.checkout-pull-request`.
+@card desktop hosting.checkout-pull-request
+title: Check out a pull request
+place: the branch rail
+show: quick search
+Checks out the commits of a pull request in a local branch, also one from a fork, to try it or review it.
+Entry points: **Check out a pull request…** (**Check out a merge request…** on GitLab) in Quick search and in the **…** menu of the header; **Check out pull request #`<n>`** in the context menu of a remote branch whose label shows a pull request (`graph.pull-request-badge`), in the timeline and in the branch rail.
+Offered when: the main remote is on GitHub, GitLab, Gitea or Forgejo, which keep the commits of each pull request under a reference of their own; no merge, rebase, cherry-pick, revert, patch or bisect is under way.
+Refuses: *Finish or abort the `<operation>` first.*; *End the bisect first.*; "`<name>` is checked out in another worktree: check out the pull request there." when it is. What is typed in the pick and is neither a pull request listed nor a number is refused while it is typed: "Type the number of a pull request".
 @card desktop preview.confirm
 title: Show the commands before they run
 place: the header and the bottom panel
@@ -3338,7 +3400,7 @@ Entry points: **Put a branch and its upstream on one label** in the menu of the 
 title: Pull request on a label
 place: the timeline
 show: none
-Once the pull requests are loaded from GitHub, the label of a branch that has an open one ends with its number, in the color of its checks.
+Once the pull requests are loaded from GitHub, or the merge requests from GitLab (`hosting.load-merge-requests`), the label of a branch that has an open one ends with its number, in the color of its checks.
 Entry points: the labels of the timeline, the rows of the branch rail.
 @card extension graph.unpushed
 title: Commits not pushed yet
@@ -3366,7 +3428,7 @@ Entry points: selecting a commit; **Bring out the history of the selected commit
 title: What is shown with each message
 place: the timeline
 show: none
-Who made each commit and when, on the line under its message, and its hash at the end of the row.
+Who made each commit and when, on the line under its message after its labels, and its hash at the end of the row.
 Entry points: **Show the author**, **Show the date** and **Show the hash** in the menu of the view.
 @card extension graph.date-separators
 title: Lines between days, weeks and months
@@ -4710,6 +4772,12 @@ show: show where
 Copies the changes of the comparison, as listed, as a patch that `git apply` takes, binary files included.
 Entry points: **Copy as patch** in the comparison page (**Copy the changes as a patch that git apply takes**).
 Offered when: files differ.
+@card extension compare.open-on-service
+title: Open the comparison on another hosting service
+place: the Compare page
+show: show where
+What `compare.open-on-github` does for GitHub, on GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo: opens the same comparison on the hosting service of the main remote, each side by the name it has there.
+In VS Code: **Open on `<service>`** in the Compare tab, where **Open on GitHub** is, and only in **Since they diverged** on Bitbucket, Gitea and Forgejo; runs it on the engine with the target `comparison`, on GitHub too, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. When the engine's binary is missing, it says so.
 @card extension compare.path-with
 title: Compare a file or a folder with a branch, tag or commit
 place: the Compare page
@@ -5339,13 +5407,66 @@ title: Open or create the pull request of a branch
 place: the branch rail
 show: none
 Opens the pull request of a branch in the browser, or GitHub's page to create one.
-In VS Code: the same entries in the graph's menus and its badges; derives the address in TypeScript, from the pull requests the engine read, with `compareUrl` in, and opens it with `vscode.env.openExternal`. It changes nothing and runs no git, so it needs no feature of the engine.
+In VS Code: the same entries in the graph's menus and its badges; opens the address of the pull request the engine read, or asks the engine for the page that creates one (`read/hosting.web-link`, `hosting.web-links`), and opens it with `vscode.env.openExternal`. It changes nothing and runs no git.
 @card extension github.offer-after-push
 title: Offer to create a pull request after the first push
 place: the branch rail
 show: none
 The first push of a branch is when a pull request is usually wanted: Gitardo offers to open GitHub's page to create it.
 In VS Code: derives it in TypeScript once a push of the engine gave the branch its upstream, and says **Pushed \<branch\>.** with **Create Pull Request**, which opens the address of `github.open-pull-request`.
+@card extension hosting.detect-remote
+title: The hosting service of the main remote
+place: the branch rail
+show: none
+Works out which hosting service the main remote of the repository is on, GitHub, GitLab, Bitbucket, Azure DevOps, Gitea or Forgejo, and the project there, so that its pull requests can be opened, created, compared and checked out.
+In VS Code: the engine's, read with `read/hosting.detect-remote` when a repository is opened, after **Manage Remotes** and when `gitardo.hosting.selfHosted` changes, and sent to the views with the state of the repository (`RepoState.hosting`), for GitHub too.
+@card extension hosting.web-links
+title: The pages of a hosting service
+place: the branch rail
+show: none
+The addresses of the pages of a hosting service that Gitardo opens in the browser: a pull request, the page that creates one for a branch, and the comparison of two sides.
+In VS Code: the engine's, in the follow-up `openUrl` the extension opens with `vscode.env.openExternal`, and the page that creates a pull request asked with `read/hosting.web-link`.
+@card extension hosting.open-pull-request
+title: Open or create the pull request of a branch, on another hosting service
+place: the branch rail
+show: none
+What `github.open-pull-request` does for GitHub, on the other services: opens the merge request of a branch on GitLab, or the page of the service that creates a pull request for it.
+In VS Code: the same entries in the menus of the branches (`pullEntry` in) and on the labels of the graph; opens the address of the merge request known, or asks the engine for the page that creates one (`read/hosting.web-link`), and opens it with `vscode.env.openExternal`.
+@card extension hosting.offer-after-push
+title: Offer to create a pull request after the first push, on another hosting service
+place: the branch rail
+show: none
+What `github.offer-after-push` does for GitHub, on the other services.
+In VS Code: offers **Create Merge Request** on GitLab, **Create Pull Request** elsewhere, after the first push of a branch with none known, on every service the engine found, and opens what opens.
+@card extension hosting.token
+title: Read the token of a GitLab
+place: the branch rail
+show: none
+Finds the token that the API of a GitLab is asked with, as `github.token` finds GitHub's, without asking the user anything.
+In VS Code: VS Code has no sign-in to GitLab of its own; the engine asks the extension with the host question of the token, `host/githubToken` naming the host name (since 1.11), which the extension answers from its secret storage (`ExtensionContext.secrets`), under `hosting.token:<host>`, and, when it is asked to, with an input box titled **GitLab token** that hides what is typed, keeping what is typed (; `tokenOfHost` in).
+@card extension hosting.load-merge-requests
+title: Load merge requests from GitLab
+place: the branch rail
+show: quick search
+Reads the open merge requests of the project for the first time, asking for a token of GitLab if none is found, and keeps that token for the next times.
+In VS Code: **Load merge requests from GitLab** in the **…** menu of the graph and **Gitardo: Sign In to GitLab** in the Command Palette, run on the engine; the token is asked in VS Code's input box and kept in the secret storage of the extension (`hosting.token`). When the engine's binary is missing, it says so.
+@card extension hosting.read-merge-requests
+title: Read the open merge requests of GitLab
+place: the branch rail
+show: none
+The open merge requests of the project on GitLab, each with the state of the pipeline of its last commit, by the name of its branch: what `github.read-pull-requests` gives for GitHub, for the same labels.
+In VS Code: the engine's read, `read/github.read-pull-requests` answering the merge requests when the main remote is on a GitLab, asked by the extension as it asks for the pull requests of GitHub, with the token it keeps for the host name, so that nothing asks the user; a token the GitLab refuses is forgotten, and the next sign-in asks for another.
+@card extension hosting.read-pull-request-list
+title: Read the open pull requests to pick from
+place: the branch rail
+show: none
+The open pull requests of the repository, those from forks included, with their number, title, author and branch, for the pick of `hosting.checkout-pull-request`.
+@card extension hosting.checkout-pull-request
+title: Check out a pull request
+place: the branch rail
+show: quick search
+Checks out the commits of a pull request in a local branch, also one from a fork, to try it or review it.
+In VS Code: **Gitardo: Check Out Pull Request…** in the Command Palette and in the **…** menu of the graph, and the entry on the remote branch (`remoteBranchMenu` in), sending `feature/run` of `hosting.checkout-pull-request` to Gitardo's engine (in); the pick is a quick pick with a box to type in, the name an input box checked with `question/validate`. When the engine's binary is missing, it says so.
 @card extension preview.confirm
 title: Show the commands before they run
 place: the header and the bottom panel

@@ -171,7 +171,7 @@ fn hosting_checkout_pull_request__on_bitbucket_neither_entry_is_offered() {
     );
     assert_eq!(
         on_bitbucket.iter().filter(|word| **word == "-").count(),
-        3,
+        4,
         "no line of an empty group"
     );
     let label = crate::text::github::check_out_this_pull_request(model::hosting::HostingService::GitLab, 12);

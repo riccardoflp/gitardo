@@ -59,6 +59,7 @@ impl GitLabPlace {
                 (OsString::from("GIT_CONFIG_NOSYSTEM"), OsString::from("1")),
                 (OsString::from("GIT_CONFIG_GLOBAL"), global.into_os_string()),
             ],
+            copilot: engine::ai::CopilotCli::system(),
         };
         GitLabPlace {
             repository,
