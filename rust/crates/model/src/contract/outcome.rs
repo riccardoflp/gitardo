@@ -262,6 +262,15 @@ pub enum Query {
         /// Whether `git credential fill` may run.
         helper: crate::github::HelperAsked,
     },
+    /// The token of a GitLab: the one kept in the credential store of the system for its host name, or, when allowed,
+    /// the one git's credential helper knows for that host name (`hosting.token`). The answer is
+    /// [`super::Answer::Token`].
+    HostingToken {
+        /// The host name: `gitlab.com`.
+        host: String,
+        /// Whether `git credential fill` may run.
+        helper: crate::github::HelperAsked,
+    },
     /// The models the AI provider lists, asked with the key given, else the one kept in the credential store of the
     /// system (`ai.choose-model`). The answer is [`super::Answer::AiModels`].
     AiModels {

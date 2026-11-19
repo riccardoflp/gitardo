@@ -357,7 +357,11 @@ fn graph_pull_request_badge__a_branch_whose_upstream_has_pull_request_12_with_ch
         .find(|branch| branch.name == "feature")
         .unwrap();
     let pull_request = app::store::github::shown(&state).of_branch(feature).unwrap();
-    let badge = views::graph::PullRequestBadge { pull_request, lane: 0 };
+    let badge = views::graph::PullRequestBadge {
+        pull_request,
+        lane: 0,
+        service: model::hosting::HostingService::GitHub,
+    };
     assert_eq!(views::graph::pull_request_badge_tone(&badge), ui::Tone::Error);
     window.assert_snapshot("pull-request-badge-dark");
 }

@@ -39,6 +39,8 @@ pub enum MainRemote {
     Elsewhere,
     /// On github.com.
     OnGitHub,
+    /// On another hosting service Gitardo knows (`hosting.detect-remote`).
+    OnService(model::hosting::HostingService),
 }
 
 /// What **Branch**, **Stash** and **Undo** may do.
@@ -209,14 +211,7 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
             "identity.switch",
             operations,
         ));
-        if state.main_remote == MainRemote::OnGitHub {
-            entries.push(MenuEntry::Separator);
-            entries.push(operation_item(
-                crate::text::github::LOAD_PULL_REQUESTS,
-                "github.load-pull-requests",
-                operations,
-            ));
-        }
+        entries.extend(pull_request_entries(state.main_remote, operations));
     }
     entries.push(MenuEntry::Separator);
     entries.push(MenuEntry::Item(
@@ -238,3 +233,16 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests;
+
+/// The entries of the pull requests of the hosting service of the main remote, after a line: **Load pull requests from
+/// GitHub** (`github.load-pull-requests`), or **Load merge requests from GitLab** (`hosting.load-merge-requests`).
+fn pull_request_entries(main_remote: MainRemote, operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
+    let load = match main_remote {
+        MainRemote::OnGitHub => (crate::text::github::LOAD_PULL_REQUESTS, "github.load-pull-requests"),
+        MainRemote::OnService(model::hosting::HostingService::GitLab) => {
+            (crate::text::github::LOAD_MERGE_REQUESTS, "hosting.load-merge-requests")
+        }
+        MainRemote::OnService(_) | MainRemote::Elsewhere => return Vec::new(),
+    };
+    vec![MenuEntry::Separator, operation_item(load.0, load.1, operations)]
+}

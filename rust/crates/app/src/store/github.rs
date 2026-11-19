@@ -101,6 +101,14 @@ pub enum GitHubWork {
         /// The token just found or given.
         token: Option<Token>,
     },
+    /// Reads the open merge requests of a project on a GitLab, with the token given, or the one kept for its host name;
+    /// with neither, nothing is sent (`hosting.read-merge-requests`).
+    ReadMergeRequests {
+        /// The project on its GitLab.
+        repository: HostingRepo,
+        /// The token just found or given.
+        token: Option<Token>,
+    },
 }
 
 /// What a job of the pull requests answers.
@@ -190,7 +198,7 @@ pub fn reduce(state: &mut State, message: GitHubMessage) -> Vec<Effect> {
 /// was read last.
 pub fn after_operation(state: &mut State, after: &[FollowUp]) -> Vec<Effect> {
     let kept = after.iter().find_map(|follow_up| match follow_up {
-        FollowUp::KeepGitHubToken(token) => Some(token.clone()),
+        FollowUp::KeepGitHubToken(token) | FollowUp::KeepHostingToken(_, token) => Some(token.clone()),
         _ => None,
     });
     if let Some(token) = kept {
@@ -283,6 +291,10 @@ fn detected(
     if state.github.repository != repository || is_other(state.github.hosting.as_ref(), hosting.as_ref()) {
         state.github.pull_requests = None;
         state.github.asked_at = None;
+        // Each host name has a token of its own: whether one is kept for the new one is found out by the next read.
+        if state.github.hosting.is_some() {
+            state.github.token = TokenKept::Unknown;
+        }
     }
     state.github.repository = repository;
     state.github.hosting = hosting;
@@ -296,7 +308,7 @@ fn schedule(state: &mut State) -> Vec<Effect> {
     if github.detecting.is_some() || github.reading.is_some() {
         return Vec::new();
     }
-    let (Some(repository), Some(folder)) = (github.repository.clone(), github.folder.clone()) else {
+    let (Some(project), Some(folder)) = (readable(github), github.folder.clone()) else {
         return Vec::new();
     };
     let is_old = github
@@ -312,22 +324,39 @@ fn schedule(state: &mut State) -> Vec<Effect> {
         None if is_old => Origin::OnItsOwn,
         None => return Vec::new(),
     };
-    start_read(state, (folder, repository), origin)
+    start_read(state, (folder, project), origin)
+}
+
+/// What the pull requests are read of: the repository on GitHub, or the project on a GitLab.
+enum Readable {
+    /// The repository on GitHub of the main remote (`github.read-pull-requests`).
+    GitHub(GitHubRepo),
+    /// The project on a GitLab of the main remote (`hosting.read-merge-requests`).
+    GitLab(HostingRepo),
+}
+
+/// What the pull requests can be read of; none on another service, or before the main remote is known.
+fn readable(github: &GitHub) -> Option<Readable> {
+    match (&github.repository, &github.hosting) {
+        (Some(repository), _) => Some(Readable::GitHub(repository.clone())),
+        (None, Some(hosting)) if hosting.service.has_merge_requests() => Some(Readable::GitLab(hosting.clone())),
+        _ => None,
+    }
 }
 
 /// Starts a read of the pull requests.
-fn start_read(state: &mut State, (folder, repository): (PathBuf, GitHubRepo), origin: Origin) -> Vec<Effect> {
+fn start_read(state: &mut State, (folder, project): (PathBuf, Readable), origin: Origin) -> Vec<Effect> {
     let id = next_job(state);
     let github = &mut state.github;
     github.wanted = None;
     github.asked_at = Some(github.now);
     github.reading = Some((id, origin));
     let token = github.given.take();
-    vec![Effect::GitHub(GitHubJob {
-        id,
-        folder,
-        work: GitHubWork::Read { repository, token },
-    })]
+    let work = match project {
+        Readable::GitHub(repository) => GitHubWork::Read { repository, token },
+        Readable::GitLab(repository) => GitHubWork::ReadMergeRequests { repository, token },
+    };
+    vec![Effect::GitHub(GitHubJob { id, folder, work })]
 }
 
 /// The pull requests were read, or not: a token refused is known not to be kept any more; what went wrong is said when
@@ -353,7 +382,12 @@ fn pulls_read(state: &mut State, job: JobId, result: PullsRead) -> Vec<Effect> {
                 state.github.token = TokenKept::Absent;
                 state.github.pull_requests = None;
             }
-            let text = words::could_not_read(&said);
+            let is_gitlab = state.github.repository.is_none() && state.github.hosting.is_some();
+            let text = if is_gitlab {
+                words::could_not_read_merge_requests(&said)
+            } else {
+                words::could_not_read(&said)
+            };
             match origin {
                 Origin::Loaded => state.operations.said = Some(Said::error(text)),
                 Origin::OnItsOwn => state.log.record_warning(Timestamp(state.github.now), text),

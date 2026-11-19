@@ -128,3 +128,24 @@ fn graph_more_menu__the_entries_with_a_condition_are_there_only_while_it_holds()
     }
     assert!(some.contains(&"History of the active file"));
 }
+
+#[test]
+fn hosting_load_merge_requests__on_github_the_menu_has_no_such_entry_and_on_gitlab_it_has_one() {
+    const LOAD: &str = "Load merge requests from GitLab";
+    let on_github = words(&everything());
+    assert!(!on_github.contains(&LOAD));
+    let on_gitlab = words(&MoreMenuState {
+        main_remote: MainRemote::OnService(model::hosting::HostingService::GitLab),
+        ..everything()
+    });
+    assert!(on_gitlab.contains(&LOAD));
+    assert!(!on_gitlab.contains(&"Load pull requests from GitHub"));
+    let on_gitea = words(&MoreMenuState {
+        main_remote: MainRemote::OnService(model::hosting::HostingService::Gitea),
+        ..everything()
+    });
+    assert!(
+        !on_gitea.contains(&LOAD),
+        "only a GitLab has merge requests Gitardo reads"
+    );
+}

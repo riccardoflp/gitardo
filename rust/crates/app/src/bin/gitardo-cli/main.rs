@@ -154,6 +154,14 @@ fn autostash_notice(context: &Context, finished: &Finished, out: &mut dyn Write)
     }
 }
 
+/// The line of a token kept: `Keep the GitHub token in the credential store`.
+fn keep_token_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
+    match follow_up {
+        FollowUp::KeepHostingToken(host, _) => writeln!(out, "Keep the token of {host} in the credential store"),
+        _ => writeln!(out, "Keep the GitHub token in the credential store"),
+    }
+}
+
 /// The line `gitardo-cli` prints for what the window would do once a plan ran, if any.
 fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
     match follow_up {
@@ -189,7 +197,7 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         }
         FollowUp::ShowFolder(folder) => writeln!(out, "Show {} in this window", folder.display())?,
         FollowUp::OfferRun(offered) => writeln!(out, "Next: {} ({})", offered.label, offered.feature.0)?,
-        FollowUp::KeepGitHubToken(_) => writeln!(out, "Keep the GitHub token in the credential store")?,
+        FollowUp::KeepGitHubToken(_) | FollowUp::KeepHostingToken(..) => keep_token_line(out, follow_up)?,
         FollowUp::KeepAiKey(..) => writeln!(out, "Keep the key of the AI provider in the credential store")?,
         FollowUp::TrustFolder(folder) => writeln!(out, "Trust {}", folder.display())?,
         FollowUp::WriteSetting(written) => match &written.value {

@@ -3,7 +3,7 @@
 //! (`github.open-pull-request`) are made.
 
 use model::github::{BranchOf, GitHubRepo, PullLink, PullLinkInput, PullRequest, PullRequests, pull_request_link};
-use model::hosting::{self, HostingPullLinkInput, HostingRepo};
+use model::hosting::{self, HostingPullLinkInput, HostingRepo, HostingService};
 use model::state::{Branch, RemoteBranch, RepositoryState};
 
 /// The pull requests of GitHub, as the views are given them.
@@ -19,6 +19,21 @@ pub struct GitHubShown<'a> {
 }
 
 impl<'a> GitHubShown<'a> {
+    /// Whether the pull requests of the main remote are read: on GitHub, and the merge requests of a GitLab.
+    #[must_use]
+    pub fn has_pull_requests(&self) -> bool {
+        self.repository.is_some() || self.hosting.is_some_and(|hosting| hosting.service.has_merge_requests())
+    }
+
+    /// The hosting service of the main remote, whose words the badges and the menus say; GitHub when it is not known.
+    #[must_use]
+    pub fn service(&self) -> HostingService {
+        match (self.repository, self.hosting) {
+            (None, Some(hosting)) => hosting.service,
+            _ => HostingService::GitHub,
+        }
+    }
+
     /// The pull request of a local branch: the one of the name it was pushed under, its upstream not gone.
     #[must_use]
     pub fn of_branch(&self, branch: &Branch) -> Option<&'a PullRequest> {
@@ -27,7 +42,9 @@ impl<'a> GitHubShown<'a> {
             .remote_branch
             .strip_prefix("refs/heads/")
             .unwrap_or(&upstream.remote_branch);
-        let _on_github = self.repository?;
+        if !self.has_pull_requests() {
+            return None;
+        }
         self.pull_requests?.of_branch(name)
     }
 
@@ -51,7 +68,9 @@ impl<'a> GitHubShown<'a> {
     #[must_use]
     pub fn of_remote_name(&self, remote: &RemoteBranch) -> Option<&'a PullRequest> {
         let name = remote_name(remote);
-        let _on_github = self.repository?;
+        if !self.has_pull_requests() {
+            return None;
+        }
         self.pull_requests?.of_branch(name)
     }
 

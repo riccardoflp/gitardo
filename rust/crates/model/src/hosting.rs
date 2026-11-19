@@ -139,6 +139,15 @@ impl HostingRepo {
     pub fn default_branch(&self) -> &str {
         self.default_branch.as_deref().unwrap_or("main")
     }
+
+    /// The address of the service itself, where its API is: `https://gitlab.com`, or the address of the pages of a
+    /// service of one's own.
+    #[must_use]
+    pub fn site(&self) -> String {
+        self.web
+            .strip_suffix(&format!("/{}", self.path))
+            .map_or_else(|| format!("https://{}", self.host), str::to_owned)
+    }
 }
 
 /// A page of a hosting service that Gitardo opens in the browser.

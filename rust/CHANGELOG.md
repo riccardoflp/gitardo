@@ -12,6 +12,11 @@
   first push of a new branch offers it, as on GitHub. The comparison page has **Open on GitLab**, **Open on Azure
   DevOps** and the like, which opens the same comparison on the service; on Bitbucket, Gitea and Forgejo, whose pages
   compare only since the two diverged, only in **Since they diverged**.
+- On GitLab, **Load merge requests from GitLab** in the **…** menu, or **Sign in to GitLab** in Quick search, reads
+  the open merge requests of the project, with a token found in the credential store or given by git's credential
+  helper, or asked for once and kept in the credential store of the system. The label of a branch with an open merge
+  request then ends with `!12` in the color of its pipeline, and they are read again on their own as pull requests
+  are on GitHub; a token GitLab refuses is taken out of the store.
 
 ## 1.2.0 - 2026-11-18
 

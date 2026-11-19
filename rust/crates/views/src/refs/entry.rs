@@ -240,13 +240,7 @@ pub(super) fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, mark
                 lines.push(words::in_worktree(&worktree_folder(worktree), worktree.uncommitted));
             }
             if let Some(pull_request) = state.github.of_branch(branch) {
-                let (number, title) = (pull_request.number, &pull_request.title);
-                lines.push(github_words::badge_tooltip(
-                    number,
-                    title,
-                    pull_request.is_draft,
-                    pull_request.checks,
-                ));
+                lines.push(github_words::badge_tooltip(state.github.service(), pull_request));
             }
         }
         Entry::Stash(stash) => {
@@ -256,13 +250,7 @@ pub(super) fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, mark
         Entry::Worktree(worktree) => {
             lines.push(crate::worktree::tooltip(state.repository, worktree));
             if let Some((_, pull_request)) = worktree_pull_request(state, worktree) {
-                let (number, title) = (pull_request.number, &pull_request.title);
-                lines.push(github_words::badge_tooltip(
-                    number,
-                    title,
-                    pull_request.is_draft,
-                    pull_request.checks,
-                ));
+                lines.push(github_words::badge_tooltip(state.github.service(), pull_request));
             }
         }
         _ => {}
@@ -370,7 +358,12 @@ fn branch_row(
     ui.fill_circle(dot.center(), DOT * 0.5, color);
     if let Some(pull_request) = state.github.of_branch(branch) {
         let lane = state.branch_colors.get(&branch.name).copied().unwrap_or_default();
-        let badge = PullRequestBadge { pull_request, lane };
+        let service = state.github.service();
+        let badge = PullRequestBadge {
+            pull_request,
+            lane,
+            service,
+        };
         let width = pull_request_badge_width(ui, &badge);
         let _ = draw_pull_request_badge(ui, parts.right(width), &badge);
     }
@@ -455,7 +448,12 @@ fn worktree_row(ui: &mut Ui<'_>, state: &ReferencesState<'_>, (worktree, marks):
     ui.icon_in(parts.left(theme.sizes.icon), icons::WORKTREE, Tone::Muted);
     if let Some((branch, pull_request)) = worktree_pull_request(state, worktree) {
         let lane = state.branch_colors.get(&branch.name).copied().unwrap_or_default();
-        let badge = PullRequestBadge { pull_request, lane };
+        let service = state.github.service();
+        let badge = PullRequestBadge {
+            pull_request,
+            lane,
+            service,
+        };
         let width = pull_request_badge_width(ui, &badge);
         let _ = draw_pull_request_badge(ui, parts.right(width), &badge);
     }

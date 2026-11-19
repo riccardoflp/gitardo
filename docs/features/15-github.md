@@ -449,7 +449,8 @@ of its branch: what `github.read-pull-requests` gives for GitHub, for the same l
 - **Kind**: Read
 - **Function**: `engine::hosting::read_merge_requests(http: &Http, request: &MergeRequestsRequest) -> Result<PullRequests, HostingError>`,
   with `engine::hosting::parse_merge_requests(body: &[u8]) -> Result<PullRequests, HostingError>`
-- **Reads**: one `POST https://<host>/api/graphql`, with the headers `Authorization: Bearer <token>`,
+- **Reads**: one `POST https://<host>/api/graphql` (under the address of the pages of a GitLab of one's own when
+  `hosting.selfHosted` gives one with a path: `https://git.example.com/gitlab/api/graphql`), with the headers `Authorization: Bearer <token>`,
   `Content-Type: application/json` and `User-Agent: gitardo-desktop`, and a query that asks of
   `project(fullPath: $path)` for `mergeRequests(state: opened, first: 100, sort: UPDATED_DESC)`, and of each its `iid`,
   `title`, `webUrl`, `draft`, `sourceBranch`, `sourceProjectId`, `targetProjectId` and `headPipeline { status }`.

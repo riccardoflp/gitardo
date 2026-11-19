@@ -3,6 +3,7 @@
 
 use model::github::{Checks, PullRequest};
 use model::graph::{Label, LabelKind};
+use model::hosting::HostingService;
 use ui::{AccessRole, Badge, BadgeFill, Description, Icon, Rect, Sense, Tone, Ui};
 
 use super::state::HistoryState;
@@ -17,6 +18,8 @@ pub struct PullRequestBadge<'a> {
     pub pull_request: &'a PullRequest,
     /// The lane of the label, whose color the badge has when the pull request has no checks.
     pub lane: usize,
+    /// The hosting service, whose words the badge says: `!12` on GitLab, `#12` elsewhere.
+    pub service: HostingService,
 }
 
 /// The icon of a pull request, and of a draft.
@@ -25,17 +28,12 @@ const PULL_REQUEST: [Icon; 1] = [icons::PULL_REQUEST];
 const DRAFT: [Icon; 1] = [icons::DRAFT_PULL_REQUEST];
 
 impl PullRequestBadge<'_> {
-    /// The tooltip: `Pull request #12: Add the parser · checks passed`, then **Click to open it on GitHub**.
+    /// The tooltip: `Pull request #12: Add the parser · checks passed`, then **Click to open it on GitHub**; on GitLab
+    /// `Merge request !12: …`.
     #[must_use]
     pub fn tooltip(&self) -> String {
-        let pull_request = self.pull_request;
-        let first = words::badge_tooltip(
-            pull_request.number,
-            &pull_request.title,
-            pull_request.is_draft,
-            pull_request.checks,
-        );
-        format!("{first}\n{}", words::CLICK_TO_OPEN)
+        let first = words::badge_tooltip(self.service, self.pull_request);
+        format!("{first}\n{}", words::click_to_open(self.service))
     }
 
     /// The pill, with its words.
@@ -61,7 +59,7 @@ impl PullRequestBadge<'_> {
 /// How wide the badge is.
 #[must_use]
 pub fn pull_request_badge_width(ui: &Ui<'_>, state: &PullRequestBadge<'_>) -> f32 {
-    let text = words::badge_text(state.pull_request.number);
+    let text = words::badge_text(state.service, state.pull_request.number);
     ui.badge_width(&state.badge(&text))
 }
 
@@ -91,7 +89,7 @@ pub fn pull_request_badge_view(state: &PullRequestBadge<'_>, ui: &mut Ui<'_>) ->
 
 /// Draws the badge alone, with nothing to click: in a row of the branch rail, whose tooltip says the pull request.
 pub fn draw_pull_request_badge(ui: &mut Ui<'_>, rect: Rect, state: &PullRequestBadge<'_>) -> Rect {
-    let text = words::badge_text(state.pull_request.number);
+    let text = words::badge_text(state.service, state.pull_request.number);
     ui.badge(rect, &state.badge(&text))
 }
 
@@ -99,7 +97,14 @@ pub fn draw_pull_request_badge(ui: &mut Ui<'_>, rect: Rect, state: &PullRequestB
 /// no pull request.
 pub(super) fn badge_room(ui: &Ui<'_>, state: &HistoryState<'_>, label: &Label, lane: usize) -> f32 {
     of_label(state, label).map_or(0.0, |pull_request| {
-        let badge = PullRequestBadge { pull_request, lane };
+        let service = state
+            .references
+            .map_or(HostingService::GitHub, |menus| menus.github.service());
+        let badge = PullRequestBadge {
+            pull_request,
+            lane,
+            service,
+        };
         ui.theme().sizes.spacing.medium + pull_request_badge_width(ui, &badge)
     })
 }
@@ -118,7 +123,14 @@ pub(super) fn after_label(
     let Some(pull_request) = labels.get(index).and_then(|label| of_label(state, label)) else {
         return next;
     };
-    let state = PullRequestBadge { pull_request, lane };
+    let service = state
+        .references
+        .map_or(HostingService::GitHub, |menus| menus.github.service());
+    let state = PullRequestBadge {
+        pull_request,
+        lane,
+        service,
+    };
     let width = pull_request_badge_width(ui, &state);
     if next + width > end.min(ui.current_clip().right()) {
         return next;
@@ -146,5 +158,47 @@ fn of_label<'a>(state: &HistoryState<'a>, label: &Label) -> Option<&'a PullReque
             menus.github.of_remote_branch(repository, remote)
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
+
+    use model::github::{Checks, PullRequest};
+    use model::hosting::HostingService;
+
+    use super::PullRequestBadge;
+    use crate::text::github as words;
+
+    #[test]
+    fn graph_pull_request_badge__on_gitlab_merge_request_12_says_12_with_an_exclamation_mark_and_its_pipeline() {
+        let merge_request = PullRequest {
+            number: 12,
+            title: String::from("Add the parser"),
+            url: String::from("https://gitlab.com/group/app/-/merge_requests/12"),
+            is_draft: false,
+            branch: String::from("feature"),
+            checks: Some(Checks::Passed),
+        };
+        let badge = PullRequestBadge {
+            pull_request: &merge_request,
+            lane: 0,
+            service: HostingService::GitLab,
+        };
+        assert_eq!(words::badge_text(badge.service, 12), "!12");
+        assert_eq!(
+            badge.tooltip(),
+            "Merge request !12: Add the parser \u{b7} pipeline passed\nClick to open it on GitLab"
+        );
+        let on_github = PullRequestBadge {
+            service: HostingService::GitHub,
+            ..badge
+        };
+        assert_eq!(words::badge_text(on_github.service, 12), "#12");
+        assert_eq!(
+            on_github.tooltip(),
+            "Pull request #12: Add the parser \u{b7} checks passed\nClick to open it on GitHub"
+        );
     }
 }

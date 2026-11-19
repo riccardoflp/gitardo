@@ -270,10 +270,10 @@ impl ViewData {
                     can_stash: features::operation("stash.push").is_some() && !read.working_tree.is_clean(),
                 }),
                 has_submodules: read.is_some_and(|read| !read.submodules.is_empty()),
-                main_remote: if read.is_some() && state.github.repository.is_some() {
-                    views::graph::MainRemote::OnGitHub
-                } else {
-                    views::graph::MainRemote::Elsewhere
+                main_remote: match (read.is_some(), &state.github.repository, &state.github.hosting) {
+                    (true, Some(_), _) => views::graph::MainRemote::OnGitHub,
+                    (true, None, Some(hosting)) => views::graph::MainRemote::OnService(hosting.service),
+                    _ => views::graph::MainRemote::Elsewhere,
                 },
                 active_file: state.file_in_front(),
             },

@@ -16,6 +16,7 @@ pub mod github;
 mod held;
 mod history;
 mod host;
+pub mod hosting;
 pub mod log;
 mod preview;
 mod queries;
