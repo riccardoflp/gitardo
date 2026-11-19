@@ -55,7 +55,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 164] = [
+pub const OPERATIONS: [(FeatureId, Operation); 167] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -114,10 +114,13 @@ pub const OPERATIONS: [(FeatureId, Operation); 164] = [
     // The Diff page.
     (FeatureId("diff.discard-file"), diff::discard_file),
     (FeatureId("diff.revert-change"), diff::revert_change),
+    (FeatureId("diff.revert-lines"), diff::revert_lines),
     (FeatureId("diff.stage-change"), diff::stage_change),
     (FeatureId("diff.stage-file"), diff::stage_file),
+    (FeatureId("diff.stage-lines"), diff::stage_lines),
     (FeatureId("diff.unstage-change"), diff::unstage_change),
     (FeatureId("diff.unstage-file"), diff::unstage_file),
+    (FeatureId("diff.unstage-lines"), diff::unstage_lines),
     (FeatureId("file-view.open-external"), file_view::open_external),
     (FeatureId("file-view.save"), file_view::save),
     // Commits brought, taken back and reworded, and several selected at once.

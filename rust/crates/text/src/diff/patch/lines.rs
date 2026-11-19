@@ -54,26 +54,7 @@ enum Step {
 pub fn lines_patch(input: &LinesPatchInput<'_>) -> Option<String> {
     let index = exact_lines(input.index);
     let other = exact_lines(input.other);
-    let (index_keys, other_keys) = (keys(&index), keys(&other));
-    let (index_keys, other_keys): (Vec<&str>, Vec<&str>) = (
-        index_keys.iter().map(String::as_str).collect(),
-        other_keys.iter().map(String::as_str).collect(),
-    );
-    let always = || true;
-    let differences = line_diff(&LineDiffInput {
-        left: &index_keys,
-        right: &other_keys,
-        keep_going: &always,
-    })
-    .ok()?;
-    let steps: Vec<Step> = differences
-        .iter()
-        .flat_map(|difference| {
-            let mut steps = steps_of(difference, input, &index);
-            steps.push(Step::End);
-            steps
-        })
-        .collect();
+    let steps = steps_taken(input, &index, &other)?;
     let hunks = hunks_of(&steps);
     if hunks.is_empty() {
         return None;
@@ -111,6 +92,90 @@ pub fn lines_patch(input: &LinesPatchInput<'_>) -> Option<String> {
         }
     }
     Some(patch)
+}
+
+/// The index with only the lines selected of the differences taken from the other text, as `git apply` of the patch of
+/// `lines_patch` would leave it: the lines of the index kept in their line endings, the lines taken in those of the
+/// index. The window reverts lines with it, the working tree as the index and the left side as the other text. None
+/// when no line selected differs.
+#[must_use]
+pub fn lines_taken(input: &LinesPatchInput<'_>) -> Option<String> {
+    let index = exact_lines(input.index);
+    let other = exact_lines(input.other);
+    let steps = steps_taken(input, &index, &other)?;
+    if !steps
+        .iter()
+        .any(|step| matches!(step, Step::Old(_, true) | Step::New(_, true, _)))
+    {
+        return None;
+    }
+    let ending = if input.index.contains("\r\n") { "\r\n" } else { "\n" };
+    let mut lines: Vec<(&str, bool)> = Vec::new();
+    let mut next = 0;
+    for step in &steps {
+        match *step {
+            Step::Old(line, taken) => {
+                keep_until(&index, (&mut lines, &mut next), line);
+                if let (false, Some(kept)) = (taken, index.get(line)) {
+                    lines.push((kept.raw, kept.has_break));
+                }
+                next = line + 1;
+            }
+            Step::New(line, true, place) => {
+                keep_until(&index, (&mut lines, &mut next), place);
+                if let Some(added) = other.get(line) {
+                    lines.push((added.content, added.has_break));
+                }
+            }
+            Step::New(_, false, _) | Step::End => {}
+        }
+    }
+    keep_until(&index, (&mut lines, &mut next), index.len());
+    let count = lines.len();
+    let mut text = String::new();
+    for (place, (line, has_break)) in lines.into_iter().enumerate() {
+        text.push_str(line);
+        if has_break || place + 1 < count {
+            // A line of the index keeps its `\r` in its text; a line taken gets the ending of the index.
+            text.push_str(if line.ends_with('\r') { "\n" } else { ending });
+        }
+    }
+    Some(text)
+}
+
+/// The lines of the index from the next one up to a line, kept as they are.
+fn keep_until<'a>(index: &[ExactLine<'a>], (lines, next): (&mut Vec<(&'a str, bool)>, &mut usize), end: usize) {
+    for line in index.get(*next..end.max(*next)).unwrap_or_default() {
+        lines.push((line.raw, line.has_break));
+    }
+    *next = end.max(*next);
+}
+
+/// The steps of every difference between the index and the other text, each line marked taken when its row is
+/// selected; none when the differences cannot be found.
+fn steps_taken(input: &LinesPatchInput<'_>, index: &[ExactLine<'_>], other: &[ExactLine<'_>]) -> Option<Vec<Step>> {
+    let (index_keys, other_keys) = (keys(index), keys(other));
+    let (index_keys, other_keys): (Vec<&str>, Vec<&str>) = (
+        index_keys.iter().map(String::as_str).collect(),
+        other_keys.iter().map(String::as_str).collect(),
+    );
+    let always = || true;
+    let differences = line_diff(&LineDiffInput {
+        left: &index_keys,
+        right: &other_keys,
+        keep_going: &always,
+    })
+    .ok()?;
+    Some(
+        differences
+            .iter()
+            .flat_map(|difference| {
+                let mut steps = steps_of(difference, input, index);
+                steps.push(Step::End);
+                steps
+            })
+            .collect(),
+    )
 }
 
 /// The names of the file at the top of a patch, and for a file the index does not have, its mode and `/dev/null`.
