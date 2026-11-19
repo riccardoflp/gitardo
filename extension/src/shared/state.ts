@@ -254,7 +254,7 @@ export interface RepositoryState {
   /** The names of the remotes. */
   remotes: string[];
   identity: Identity;
-  /** How git's configuration signs commits (`commit.read-signing`, 1.13). */
+  /** How git's configuration signs commits (`commit.read-signing`, 1.11). */
   signing: Signing;
   /** Git's `branch.sort`, when it is set. */
   branchSort: string | null;

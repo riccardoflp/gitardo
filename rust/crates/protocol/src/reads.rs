@@ -144,7 +144,7 @@ pub mod methods {
     pub const GRAPH_ROWS: &str = "read/graph.rows";
 
     /// Every read of version 1.11, in the order of the table of the protocol.
-    pub const ALL: [&str; 40] = [
+    pub const ALL: [&str; 41] = [
         GRAPH_COMMITS,
         GRAPH_POSITION,
         SEARCH_MATCHES,

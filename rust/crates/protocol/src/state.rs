@@ -29,7 +29,7 @@ pub struct StateJson {
     pub remotes: Vec<String>,
     /// Who commits are made as.
     pub identity: IdentityJson,
-    /// How git's configuration signs commits (`commit.read-signing`, 1.13); as git does not sign when left out.
+    /// How git's configuration signs commits (`commit.read-signing`, 1.11); as git does not sign when left out.
     #[serde(default)]
     pub signing: SigningJson,
     /// Git's `branch.sort`, when it is set.

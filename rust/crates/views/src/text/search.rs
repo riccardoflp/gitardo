@@ -279,6 +279,14 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::SignInToGitHub => super::github::SIGN_IN,
         QuickCommand::SignInToGitLab => super::github::SIGN_IN_TO_GITLAB,
         QuickCommand::CheckOutPullRequest => super::github::CHECK_OUT_PULL_REQUEST,
+        _ => later_command_name(command),
+    }
+}
+
+/// The name of a command of Quick search from **Show Command Log** on, in the order of the list.
+fn later_command_name(command: crate::search::QuickCommand) -> &'static str {
+    use crate::search::QuickCommand;
+    match command {
         QuickCommand::ShowCommandLog => "Show Command Log",
         QuickCommand::ShowTerminal => "Show Terminal",
         QuickCommand::NewTerminal => "New Terminal",
@@ -303,5 +311,6 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::BlamePrevious => crate::text::blame::BLAME_BEFORE,
         QuickCommand::ToggleIgnoreWhitespace => crate::text::blame::TOGGLE_IGNORE_WHITESPACE,
         QuickCommand::ToggleEveryFile => crate::text::blame::TOGGLE_EVERY_FILE,
+        _ => command_name(command),
     }
 }

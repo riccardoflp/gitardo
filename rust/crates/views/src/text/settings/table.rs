@@ -5,7 +5,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the first half of the table.
-pub(super) const FIRST: [SettingInfo; 29] = [
+pub(super) const FIRST: [SettingInfo; 30] = [
     SettingInfo {
         key: "commandPreview",
         title: "Show commands before they run",

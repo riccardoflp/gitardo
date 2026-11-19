@@ -277,7 +277,7 @@ export const ReadMethod = {
   searchMatches: 'read/search.read-matches',
   // Version 1.8, milestone M15.
   watchChanges: 'read/repo.watch-changes',
-  // Version 1.13, milestone M34.
+  // Version 1.11, milestone M34.
   signature: 'read/details.read-signature',
   authors: 'read/commit.read-authors',
   remoteTags: 'read/tag.read-remote-tags',

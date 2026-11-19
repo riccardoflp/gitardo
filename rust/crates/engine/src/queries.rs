@@ -82,11 +82,16 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::FileNames { path } => history::file_names(git, path),
         Query::CommittedLines(query) => history::committed_lines(git, query),
         Query::Blame(query) => history::blame(git, query),
-        Query::RemoteTags { remote } => {
-            let request = git::read::tag::RemoteTagsRequest { remote: remote.clone() };
-            git::read::tag::read_remote_tags(git, &request).map(Answer::RemoteTags)
-        }
+        Query::RemoteTags { remote } => remote_tags(git, remote),
     }
+}
+
+/// The tags a remote has, asked of it, and those of the repository (`tag.read-remote-tags`).
+fn remote_tags(git: &Git, remote: &str) -> Result<Answer, GitError> {
+    let request = git::read::tag::RemoteTagsRequest {
+        remote: remote.to_owned(),
+    };
+    git::read::tag::read_remote_tags(git, &request).map(Answer::RemoteTags)
 }
 
 /// The commit a revision names.
@@ -360,11 +365,6 @@ fn describe_file_versions(path: &str, commit: Option<&model::CommitId>) -> Strin
 /// The command that lists what a force push would throw away.
 fn describe_overwritten(upstream: &str) -> String {
     format!("git log --max-count=11 --format=%h%x00%s%x00 HEAD..{upstream} --")
-}
-
-/// The command that says whether a commit was pushed.
-fn describe_pushed(commit: &model::CommitId) -> String {
-    git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
 }
 
 /// What the reads that do not run git read: the journal, the clipboard, the credential store.

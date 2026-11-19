@@ -404,20 +404,20 @@ export class EngineClient {
     return this.read(ReadMethod.remotes, repository, {}, signal);
   }
 
-  /** What git says of the signature of a commit by its full id, checked with the program git's configuration names (`details.read-signature`, 1.13). */
+  /** What git says of the signature of a commit by its full id, checked with the program git's configuration names (`details.read-signature`, 1.11). */
   signature(repository: string, commit: string, signal?: AbortSignal): Promise<CommitSignature> {
     return this.read(ReadMethod.signature, repository, { commit }, signal);
   }
 
   /**
    * The tags of a remote, asked of it over the network, compared with those of the repository (`tag.read-remote-tags`,
-   * `tag.compare-remote`, 1.13).
+   * `tag.compare-remote`, 1.11).
    */
   remoteTags(repository: string, remote: string, signal?: AbortSignal): Promise<TagComparison> {
     return this.read(ReadMethod.remoteTags, repository, { remote }, signal);
   }
 
-  /** The people who made commits in the repository, the one with the most first (`commit.read-authors`, 1.13). */
+  /** The people who made commits in the repository, the one with the most first (`commit.read-authors`, 1.11). */
   authors(repository: string, signal?: AbortSignal): Promise<{ authors: Author[] }> {
     return this.read(ReadMethod.authors, repository, {}, signal);
   }

@@ -78,6 +78,11 @@ title: The git folder the worktrees share
 place: Repositories, in the side column
 show: none
 The git folder every worktree of a repository shares, where its references live: the `.git` of the main worktree, whichever worktree is shown. The extension watches it for the changes of the references.
+@card desktop repo.read-git-version
+title: Read the version of git
+place: Repositories, in the side column
+show: none
+Which git runs the operations, so that a feature that needs a newer one says what it does without it, rather than failing in git's words.
 @card desktop repo.watch-changes
 title: Which changes ask for a read
 place: Repositories, in the side column
@@ -741,12 +746,23 @@ title: Read the details of a commit
 place: the inspector and the Commit page
 show: none
 Everything the inspector, the Stashes list and the page of a commit show of one commit: its message, author, committer, dates, parents and the files it changed, and, for a stash, the untracked files it took.
+@card desktop details.read-signature
+title: Read the signature of a commit
+place: the inspector and the Commit page
+show: none
+Whether a commit is signed, and what git says of its signature: good, bad, made by a key it does not trust or cannot check, and by whom.
 @card desktop details.show
 title: Details of the selected commit
 place: the inspector and the Commit page
 show: none
 The summary of the commit selected in the timeline, in the inspector beside the commits or over them when the window is narrow: its message, who made it and when, its hash and parents, and the files it changed, each one click away from its diff.
 Entry points: selecting a commit, a stash or the draft in the timeline; the same in the narrow layout of the window, where the inspector opens over the commits.
+@card desktop details.signature
+title: The signature of a commit
+place: the inspector and the Commit page
+show: none
+Says, in the inspector and in the tab of a commit, whether the commit is signed and whether the signature holds.
+Entry points: selecting a commit in the timeline; opening a commit as a page (`commit-page.view`).
 @card desktop details.message-title
 title: The title of a message
 place: the inspector and the Commit page
@@ -948,6 +964,33 @@ show: show where
 Replaces the last commit with one that has the staged changes too, and the new message if one is written.
 Entry points: **Amend** in the Changes page, which **Commit** becomes while **Amend last commit** is ticked there, the box being on the Changes page only; `Ctrl+Enter` (`Cmd+Enter` on macOS) in its message box then.
 Offered when: there is a commit: the box **Amend last commit** is disabled before the first one. Nothing needs to be staged.
+@card desktop commit.options
+title: The options of a commit
+place: the draft and the Changes page
+show: none
+Signs the next commit or not, adds `Signed-off-by` and co-authors to its message, or skips the hooks, for that commit, from a menu beside **Commit**.
+Entry points: the button **Commit options** beside **Commit**, or **Amend**, in the commit box of the Changes page and of the **Changes** section; a click on the line under the box that says the options in force.
+@card desktop commit.option-arguments
+title: The arguments of the options of a commit
+place: the draft and the Changes page
+show: none
+What the options of the commit box add to `git commit`, for `commit.create` and `commit.amend`.
+@card desktop commit.read-signing
+title: Read how git signs commits
+place: the draft and the Changes page
+show: none
+Whether git's configuration signs every commit, in which kind and with which key, so that **Sign this commit** starts as git would commit, and says what it signs with.
+@card desktop commit.read-authors
+title: Read the authors of the history
+place: the draft and the Changes page
+show: none
+The people who made commits in the repository, with how many each made, for choosing co-authors.
+@card desktop commit.co-authors
+title: Choose the co-authors of a commit
+place: the draft and the Changes page
+show: none
+Picks the people who made the next commit with the one who commits, among the authors of the history or typed, so that the commit names them in `Co-authored-by` lines.
+Entry points: **Co-authors…** in the menu of `commit.options`.
 @card desktop commit.prepared-message
 title: The message git prepared
 place: the draft and the Changes page
@@ -1027,6 +1070,14 @@ show: quick search
 Makes a new branch at a commit, a branch or a tag, and checks it out or not.
 Entry points: **Branch** in the **…** menu of the header, whose tooltip is **Branch: create a branch at HEAD**; **Create branch…** in Quick search, at `HEAD`; **Create branch here…** in the context menu of a commit in the timeline, narrowed or not, of a local branch and of a tag; the button **Create branch** at the top of the branch rail.
 Offered when: there is a commit: **Branch** in the header is disabled before the first one.
+@card desktop branch.create-orphan
+title: Create a branch with no history
+place: the branch rail
+show: quick search
+Starts a branch that shares no commit with the others, for the pages of a site or something kept apart from the code: its first commit has no parent.
+Entry points: **Create branch with no history…** in Quick search, and in the **…** menu of the header after **Branch**.
+Offered when: no merge, rebase, cherry-pick, revert, patch or bisect is under way.
+Refuses: *Finish or abort the `<operation>` first.*; *End the bisect first.*; with **Start with no files** while a tracked file has changes not committed, before git is run: "Commit or stash the changes first: starting with no files would take them out of the working tree."
 @card desktop branch.format-name
 title: Expand the format of branch names
 place: the branch rail
@@ -1076,6 +1127,21 @@ Brings a local branch up to its upstream without switching to it: the files and 
 Entry points: **Fast-forward to `<upstream>`** in the context menu of a local branch.
 Offered when: the branch is not checked out here; it has an upstream that is not gone; it has no commits of its own as of the last fetch; and, when another worktree has it checked out, that worktree's folder is there and it has no file not committed. It is offered however far behind the last fetch says it is: the fetch finds out.
 Refuses: when the branch no longer meets the conditions above: "`<branch>` cannot be fast-forwarded: it needs an upstream, no commits of its own, and not to be checked out here or in a worktree with changes not committed."
+@card desktop branch.set-upstream
+title: Set or change the upstream of a branch
+place: the branch rail
+show: quick search
+Makes a local branch follow a remote branch, or another one than it follows: the one it pulls from, pushes to and is counted ahead of or behind.
+Entry points: **Set upstream…** in the context menu of a local branch with no upstream, **Change upstream…** in that of one with an upstream, gone or not, in the branch rail and on its label in the timeline; **Set upstream of the current branch…** in Quick search.
+Offered when: the repository has a remote branch.
+Refuses: when the remote branch picked is no longer there: "`<remote branch>` is no longer there: fetch, then pick again."
+@card desktop branch.unset-upstream
+title: Stop tracking the upstream
+place: the branch rail
+show: show where
+Makes a local branch follow nothing: it is no longer counted against a remote branch, and the remote branch stays.
+Entry points: **Stop tracking `<upstream>`** in the context menu of a local branch that has an upstream, gone or not, under **Change upstream…**, in the branch rail and on its label in the timeline.
+Offered when: the branch has an upstream.
 @card desktop branch.pane
 title: The branch rail, its buttons and its comparison
 place: the branch rail
@@ -1101,12 +1167,44 @@ Sends a tag to the remote.
 Entry points: **Push tag** in the context menu of a tag.
 Offered when: the repository has a remote.
 Refuses: "This repository has no remote." when the last remote was removed since the menu was drawn.
+@card desktop tag.read-remote-tags
+title: Read the tags a remote has
+place: the branch rail
+show: none
+The tags of a remote, each with the object it names there, asked of the remote itself: a fetch brings the tags of the commits it fetches, but never says which tags of this repository the remote lacks.
+@card desktop tag.compare-remote
+title: Which tags a remote lacks
+place: the branch rail
+show: none
+Sorts the tags of the repository against those of a remote: there as here, there under another object, or not there; and the tags only the remote has.
+@card desktop tag.remote-marks
+title: The tags a remote lacks, marked
+place: the branch rail
+show: none
+Once a remote was asked for its tags, those it lacks are marked in the branch rail and on their labels, so that a tag made here and never pushed is seen before it is missed.
+Entry points: **Check tags on `<remote>`** in the **…** of the **Tags** list of the branch rail, and **Check tags on the remote** in Quick search, for the remote of `remote.default`; the marks then show in the **Tags** list and on the labels of the timeline.
+@card desktop tag.push-all
+title: Push the tags a remote lacks
+place: the branch rail
+show: quick search
+Sends to a remote the tags it does not have, every one or those ticked, in one push.
+Entry points: **Push tags…** in the **…** of the **Tags** list of the branch rail; **Push tags…** in Quick search.
+Offered when: the repository has a remote and a tag.
+Refuses: before the pick, "`<remote>` has every tag of this repository." when it lacks none; "No tags selected." when the pick is accepted with nothing ticked; "This repository has no remote." with **Add remote…** (`remote.add`).
 @card desktop tag.delete
 title: Delete a tag
 place: the branch rail
 show: show where
 Deletes a tag from this repository; a remote that has it keeps it.
 Entry points: **Delete** in the context menu of a tag.
+@card desktop tag.delete-remote
+title: Delete a tag from a remote
+place: the branch rail
+show: show where
+Deletes a tag on a remote, for everyone, and here too when asked: what `tag.delete` leaves on the remote.
+Entry points: in the context menu of a tag, after **Delete**: **Delete from `<remote>`** and **Delete here and from `<remote>`**, `<remote>` the one of `remote.default`; with several remotes, **Delete from a remote…** and **Delete here and from a remote…**, which ask which.
+Offered when: the repository has a remote; and, when the tags of that remote were checked (`tag.remote-marks`), the remote has the tag.
+Refuses: "This repository has no remote." when the last remote was removed since the menu was drawn.
 @card desktop tag.checkout
 title: Check out a tag
 place: the branch rail
@@ -1327,6 +1425,12 @@ place: the timeline
 show: none
 The remote branches that have a commit, read before a commit is rewritten, so that the confirmation can say the branch will have to be force pushed.
 Entry points: none: used by `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit`.
+@card desktop rebase.read-stacked-branches
+title: The other branches on the commits a rewrite makes again
+place: the timeline
+show: none
+The local branches, other than the one rewritten, whose tip is one of the commits a rebase is about to make again: the branches of a stack, each started from the one under it, which the rebase would leave on the old commits.
+Entry points: none: read by the operations of `rebase.update-refs` before they make their plan.
 @card desktop rebase.todo-page
 title: The interactive rebase page
 place: the timeline
@@ -2690,7 +2794,7 @@ Offered when: the journal has an entry, or the reflog of `HEAD` has a previous p
 title: Remember what Undo needs
 place: the header and the bottom panel
 show: none
-The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD` is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
+The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, what was checked out before a branch with no history (`branch.create-orphan`, whose move git writes in no reflog), the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD` is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
 @card desktop activity.track
 title: Say what is running
 place: the header and the bottom panel
@@ -3754,12 +3858,24 @@ title: Read the details of a commit
 place: the inspector and the Commit page
 show: none
 Everything the inspector, the Stashes list and the page of a commit show of one commit: its message, author, committer, dates, parents and the files it changed, and, for a stash, the untracked files it took.
+@card extension details.read-signature
+title: Read the signature of a commit
+place: the inspector and the Commit page
+show: none
+Whether a commit is signed, and what git says of its signature: good, bad, made by a key it does not trust or cannot check, and by whom.
+In VS Code: `read/details.read-signature` of the engine (protocol 1.13), asked by the details of the graph and the tab of a commit (`Reads.signature` in).
 @card extension details.show
 title: Details of the selected commit
 place: the inspector and the Commit page
 show: none
 The summary of the commit selected in the timeline, in the inspector beside the commits or over them when the window is narrow: its message, who made it and when, its hash and parents, and the files it changed, each one click away from its diff.
 Entry points: selecting a commit, a stash or the draft in the timeline; the same in the narrow layout of the window, where the inspector opens over the commits.
+@card extension details.signature
+title: The signature of a commit
+place: the inspector and the Commit page
+show: none
+Says, in the inspector and in the tab of a commit, whether the commit is signed and whether the signature holds.
+In VS Code: the same line in the details beside the graph and in the tab of a commit, drawn by `SignatureLine` of with the words of, its icon the Codicon `shield`. Each view asks with `getSignature` once the details are drawn, and the extension cancels the read it asked before for that view.
 @card extension details.message-title
 title: The title of a message
 place: the inspector and the Commit page
@@ -3925,6 +4041,36 @@ place: the draft and the Changes page
 show: show where
 Replaces the last commit with one that has the staged changes too, and the new message if one is written.
 In VS Code: ticking **Amend last commit** in the commit box of the Changes view, then **Amend** or `Ctrl+Enter`, sends `feature/run` of `commit.amend` to Gitardo's engine with the message typed, empty to keep the one the commit has, as the answer `message` (`engineRuns` in, run by); the plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, it says so.
+@card extension commit.options
+title: The options of a commit
+place: the draft and the Changes page
+show: none
+Signs the next commit or not, adds `Signed-off-by` and co-authors to its message, or skips the hooks, for that commit, from a menu beside **Commit**.
+In VS Code: the same button, **Commit options** with the Codicon `settings`, beside **Commit** in the commit box of the **Gitardo Changes** view, its menu drawn by the view (`commitOptionsMenu` in), the line under the box too; the options go to the engine in the answers of `feature/run` of `commit.create` and `commit.amend` (`optionAnswers` in), and the setting is `gitardo.commit.signOff`. As in the window, what an entry signs with or adds is its tooltip. The options of each repository are kept by the view while another is shown. VS Code's own **Commit (Signed Off)** and **Commit (No Verify)** are of its Source Control, not of Gitardo's box.
+@card extension commit.option-arguments
+title: The arguments of the options of a commit
+place: the draft and the Changes page
+show: none
+What the options of the commit box add to `git commit`, for `commit.create` and `commit.amend`.
+In VS Code: the engine's, given the options in the answers of `feature/run`; the co-authors are known from its first call, as a flag is, since no question asks them (protocol 1.13).
+@card extension commit.read-signing
+title: Read how git signs commits
+place: the draft and the Changes page
+show: none
+Whether git's configuration signs every commit, in which kind and with which key, so that **Sign this commit** starts as git would commit, and says what it signs with.
+In VS Code: `signing` of `read/repo.read-state` of the engine (protocol 1.13).
+@card extension commit.read-authors
+title: Read the authors of the history
+place: the draft and the Changes page
+show: none
+The people who made commits in the repository, with how many each made, for choosing co-authors.
+In VS Code: `read/commit.read-authors` of the engine (protocol 1.13), asked as the quick pick of the co-authors opens.
+@card extension commit.co-authors
+title: Choose the co-authors of a commit
+place: the draft and the Changes page
+show: none
+Picks the people who made the next commit with the one who commits, among the authors of the history or typed, so that the commit names them in `Co-authored-by` lines.
+In VS Code: a quick pick of many of VS Code, from **Co-authors…** of the **Gitardo Changes** view, titled **Co-authors of this commit**; it opens at once, busy until the authors are read, and its entries are made by `coAuthorEntries` of.
 @card extension commit.prepared-message
 title: The message git prepared
 place: the draft and the Changes page
@@ -3998,6 +4144,12 @@ place: the branch rail
 show: quick search
 Makes a new branch at a commit, a branch or a tag, and checks it out or not.
 In VS Code: **Branch** in the toolbar of the graph (tooltip **Branch: create a branch at HEAD**), **Gitardo: Create Branch…** in the Command Palette and on the title of the Branches view, all at `HEAD`; **Create branch here…** in the context menu of a commit (graph and Commits view), of a local branch, of a tag, and of a position picked in **Gitardo: Browse Reflog**. Each sends `feature/run` of `branch.create` to Gitardo's engine (in, the target from `targetOf` in); its questions are VS Code's input boxes and quick picks, the name checked with `question/validate` as it is typed, and the plan shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker` in). The settings are `gitardo.branches.format` and `gitardo.branches.inputs`, or, where they are empty, `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs`, as before; the inputs used last are kept in the workspace state `worktreeInputs`. When the engine's binary is missing, it says so.
+@card extension branch.create-orphan
+title: Create a branch with no history
+place: the branch rail
+show: quick search
+Starts a branch that shares no commit with the others, for the pages of a site or something kept apart from the code: its first commit has no parent.
+In VS Code: **Gitardo: Create Branch with No History…** in the Command Palette and in the **…** of the Branches view, which send `feature/run` of `branch.create-orphan` to Gitardo's engine (in); the name is asked in an input box checked with `question/validate` as it is typed, the files in a quick pick. When the engine's binary is missing, it says so.
 @card extension branch.format-name
 title: Expand the format of branch names
 place: the branch rail
@@ -4043,6 +4195,18 @@ place: the branch rail
 show: show where
 Brings a local branch up to its upstream without switching to it: the files and the branch checked out are not touched.
 In VS Code: **Fast-forward to `<upstream>`** in the context menu of a local branch, in the references tree, the Branches view and on its label in the graph, offered as `canFastForward` in decides. Each sends `feature/run` of `branch.fast-forward` to Gitardo's engine (in, `engineRuns` in), with the branch as its target. When the engine's binary is missing, it says so.
+@card extension branch.set-upstream
+title: Set or change the upstream of a branch
+place: the branch rail
+show: quick search
+Makes a local branch follow a remote branch, or another one than it follows: the one it pulls from, pushes to and is counted ahead of or behind.
+In VS Code: the same entries in the context menu of a local branch in the references tree, the Branches view and on its label in the graph (`branchMenu` and `upstreamEntries` in), each sending `feature/run` of `branch.set-upstream` to Gitardo's engine (in) with the branch as its target; **Gitardo: Set Upstream of the Current Branch…** in the Command Palette. The pick is a quick pick with a box to type in. When the engine's binary is missing, it says so.
+@card extension branch.unset-upstream
+title: Stop tracking the upstream
+place: the branch rail
+show: show where
+Makes a local branch follow nothing: it is no longer counted against a remote branch, and the remote branch stays.
+In VS Code: **Stop tracking `<upstream>`** in the same menus of the references tree, the Branches view and the labels of the graph (`branchMenu` in), sending `feature/run` of `branch.unset-upstream` to Gitardo's engine (in). When the engine's binary is missing, it says so.
 @card extension branch.pane
 title: The branch rail, its buttons and its comparison
 place: the branch rail
@@ -4067,12 +4231,42 @@ place: the branch rail
 show: show where
 Sends a tag to the remote.
 In VS Code: **Push tag** in the context menu of a tag, offered when the repository has a remote. Each sends `feature/run` of `tag.push` to Gitardo's engine (in, `engineRuns` in), with the tag as its target. When the engine's binary is missing, it says so.
+@card extension tag.read-remote-tags
+title: Read the tags a remote has
+place: the branch rail
+show: none
+The tags of a remote, each with the object it names there, asked of the remote itself: a fetch brings the tags of the commits it fetches, but never says which tags of this repository the remote lacks.
+In VS Code: the engine's read, `read/tag.read-remote-tags` (protocol 1.13), asked by the extension as it asks the pull requests (`reads.remoteTags` in), only for **Check tags on `<remote>`**.
+@card extension tag.compare-remote
+title: Which tags a remote lacks
+place: the branch rail
+show: none
+Sorts the tags of the repository against those of a remote: there as here, there under another object, or not there; and the tags only the remote has.
+In VS Code: the engine's, given with the read: `read/tag.read-remote-tags` answers with the comparison.
+@card extension tag.remote-marks
+title: The tags a remote lacks, marked
+place: the branch rail
+show: none
+Once a remote was asked for its tags, those it lacks are marked in the branch rail and on their labels, so that a tag made here and never pushed is seen before it is missed.
+In VS Code: **Check tags on `<remote>`** in the **…** of the Tags list of the references beside the graph and of the Branches view; the marks are drawn in `RefsTree` and on the labels of the graph.
+@card extension tag.push-all
+title: Push the tags a remote lacks
+place: the branch rail
+show: quick search
+Sends to a remote the tags it does not have, every one or those ticked, in one push.
+In VS Code: **Push tags…** in the **…** of the Tags list of the references and of the Branches view, and **Gitardo: Push Tags…** in the Command Palette, sending `feature/run` of `tag.push-all` to Gitardo's engine (in); the pick is a quick pick of several. When the engine's binary is missing, it says so.
 @card extension tag.delete
 title: Delete a tag
 place: the branch rail
 show: show where
 Deletes a tag from this repository; a remote that has it keeps it.
 In VS Code: **Delete** in the context menu of a tag. Each sends `feature/run` of `tag.delete` to Gitardo's engine (in, `engineRuns` in), with the tag as its target; the warning is a modal dialog. When the engine's binary is missing, it says so.
+@card extension tag.delete-remote
+title: Delete a tag from a remote
+place: the branch rail
+show: show where
+Deletes a tag on a remote, for everyone, and here too when asked: what `tag.delete` leaves on the remote.
+In VS Code: the same entries in the context menu of a tag in the references, the Branches view and on its label in the graph (`tagMenu` in), sending `feature/run` of `tag.delete-remote` to Gitardo's engine (in), with the tag as its target and whether it is deleted here too as the answer `here`; the warning is a modal dialog. When the engine's binary is missing, it says so.
 @card extension tag.checkout
 title: Check out a tag
 place: the branch rail
@@ -5488,7 +5682,7 @@ In VS Code: **Undo** in the toolbar of the graph, whose tooltip names the newest
 title: Remember what Undo needs
 place: the header and the bottom panel
 show: none
-The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD` is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
+The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, what was checked out before a branch with no history (`branch.create-orphan`, whose move git writes in no reflog), the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD` is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
 @card extension activity.track
 title: Say what is running
 place: the header and the bottom panel

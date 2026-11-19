@@ -119,20 +119,18 @@ fn worktree_branch_in_another_worktree__the_rail_and_the_timeline_mark_it_and_it
 #[test]
 fn worktree_section__a_worktree_whose_branch_has_an_open_pull_request_shows_it_and_says_it_in_its_tooltip() {
     let mut repository = repository();
-    if let Some(login) = repository
+    let login = repository
         .branches
         .iter_mut()
-        .find(|branch| branch.name == "feature/login")
-    {
-        login.upstream = Some(model::state::Upstream {
-            reference: String::from("refs/remotes/origin/feature/login"),
-            remote: String::from("origin"),
-            remote_branch: String::from("refs/heads/feature/login"),
-            ahead: 0,
-            behind: 0,
-            is_gone: false,
-        });
-    }
+        .find(|branch| branch.name == "feature/login");
+    login.unwrap().upstream = Some(model::state::Upstream {
+        reference: String::from("refs/remotes/origin/feature/login"),
+        remote: String::from("origin"),
+        remote_branch: String::from("refs/heads/feature/login"),
+        ahead: 0,
+        behind: 0,
+        is_gone: false,
+    });
     let on_github = model::github::GitHubRepo {
         owner: String::from("owner"),
         repo: String::from("app"),
