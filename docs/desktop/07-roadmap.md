@@ -1356,7 +1356,7 @@ says the room it takes, runs `git gc` and says the room after; **Look after it i
 unticking it unregisters it; the same in the extension; every card of the milestone passes its tests, and the
 snapshots of the block **Note** match in each theme.
 
-## M41 — The labels under the message
+## M41 — The labels under the message (done)
 
 While the rows of the timeline are of two lines, the labels of a commit start the line under its message, before the
 author and the date, and the message has its line to itself
@@ -1366,7 +1366,7 @@ their tests passing.
 
 1. **The second line.** In `views::graph` the row of two lines draws the message alone on its first line, with the arrow
    of a fold, and on the second the labels, then the author and the date, the author and the date keeping their width up
-   to two fifths of the line and the labels the rest, by the rules of `+N` and its list; the two lines placed in the row
+   to a third of the line and the labels the rest, by the rules of `+N` and its list; the two lines placed in the row
    so that the labels fit, the row as tall as before. The compact rows as they are. Cards: `graph.labels`,
    `graph.label-overflow`, `graph.columns`, `graph.view`.
 2. **Checked.** The tests of the places of the timeline that find a label, `+N` and its list on the second line, and
@@ -1374,7 +1374,8 @@ their tests passing.
    the narrow layout; the README of the desktop and its CHANGELOG under **Unreleased**. The extension draws its rows of
    two lines so already, in the side bar: its cards say so. Cards: the same.
 
-Nothing is built yet.
+Both phases are built: the rows of two lines draw the labels under the message, the author and the date keeping up
+to a third of the line; the tests of the places and the snapshots of the timeline follow them.
 
 Exit: in a repository with a commit carrying `main`, `origin/main` and three tags, with **Compact rows** off, the first
 line of its row is its message, whole when the row is wide enough, and the second line starts with the labels that

@@ -1,6 +1,7 @@
-//! The labels of a commit at the start of the line of its message (`graph.labels`, `graph.label-overflow`): as many as
-//! fit whole in the room its message leaves them, in their order, then one label `+N` for the others; resting on them
-//! opens the list of all of them when some are not shown whole. The page of a commit draws them too.
+//! The labels of a commit at the start of the line under its message, or of its one line on a compact row
+//! (`graph.labels`, `graph.label-overflow`): as many as fit whole in the room the author and the date or the message
+//! leave them, in their order, then one label `+N` for the others; resting on them opens the list of all of them when
+//! some are not shown whole. The page of a commit draws them too.
 
 use std::borrow::Cow;
 use std::time::Duration;
@@ -18,6 +19,10 @@ use crate::text::timeline as words;
 /// The share of the line of a message that the message keeps, when it is that long, before the labels take the rest:
 /// the labels have at least the other two fifths of it (Q640).
 pub(super) const MESSAGE_SHARE: f32 = 0.6;
+
+/// The share of the line under a message that the author and the date keep, when they are that long, before the labels
+/// take the rest, while the rows are of two lines (D86).
+pub(super) const AUTHOR_AND_DATE_SHARE: f32 = 1.0 / 3.0;
 
 /// How many times its own height a label shortened beside `+N` is at least wide, so that its icon and a few letters
 /// are seen; with less room only `+N` is shown.
@@ -144,8 +149,8 @@ pub(super) struct RowLabels<'a> {
     pub(super) color: usize,
 }
 
-/// Draws the labels of a commit from the start of their room on the line of its message, for the screen reader a list
-/// of labels; gives where the message starts. Resting on one of them, when some are not shown whole, asks for the list
+/// Draws the labels of a commit from the start of their room, for the screen reader a list of labels; gives where what
+/// follows them starts. Resting on one of them, when some are not shown whole, asks for the list
 /// of all of them (`graph.label-overflow`).
 pub(super) fn row_labels(
     ui: &mut Ui<'_>,

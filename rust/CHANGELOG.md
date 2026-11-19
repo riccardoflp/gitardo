@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- While the rows of the timeline are of two lines, the labels of a commit start the line under its message, before its
+  author and its date, and the message has its line to itself. The labels take what the author and the date leave,
+  those that do not fit are counted in `+N`, and the pointer resting on them lists them all, as before. With
+  **Compact rows** on, the labels come first on the one line of each commit, as before.
+
 ## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of

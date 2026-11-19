@@ -1,5 +1,5 @@
-//! What is shown with each message (`graph.columns`): the author and the date on the line under it, the short hash at
-//! the end of the row, each as `graph.columns` asks.
+//! What is shown with each message (`graph.columns`): the author and the date on the line under it, after the labels of
+//! the commit, the short hash at the end of the row, each as `graph.columns` asks.
 
 use ui::layout::{Align, place};
 use ui::{Point, Rect, Sense, TextKind, TextRun, Ui};
@@ -35,8 +35,30 @@ pub(crate) fn hash_room(ui: &Ui<'_>, switches: Switches, is_narrow: bool) -> f32
     ui.measure("0000000", ui.text_style(TextKind::Hash))
 }
 
-/// The author and the date under the message and the hash at the end, over the rectangle of the text of the row its
-/// caller clipped it to. What is left out gives its room to the message.
+/// How wide the author and the date are on the line under the message, as `columns_view` draws them.
+pub(crate) fn author_and_date_width(ui: &Ui<'_>, state: &ColumnsState<'_>) -> f32 {
+    let style = ui.text_style(TextKind::Detail);
+    let mut width = 0.0;
+    if state.switches.is_on(TimelineSwitch::Author) {
+        width += ui.measure(state.author, style);
+    }
+    if state.switches.is_on(TimelineSwitch::Date) {
+        width += ui.measure(&said_date(state), style);
+    }
+    width
+}
+
+/// The date as the line under the message says it: after a dot when the author is before it.
+fn said_date(state: &ColumnsState<'_>) -> String {
+    if state.switches.is_on(TimelineSwitch::Author) {
+        format!(" \u{b7} {}", relative_date(state.date, state.now))
+    } else {
+        relative_date(state.date, state.now)
+    }
+}
+
+/// The author and the date under the message, from the start of the rectangle its caller clipped it to, which is after
+/// the labels of the commit, and the hash at the end of that rectangle. What is left out gives its room to the message.
 ///
 /// Feature: graph.columns
 pub fn columns_view(state: &ColumnsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -80,11 +102,7 @@ pub fn columns_view(state: &ColumnsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         x += ui.text(&run);
     }
     if state.switches.is_on(TimelineSwitch::Date) {
-        let said = if state.switches.is_on(TimelineSwitch::Author) {
-            format!(" \u{b7} {}", relative_date(state.date, state.now))
-        } else {
-            relative_date(state.date, state.now)
-        };
+        let said = said_date(state);
         let run = TextRun {
             text: &said,
             style,

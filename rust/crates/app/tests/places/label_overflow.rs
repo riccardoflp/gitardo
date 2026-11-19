@@ -85,7 +85,7 @@ fn opened() -> (Repository, Remote, State, Window, Rect) {
 }
 
 #[test]
-fn graph_label_overflow__a_commit_with_six_labels_starts_its_row_with_those_that_fit_then_plus_n_then_its_message() {
+fn graph_label_overflow__a_commit_with_six_labels_starts_the_line_under_its_message_with_those_that_fit_then_plus_n() {
     let (repository, _remote) = six_labels();
     let state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, SIZE);
@@ -99,14 +99,23 @@ fn graph_label_overflow__a_commit_with_six_labels_starts_its_row_with_those_that
         labels.x <= feature.x && count.right() <= labels.right() + 0.5,
         "the labels are a list"
     );
+    let middle = row.y + row.height / 2.0;
     assert!(
-        labels.x - row.x < 0.25 * row.width && labels.width < 0.4 * row.width,
-        "the labels start the line of the message, which keeps the rest: {labels:?} {row:?}"
+        labels.y >= middle - 1.0 && labels.bottom() <= row.bottom(),
+        "the labels are on the line under the message, in the lower half of the row: {labels:?} {row:?}"
+    );
+    assert!(
+        labels.x - row.x < 0.25 * row.width,
+        "the labels start the line under the message: {labels:?} {row:?}"
+    );
+    assert!(
+        labels.width <= 2.0 * row.width / 3.0,
+        "the author and the date keep their room after the labels: {labels:?} {row:?}"
     );
     for (theme, name) in THEMES {
         let mut window = Window::new(theme, SIZE);
         let _ = window.draw(&state, &[]);
-        window.assert_snapshot(&format!("timeline-labels-first-{name}"));
+        window.assert_snapshot(&format!("timeline-labels-under-message-{name}"));
     }
 }
 

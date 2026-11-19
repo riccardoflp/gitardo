@@ -2156,7 +2156,7 @@ start that line, before the author and the date, and the message has its line to
 - **The first line** is the message alone, from right after the cell of the graph, then the arrow of the fold of a
   merge, up to the hash at the end of the row.
 - **The second line** starts with the labels, in the order of `graph.labels`, then the author and the date that
-  `graph.columns` asks for. The author and the date keep their width, up to two fifths of the line, and the labels take
+  `graph.columns` asks for. The author and the date keep their width, up to a third of the line, and the labels take
   the rest, by the rules of `graph.label-overflow`: as many as fit whole, then `+N`, and their list under the pointer.
   A commit with no label starts the line with its author, as before.
 - **Their height.** A label is taller than the text of the second line: the row keeps its height, and the two lines are
@@ -5557,7 +5557,7 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1230** — `graph.labels`: the labels start the line under the message, so that they no longer line up with the
   messages of the rows around. Should the labels keep the start of the first line when the message is short enough to
   leave them room?
-- **Q1231** — `graph.label-overflow`: the author and the date keep up to two fifths of the second line, and the labels
+- **Q1231** — `graph.label-overflow`: the author and the date keep up to a third of the second line, and the labels
   the rest. Should a long name of an author be shortened sooner, to leave the labels more room?
 - **Q1232** — `graph.columns`: with neither the author nor the date shown, a commit with no label has an empty second
   line. Should such a row be one line, as tall as before?

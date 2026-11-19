@@ -1,4 +1,4 @@
-//! A row of the timeline: its cell of the graph, then the labels and the message over the author and the date, and the
+//! A row of the timeline: its cell of the graph, then the message over the labels, the author and the date, and the
 //! hash at its end; a folded row, a stash, the draft, and the last row while more commits are read.
 
 use std::time::Duration;
@@ -9,14 +9,14 @@ use ui::layout::{Align, Area, place};
 use ui::{Point, Rect, Sense, TextKind, TextRun, Ui};
 
 use super::cell::{CellPlace, Dot, draw_cell};
-use super::columns::{ColumnsState, columns_view, hash_room};
+use super::columns::{ColumnsState, author_and_date_width, columns_view, hash_room};
 use super::commit_menu::PointedLabel;
 use super::compact::{CompactRow, CompactWidths, RowLines, compact_rows_view};
 use super::draft::{UncommittedRow, uncommitted_row_view};
 use super::fold::{FoldsState, fold_merge_view};
 use super::intent::{GraphIntent, HoverTarget, Selected};
 use super::label_overflow::LabelList;
-use super::labels::{MESSAGE_SHARE, RowLabels, row_labels};
+use super::labels::{AUTHOR_AND_DATE_SHARE, MESSAGE_SHARE, RowLabels, row_labels};
 use super::stashes::{StashRow, stashes_view};
 use super::{state::HistoryState, state::TraceStrength};
 use crate::intent::Intent;
@@ -221,7 +221,8 @@ fn lane_color(context: &RowContext<'_>, index: usize) -> usize {
     context.state.layout.cells.get(index).map_or(0, |cell| cell.color)
 }
 
-/// A commit: the labels and the message over the author and the date, the hash at the end, a merge's fold arrow.
+/// A commit on two lines: its message on the first, its labels then the author and the date on the second, the hash at
+/// the end, a merge's fold arrow after the message.
 fn commit_row(
     ui: &mut Ui<'_>,
     context: &RowContext<'_>,
@@ -244,7 +245,9 @@ fn commit_row(
         TextKind::Medium
     });
     let first = ui.line_height(subject_style);
-    let second = ui.line_height(ui.text_style(TextKind::Detail));
+    let text = ui.line_height(ui.text_style(TextKind::Detail));
+    // The labels are taller than the text of the second line: the line is as tall as they are, its text in the middle.
+    let second = text.max(ui.badge_height());
     let gap = theme.sizes.spacing.tiny + 1.0;
     let top = place(
         lines,
@@ -252,7 +255,8 @@ fn commit_row(
         (Align::Start, Align::Center),
     )
     .y;
-    subject_line(ui, context, (row, lines, top, commit), report);
+    subject_line(ui, context, (row, lines, top, commit), Labels::Elsewhere, report);
+    let second_top = top + first + gap;
     let columns = ColumnsState {
         author: &commit.author_name,
         date: commit.author_date.0,
@@ -260,9 +264,20 @@ fn commit_row(
         switches,
         now: context.state.now,
         is_narrow: context.is_narrow,
-        top: top + first + gap,
+        top: second_top + (second - text) / 2.0,
     };
-    report.intents.extend(ui.clip(rect, |ui| columns_view(&columns, ui)));
+    let kept = author_and_date_width(ui, &columns).min(lines.width * AUTHOR_AND_DATE_SHARE);
+    let labels = RowLabels {
+        shown: row.index,
+        commit: &commit.id,
+        color: lane_color(context, row.index),
+    };
+    let room = Rect::new(lines.x, second_top, (lines.width - kept).max(0.0), second);
+    let start = row_labels(ui, context, labels, room, report);
+    let after_labels = Rect::new(start, rect.y, (rect.right() - start).max(0.0), rect.height);
+    report
+        .intents
+        .extend(ui.clip(after_labels, |ui| columns_view(&columns, ui)));
 }
 
 /// A commit on one line (`graph.compact-rows`): its labels and its message, then at the right end its author, its date
@@ -282,7 +297,7 @@ fn compact_row(
         TextKind::Medium
     });
     let top = place(line, (line.width, ui.line_height(style)), (Align::Start, Align::Center)).y;
-    subject_line(ui, context, (row, line, top, commit), report);
+    subject_line(ui, context, (row, line, top, commit), Labels::First, report);
     let state = CompactRow {
         columns: ColumnsState {
             author: &commit.author_name,
@@ -298,12 +313,22 @@ fn compact_row(
     report.intents.extend(ui.clip(rect, |ui| compact_rows_view(&state, ui)));
 }
 
-/// The first line of a commit, from the top of the lines: its labels from the start, then its message, then the fold
-/// arrow of a merge.
+/// Where the labels of a commit are drawn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Labels {
+    /// First on the line of its message, as on a compact row.
+    First,
+    /// Not on the line of its message: on the line under it.
+    Elsewhere,
+}
+
+/// The line of the message of a commit, from the top of the lines: its labels from the start when they are drawn
+/// there, then its message, then the fold arrow of a merge.
 fn subject_line(
     ui: &mut Ui<'_>,
     context: &RowContext<'_>,
     (row, lines, top, commit): (&ui::Row, Rect, f32, &Commit),
+    where_labels: Labels,
     report: &mut RowReport,
 ) {
     let theme = *ui.theme();
@@ -325,16 +350,21 @@ fn subject_line(
         0.0
     };
     let available = (lines.width - arrow).max(0.0);
-    let kept = ui
-        .measure(&commit.subject, subject_style)
-        .min(available * MESSAGE_SHARE);
-    let labels = RowLabels {
-        shown: row.index,
-        commit: &commit.id,
-        color: lane_color(context, row.index),
+    let start = match where_labels {
+        Labels::First => {
+            let kept = ui
+                .measure(&commit.subject, subject_style)
+                .min(available * MESSAGE_SHARE);
+            let labels = RowLabels {
+                shown: row.index,
+                commit: &commit.id,
+                color: lane_color(context, row.index),
+            };
+            let room = Rect::new(lines.x, top, (available - kept).max(0.0), first);
+            row_labels(ui, context, labels, room, report)
+        }
+        Labels::Elsewhere => lines.x,
     };
-    let room = Rect::new(lines.x, top, (available - kept).max(0.0), first);
-    let start = row_labels(ui, context, labels, room, report);
     let subject = TextRun {
         text: &commit.subject,
         style: subject_style,

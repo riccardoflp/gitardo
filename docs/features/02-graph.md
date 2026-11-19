@@ -108,8 +108,8 @@ inspector of the selected commit: what the window shows while no page is open, a
   the bar of several commits selected (`selection.select`). The draft of the uncommitted changes is the first card of
   the commits (`graph.uncommitted-row`).
 - Each row has its cell of the graph (`graph.lanes`): a dot for a commit, in the color of its line. Then two lines: its
-  labels (`graph.labels`) first, right after the cell of the graph, then its message; under them the columns
-  `graph.columns` asks for. The labels take at most the room the message leaves them, and those that do not fit are
+  message, right after the cell of the graph; under it its labels (`graph.labels`) first, then the columns
+  `graph.columns` asks for. The labels take the room the author and the date leave them, and those that do not fit are
   one label `+N`, whose list opens under the pointer (`graph.label-overflow`). The labels are outlined in the color of
   the commit's line; the branch checked out is the one filled in. With **Compact rows** on, each row is one line, as
   tall as a row of a list: the labels, the message, then the columns at the right end (`graph.compact-rows`).
@@ -1108,8 +1108,11 @@ Which labels a commit has in the timeline, and what each says.
 - **Function**: `model::graph::labels(state: &RepositoryState, settings: &GraphSettings) -> HashMap<Oid, Vec<Label>>`
 - **Uses**: `graph.combine-upstream`, `graph.pull-request-badge`.
 
-They come first on the row of the commit, right after its cell of the graph, before its message, so that they line up
-from row to row; those that do not fit are counted in `+N` (`graph.label-overflow`). In this order on each commit:
+They start the line under the message of the commit, right after its cell of the graph, before its author and its
+date, so that they line up from row to row and leave the message its line
+([D86](../08-decisions.md#d86--on-two-lines-the-labels-of-a-commit-start-the-line-under-its-message-proposed)); on a
+compact row they come first on its one line, before its message (`graph.compact-rows`). Those that do not fit are
+counted in `+N` (`graph.label-overflow`). In this order on each commit:
 
 1. `HEAD`, when nothing is checked out but a commit (detached), filled as what is checked out.
 2. Each local branch at it, the one checked out filled. A branch that another worktree has checked out has the icon of
@@ -1130,21 +1133,26 @@ Acceptance:
 
 ### `graph.label-overflow` — All the labels of a commit, under the pointer
 
-The labels of a commit start the line of its message and leave the message its room; those that do not fit are one
-label `+N`, and the pointer resting on the labels opens the list of all of them
-([D66](../08-decisions.md#d66--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)).
+The labels of a commit start the line under its message, or the one line of a compact row, and leave the author and
+the date or the message their room; those that do not fit are one label `+N`, and the pointer resting on the labels
+opens the list of all of them
+([D66](../08-decisions.md#d66--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer),
+[D86](../08-decisions.md#d86--on-two-lines-the-labels-of-a-commit-start-the-line-under-its-message-proposed)).
 
 - **Kind**: View
 - **Function**: `views::graph::label_overflow_view(state: &LabelOverflow, ui) -> Vec<Intent>`
 - **Entry points**: the pointer resting on `+N`, or on any label of a row that does not show all its labels whole.
 - **Uses**: `graph.labels`, `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `branch.checkout`,
   `ui.menu-scroll`.
-- **Extension**: planned (Q656): the labels come first on the one line of its wide Graph view already, all of them,
-  with no list under the pointer yet.
+- **Extension**: planned (Q656): the labels come first on the one line of its wide Graph view already, and under the
+  message, before the author and the date, on the two lines of its rows in the side bar, all of them, with no list
+  under the pointer yet.
 
-- The labels come right after the cell of the graph, in the order of `graph.labels`, then the message. The message keeps
-  its width up to three fifths of the line, and the labels take the rest (Q640): as many as fit whole, in their order,
-  then `+N` for the others. When not even the first fits whole beside `+N`, it is shortened with an ellipsis, as long as
+- While the rows are of two lines, the labels start the line under the message, right after the cell of the graph, in
+  the order of `graph.labels`, then the author and the date. The author and the date keep their width up to a third of
+  the line, and the labels take the rest (Q1231). On a compact row (`graph.compact-rows`) the labels come first on its
+  line, then the message, which keeps its width up to three fifths of the line, and the labels take the rest (Q640).
+  Either way, as many as fit whole, in their order, then `+N` for the others. When not even the first fits whole beside `+N`, it is shortened with an ellipsis, as long as
   it keeps three times its height; else `+N` alone stands for all of them. A label with a pull request keeps room for
   its badge (`graph.pull-request-badge`). The same holds in the narrow layout (Q644).
 - When a row does not show all its labels whole, the pointer resting 300 ms (Q642) on `+N` or on any of its labels
@@ -1162,8 +1170,8 @@ label `+N`, and the pointer resting on the labels opens the list of all of them
 
 Acceptance:
 
-- [ ] A commit with six labels in a window 1000 pixels wide starts its row with the labels that fit, then `+5`, then
-      its message, its labels a list for the screen reader.
+- [ ] A commit with six labels in a window 1000 pixels wide starts the line under its message with the labels that
+      fit, then `+5`, then its author and its date, its labels a list for the screen reader.
 - [ ] Resting 300 ms on `+5` opens under it the list of the six labels in their order; resting 250 ms does not.
 - [ ] A double click on `main` in the list checks it out, and the list closes.
 - [ ] A click on a label of the list selects the commit.
@@ -1339,7 +1347,7 @@ Acceptance:
 
 ### `graph.columns` — What is shown with each message
 
-Who made each commit and when, on the line under its message, and its hash at the end of the row.
+Who made each commit and when, on the line under its message after its labels, and its hash at the end of the row.
 
 - **Kind**: View
 - **Function**: `views::graph::columns_view(state: &ColumnsState, ui) -> Vec<Intent>`

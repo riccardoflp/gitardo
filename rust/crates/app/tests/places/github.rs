@@ -30,6 +30,9 @@ const HELPER: &str =
 /// The size of the window: tall enough for the whole **…** menu.
 const WIDE: (u32, u32) = (1000, 1100);
 
+/// A window wide enough for the label of `feature` and its badge beside `main`, on the line under the message.
+const BADGES: (u32, u32) = (1200, 300);
+
 /// A repository whose main remote is on GitHub, or elsewhere, with the server, the store and the git of the test.
 struct GitHubPlace {
     /// The repository, with a branch `feature` whose upstream is `origin/feature`.
@@ -346,7 +349,7 @@ fn loaded() -> (GitHubPlace, State) {
 fn graph_pull_request_badge__a_branch_whose_upstream_has_pull_request_12_with_checks_failing_has_12_in_the_color_of_failure()
  {
     let (_place, state) = loaded();
-    let mut window = Window::new(ThemeName::Dark, (1000, 300));
+    let mut window = Window::new(ThemeName::Dark, BADGES);
     let (_, tree) = window.draw(&state, &[]);
     assert!(has(&tree, Role::Button, BADGE_12), "the label of feature has the badge");
     let read = state.shown_read().unwrap();
@@ -366,7 +369,7 @@ fn graph_pull_request_badge__a_branch_whose_upstream_has_pull_request_12_with_ch
 fn graph_pull_request_badge__clicking_the_badge_opens_the_pull_request_and_leaves_the_selection_as_it_was() {
     let (_place, mut state) = loaded();
     let selected = state.timeline.selected.clone();
-    let mut window = Window::new(ThemeName::Dark, (1000, 300));
+    let mut window = Window::new(ThemeName::Dark, BADGES);
     let intents = window.click(&state, Role::Button, BADGE_12);
     let url = String::from("https://github.com/owner/app/pull/12");
     assert_eq!(intents, [Intent::OpenUrl(url.clone())]);
@@ -379,7 +382,7 @@ fn graph_pull_request_badge__clicking_the_badge_opens_the_pull_request_and_leave
 fn graph_pull_request_badge__before_the_pull_requests_are_loaded_no_label_has_a_badge() {
     let place = GitHubPlace::new("https://github.com/owner/app.git", false, vec![pull_request_12()]);
     let state = place.open();
-    let mut window = Window::new(ThemeName::Dark, (1000, 300));
+    let mut window = Window::new(ThemeName::Dark, BADGES);
     let (_, tree) = window.draw(&state, &[]);
     let badges = tree
         .nodes
