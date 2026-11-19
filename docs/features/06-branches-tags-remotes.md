@@ -1151,7 +1151,7 @@ another.
   remotes…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `remote.manage` to Gitardo's
   engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`); its picks are quick
   picks, the remotes searched by name and URL. Once something ran, the remote that pull requests are read from is found
-  again (`Controller.detectGitHub`). When the engine's binary is missing, it says so (D49).
+  again (`Controller.detectHosting`). When the engine's binary is missing, it says so (D49).
 - **Reads**: `remote.read-remotes`.
 - **Asks**:
   1. A pick titled **Remotes of `<repository>`**, with the placeholder **Pick a remote to fetch, rename, repoint or

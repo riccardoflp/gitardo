@@ -13,6 +13,7 @@ import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
 import { git } from '../git';
 import { samePath } from '../../src/shared/paths';
 import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
+import type { Hosting } from '../../src/shared/hosting';
 import type { ConflictReview } from '../../src/shared/resolution';
 import { subjectAndBody } from '../../src/shared/message';
 import { recentBranches } from '../../src/shared/refs';
@@ -26,8 +27,7 @@ interface Internals {
   filter: Filter | null;
   views: Map<unknown, ViewKind>;
   compareTabs: Map<unknown, CompareTab>;
-  github: { owner: string; repo: string } | null;
-  githubRemote: string | null;
+  hosting: Hosting | null;
   onMessage(webview: unknown, message: WebviewMessage): Promise<void>;
   post(message: HostMessage, to?: unknown): void;
   scheduleRefresh(cause: string, delay?: number): void;
@@ -1752,23 +1752,20 @@ export async function run(): Promise<void> {
       opened.push(uri.toString(true));
       return Promise.resolve(true);
     };
-    const github = internals.github;
-    const githubRemote = internals.githubRemote;
-    internals.github = { owner: 'octo', repo: 'app' };
-    internals.githubRemote = 'origin';
+    const hosting = internals.hosting;
+    internals.hosting = { service: 'gitHub', host: 'github.com', remote: 'origin', canCheckOut: true, comparesSinceDiverged: false };
     // Area 6 of stage 4: the engine reads the remotes itself, so origin is on GitHub while it opens the comparison.
     const originUrl = (await git(app, ['remote', 'get-url', 'origin'])).stdout.trim();
     if (internals.engine?.running) await git(app, ['remote', 'set-url', 'origin', 'https://github.com/octo/app.git']);
     try {
-      await internals.onMessage(branches.panel.webview, { type: 'openCompareOnGitHub' });
+      await internals.onMessage(branches.panel.webview, { type: 'openCompareOnService' });
       // A branch with no upstream there is not on GitHub by its name: its commit is, once pushed.
       await internals.onMessage(branches.panel.webview, { type: 'swapCompare' });
       await internals.onMessage(branches.panel.webview, { type: 'setCompareMode', mode: 'direct' });
-      await internals.onMessage(branches.panel.webview, { type: 'openCompareOnGitHub' });
+      await internals.onMessage(branches.panel.webview, { type: 'openCompareOnService' });
     } finally {
       env.openExternal = openExternal;
-      internals.github = github;
-      internals.githubRemote = githubRemote;
+      internals.hosting = hosting;
       await git(app, ['remote', 'set-url', 'origin', originUrl]);
     }
     assert.deepEqual(opened, [`https://github.com/octo/app/compare/main...${hashOf('topic')}`, `https://github.com/octo/app/compare/${hashOf('topic')}..main`]);

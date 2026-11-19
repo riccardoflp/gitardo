@@ -103,7 +103,7 @@ export async function graphState(
     favorites: [],
     defaultPull: 'pullRebaseAutostash',
     repos: [],
-    github: null,
+    hosting: null,
     pulls: {},
     agentsWindow: false,
     undo: null,

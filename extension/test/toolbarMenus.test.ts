@@ -22,7 +22,7 @@ const state = (overrides: Partial<RepoState> = {}) =>
     submodules: [],
     repos: [{}, {}],
     home: null,
-    github: { owner: 'owner', repo: 'app' },
+    hosting: { service: 'gitHub', host: 'github.com', remote: 'origin', canCheckOut: true, comparesSinceDiverged: false },
     ...overrides,
   }) as Partial<RepoState> as RepoState;
 
@@ -68,6 +68,7 @@ const MORE = [
   'Switch identity…',
   '-',
   'Load pull requests from GitHub',
+  'Check out a pull request…',
 ];
 
 beforeEach(() => {
@@ -145,11 +146,26 @@ describe('the … menu of the toolbar', () => {
   });
 
   it('leaves out what its condition does not hold for', () => {
-    const menu = words(moreMenu(state({ submodules: [{}] as RepoState['submodules'], repos: [{}] as RepoState['repos'], github: null }), false));
+    const menu = words(moreMenu(state({ submodules: [{}] as RepoState['submodules'], repos: [{}] as RepoState['repos'], hosting: null }), false));
     expect(menu).not.toContain('Add submodule…');
     expect(menu).not.toContain('Select repository…');
     expect(menu).not.toContain('Load pull requests from GitHub');
     expect(menu).toContain('Switch identity…');
+  });
+
+  it('loads the merge requests of a GitLab and checks one out, and has neither on Bitbucket (hosting.load-merge-requests)', () => {
+    const on = (service: 'gitLab' | 'bitbucket', canCheckOut: boolean) => ({
+      service,
+      host: 'example.test',
+      remote: 'origin',
+      canCheckOut,
+      comparesSinceDiverged: false,
+    });
+    const gitLab = words(moreMenu(state({ hosting: on('gitLab', true) }), false));
+    expect(gitLab).toEqual(expect.arrayContaining(['Load merge requests from GitLab', 'Check out a merge request…']));
+    expect(gitLab).not.toContain('Load pull requests from GitHub');
+    const bitbucket = words(moreMenu(state({ hosting: on('bitbucket', false) }), false));
+    expect(bitbucket.filter((label) => /request/.test(label))).toEqual([]);
   });
 
   it('posts the command of the entry chosen', () => {

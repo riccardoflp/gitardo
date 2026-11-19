@@ -25,6 +25,26 @@ describe.skipIf(!built)('Hosting services through the engine', { timeout: 60_000
     expect(asked).toEqual([[true, 'gitlab.com']]);
   });
 
+  it('says which service the main remote is on, and the address of a page there (hosting.detect-remote, hosting.web-links)', async () => {
+    const root = await repository();
+    await git(root, ['remote', 'add', 'origin', 'git@gitlab.com:group/sub/app.git']);
+    const engine = client(memoryLog());
+    expect(await engine.hosting(root)).toMatchObject({
+      kind: 'found',
+      service: 'gitLab',
+      web: 'https://gitlab.com/group/sub/app',
+      remote: 'origin',
+      canCheckOut: true,
+    });
+    expect(await engine.webLink(root, { kind: 'pullRequest', number: 12 })).toEqual({ url: 'https://gitlab.com/group/sub/app/-/merge_requests/12' });
+    await git(root, ['remote', 'set-url', 'origin', 'https://bitbucket.org/team/app.git']);
+    expect(await engine.hosting(root)).toMatchObject({ service: 'bitbucket', canCheckOut: false, comparesSinceDiverged: true });
+    expect((await engine.webLink(root, { kind: 'create', branch: 'fix#1' })).url).toBe('https://bitbucket.org/team/app/pull-requests/new?source=fix%231');
+    await git(root, ['remote', 'set-url', 'origin', 'https://example.test/team/app.git']);
+    expect(await engine.hosting(root)).toEqual({ kind: 'none' });
+    expect(await engine.webLink(root, { kind: 'create', branch: 'fix' })).toEqual({ url: null });
+  });
+
   it('asks for the number of a pull request when none is listed, and is refused on Bitbucket (hosting.checkout-pull-request)', async () => {
     const root = await repository();
     await git(root, ['remote', 'add', 'origin', 'https://github.com/owner/app.git']);

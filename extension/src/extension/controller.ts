@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { ThemeService } from '../flow/theme';
 import { CONFLICT_SIDES } from '../shared/conflicts';
-import { compareUrl, parseGitHubRemote, type GitHubRepo } from '../shared/github';
+import { pullWords, readsPullRequests, type Hosting } from '../shared/hosting';
 import { openingOf } from '../shared/markdown';
 import { samePath } from '../shared/paths';
 import { GRAPH_COLUMNS, WORKTREE, showsGraph } from '../shared/protocol';
@@ -296,9 +296,10 @@ export class Controller implements vscode.Disposable {
   private filter: Filter | null = null;
   /** Which branches the graph shows: all of them when null. */
   private scope: Scope | null = null;
-  private github: GitHubRepo | null = null;
-  /** The remote that `github` is. */
-  private githubRemote: string | null = null;
+  /** The hosting service of the main remote, as the engine found it (`hosting.detect-remote`). */
+  private hosting: Hosting | null = null;
+  /** Forgets the token of a GitLab that the GitLab refused, so that signing in asks for another (`hosting.token`). */
+  private forgetToken?: (host: string) => Promise<void>;
   private pulls: Record<string, PullRequest> = {};
   private pullsAt = 0;
   /** A commit to show as soon as a graph view is there to show it. */
@@ -400,6 +401,8 @@ export class Controller implements vscode.Disposable {
           this.kept.changedAll('the settings changed');
         }
         if (event.affectsConfiguration('gitardo.repositories.keepOpen')) this.keepOpenChanged();
+        // After the engine is told of the settings, in a listener of its own that may come after this one.
+        if (event.affectsConfiguration('gitardo.hosting')) setTimeout(() => void this.hostingChanged(), 0);
         if (event.affectsConfiguration('gitardo.conflicts')) void this.reviewTab?.reload();
       }),
       // The branches a comparison is of may have moved, and the conflicts of the review may be resolved.
@@ -529,7 +532,7 @@ export class Controller implements vscode.Disposable {
           favorites: this.favorites(read),
           defaultPull: this.defaultPull(),
           repos: this.repos,
-          github: this.github,
+          hosting: this.hosting,
           pulls: this.pulls,
           agentsWindow: await (this.agentsWindow ??= hasCommand(AGENTS_WINDOW)),
           undo: await this.newestInJournal(read.root),
@@ -1509,15 +1512,16 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
-   * Opens the comparison on GitHub, each side by the name it has there: a branch by its upstream there, a remote
-   * branch of that remote and a tag by their names, anything else by its commit, which GitHub knows once it is pushed.
+   * Opens the comparison on the hosting service of the main remote, each side by the name it has there: a branch by its
+   * upstream there, a remote branch of that remote and a tag by their names, anything else by its commit, which the
+   * service knows once it is pushed (`compare.open-on-service`, which is `compare.open-on-github` on GitHub).
    */
-  private async openCompareOnGitHub(tab: CompareTab): Promise<void> {
-    const { state, github } = this;
+  private async openCompareOnService(tab: CompareTab): Promise<void> {
+    const { state, hosting } = this;
     const { from, to } = tab;
-    if (!state || !github || !samePath(state.root, tab.repo.root) || from.hash === WORKTREE || to.hash === WORKTREE) return;
-    // The engine names each side on GitHub and opens the address.
-    await this.runOnEngine([{ feature: 'compare.open-on-github', target: this.comparisonTarget(tab) }], tab.repo);
+    if (!state || !hosting || !samePath(state.root, tab.repo.root) || from.hash === WORKTREE || to.hash === WORKTREE) return;
+    // The engine names each side on the service and opens the address.
+    await this.runOnEngine([{ feature: 'compare.open-on-service', target: this.comparisonTarget(tab) }], tab.repo);
   }
 
   /** Lets the user choose a branch or a tag, or type anything git can turn into a commit: a hash, `HEAD~3`, `v1.0^`. */
@@ -1732,34 +1736,41 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
-   * Reads the open pull requests from GitHub. Without `force` it reuses what it has for a while;
-   * without `prompt` it does nothing unless the user already signed in to GitHub in VS Code.
+   * Reads the open pull requests from GitHub, or the merge requests of a GitLab (`hosting.read-merge-requests`). Without
+   * `force` it reuses what it has for a while; without `prompt` it reads only with a token already there: the user
+   * signed in to GitHub in VS Code, or the token of the GitLab kept in the secret storage.
    */
   private async refreshPulls(force: boolean, prompt = false): Promise<void> {
-    const github = this.github;
-    if (!github) {
-      if (prompt) void vscode.window.showWarningMessage('Gitardo: the main remote of this repository is not on github.com.');
+    const hosting = this.hosting;
+    if (!hosting || !readsPullRequests(hosting.service)) {
+      if (prompt) void vscode.window.showWarningMessage('Gitardo: the main remote of this repository is not on github.com or on a GitLab.');
       return;
     }
     if (!force && Date.now() - this.pullsAt < PULLS_MAX_AGE) return;
     const repo = this.repo;
     if (!repo) return;
+    const gitLab = hosting.service === 'gitLab';
+    const words = `${pullWords(hosting.service)}s`;
     try {
-      // Signing in loads them with the engine's `github.load-pull-requests`, which reads them again.
+      // Signing in loads them with the engine's `github.load-pull-requests` or `hosting.load-merge-requests`, which
+      // read them again.
       if (prompt) {
-        await this.runOnEngine([{ feature: 'github.load-pull-requests', target: { kind: 'head' } }], repo);
+        await this.runOnEngine([{ feature: gitLab ? 'hosting.load-merge-requests' : 'github.load-pull-requests', target: { kind: 'head' } }], repo);
         return;
       }
-      // Only once the user signed in to GitHub in VS Code: the engine asks it for the same session (`host/githubToken`).
-      if (!reads.available || !(await githubSession(false))) return;
+      // On GitHub only once the user signed in in VS Code: the engine asks it for the same session (`host/githubToken`).
+      if (!reads.available || (!gitLab && !(await githubSession(false)))) return;
       this.pullsAt = Date.now();
-      const pulls = await this.activity.track('Reading the pull requests from GitHub', () => reads.pullRequests(repo.root, this.githubRemote));
-      if (github !== this.github || JSON.stringify(pulls) === JSON.stringify(this.pulls)) return;
+      const what = gitLab ? 'Reading the merge requests from GitLab' : 'Reading the pull requests from GitHub';
+      const pulls = await this.activity.track(what, () => reads.pullRequests(repo.root, hosting.remote, hosting.service));
+      if (hosting !== this.hosting || JSON.stringify(pulls) === JSON.stringify(this.pulls)) return;
       this.pulls = pulls;
       if (this.state) this.setState({ ...this.state, pulls });
     } catch (error) {
-      this.log.warn(`Could not read pull requests: ${errorText(error)}`);
-      if (prompt) void vscode.window.showErrorMessage(`Gitardo: could not read pull requests. ${errorText(error)}`);
+      // A token the GitLab refused is forgotten: the next sign-in asks for another.
+      if (gitLab && (error as { isUnauthorized?: boolean }).isUnauthorized) await this.forgetToken?.(hosting.host);
+      this.log.warn(`Could not read ${words}: ${errorText(error)}`);
+      if (prompt) void vscode.window.showErrorMessage(`Gitardo: could not read ${words}. ${errorText(error)}`);
     }
   }
 
@@ -1804,7 +1815,7 @@ export class Controller implements vscode.Disposable {
     await vscode.workspace.getConfiguration('gitardo').update(extensionKey(followUp.key), value, vscode.ConfigurationTarget.Global);
   }
 
-  /** A comparison tab as the target of `compare.open-on-github` and, with a file, of `compare.take-file`. */
+  /** A comparison tab as the target of `compare.open-on-service` and, with a file, of `compare.take-file`. */
   private comparisonTarget(tab: CompareTab): ComparisonTarget {
     const side = (compared: CompareSide): CompareSideTarget => ({
       name: compared.name,
@@ -1822,11 +1833,24 @@ export class Controller implements vscode.Disposable {
     };
   }
 
-  /** Opens the pull request of a branch in the browser, or GitHub's page to create one. */
+  /**
+   * Opens the pull request of a branch in the browser, or the page of the hosting service that creates one, whose
+   * address the engine gives (`hosting.open-pull-request`, `hosting.web-links`).
+   */
   private async openPullRequest(branch: string): Promise<void> {
-    if (!this.github) return;
-    const url = this.pulls[branch]?.url ?? compareUrl(this.github, branch);
-    await vscode.env.openExternal(vscode.Uri.parse(url));
+    const repo = this.repo;
+    if (!this.hosting || !repo) return;
+    const known = this.pulls[branch]?.url;
+    const url = known ?? (await reads.webLink(repo.root, { kind: 'create', branch }).catch((error) => void this.log.warn(`No address: ${errorText(error)}`)));
+    if (url) await vscode.env.openExternal(vscode.Uri.parse(url));
+  }
+
+  /** Checks out the pull request a remote branch has on its label, by its number (`hosting.checkout-pull-request`). */
+  private async checkOutPullRequest(number: number, remoteBranch: string): Promise<void> {
+    const repo = this.repo;
+    if (!repo || !this.hosting?.canCheckOut) return;
+    const answers = { number: { kind: 'text' as const, text: String(number) } };
+    await this.runOnEngine([{ feature: 'hosting.checkout-pull-request', target: { kind: 'remoteBranch', name: remoteBranch }, answers }], repo);
   }
 
   /** What the Pull button runs: the settings add `--rebase` and `--autostash`, unless switched off. */
@@ -1867,8 +1891,10 @@ export class Controller implements vscode.Disposable {
     const branch = checkedOutBranch(before);
     const hadUpstream = before.branches.some((each) => each.isCheckedOut && each.upstream);
     const hasUpstream = this.state?.branches.some((each) => each.isCheckedOut && each.name === branch && each.upstream);
-    if ((action.startsWith('push') || action === 'sync') && branch && !hadUpstream && hasUpstream && this.github && !this.pulls[branch]) {
-      const choice = await vscode.window.showInformationMessage(`Pushed ${branch}.`, 'Create Pull Request');
+    const hosting = this.hosting;
+    if ((action.startsWith('push') || action === 'sync') && branch && !hadUpstream && hasUpstream && hosting && !this.pulls[branch]) {
+      const button = hosting.service === 'gitLab' ? 'Create Merge Request' : 'Create Pull Request';
+      const choice = await vscode.window.showInformationMessage(`Pushed ${branch}.`, button);
       if (choice) await this.openPullRequest(branch);
     }
   }
@@ -1876,6 +1902,11 @@ export class Controller implements vscode.Disposable {
   /** Reads the repository and runs every operation on it with this engine from now on. */
   useEngine(engine: WindowEngine): void {
     this.engine = engine;
+  }
+
+  /** How a token of a GitLab that it refused is forgotten, in the secret storage of the extension (`hosting.token`). */
+  useTokenForgetting(forget: (host: string) => Promise<void>): void {
+    this.forgetToken = forget;
   }
 
   async action(action: Action): Promise<void> {
@@ -2272,7 +2303,7 @@ export class Controller implements vscode.Disposable {
     this.cancelGraphRead();
     this.filter = null;
     this.scope = null;
-    this.github = null;
+    this.hosting = null;
     this.pulls = {};
     this.pullsAt = 0;
     if (!root) return this.setState(null);
@@ -2289,7 +2320,7 @@ export class Controller implements vscode.Disposable {
       // Another may have been chosen meanwhile, which has watchers of its own.
       if (this.repo !== repo) return;
       this.watcher = this.watch(root, gitDir);
-      await this.detectGitHub(repo);
+      await this.detectHosting(repo);
       await this.refresh();
     });
   }
@@ -2312,8 +2343,7 @@ export class Controller implements vscode.Disposable {
       filter: this.filter,
       scope: this.scope,
       limit: this.limit,
-      github: this.github,
-      githubRemote: this.githubRemote,
+      hosting: this.hosting,
       pulls: this.pulls,
       pullsAt: this.pullsAt,
       watcher,
@@ -2330,8 +2360,7 @@ export class Controller implements vscode.Disposable {
     this.filter = kept.filter;
     this.scope = kept.scope;
     this.limit = kept.limit;
-    this.github = kept.github;
-    this.githubRemote = kept.githubRemote;
+    this.hosting = kept.hosting;
     this.pulls = kept.pulls;
     this.pullsAt = kept.pullsAt;
     this.watcher = kept.watcher;
@@ -2340,21 +2369,34 @@ export class Controller implements vscode.Disposable {
     if (kept.changed) {
       this.cause = kept.changed;
       this.everything = true;
-      await this.detectGitHub(repo).catch((error) => this.log.warn(`Could not read the remotes of ${repo.root}: ${errorText(error)}`));
+      await this.detectHosting(repo).catch((error) => this.log.warn(`Could not read the remotes of ${repo.root}: ${errorText(error)}`));
       await this.refresh();
     } else if (this.views.size) void this.refreshPulls(false);
   }
 
-  /** Works out whether the main remote is a repository on GitHub. */
-  private async detectGitHub(repo: Repository): Promise<void> {
-    const remotes = await reads.remotes(repo);
-    const main = remotes.find((remote) => remote.name === 'origin') ?? remotes[0];
-    const github = main ? parseGitHubRemote(main.url) : null;
-    this.githubRemote = github ? main.name : null;
-    if (JSON.stringify(github) === JSON.stringify(this.github)) return;
-    this.github = github;
+  /**
+   * Asks the engine which hosting service the main remote is on (`hosting.detect-remote`), with the services of one's own
+   * of `gitardo.hosting.selfHosted`; the pull requests known are forgotten when it is another.
+   */
+  private async detectHosting(repo: Repository): Promise<void> {
+    const hosting = await reads.hosting(repo.root);
+    if (JSON.stringify(hosting) === JSON.stringify(this.hosting)) return;
+    this.hosting = hosting;
     this.pulls = {};
     this.pullsAt = 0;
+  }
+
+  /** The services of one's own changed: the main remote may be on another, and the views say so. */
+  private async hostingChanged(): Promise<void> {
+    const repo = this.repo;
+    if (!repo || !reads.available) return;
+    try {
+      await this.detectHosting(repo);
+    } catch (error) {
+      return this.log.warn(`Could not read the remotes of ${repo.root}: ${errorText(error)}`);
+    }
+    if (this.state && this.repo === repo) this.setState({ ...this.state, hosting: this.hosting, pulls: this.pulls });
+    void this.refreshPulls(true);
   }
 
   /** Lists the remotes, to fetch, rename, repoint or remove one, or to add another. */
@@ -2364,7 +2406,7 @@ export class Controller implements vscode.Disposable {
     if (!state || !repo) return;
     // The remote that pull requests are read from may be another one after.
     if (!(await this.runOnEngine([{ feature: add ? 'remote.add' : 'remote.manage', target: { kind: 'head' } }], repo))) return;
-    await this.detectGitHub(repo);
+    await this.detectHosting(repo);
     await this.refresh();
   }
 
@@ -2700,6 +2742,8 @@ export class Controller implements vscode.Disposable {
         return this.command(message.command);
       case 'pullRequest':
         return this.openPullRequest(message.branch);
+      case 'checkOutPullRequest':
+        return this.checkOutPullRequest(message.number, message.remoteBranch);
       case 'syntaxTheme':
         this.colored.add(webview);
         return this.post({ type: 'syntaxTheme', theme: (await this.themes.resolveActive()) ?? null }, webview);
@@ -2811,8 +2855,8 @@ export class Controller implements vscode.Disposable {
         return compareTab ? this.copyComparePatch(compareTab) : undefined;
       case 'formatPatch':
         return repo && this.formatPatch(repo, message.hashes, message.save === true);
-      case 'openCompareOnGitHub':
-        return compareTab ? this.openCompareOnGitHub(compareTab) : undefined;
+      case 'openCompareOnService':
+        return compareTab ? this.openCompareOnService(compareTab) : undefined;
       case 'show':
         return this.show(message.hash);
       case 'trace':

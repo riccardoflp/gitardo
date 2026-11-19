@@ -59,6 +59,8 @@ import {
   ReadMethod,
   type ReflogPosition,
   type SearchMode,
+  type HostingFound,
+  type HostingPage,
   type SetupPreview,
   type Settings,
   type Side,
@@ -431,9 +433,22 @@ export class EngineClient {
     return this.read(ReadMethod.pathStatuses, repository, { paths }, signal);
   }
 
-  /** The open pull requests of the repository on GitHub of a remote, or of the main one (`github.read-pull-requests`). */
+  /**
+   * The open pull requests of the repository on GitHub of a remote, or of the main one (`github.read-pull-requests`);
+   * on a GitLab, its merge requests (1.11).
+   */
   pullRequests(repository: string, remote: string | null, signal?: AbortSignal): Promise<PullRequests> {
     return this.read(ReadMethod.pullRequests, repository, { remote }, signal);
+  }
+
+  /** The hosting service and the project of the main remote (`hosting.detect-remote`, 1.11). */
+  hosting(repository: string, signal?: AbortSignal): Promise<HostingFound> {
+    return this.read(ReadMethod.hosting, repository, {}, signal);
+  }
+
+  /** The address of a page of the project of the main remote (`hosting.web-links`, 1.11); null on no service known. */
+  webLink(repository: string, page: HostingPage, signal?: AbortSignal): Promise<{ url: string | null }> {
+    return this.read(ReadMethod.webLink, repository, { page }, signal);
   }
 
   /** The commits of what is checked out, at most `count`, and which are not pushed (`branch.read-log`). */

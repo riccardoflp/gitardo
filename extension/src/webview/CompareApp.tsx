@@ -4,6 +4,7 @@ import { BackToTop } from './BackToTop';
 import { CompareCommits } from './CompareCommits';
 import { FileChanges } from './FileChanges';
 import { FileIcon } from './FileIcon';
+import { serviceName } from '../shared/hosting';
 import { Icon } from './Icon';
 import { fileMenu } from './menus';
 import { Progress } from './Progress';
@@ -261,6 +262,8 @@ export function CompareApp({ root, layout: remembered }: Props) {
   const worktree = from.hash === WORKTREE || to.hash === WORKTREE;
   const source: DiffSource = { kind: 'commit', hash: to.hash, parent: since };
   const diverged = mode === 'diverged' && !!base;
+  // Bitbucket, Gitea and Forgejo compare only since the two diverged (`compare.open-on-service`).
+  const hosting = state?.hosting;
   const title = diverged ? `${from.name}...${to.name}` : `${from.name} ↔ ${to.name}`;
   // The lines that came are for what is shown, or not yet.
   const lines = patch && patch.since === since && patch.to === to.hash ? patch.patch : undefined;
@@ -324,10 +327,14 @@ export function CompareApp({ root, layout: remembered }: Props) {
                 Copy as patch
               </button>
             )}
-            {state?.github && !worktree && from.hash !== to.hash && (
-              <button className="button" title="Compare the two on GitHub, once they are pushed" onClick={() => post({ type: 'openCompareOnGitHub' })}>
-                <Icon name="github" />
-                Open on GitHub
+            {hosting && !worktree && from.hash !== to.hash && (!hosting.comparesSinceDiverged || mode === 'diverged') && (
+              <button
+                className="button"
+                title={`Compare the two on ${serviceName(hosting.service)}, once they are pushed`}
+                onClick={() => post({ type: 'openCompareOnService' })}
+              >
+                <Icon name={hosting.service === 'gitHub' ? 'github' : 'link-external'} />
+                Open on {serviceName(hosting.service)}
               </button>
             )}
           </div>

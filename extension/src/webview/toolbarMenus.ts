@@ -1,4 +1,5 @@
 import type { GraphColumn, RefKind, RepoState, UiCommand } from '../shared/protocol';
+import { pullWords } from '../shared/hosting';
 import { kindsScope, scopeKinds } from '../shared/scope';
 import type { MenuEntry } from './ContextMenu';
 import { act } from './menus';
@@ -103,8 +104,22 @@ export function moreMenu(state: RepoState, compact: boolean): MenuEntry[] {
     (state.repos.length > 1 || state.home) && { label: 'Select repository…', run: run('selectRepository') },
     'separator',
     { label: 'Switch identity…', run: run('switchIdentity') },
-    state.github && 'separator',
-    state.github && { label: 'Load pull requests from GitHub', run: run('signInGitHub') },
-    state.github && { label: 'Check out a pull request…', run: run('checkOutPullRequest') },
+    ...hostingEntries(state),
+  ];
+}
+
+/**
+ * The entries of the hosting service of the main remote: loading the pull requests of GitHub or the merge requests of a
+ * GitLab, and checking one out where the service keeps a reference of each (`hosting.checkout-pull-request`).
+ */
+function hostingEntries(state: RepoState): MenuEntry[] {
+  const hosting = state.hosting;
+  if (!hosting) return [];
+  const service = hosting.service;
+  return [
+    (service === 'gitHub' || service === 'gitLab' || hosting.canCheckOut) && 'separator',
+    service === 'gitHub' && { label: 'Load pull requests from GitHub', run: run('signInGitHub') },
+    service === 'gitLab' && { label: 'Load merge requests from GitLab', run: run('signInGitLab') },
+    hosting.canCheckOut && { label: `Check out a ${pullWords(service)}…`, run: run('checkOutPullRequest') },
   ];
 }

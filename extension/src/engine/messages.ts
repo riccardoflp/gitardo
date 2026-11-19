@@ -5,6 +5,7 @@
  * which the views take as they are (stage 6).
  */
 
+import type { HostingService } from '../shared/hosting';
 import type { FolderSummary } from '../shared/summaries';
 import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shared/state';
 
@@ -263,6 +264,8 @@ export const ReadMethod = {
   setupCommands: 'read/worktree-setup.propose-commands',
   pathStatuses: 'read/worktree-setup.explain-change',
   pullRequests: 'read/github.read-pull-requests',
+  hosting: 'read/hosting.detect-remote',
+  webLink: 'read/hosting.web-link',
   branchLog: 'read/branch.read-log',
   commonFolder: 'read/repo.common-folder',
   preparedMessage: 'read/commit.prepared-message',
@@ -481,6 +484,24 @@ export interface PullRequest {
   branch: string;
   checks: 'passed' | 'failed' | 'running' | null;
 }
+
+/** The hosting service and the project of the main remote (`read/hosting.detect-remote`, 1.11). */
+export type HostingFound =
+  | { kind: 'none' }
+  | {
+      kind: 'found';
+      service: HostingService;
+      web: string;
+      host: string;
+      path: string;
+      remote: string;
+      defaultBranch: string | null;
+      canCheckOut: boolean;
+      comparesSinceDiverged: boolean;
+    };
+
+/** A page of the project of the main remote whose address `read/hosting.web-link` gives (1.11). */
+export type HostingPage = { kind: 'create'; branch: string } | { kind: 'pullRequest'; number: number };
 
 /** The open pull requests by the name of their branch, or why they were not read. */
 export type PullRequests =

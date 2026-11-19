@@ -1991,13 +1991,12 @@ all, takes a terminal. So:
   pull request, Azure DevOps only its merge, so the entry is not offered there (Q1153).
 - **Nothing is sent before it is asked for**, and a token only to the host name it was given for.
 
-The extension does GitHub today in two halves: the token is VS Code's sign-in to GitHub (`githubToken` in
-`src/extension/github.ts`, G4), and the address of a pull request and of the page that creates one is derived in
-TypeScript (`parseGitHubRemote` and `compareUrl` in `src/shared/github.ts`, `Controller.openPullRequest`), while the
-comparison on GitHub is run on the engine (`compare.open-on-github`, G5). For the other services it takes the engine's
-derivations and opens the address of its follow-up `openUrl`. VS Code has no sign-in to GitLab, so the extension asks
-for the token in an input box and keeps it in its secret storage (Q1159). Its cards are *Planned*, brought in the last
-phase of M37.
+In the extension the token of GitHub is VS Code's sign-in (`githubToken` in `src/extension/github.ts`, G4). The
+service of the main remote and the addresses of its pages are the engine's, for GitHub too (`read/hosting.detect-remote`
+and `read/hosting.web-link`, since 1.11), and the comparison on the web is run on the engine
+(`compare.open-on-service`, which is `compare.open-on-github` on GitHub). VS Code has no sign-in to GitLab, so the
+extension asks for the token in an input box and keeps it in its secret storage (Q1159). Its cards were built in the
+last phase of M37 (Q1504).
 
 Rejected: renaming the cards of GitHub into `hosting.` (their identifiers are in the code and the tests); `host.` for
 the area (the glossary's host is another thing); every service inside the cards of GitHub (each would grow a table of
@@ -5426,12 +5425,13 @@ it was planned; each is built as it says until the maintainer answers otherwise.
 - **Q1503** — `hosting.read-pull-request-list`: the pick reads with the token kept for the service and never runs git's
   credential helper; with none kept, nothing is listed and the box says to sign in. Should the pick offer **Sign in to
   GitHub** or **Sign in to GitLab** there?
-- **Q1504** — milestone M37, phase 5: the extension knows the service of the main remote only for GitHub
-  (`parseGitHubRemote`), so its labels, the menus of its branches, the offer after a push and its Compare tab say
-  nothing of GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo yet; it has **Gitardo: Check Out Pull Request…**,
-  **Gitardo: Sign In to GitLab**, the token of a GitLab in its secret storage and `gitardo.hosting.selfHosted`. Should
-  the service and the addresses come from a read of the engine (`read/hosting.detect-remote`), with the merge requests
-  in `read/github.read-pull-requests`, as phase 5 plans?
+- **Q1504** — Answered: yes, as phase 5 of M37 planned. The extension asks the engine for the service and the project
+  of the main remote (`read/hosting.detect-remote`) and for the page that creates a pull request
+  (`read/hosting.web-link`), in place of `parseGitHubRemote` and `compareUrl`, gone with `src/shared/github.ts`; the
+  merge requests of a GitLab come in `read/github.read-pull-requests`. Its labels show `!12` in the color of the
+  pipeline, the menus of its branches open or create merge requests and pull requests on every service and check one
+  out from a remote branch, the offer after a first push is made on every service, and its Compare tab has **Open on
+  `<service>`**.
 - **Q1505** — `hosting.token`: the extension is asked for the token of a GitLab with `host/githubToken`, which names the
   host since 1.11, rather than with a host question of its own. Should it have one, `host/hostingToken`?
 - **Q1164** — `compare.open-on-service`: Bitbucket, Gitea and Forgejo compare only since the two diverged, so the entry

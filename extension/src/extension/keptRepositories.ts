@@ -1,5 +1,5 @@
 import type * as vscode from 'vscode';
-import type { GitHubRepo } from '../shared/github';
+import type { Hosting } from '../shared/hosting';
 import type { Filter, PullRequest, RepoState, Scope } from '../shared/protocol';
 
 /**
@@ -12,8 +12,8 @@ export interface KeptRepository {
   scope: Scope | null;
   /** How many commits the graph was read to. */
   limit: number;
-  github: GitHubRepo | null;
-  githubRemote: string | null;
+  /** The hosting service of its main remote (`hosting.detect-remote`). */
+  hosting: Hosting | null;
   pulls: Record<string, PullRequest>;
   pullsAt: number;
   /** The watchers of its files, kept with it: while it is not shown they only mark it out of date (`repo.watch-hidden`). */

@@ -1192,7 +1192,7 @@ reworded and one dropped, the reworded one opens on its diff of diffs; before **
 **Compare first** opens the page of `origin/p3` against `p3` and pushes nothing; every card of the milestone passes its
 tests, in the desktop and, after phase 6, in the extension.
 
-## M37 — Pull requests: check out, and hosting services beyond GitHub
+## M37 — Pull requests: check out, and hosting services beyond GitHub (done)
 
 A pull request checked out in a local branch, one from a fork included; and the pull requests of GitLab, Bitbucket,
 Azure DevOps, Gitea and Forgejo opened, created and compared on the web as those of GitHub are, those of GitLab read
@@ -1231,12 +1231,15 @@ comparison page (`compare.open-on-service`); the token of a GitLab (`git::read::
 `HostingToken` of the engine), **Load merge requests from GitLab** in the **…** menu and **Sign in to GitLab** in Quick
 search, `engine::hosting::read_merge_requests`, and `!<n>` on the labels in the color of the pipeline;
 `engine::hosting::read_pull_request_list` and **Check out a pull request…** in Quick search, in the **…** menu and on
-a remote branch whose label shows one, with the questions Q1500–Q1503. Of phase 5, the extension has **Gitardo: Check
-Out Pull Request…** and **Gitardo: Sign In to GitLab** run on the engine, **Check out a pull request…** in the **…**
-menu of the graph on GitHub, the token of a GitLab asked in an input box and kept in its secret storage, and
-`gitardo.hosting.selfHosted`; the service and the addresses from the engine in place of `parseGitHubRemote` and
-`compareUrl`, the numbers of merge requests on its labels and **Open on `<service>`** in its Compare tab are not built
-yet (Q1504), and the milestone stays open.
+a remote branch whose label shows one, with the questions Q1500–Q1503. Phase 5 is built: the extension reads the
+service of the main remote and the page that creates a pull request from the engine (`read/hosting.detect-remote`,
+`read/hosting.web-link`, protocol 1.11), in place of `parseGitHubRemote` and `compareUrl`, which are gone; the merge
+requests of a GitLab come in `read/github.read-pull-requests`, with the token kept in the secret storage of the
+extension, and show as `!<n>` on the labels; **Gitardo: Check Out Pull Request…** and **Gitardo: Sign In to GitLab**
+run on the engine, with **Load merge requests from GitLab** and **Check out a merge request…** in the **…** menu and
+**Check out pull request #`<n>`** on a remote branch; the menus of the branches and the offer after a first push on
+every service; **Open on `<service>`** in the Compare tab; and `gitardo.hosting.selfHosted` (Q1504, answered). The
+milestone is done.
 
 Exit: in a clone of a project on gitlab.com, **Create merge request…** on a pushed branch opens GitLab's page with the
 branch filled in, and the first push of a new branch offers it; **Load merge requests from GitLab**, given a token,

@@ -13,7 +13,8 @@ import {
 } from 'react';
 import { fitGraph, foldMerges, laneCount, laneTips, mergedBranch, mergedCommits, oneLane, ownCommits, reachedFrom, reaching, traceGraph, type GraphTrace, type ShownRow } from '../shared/graph';
 import { WORKTREE, type GraphColumn, type GraphRow, type Loading, type PullRequest, type Row } from '../shared/protocol';
-import { pullTitle } from '../shared/refs';
+import { serviceName } from '../shared/hosting';
+import { pullBadgeText, pullTitle } from '../shared/refs';
 import { Icon } from './Icon';
 import { Progress } from './Progress';
 import { Sash } from './Sash';
@@ -32,7 +33,7 @@ export interface Label {
   worktree?: string;
   /** For a branch: its upstream, when it has the same name there and is at the same commit, so the one label stands for both. */
   remote?: string;
-  /** For a branch: its open pull request, and the name of the branch on GitHub. */
+  /** For a branch: its open pull request, and the name of the branch on its hosting service. */
   pull?: { request: PullRequest; branch: string };
 }
 
@@ -297,7 +298,7 @@ function PullBadge({ request, branch }: { request: PullRequest; branch: string }
     <span
       className={`pull ${request.checks ?? ''}`}
       role="link"
-      title={`${pullTitle(request)}\nClick to open it on GitHub`}
+      title={`${pullTitle(request)}\nClick to open it on ${serviceName(request.service)}`}
       onClick={(event) => {
         // Not the selection of the commit as well.
         event.stopPropagation();
@@ -306,7 +307,7 @@ function PullBadge({ request, branch }: { request: PullRequest; branch: string }
       onDoubleClick={(event) => event.stopPropagation()}
     >
       <Icon name={request.draft ? 'git-pull-request-draft' : 'git-pull-request'} />
-      {request.number}
+      {pullBadgeText(request)}
     </span>
   );
 }

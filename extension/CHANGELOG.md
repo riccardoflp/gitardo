@@ -8,6 +8,12 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 - **Gitardo: Check Out Pull Request…**, in the Command Palette and in the **…** menu of the graph, picks one of the open pull requests of GitHub or merge requests of GitLab, those from forks included, or takes its number typed, also on Gitea and Forgejo, and checks it out with Gitardo's engine: one from a branch of the repository as its remote branch, one from a fork into a local branch named `<owner>/<branch>`.
 - **Gitardo: Sign In to GitLab** asks for a personal access token of the GitLab of the main remote, kept in the secret storage of the extension for its host name. `gitardo.hosting.selfHosted`, under **Pull and commits**, names a GitLab, Gitea or Forgejo of one's own by the host name of its remotes.
+- Repositories on GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo, as on GitHub: the context menu of a pushed branch has **Create merge request…** on GitLab and **Create pull request…** on the others, the first push of a branch offers it, and the Compare tab has **Open on GitLab**, **Open on Bitbucket** and so on, in **Since they diverged** only on Bitbucket, Gitea and Forgejo. Once **Load merge requests from GitLab**, in the **…** menu, has a token, the labels of the graph show `!12` for the open merge request of a branch, in the color of its pipeline, and its menu has **Open merge request !12**.
+- **Check out pull request #12**, or **Check out merge request !12** on GitLab, in the context menu of a remote branch whose label shows one.
+
+### Changed
+
+- Which hosting service the main remote is on, and the address of the page that creates a pull request, come from Gitardo's engine, for GitHub too.
 
 ## 1.2.0 - 2026-11-18
 
