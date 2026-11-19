@@ -8,6 +8,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import type { JournalEntry } from './journal';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
+import type { RangeDiffPairs, RangeDiffRanges } from '../shared/rangeDiff';
 import type { FolderSummary } from '../shared/summaries';
 import type { TagComparison } from '../shared/tagMarks';
 import type { Author, CommitSignature, FileChange, RepositoryState } from '../shared/state';
@@ -53,6 +54,7 @@ import {
   type MergeSides,
   HelpMethod,
   MermaidMethod,
+  RangeDiffMethod,
   Method,
   PROTOCOL,
   type Patch,
@@ -531,6 +533,11 @@ export class EngineClient {
   /** The commits of the history of the timeline that a search finds, newest first (`search.read-matches`). */
   searchMatches(repository: string, text: string, mode: SearchMode, timeline: Timeline, signal?: AbortSignal): Promise<Matches> {
     return this.read(ReadMethod.searchMatches, repository, { text, mode, timeline }, signal);
+  }
+
+  /** The pairs of what a rewrite changed, commit by commit, of the lines its follow-up gave (`range-diff.read-pairs`, 1.11). */
+  rangeDiffPairs(repository: string, ranges: RangeDiffRanges, signal?: AbortSignal): Promise<RangeDiffPairs> {
+    return this.read(RangeDiffMethod.pairs, repository, { ranges }, signal);
   }
 
   /**

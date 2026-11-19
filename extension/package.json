@@ -1469,6 +1469,30 @@
             },
             "markdownDescription": "The GitLab, Gitea or Forgejo of one's own, by the host name of its remotes: `{ \"git.example.com\": \"gitlab\" }`, or `{ \"git.example.com\": { \"kind\": \"gitlab\", \"web\": \"https://code.example.com\" } }` when its pages are on another name. Gitardo then knows its pull requests as it knows those of gitlab.com, codeberg.org or GitHub.",
             "order": 8
+          },
+          "gitardo.rebase.updateRefs": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "enum": [
+              null,
+              true,
+              false
+            ],
+            "enumItemLabels": [
+              "As git says",
+              "Move them",
+              "Leave them"
+            ],
+            "enumDescriptions": [
+              "As Git's own `rebase.updateRefs` says, and moved when that is not set either.",
+              "The other branches of a stack move with the commits they are on: `git rebase --update-refs`.",
+              "The other branches stay on the old commits: `git rebase --no-update-refs`."
+            ],
+            "default": null,
+            "markdownDescription": "Whether rebasing a branch, the interactive rebase, editing the message of an older commit, squashing, splitting and the fixup move with it the other local branches on the commits they make again, a stack of branches each started from the one under it. One **Undo** puts them all back. A branch checked out in another worktree stays, and so do all of them with a Git older than 2.38.",
+            "order": 9
           }
         }
       },

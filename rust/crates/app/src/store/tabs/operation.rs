@@ -29,6 +29,8 @@ pub struct AfterOperation {
     pub autostash_before: Option<Vec<Stash>>,
     /// Whether to tell the first bad commit a bisect found.
     pub check_bisect: bool,
+    /// The local branches with an upstream before a fetch, and how far ahead each was.
+    pub ahead_before: Option<Vec<(String, String, u32)>>,
     /// The title of the plan that failed, to tell whether it stopped on conflicts.
     pub check_stopped: Option<String>,
 }
@@ -42,6 +44,7 @@ impl AfterOperation {
             select_before_head: std::mem::take(&mut operations.select_before_head),
             autostash_before: operations.autostash_before.take(),
             check_bisect: std::mem::take(&mut operations.check_bisect),
+            ahead_before: operations.ahead_before.take(),
             check_stopped: operations.check_stopped.take(),
         }
     }
@@ -53,6 +56,7 @@ impl AfterOperation {
         operations.select_before_head = self.select_before_head;
         operations.autostash_before = self.autostash_before;
         operations.check_bisect = self.check_bisect;
+        operations.ahead_before = self.ahead_before;
         operations.check_stopped = self.check_stopped;
     }
 }

@@ -8,7 +8,7 @@ use model::rebase::{LineBeforeHeadInput, find_line_before_head};
 use model::state::RepositoryState;
 use views::feature::FeatureIntent;
 use views::page::Page;
-use views::rebase::{EditStopState, RebaseIntent, TodoPage, TodoPageState};
+use views::rebase::{EditStopState, RebaseIntent, TodoPage, TodoPageBranch, TodoPageState};
 
 use super::message::Effect;
 use super::state::State;
@@ -75,7 +75,28 @@ fn new_page(state: &State, commit: &CommitId) -> Option<TodoPage> {
         })
         .collect();
     let branch = read.state.checked_out_branch().unwrap_or("HEAD").to_owned();
-    Some(TodoPage::new(branch, rows))
+    Some(TodoPage::new(branch, rows).with_branches(|commit| branches_on(&read.state, commit)))
+}
+
+/// The local branches on a commit but the one checked out, each marked when another worktree has it checked out, so
+/// that it stays on the old commit (`rebase.update-refs`).
+fn branches_on(state: &RepositoryState, commit: &CommitId) -> Vec<TodoPageBranch> {
+    state
+        .branches
+        .iter()
+        .filter(|branch| branch.commit == *commit && !branch.is_checked_out)
+        .map(|branch| TodoPageBranch {
+            name: branch.name.clone(),
+            is_elsewhere: state.worktrees.iter().any(|worktree| {
+                !worktree.is_current
+                    && worktree
+                        .branch
+                        .as_deref()
+                        .and_then(|full| full.strip_prefix("refs/heads/"))
+                        == Some(branch.name.as_str())
+            }),
+        })
+        .collect()
 }
 
 /// Closes the page, wherever it is among the pages open.

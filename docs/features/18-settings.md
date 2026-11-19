@@ -25,6 +25,8 @@ Acceptance:
 - [ ] `hosting.selfHosted` naming `git.example.com` as `gitlab`, and `ssh.example.com` as `gitea` with its pages at
       `https://code.example.com`, gives both, by their host names in lower case; a kind it does not take, or the
       setting in the repository's file, is not taken, and the settings page says why.
+- [ ] `rebase.updateRefs`, which is `true`, `false` or not set, is a choice of three on the settings page: **Leave
+      them** writes `false`, and **As git says** takes it out of the file.
 
 ### `settings.edit` — Open the settings page
 
@@ -208,7 +210,7 @@ Acceptance:
 | `pull.rebase` | Pull with rebase | Pull and commits | `true` | User, Repository | **Pull** adds `--rebase`. | `sync.pull` |
 | `pull.autostash` | Pull with autostash | Pull and commits | `true` | User, Repository | **Pull** adds `--autostash`. | `sync.pull` |
 | `cherryPick.recordOrigin` | Say where cherry-picks come from | Pull and commits | `false` | User, Repository | Cherry-picks end their message with `(cherry picked from commit …)`, as `-x` does. | `cherry-pick.commit` |
-| `rebase.updateRefs` | Move the branches of a stack with a rebase | Pull and commits | not set | User, Repository | **New.** `true` or `false`; not set, git's own `rebase.updateRefs` decides, and they move when that is not set either. Read from the files, not on the settings page yet (Q1400). | `rebase.update-refs` |
+| `rebase.updateRefs` | Move the branches of a stack with a rebase | Pull and commits | not set | User, Repository | **New.** `true` or `false`; not set, git's own `rebase.updateRefs` decides, and they move when that is not set either. On the settings page a choice of three: **Move them**, **Leave them** and **As git says**, which takes it out of the file of the tab shown (Q1400). | `rebase.update-refs` |
 | `commit.signOff` | Add Signed-off-by to every commit | Pull and commits | `false` | User, Repository | **New.** **Add Signed-off-by** starts ticked in the options of each commit. `gitardo.commit.signOff` in the extension (D79). | `commit.options` |
 | `submodules.updateOnCheckout` | Update submodules on checkout | Pull and commits | `true` | User, Repository | After a checkout, update the submodules to the commits it records. | `submodule.update-on-checkout` |
 | `changes.openOnClick` | Click on a changed file | Pull and commits | `"diff"` | User | What a click on a file of the changes opens: `diff` or `file`. `gitardo.changes.openOnClick` in the extension, where it is `file` by default (Q763). | `changes.open` |

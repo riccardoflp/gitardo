@@ -633,11 +633,10 @@ Rules:
   for an interactive rebase, its steps. Output: the option of the rebase, the `update-ref` lines of the todo list, the
   branches that move and those that stay, and the note of the plan.
 - The branches move when Gitardo's setting is `true`, or when it is not set and git's is not `false`.
-- As built so far: `rebase.onto` and `rebase.branch-onto` read the version of git and the branches of the stack, and
-  get the option, the note in their confirmation when a branch stays, and what is said after; the `update-ref` lines
-  of the todo lists Gitardo writes (`rebase.interactive` and the operations built on it), `fixup.commit`, the branches
-  shown on the interactive rebase page and the setting on the settings page (Q1400) are not built yet. The note that
-  says which branches move is said after the run, as the plan of a rebase that moves them all asks nothing.
+- As built: each rewrite reads the version of git and the branches of the stack before it makes its plan. The note
+  that says which branches move is said after the run by `rebase.onto` and `rebase.branch-onto`, whose plan asks
+  nothing when they all move; the rewrites whose todo list is Gitardo's, and `fixup.commit`, which ask first anyway,
+  end their confirmation with it, and say after the run "`p1` and `p2` moved with the rewrite."
 - With no branch on the commits made again, nothing changes: no option, no line, no note.
 - A rebase with git's own todo list (`rebase.onto`, `rebase.branch-onto`, `fixup.commit`) gets `--update-refs` when
   the branches move, and `--no-update-refs` when they do not and git's setting is `true`, so that the command says what
@@ -704,6 +703,10 @@ What it shows:
   keeping both messages*; Fixup *Meld into the commit below, discarding this message*; Drop *Remove the commit*.
 - With **Reword**, the subject becomes a box with the subject in it, labelled *New subject*; what is typed replaces the
   subject and the body of the message stays.
+- After the short hash, the other local branches on the commit, each a label with the icon of a branch: in the color of
+  the accent, with the tooltip *`<branch>` moves with the rebase*; muted, with *`<branch>` is checked out in another
+  worktree and stays on the old commit*, for one another worktree has checked out (`rebase.update-refs`; Q1131). The
+  confirmation of the rebase says which move, as the setting and the version of git decide.
 - A footer with what keeps it from running, **Cancel** and **Start rebase**.
 
 What keeps it from running, said in the footer, and **Start rebase** is disabled:
@@ -721,6 +724,8 @@ Acceptance:
 - [ ] Setting every row to **Drop** shows the first message and disables **Start rebase**.
 - [ ] **Cancel** closes the page and runs nothing.
 - [ ] **Start rebase** closes the page and calls `rebase.interactive` with the rows oldest first.
+- [ ] The row of a commit another local branch is on shows that branch, marked as moving with the rebase, and one
+      another worktree has checked out as staying.
 - [ ] While a bisect is under way, no commit offers the page, nor squashing into the commit before it, nor splitting.
 - [ ] Extension: on the third commit below `HEAD` of a line without merges, the menu has **Interactive rebase of 3
       commits…**, and on `HEAD` **Edit this commit (interactive rebase)…**; neither below a merge, while an operation is
@@ -734,7 +739,7 @@ Turns the rows of the interactive rebase page, or the steps another operation pr
 and the files of the new messages.
 
 - **Kind**: Derivation
-- **Function**: `model::rebase::build_todo_list(steps: &[TodoStep], folder: &str) -> Result<TodoList, Text>`
+- **Function**: `model::rebase::build_todo_list(steps: &[TodoStep], folder: &str, moving: &[StackedBranch]) -> Result<TodoList, Text>`
 - **Extension**: `todoRows` (`src/engine/actions.ts`) writes the steps of the rebase editor as the rows of
   `rebase.interactive`: `<action> <full hash>`, and for a reword its new subject, from which the engine builds this
   list.
@@ -747,6 +752,10 @@ Rules:
 - Each step is one line, `<action> <hash>`, in the order given, except `reword`, which is two lines: `pick <hash>` and
   `exec git commit --amend -F "<folder>/message-<n>.txt"`, `<n>` being the index of the step from 0. Paths are written
   with forward slashes. The text ends with a line break.
+- Each branch that moves with the rewrite (`rebase.update-refs`) is a line `update-ref refs/heads/<branch>` after the
+  lines of the commit it is on, the `exec` of a reword included, so that it takes the reworded commit; and after the
+  squashes, fixups and drops that follow that commit, so that a branch on a commit squashed or fixed up takes the
+  commit it becomes, and one on a commit dropped the commit kept before it.
 - The message file of a reword holds the new message, trimmed, and a line break. When the message is only a new subject,
   the body of the original message (what follows its first blank line, trimmed) follows it after a blank line.
 - A list where every step is `drop` is refused: *Every commit is dropped. To remove them all, reset the branch instead.*
@@ -772,6 +781,8 @@ Acceptance:
 - [ ] The example above gives exactly that text and that file.
 - [ ] A reword whose message is given whole (not only a subject) writes that message alone.
 - [ ] `drop A`, `drop B` is refused with the first message; `drop A`, `squash B` with the second.
+- [ ] With `p1` on a reworded commit and `p2` and `p3` on a commit and the one squashed into it, `p1` is written after
+      the `exec` line, and `p2` and `p3` after the `squash` line.
 - [ ] Extension: the steps `pick A`, `reword B` with the subject *Add two, new* and `fixup C` are written as the rows
       `pick A`, `reword B Add two, new` and `fixup C`, one a line.
 
@@ -793,6 +804,10 @@ copy the prepared one over it, since no editor can be typed into.
      replaced by the prepared one. `<base>` is the first parent of the oldest commit of the list, or `--root` when the
      oldest has none. `core.editor=true` keeps the messages git prepares for squashes. `--autostash` is added by the
      operations built on it, not by the page.
+
+  Before it, the version of git and the branches on the commits made again are read (`rebase.update-refs`): the
+  branches that move are `update-ref` lines of the todo list, and the confirmation ends with the note that names them
+  and those that stay.
 - **Danger**: Confirm, because it rewrites history: *This rewrites the commits after `<short base>` with this todo
   list:* (or *after the root*) and the todo list. The title is *Interactive rebase of `<branch>`*.
 - **Undo**: by the reflog of the branch (`undo.last`): the branch goes back to where it was before the rebase.
@@ -1163,8 +1178,9 @@ it again.
   covers that); there are staged changes, or changes not staged; no file is in conflict; and no operation or bisect is
   under way.
 - **Plan**: when nothing is staged, `git add --all` first; then `git commit --fixup=<hash>`; then
-  `git -c sequence.editor=true rebase -i --autosquash --autostash <hash>^`, or `--root` in place of `<hash>^` when the
-  commit is the first. `sequence.editor=true` accepts the todo list git prepares itself, which already moves the
+  `git -c sequence.editor=true rebase -i --autosquash --autostash [--update-refs | --no-update-refs] <hash>^`, or
+  `--root` in place of `<hash>^` when the commit is the first; the option as `rebase.update-refs` decides, and the
+  confirmation ends with its note. `sequence.editor=true` accepts the todo list git prepares itself, which already moves the
   `fixup!` commit under its target.
 - **Danger**: Confirm, because *This rewrites `<short>` and every commit after it. If the changes do not fit there, the
   rebase stops with conflicts.* The title is *Add staged changes to `<short>`* or *Add all changes to `<short>`*.
@@ -1291,6 +1307,10 @@ Rules:
 - A reference with none of these among its 50 last moves gives nothing; so does a move whose commit before is no longer
   in the repository.
 
+As built, a feature asks for it with `Query::LastRewrite { reference }`, the full name of the reference. A reference
+with no reflog, or none at all, gives nothing; an amend says whether the commit before has a parent, read with
+`git rev-parse --verify --quiet <before>^`, and so does the check that the commit before is still there.
+
 Acceptance:
 
 - [ ] After `git rebase main` on `feature`, it gives the tip before, the tip after and the commit of `main` it was onto.
@@ -1343,8 +1363,11 @@ what changed in it, a commit added, a commit dropped.
 - **Reads**:
   - how many commits each line has, `git rev-list --count <range> --` for each; more than 1,000 on either side are
     not compared (Q1138);
-  - `git range-diff --no-color --no-notes --abbrev=<length of a full hash> <ranges>`, the ranges of `range-diff.ranges`;
-  - the subject of each commit named, `git log --no-walk=unsorted -z --format=%H%x00%s <hashes> --`.
+  - `git range-diff --no-color --no-notes --abbrev=64 <ranges>`, the ranges of `range-diff.ranges`: git takes a length
+    past that of its hashes as the whole hash, 40 characters or 64;
+  - the subject of each commit named, `git log --no-walk=unsorted --stdin -z --format=%H%x00%s`, the hashes given on its
+    standard input, as there may be more than a command line holds: on the line of a pair git writes the subject of
+    the commit before, and the page shows the one now.
 - **Uses**: `range-diff.ranges`, `activity.track`, which says **Comparing the commits of `<branch>`** while it runs for
   more than half a second.
 - **Extension**: the engine's, asked by the tab of `range-diff.page`.
@@ -1355,6 +1378,11 @@ missing on one side written `-` with a line of `-` in place of its hash; the mar
 (added, only now) or `<` (dropped, only before). The lines after a pair that start with four spaces are its diff of
 diffs: with the four spaces taken off, each starts with the mark of the outer diff (a space, `-` before, `+` now), then
 the line of the diff it is in, under headings `## Commit message ##`, `## <path> ##` and `## Metadata ##`.
+
+As built, a heading is written with a space before it, as a line of the diff it is in, and each part also starts a hunk
+of the outer diff, `@@ Commit message`, `@@ <path>`. A pair changed in its message, or in what it changes, has a line
+of `-` or `+` under that heading or in that hunk; a heading with no line changed under it, there to give the lines
+around, does not count.
 
 Acceptance:
 
@@ -1401,6 +1429,22 @@ someone else's force push replaced.
   `sync.push-force`, `sync.read-overwritten`, `sync.fetch`, `sync.pull`, `rebase.onto`, `rebase.interactive`,
   `commit.amend`.
 
+As built, **See what changed** is offered after `rebase.onto`, `rebase.branch-onto`, the interactive rebase and the
+operations built on it, `fixup.commit` and `commit.amend` (`FollowUp::OfferRun`), but not after a pull: its plan
+cannot know whether git rebased or merged, nor whether it made a commit again. **Compare first** is a third button of
+the warning (`FollowUp::OfferBeforeRun`, `ConfirmAnswer::Other`): the warning answers no, and `range-diff.compare` runs
+once the push has ended without a step. The menu of **Sync** says **Compare with the upstream commit by commit**, not
+the name of the upstream, which the menu does not carry. A fetch finds a force push when a local branch has more
+commits its upstream has not than before the fetch (`FollowUp::CheckForcePushed`), which only an upstream that lost
+commits gives; it says it of the first such upstream. A force push of a remote branch that no local branch follows is
+found only by **What the force push changed** in its menu. In the extension, a message that names nothing else
+after a rewrite says "`<title of the plan>`: done." with **See What Changed**, as the desktop does; a force push found by
+a fetch is told by the extension itself, which compares the upstreams before and after (`forcePushed` in
+`src/shared/rangeDiff.ts`), the engine's `FollowUp::CheckForcePushed` not crossing; and **Compare with `<upstream>`
+commit by commit** is in the menu beside **Push**. It also refuses "`<branch>` has not been force pushed
+lately." for a remote branch whose reflog has no forced update, "`<branch>` follows no remote branch." when asked
+against an upstream it has not, and the amend of a root commit, which has no commit to compare from.
+
 Acceptance:
 
 - [ ] Right after **Rebase feature onto main**, what is said has **See what changed**, which opens the page with the
@@ -1425,6 +1469,11 @@ changed in each, the ones added and the ones dropped.
 - **Uses**: `range-diff.read-pairs`, `range-diff.compare`, `commit-page.open`, `file-view.find`.
 - **Extension**: a tab of the editor area of its own, as the comparison is (`CompareApp`), with the same rows; a click
   on a hash opens the tab of that commit.
+
+As built, there is one page of what a rewrite changed in a window (`Page::RangeDiff`): opening another replaces it.
+`Ctrl+F` does not find in it yet. The activity says **Comparing the commits of a rewrite**, without the branch. In
+the extension the tab is one too (`src/extension/rangeDiffTab.ts`, `src/webview/RangeDiffApp.tsx`), where `Ctrl+F` is
+VS Code's find in a webview, and its activity names the branch.
 
 What it shows, from the top:
 

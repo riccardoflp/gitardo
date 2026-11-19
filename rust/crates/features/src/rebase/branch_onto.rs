@@ -60,7 +60,7 @@ pub fn branch_onto(context: &Context, answers: &Answers) -> Outcome {
     if other_worktree(state, name).is_some() {
         return refuse(&format!("{name} is checked out in another worktree: rebase it there."));
     }
-    let decided = match stack::decide(context, answers, (onto.as_str(), name)) {
+    let decided = match stack::decide(context, answers, (Some(onto.as_str()), name)) {
         Ok(decided) => decided,
         Err(read) => return *read,
     };
@@ -72,10 +72,10 @@ pub fn branch_onto(context: &Context, answers: &Answers) -> Outcome {
         steps: vec![Step::git(state.folder.clone(), arguments)],
         danger: Danger::None,
         undo: Undo::ByReflog,
-        after: Vec::new(),
+        after: vec![crate::range_diff::see_what_changed(name)],
         on_failure: Vec::new(),
     };
-    Outcome::Run(stack::with_stack(plan, &decided, (name, onto.short())))
+    Outcome::Run(stack::with_stack(plan, answers, &decided, (name, onto.short())))
 }
 
 /// The answers of a branch dropped on a commit: the branch to rebase.

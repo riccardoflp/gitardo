@@ -65,15 +65,16 @@ pub mod methods {
 /// ([`crate::mermaid`]); 1.10 what milestone M22 needs: `read/repo.worktree-summary`, what each repository of the
 /// workspace, each of its worktrees and each of its submodules is on, with `repository/summaries` for those read again
 /// and `repository/folderChanged` for what the extension's watchers saw ([`crate::summaries`]); 1.11 what milestones
-/// M31, M32, M34, M35, M37, M38 and M40 need: `read/help.ask`, a question of VS Code's Chat to Ask Gitardo, and the
-/// titles of the features its answer may name in `host/languageModel` ([`crate::help`]); the question `openFolder`, a
-/// folder chosen in the system's dialog, the validations `cloneFolder` and `count` ([`crate::feature`]), and `shallow`
-/// in the state, where the history of a shallow clone ends; how git signs commits in the state,
+/// M31, M32, M34, M35, M36, M37, M38 and M40 need: `read/help.ask`, a question of VS Code's Chat to Ask Gitardo, and
+/// the titles of the features its answer may name in `host/languageModel` ([`crate::help`]); the question `openFolder`,
+/// a folder chosen in the system's dialog, the validations `cloneFolder` and `count` ([`crate::feature`]), and
+/// `shallow` in the state, where the history of a shallow clone ends; how git signs commits in the state,
 /// `read/details.read-signature` and `read/commit.read-authors`; `read/tag.read-remote-tags` and the follow-up
-/// `tagsOnRemote`; the validation of the number of a pull request, and the host question of the token of a GitLab;
-/// `skipped` in the state and `locked` in a worktree, the files hidden from git and the reason a worktree is locked;
-/// whether git's maintenance looks after the repository, `notes` in the state, the commits with a note, and `note` in
-/// the details of a commit.
+/// `tagsOnRemote`; `read/range-diff.read-pairs`, the follow-up that opens the tab of what a rewrite changed, and the one
+/// that offers an operation in the warning of a plan in its place ([`crate::range_diff`]); the validation of the number
+/// of a pull request, and the host question of the token of a GitLab; `skipped` in the state and `locked` in a
+/// worktree, the files hidden from git and the reason a worktree is locked; whether git's maintenance looks after the
+/// repository, `notes` in the state, the commits with a note, and `note` in the details of a commit.
 pub const VERSION: &str = "1.11";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.

@@ -1666,7 +1666,8 @@ Replaces the remote branch with the branch checked out, unless the remote branch
 - **Danger**: Destructive, because the commits only the remote branch has are lost for everyone. The warning lists them:
   "These commits on `<upstream>` are not in `<branch>` and will be overwritten:" with up to 10 lines `<hash> <subject>`
   and "…and more" after them when there are more; or "As of the last fetch, every commit on `<upstream>` is also in
-  `<branch>`."
+  `<branch>`." When it lists commits, the warning has **Compare first**, which pushes nothing and opens the page of
+  `<upstream>` against `<branch>`, commit by commit (`range-diff.compare`).
 - **Undo**: Impossible: a push changes the remote, which Undo does not take back.
 - **On failure**: git refuses when the remote branch is not where the last fetch saw it, and says why; nothing is
   overwritten.
@@ -1698,7 +1699,7 @@ Replaces the remote branch with the branch checked out, whatever it has.
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for `sync.push`.
 - **Danger**: Destructive, because the commits only the remote branch has are lost for everyone; the warning lists them
-  as for `sync.push-force-with-lease`, as of the last fetch.
+  as for `sync.push-force-with-lease`, as of the last fetch, with **Compare first**.
 - **Undo**: Impossible: a push changes the remote, which Undo does not take back.
 - **After**: as `sync.push`.
 - **Refuses**: as `sync.push`.

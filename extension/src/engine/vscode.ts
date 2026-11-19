@@ -7,9 +7,10 @@
 import * as vscode from 'vscode';
 import { findBinary } from './binary';
 import { EngineClient, type EngineOptions, type FeatureAsker } from './client';
-import type { Answer, Choice, Plan, Question, Settings } from './messages';
+import type { Answer, Choice, OfferedBeforeRun, Plan, Question, Settings } from './messages';
 import { contributedKeys, engineSettings, type Configuration } from './settings';
 import { NO_ENGINE } from '../shared/protocol';
+import { buttonWords } from '../shared/rangeDiff';
 
 /** Says that there is no engine to read or run anything, with the button that opens the log, which says why (D49). */
 export function sayEngineMissing(): void {
@@ -67,6 +68,8 @@ export interface HostHooks {
 export class VscodeAsker implements FeatureAsker {
   /** The title of the plan last confirmed, which says what stopped when a step of it fails. */
   confirmed: string | undefined;
+  /** The operation chosen in the warning of a plan in its place, **Compare First** (1.11), to run once it backed out. */
+  instead: OfferedBeforeRun | undefined;
 
   constructor(
     private readonly client: EngineClient,
@@ -148,7 +151,11 @@ export class VscodeAsker implements FeatureAsker {
     const ask = plan.danger.kind === 'destructive' ? vscode.window.showWarningMessage : vscode.window.showInformationMessage;
     const reason = plan.danger.kind === 'none' ? '' : `${plan.danger.reason}\n\n`;
     const detail = `${reason}Gitardo will run in ${this.repository}:\n\n${plan.steps.map((step) => step.line).join('\n')}`;
-    if ((await ask(`${plan.title}?`, { modal: true, detail }, 'Run')) !== 'Run') return false;
+    const instead = plan.after.find((followUp): followUp is OfferedBeforeRun => followUp.kind === 'offerBeforeRun');
+    const insteadWords = instead && buttonWords(instead.label);
+    const chosen = await ask(`${plan.title}?`, { modal: true, detail }, 'Run', ...(insteadWords ? [insteadWords] : []));
+    if (instead && chosen === insteadWords) this.instead = instead;
+    if (chosen !== 'Run') return false;
     this.confirmed = plan.title;
     await this.hooks.confirmed?.(plan);
     return true;

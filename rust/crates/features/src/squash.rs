@@ -75,9 +75,9 @@ fn squash(context: &Context, answers: &Answers, selected: &[CommitId]) -> Outcom
         note: note(context, (squashed, rest), names),
         after: vec![FollowUp::SelectBeforeHead(rest.len())],
     };
-    match rewrite_plan(context, rewrite) {
+    match rewrite_plan(context, answers, rewrite) {
         Ok(plan) => Outcome::Run(plan),
-        Err(refusal) => refuse(refusal.as_str()),
+        Err(outcome) => *outcome,
     }
 }
 

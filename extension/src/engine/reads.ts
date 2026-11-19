@@ -40,6 +40,7 @@ import {
   type WorkingTree,
 } from '../shared/protocol';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
+import type { RangeDiffPairs, RangeDiffRanges } from '../shared/rangeDiff';
 import type { FolderSummary } from '../shared/summaries';
 import type { TagComparison } from '../shared/tagMarks';
 import { type Author, type CommitSignature, uncommittedDetail } from '../shared/state';
@@ -120,6 +121,11 @@ export class Reads {
   /** Whether there is an engine to ask. */
   get available(): boolean {
     return this.engine() !== undefined;
+  }
+
+  /** The pairs of what a rewrite changed in a repository, commit by commit (`range-diff.read-pairs`). */
+  rangeDiffPairs(repo: Repository, ranges: RangeDiffRanges): Promise<RangeDiffPairs> {
+    return this.client().rangeDiffPairs(repo.root, ranges);
   }
 
   /** A diagram of Mermaid drawn by the engine for a kind of VS Code's theme, or why it is not (`file-view.mermaid`). */

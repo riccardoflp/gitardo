@@ -5,6 +5,7 @@ mod answers;
 mod conflict_results;
 mod context;
 mod journal;
+mod moved;
 mod outcome;
 mod plan;
 mod question;
@@ -18,6 +19,7 @@ pub use context::{
     WorktreeSettings,
 };
 pub use journal::{JournalEntry, UndoRecord};
+pub use moved::{MovedBranch, MovedBranchesUndo, moved_branches};
 pub use outcome::{FeatureId, Operation, Outcome, Query, Refusal};
 pub use plan::{Danger, FailureOffer, FollowUp, OfferedRun, Plan, SettingWritten, Step, Undo};
 pub use question::{Choice, FileFilter, FileQuestion, Question, QuestionKind, Validation, count_of};

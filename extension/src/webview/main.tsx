@@ -11,6 +11,7 @@ import { CommitsApp } from './CommitsApp';
 import { CompareApp } from './CompareApp';
 import { ConflictsApp } from './ConflictsApp';
 import { MenuProvider } from './ContextMenu';
+import { RangeDiffApp } from './RangeDiffApp';
 import { RepositoriesApp } from './RepositoriesApp';
 import { StashesApp } from './StashesApp';
 import { WorktreeSetupApp } from './WorktreeSetupApp';
@@ -31,6 +32,7 @@ const VIEWS: Record<ViewKind, () => ReactNode> = {
   worktreeSetup: () => <WorktreeSetupApp />,
   conflicts: () => <ConflictsApp />,
   repositories: () => <RepositoriesApp />,
+  rangeDiff: () => <RangeDiffApp />,
 };
 const view = (VIEWS[kind as ViewKind] ?? VIEWS.graph)();
 

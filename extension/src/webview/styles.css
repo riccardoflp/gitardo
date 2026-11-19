@@ -4454,3 +4454,64 @@ dd.signature.muted {
   white-space: nowrap;
   color: var(--vscode-descriptionForeground);
 }
+
+/* The tab of what a rewrite changed, commit by commit (range-diff.page). */
+.range-diff {
+  padding: 12px 20px;
+}
+.range-diff h1 {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.range-diff-lines-compared {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.range-diff-pairs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.range-diff-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.range-diff-pair.same .range-diff-row {
+  opacity: 0.6;
+}
+.range-diff-pair.added .codicon-diff-added {
+  color: var(--vscode-gitDecoration-addedResourceForeground);
+}
+.range-diff-pair.dropped .codicon-diff-removed {
+  color: var(--vscode-gitDecoration-deletedResourceForeground);
+}
+.range-diff-pair.changed .codicon-diff-modified {
+  color: var(--vscode-gitDecoration-modifiedResourceForeground);
+}
+.range-diff-spacer {
+  display: inline-block;
+  width: 16px;
+}
+.range-diff-pair.changed .range-diff-subject {
+  cursor: pointer;
+}
+.range-diff-lines {
+  margin: 2px 0 8px 22px;
+  overflow-x: auto;
+}
+.range-diff-line.lost {
+  background: var(--vscode-diffEditor-removedTextBackground);
+}
+.range-diff-line.gained {
+  background: var(--vscode-diffEditor-insertedTextBackground);
+}
+.range-diff-line.heading {
+  font-weight: 600;
+}
+.range-diff-error {
+  color: var(--vscode-errorForeground);
+}

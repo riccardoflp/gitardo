@@ -2,14 +2,15 @@
 
 use model::contract::{AnswerKey, Answers, Context, Danger, Outcome, Plan, Query, Step, Target, Text, Undo};
 
-use crate::rebase::{refuse, refuse_under_way};
+use crate::rebase::{refuse, refuse_under_way, stack};
 
 /// The parent of the commit, or none for the first commit.
 pub const BASE: AnswerKey = AnswerKey("base");
 
 /// Adds the staged changes, or all of them when nothing is staged, to the commit it was invoked on: a `fixup!` commit
 /// of them, then `git rebase -i --autosquash --autostash`, whose own todo list git takes as it prepares it, which moves
-/// the `fixup!` commit under its target. What is not staged is set aside meanwhile.
+/// the `fixup!` commit under its target. What is not staged is set aside meanwhile. The other branches on the commits
+/// made again move with it by `--update-refs`, as `rebase.update-refs` decides.
 ///
 /// Feature: fixup.commit
 #[must_use]
@@ -32,6 +33,12 @@ pub fn commit(context: &Context, answers: &Answers) -> Outcome {
             },
         );
     };
+    let parent = format!("{commit}^");
+    let tip = stack::checked_out_tip(context);
+    let decided = match stack::decide(context, answers, (base.map(|_| parent.as_str()), &tip)) {
+        Ok(decided) => decided,
+        Err(read) => return *read,
+    };
     let folder = context.repository.folder.clone();
     let mut steps = Vec::new();
     let what = if working_tree.staged.is_empty() {
@@ -41,21 +48,20 @@ pub fn commit(context: &Context, answers: &Answers) -> Outcome {
         "staged changes"
     };
     steps.push(Step::git(folder.clone(), ["commit", &format!("--fixup={commit}")]));
-    let upstream = base.map_or_else(|| String::from("--root"), |_| format!("{commit}^"));
-    steps.push(Step::git(
-        folder,
-        [
-            "-c",
-            "sequence.editor=true",
-            "rebase",
-            "-i",
-            "--autosquash",
-            "--autostash",
-            upstream.as_str(),
-        ],
-    ));
+    let upstream = base.map_or_else(|| String::from("--root"), |_| parent.clone());
+    let mut arguments = vec![
+        "-c",
+        "sequence.editor=true",
+        "rebase",
+        "-i",
+        "--autosquash",
+        "--autostash",
+    ];
+    arguments.extend(decided.option);
+    arguments.push(upstream.as_str());
+    steps.push(Step::git(folder, arguments));
     let short = commit.short();
-    Outcome::Run(Plan {
+    let plan = Plan {
         title: Text::from(format!("Add {what} to {short}")),
         steps,
         danger: Danger::Confirm(Text::from(format!(
@@ -63,9 +69,10 @@ pub fn commit(context: &Context, answers: &Answers) -> Outcome {
              conflicts."
         ))),
         undo: Undo::ByReflog,
-        after: Vec::new(),
+        after: crate::range_diff::see_what_changed_here(context).into_iter().collect(),
         on_failure: Vec::new(),
-    })
+    };
+    Outcome::Run(stack::with_todo_stack(plan, answers, &decided))
 }
 
 #[cfg(test)]
@@ -76,7 +83,7 @@ mod tests {
     use model::contract::{Answer, Answers, Outcome, Target};
 
     fn based(parent: Option<char>) -> Answers {
-        Answers::new().with(BASE, Answer::Commit(parent.map(id)))
+        crate::rebase::stack::no_stack(Answers::new().with(BASE, Answer::Commit(parent.map(id))))
     }
 
     #[test]

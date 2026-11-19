@@ -13,15 +13,17 @@ use model::state::RepositoryState;
 use views::feature::FeatureIntent;
 use views::text::feature as words;
 
-use super::{Effect, State, reads, search};
+use super::{Effect, State, reads};
 use crate::persisted::inputs::{inputs_of, remember_inputs};
 
 mod after_read;
 pub(crate) mod made;
+mod carry_out;
 mod said;
 mod shown;
 
 pub use after_read::after_read;
+use carry_out::carry_out;
 pub use said::Said;
 pub use shown::{plan_shown, question_state, said_state};
 
@@ -77,6 +79,8 @@ pub struct Running {
     pub asking: Option<Asking>,
     /// The title of its plan, once it showed one.
     pub title: Option<String>,
+    /// The operation to run once it ended, as **Compare first** in its confirmation asks.
+    pub then: Option<(FeatureId, Target, Answers)>,
 }
 
 /// What the operation running shows over the window.
@@ -111,6 +115,9 @@ pub struct Operations {
     pub autostash_before: Option<Vec<model::state::Stash>>,
     /// Whether to tell, once the repository is read again after an answer to a bisect, the first bad commit it found.
     pub check_bisect: bool,
+    /// The local branches with an upstream before a fetch, each with how many commits it has that its upstream has not,
+    /// to tell once the repository is read again which upstream was force pushed (`range-diff.compare`).
+    pub ahead_before: Option<Vec<(String, String, u32)>>,
     /// The title of the plan that failed, to tell once the repository is read again whether it stopped on conflicts.
     pub check_stopped: Option<String>,
     /// An operation on a file of another repository of the workspace, run once the window shows that repository
@@ -140,6 +147,12 @@ pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
         }
         FeatureIntent::Answer(answer) => reply(state, Reply::Answer(answer)),
         FeatureIntent::Confirm(is_confirmed) => reply(state, Reply::Confirm(is_confirmed)),
+        FeatureIntent::RunInstead(feature, target, preset) => {
+            if let Some(running) = state.operations.running.as_mut() {
+                running.then = Some((feature, target, preset));
+            }
+            reply(state, Reply::Confirm(false))
+        }
         FeatureIntent::Dismiss => {
             state.operations.said = None;
             Vec::new()
@@ -249,6 +262,7 @@ pub fn run_in(
         feature,
         asking: None,
         title: None,
+        then: None,
     });
     state.operations.said = None;
     state.is_operation_running = true;
@@ -329,7 +343,9 @@ pub fn confirms(state: &mut State, plan: Plan) -> Vec<Effect> {
 /// The operation running ended: its lines go to the Command log, what it says is said, with the line of the command
 /// that said it, and the repository is read again when it changed something.
 pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect> {
-    let feature = state.operations.running.take().map(|running| running.feature);
+    let running = state.operations.running.take();
+    let then = running.as_ref().and_then(|running| running.then.clone());
+    let feature = running.map(|running| running.feature);
     state.is_operation_running = false;
     let log_at = said::append_log(state, log);
     super::tasks_tab::operation_ended(state, feature);
@@ -343,6 +359,9 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 said.log_at = log_at;
             }
         }
+    }
+    if let Some((feature, target, preset)) = then {
+        effects.extend(run(state, feature, target, preset));
     }
     effects
 }
@@ -426,56 +445,4 @@ fn remember_values(state: &mut State, values: &std::collections::BTreeMap<String
     let folders = state.workspace.as_ref()?.folders.clone();
     remember_inputs(&mut state.persisted.branch_inputs, &folders, values);
     Some(Effect::WritePersisted(state.persisted.clone()))
-}
-
-/// What an operation that ran asks of the window after it: a page opened, text on the clipboard, a comparison shown.
-fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
-    let mut effects = Vec::new();
-    for follow_up in after {
-        match (follow_up, state.shown_folder().cloned()) {
-            (FollowUp::OpenCommitPage(commit), Some(folder)) => {
-                effects.extend(super::commit_page::open(state, folder, commit));
-            }
-            (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
-            (FollowUp::OpenUrl(url), _) => effects.push(Effect::OpenUrl(url)),
-            (FollowUp::RememberInputs(values), _) => effects.extend(remember_values(state, &values)),
-            (made @ (FollowUp::RememberCloneFolder(_) | FollowUp::OpenRepository(_)), _) => {
-                effects.extend(made::carry_out(state, made));
-            }
-            (FollowUp::OpenWindow(folder), _) => effects.push(Effect::OpenWindow(folder)),
-            (FollowUp::OpenComparison(target), _) => effects.extend(super::compare::opened(state, *target)),
-            (FollowUp::OpenFileDiff(sides), _) => {
-                effects.extend(super::diff_page::open(state, views::diff::file_sides(&sides)));
-            }
-            (FollowUp::CloseMergePage(path), _) => super::merge_page::close_file(state, &path),
-            (FollowUp::OpenReview(files), _) => {
-                state.operations.said = None;
-                effects.extend(super::review::open(state, Some(files)));
-            }
-            (FollowUp::CompareInPlace(sides), Some(folder)) => {
-                effects.extend(super::compare::in_place::show(state, folder, *sides));
-            }
-            (FollowUp::ShowHistory(history), _) => {
-                effects.extend(search::show_history(state, history.map(|history| *history)));
-            }
-            (FollowUp::SelectCommit(_), _) => effects.extend(super::pages::show_timeline(state)),
-            (FollowUp::EditFile(path, line), _) => {
-                let target = views::file_view::FileTarget {
-                    path,
-                    revision: None,
-                    line: Some(line),
-                };
-                effects.extend(super::file_page::open(state, target));
-            }
-            (blamed @ (FollowUp::ShowBlame(_) | FollowUp::HideBlame(..) | FollowUp::OpenFile(_)), _) => {
-                effects.extend(super::blame::carry_out(state, blamed));
-            }
-            (FollowUp::TagsOnRemote(changed), Some(folder)) => super::tag_marks::follow(state, &folder, &changed),
-            (tasks @ (FollowUp::RunTasks(_) | FollowUp::StopTasks(_)), _) => {
-                effects.extend(super::tasks_tab::carry_out(state, tasks));
-            }
-            (other, _) => effects.extend(super::worktrees::carry_out(state, other)),
-        }
-    }
-    effects
 }

@@ -11,6 +11,7 @@ mod help;
 mod hosting;
 mod journal;
 mod mermaid;
+mod range_diff;
 mod reads;
 mod reads_commit_box;
 mod reads_graph;

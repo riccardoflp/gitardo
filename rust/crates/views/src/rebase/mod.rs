@@ -10,7 +10,7 @@ mod todo_page;
 pub use edit_stop::{EditStopState, banner_words, edit_stop_view};
 pub use menu::can_squash;
 pub(crate) use menu::{RewriteMenu, rebase_onto_entry, rewrite_menu};
-pub use todo_page::{TodoPage, TodoPageRow, TodoPageState, todo_page_view};
+pub use todo_page::{TodoPage, TodoPageBranch, TodoPageRow, TodoPageState, todo_page_view};
 
 use model::CommitId;
 use model::rebase::TodoAction;

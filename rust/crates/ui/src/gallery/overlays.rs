@@ -167,11 +167,12 @@ fn confirm_delete(ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
                   can bring the branch back, the remote branch only by pushing it again.",
         commands: &commands,
         confirm: "Delete",
+        other: None,
         style: ConfirmStyle::Danger,
     };
     match ui.confirm("confirm delete", &confirmation) {
         Some(ConfirmAnswer::Confirmed) => intents.push(GalleryIntent::Did(String::from("Deleted feature/login-page"))),
-        Some(ConfirmAnswer::Cancelled) => intents.push(GalleryIntent::Close),
+        Some(ConfirmAnswer::Cancelled | ConfirmAnswer::Other) => intents.push(GalleryIntent::Close),
         None => {}
     }
 }

@@ -2,6 +2,7 @@
 
 use std::fmt::Write as _;
 
+use super::stacked::StackedBranch;
 use crate::contract::Text;
 
 /// What a step of an interactive rebase does with its commit.
@@ -65,11 +66,15 @@ pub struct TodoList {
     pub files: Vec<(String, String)>,
 }
 
-/// The todo list of steps oldest first, its message files in a folder; or why it cannot be.
+/// The todo list of steps oldest first, its message files in a folder, with the branches that move with the rewrite;
+/// or why it cannot be.
 ///
 /// Each step is a line `<action> <hash>`, but a reword, which is `pick <hash>` then `exec git commit --amend -F
 /// "<folder>/message-<n>.txt"`, `<n>` being the step's index. A message given as a subject only keeps the body of the
-/// original message after it.
+/// original message after it. Each branch that moves gets `update-ref refs/heads/<branch>` after the lines of the
+/// commit it is on, its `exec` included, so that it takes the reworded commit; and after the squashes, fixups and drops
+/// that follow that commit, so that a branch on a commit squashed takes the commit it becomes, and one on a commit
+/// dropped the commit kept before it (`rebase.update-refs`).
 ///
 /// Feature: rebase.build-todo-list
 ///
@@ -77,7 +82,7 @@ pub struct TodoList {
 ///
 /// When every step drops its commit, when the first commit kept is to be squashed into nothing, or when a hash is
 /// empty or starts with `-`.
-pub fn build_todo_list(steps: &[TodoStep<'_>], folder: &str) -> Result<TodoList, Text> {
+pub fn build_todo_list(steps: &[TodoStep<'_>], folder: &str, moving: &[StackedBranch]) -> Result<TodoList, Text> {
     if steps
         .iter()
         .any(|step| step.commit.is_empty() || step.commit.starts_with('-'))
@@ -109,8 +114,26 @@ pub fn build_todo_list(steps: &[TodoStep<'_>], folder: &str) -> Result<TodoList,
             let _ = writeln!(list.text, "exec git commit --amend -F \"{folder}/{name}\"");
             list.files.push((name, reworded(reword)));
         }
+        for branch in moving
+            .iter()
+            .filter(|branch| group_end(steps, &branch.commit) == Some(index))
+        {
+            let _ = writeln!(list.text, "update-ref refs/heads/{}", branch.name);
+        }
     }
     Ok(list)
+}
+
+/// The index of the last step of the group of the step of a commit: that step, then the squashes, fixups and drops
+/// right after it, which end on the commit it becomes. None when no step has the commit.
+fn group_end(steps: &[TodoStep<'_>], commit: &crate::CommitId) -> Option<usize> {
+    let start = steps.iter().position(|step| step.commit == commit.as_str())?;
+    let joined = steps
+        .iter()
+        .skip(start + 1)
+        .take_while(|step| matches!(step.action, TodoAction::Squash | TodoAction::Fixup | TodoAction::Drop))
+        .count();
+    Some(start + joined)
 }
 
 /// What the file of a new message holds.
@@ -149,6 +172,8 @@ pub(crate) fn body_of(message: &str) -> &str {
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
     use super::{Reword, TodoAction, TodoList, TodoStep, build_todo_list};
+    use crate::CommitId;
+    use crate::rebase::StackedBranch;
 
     fn step(action: TodoAction, commit: &str) -> TodoStep<'_> {
         TodoStep {
@@ -174,7 +199,7 @@ mod tests {
             step(TodoAction::Drop, "D"),
         ];
         assert_eq!(
-            build_todo_list(&steps, "C:\\repository\\.git\\gitardo"),
+            build_todo_list(&steps, "C:\\repository\\.git\\gitardo", &[]),
             Ok(TodoList {
                 text: String::from(
                     "pick A\npick B\nexec git commit --amend -F \"C:/repository/.git/gitardo/message-1.txt\"\nfixup C\ndrop D\n"
@@ -194,7 +219,7 @@ mod tests {
             }),
             ..step(TodoAction::Reword, "B")
         }];
-        let files = build_todo_list(&steps, "folder").map(|list| list.files);
+        let files = build_todo_list(&steps, "folder", &[]).map(|list| list.files);
         assert_eq!(
             files,
             Ok(vec![(
@@ -206,21 +231,73 @@ mod tests {
 
     #[test]
     fn rebase_build_todo_list__all_dropped_or_a_squash_first_is_refused() {
-        let dropped = build_todo_list(&[step(TodoAction::Drop, "A"), step(TodoAction::Drop, "B")], "folder");
+        let dropped = build_todo_list(
+            &[step(TodoAction::Drop, "A"), step(TodoAction::Drop, "B")],
+            "folder",
+            &[],
+        );
         assert_eq!(
             dropped.map_err(|text| text.as_str().to_owned()),
             Err(String::from(
                 "Every commit is dropped. To remove them all, reset the branch instead."
             ))
         );
-        let squashed = build_todo_list(&[step(TodoAction::Drop, "A"), step(TodoAction::Squash, "B")], "folder");
+        let squashed = build_todo_list(
+            &[step(TodoAction::Drop, "A"), step(TodoAction::Squash, "B")],
+            "folder",
+            &[],
+        );
         assert_eq!(
             squashed.map_err(|text| text.as_str().to_owned()),
             Err(String::from(
                 "The oldest commit that is kept has nothing before it to be squashed into."
             ))
         );
-        assert!(build_todo_list(&[step(TodoAction::Pick, "-x")], "folder").is_err());
-        assert!(build_todo_list(&[step(TodoAction::Pick, "")], "folder").is_err());
+        assert!(build_todo_list(&[step(TodoAction::Pick, "-x")], "folder", &[]).is_err());
+        assert!(build_todo_list(&[step(TodoAction::Pick, "")], "folder", &[]).is_err());
+    }
+
+    /// A branch on the commit of a digit.
+    fn on(name: &str, digit: char) -> StackedBranch {
+        StackedBranch {
+            name: name.to_owned(),
+            commit: CommitId::parse(&digit.to_string().repeat(40)).unwrap(),
+            worktree: None,
+        }
+    }
+
+    #[test]
+    fn rebase_build_todo_list__a_branch_takes_the_reworded_commit_and_the_one_a_squash_becomes() {
+        let [one, two, three, four] = ['1', '2', '3', '4'].map(|digit| digit.to_string().repeat(40));
+        let steps = [
+            TodoStep {
+                reword: Some(Reword {
+                    message: "Better words",
+                    is_subject_only: false,
+                    original: "Old words",
+                }),
+                ..step(TodoAction::Reword, &one)
+            },
+            step(TodoAction::Pick, &two),
+            step(TodoAction::Squash, &three),
+            step(TodoAction::Pick, &four),
+        ];
+        let moving = [on("p1", '1'), on("p2", '2'), on("p3", '3')];
+        let text = build_todo_list(&steps, "folder", &moving).map(|list| list.text);
+        assert_eq!(
+            text,
+            Ok([
+                format!("pick {one}"),
+                String::from("exec git commit --amend -F \"folder/message-0.txt\""),
+                String::from("update-ref refs/heads/p1"),
+                format!("pick {two}"),
+                format!("squash {three}"),
+                String::from("update-ref refs/heads/p2"),
+                String::from("update-ref refs/heads/p3"),
+                format!("pick {four}"),
+                String::new(),
+            ]
+            .join("\n"))
+        );
     }
 }

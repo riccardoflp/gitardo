@@ -138,6 +138,10 @@ first, in its own commit, with the reason.
   tag or a remote branch is passed as `refs/heads/<name>`.
 - **R9.3** Reads use machine formats (`-z`, `--porcelain=v2`, `--format` with `%x00`), `GIT_OPTIONAL_LOCKS=0`,
   `core.quotepath=false`, and the C locale for anything parsed. Reads never ask a question and never take a lock.
+  `git range-diff` is the one read that parses what git prints for people, since git has no form of it made for
+  programs ([D81](../08-decisions.md#d81--the-branches-of-a-stack-move-with-a-rewrite-and-what-a-rewrite-changed-is-shown-commit-by-commit-proposed),
+  Q1139): it runs with `--no-color`, `--no-notes` and full hashes, its lines of pairs are parsed, its diff of diffs is
+  kept as lines, and its parser is tested on output recorded from git (`range-diff.read-pairs`).
 - **R9.4** Commands that would open an editor are given the flag that prevents it, visibly: `--no-edit`, or
   `-c core.editor=true` when continuing. The commands shown in the preview are exactly the commands that run.
 - **R9.5** Every git version requirement is a constant with the version and the reason, and the feature says what it does

@@ -17,7 +17,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use model::CommitId;
-use model::contract::{AnswerKey, Context, Danger, FollowUp, Outcome, Plan, Refusal, Step, Text, Undo};
+use model::contract::{AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Refusal, Step, Text, Undo};
 use model::rebase::{LineToHead, TodoStep, build_todo_list};
 use model::state::Operation;
 
@@ -90,15 +90,19 @@ pub(crate) struct Rewrite<'a> {
 
 /// The plan of an interactive rebase: the new messages and the todo list written to the folder of the files of the
 /// rebase, then `git rebase -i` with git's editor of the todo list copying the prepared one over its own. The folder is
-/// deleted once the rebase ended, and kept while it is stopped.
+/// deleted once the rebase ended, and kept while it is stopped. The other branches on the commits made again move
+/// with it by the `update-ref` lines of the list, as `rebase.update-refs` decides, which the confirmation says.
 ///
 /// # Errors
 ///
-/// The refusal of `rebase.build-todo-list`.
-pub(crate) fn rewrite_plan(context: &Context, rewrite: Rewrite<'_>) -> Result<Plan, Text> {
+/// The read to make first, of the version of git or of the branches of the stack; or the refusal of
+/// `rebase.build-todo-list`.
+pub(crate) fn rewrite_plan(context: &Context, answers: &Answers, rewrite: Rewrite<'_>) -> Result<Plan, Box<Outcome>> {
+    let (decided, moving) = stack::decide_todo(context, answers, rewrite.base)?;
     let folder = files_folder(context);
     let written = folder.to_string_lossy().replace('\\', "/");
-    let list = build_todo_list(rewrite.steps, &written)?;
+    let list =
+        build_todo_list(rewrite.steps, &written, &moving).map_err(|refusal| Box::new(refuse(refusal.as_str())))?;
     let mut steps: Vec<Step> = list
         .files
         .into_iter()
@@ -128,14 +132,16 @@ pub(crate) fn rewrite_plan(context: &Context, rewrite: Rewrite<'_>) -> Result<Pl
     steps.push(Step::git(context.repository.folder.clone(), arguments));
     let mut after = rewrite.after;
     after.push(FollowUp::DeleteWhenRebaseEnded(folder.clone()));
-    Ok(Plan {
+    after.extend(crate::range_diff::see_what_changed_here(context));
+    let plan = Plan {
         title: Text::from(rewrite.title),
         steps,
         danger: Danger::Confirm(Text::from(rewrite.note)),
         undo: Undo::ByReflog,
         after,
         on_failure: vec![FollowUp::DeleteWhenRebaseEnded(folder)],
-    })
+    };
+    Ok(stack::with_todo_stack(plan, answers, &decided))
 }
 
 /// `git -c core.editor=true rebase --continue`, which keeps the messages git prepared, then the files of the rebase

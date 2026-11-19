@@ -269,6 +269,14 @@ pub enum FollowUp {
     Cleanup(Step),
     /// Open the comparison page of two sides, or show the one they have (`compare.page`).
     OpenComparison(Box<crate::compare::ComparisonTarget>),
+    /// Open the page of what a rewrite changed, commit by commit, in place of the one shown before (`range-diff.page`).
+    OpenRangeDiff(Box<crate::range_diff::RangeDiffTarget>),
+    /// Offered in the confirmation of the plan as a button of its own, which closes it, runs nothing and runs this in
+    /// its place: **Compare first** in the warning of a force push (`preview.confirm`, Q1140).
+    OfferBeforeRun(Box<OfferedRun>),
+    /// Once the repository is read again, say which upstream of a local branch was force pushed, as a fetch found it,
+    /// with **See what changed** (`range-diff.compare`).
+    CheckForcePushed,
     /// Show the comparison of two commits in the inspector, in place of the commit selected (`compare.in-place`).
     CompareInPlace(Box<crate::compare::InPlaceSides>),
     /// Once the repository is read again, say which commit is the first bad one when a bisect found it

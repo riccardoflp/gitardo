@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::question::AnswerJson;
 use super::target::TargetJson;
+use crate::range_diff::RangesJson;
 
 /// A follow-up the extension carries out (`FollowUp` of `model`). The engine keeps those that are its own, and the ones
 /// whose views have not moved yet come with their areas.
@@ -126,6 +127,27 @@ pub enum FollowUpJson {
         /// The tags it does not have after the operation.
         not_pushed: Vec<String>,
     },
+    /// The tab of what a rewrite changed opens, commit by commit (1.11, `range-diff.page`).
+    OpenRangeDiff {
+        /// Its title: **What the rebase of `feature` changed**.
+        title: String,
+        /// The branch, which names the tab: `feature · what changed`.
+        branch: String,
+        /// The two lines compared, which `read/range-diff.read-pairs` is given.
+        ranges: RangesJson,
+    },
+    /// An operation offered in the warning of a plan, in place of the plan (1.11): **Compare First** before a force
+    /// push. Its button runs nothing of the plan, and the operation once the warning is closed.
+    OfferBeforeRun {
+        /// The words of the button.
+        label: String,
+        /// The feature it runs.
+        feature: String,
+        /// What it runs on.
+        target: Box<TargetJson>,
+        /// The answers it is given before it asks, by their keys.
+        answers: BTreeMap<String, AnswerJson>,
+    },
 }
 
 fn text_of(text: &Text) -> String {
@@ -139,17 +161,42 @@ fn path_of(path: &Path) -> String {
 /// The JSON of an operation offered; none when its target or one of its answers cannot cross, since it would then run
 /// otherwise than offered.
 fn offer_run(offered: &OfferedRun) -> Option<FollowUpJson> {
+    let (label, feature, target, answers) = offered_parts(offered)?;
+    Some(FollowUpJson::OfferRun {
+        label,
+        feature,
+        target,
+        answers,
+    })
+}
+
+/// The JSON of an operation offered in place of a plan, as [`offer_run`].
+fn offer_before_run(offered: &OfferedRun) -> Option<FollowUpJson> {
+    let (label, feature, target, answers) = offered_parts(offered)?;
+    Some(FollowUpJson::OfferBeforeRun {
+        label,
+        feature,
+        target,
+        answers,
+    })
+}
+
+/// The words, the feature, the target and the answers of an operation offered, each as JSON.
+type OfferedParts = (String, String, Box<TargetJson>, BTreeMap<String, AnswerJson>);
+
+/// The parts of an operation offered as JSON; none when its target or one of its answers cannot cross.
+fn offered_parts(offered: &OfferedRun) -> Option<OfferedParts> {
     let answers = offered
         .answers
         .iter()
         .map(|(key, answer)| Some((key.0.to_owned(), AnswerJson::of(answer)?)))
         .collect::<Option<BTreeMap<_, _>>>()?;
-    Some(FollowUpJson::OfferRun {
-        label: text_of(&offered.label),
-        feature: offered.feature.0.to_owned(),
-        target: Box::new(TargetJson::of(&offered.target)?),
+    Some((
+        text_of(&offered.label),
+        offered.feature.0.to_owned(),
+        Box::new(TargetJson::of(&offered.target)?),
         answers,
-    })
+    ))
 }
 
 impl FollowUpJson {
@@ -193,6 +240,12 @@ impl FollowUpJson {
                 line: *line,
             },
             FollowUp::OfferRun(offered) => offer_run(offered)?,
+            FollowUp::OfferBeforeRun(offered) => offer_before_run(offered)?,
+            FollowUp::OpenRangeDiff(target) => FollowUpJson::OpenRangeDiff {
+                title: target.title.clone(),
+                branch: target.branch.clone(),
+                ranges: RangesJson::from(&target.ranges),
+            },
             FollowUp::WriteSetting(written) => FollowUpJson::WriteSetting {
                 key: written.key.clone(),
                 value: match &written.value {

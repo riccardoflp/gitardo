@@ -14,6 +14,7 @@ pub mod help;
 pub mod journal;
 pub mod mermaid;
 pub mod messages;
+pub mod range_diff;
 pub mod reads;
 pub mod rpc;
 pub mod state;

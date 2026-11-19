@@ -30,6 +30,7 @@ pub mod markdown;
 pub mod merge_view;
 pub mod note;
 pub mod patch;
+pub mod range_diff;
 pub mod rebase;
 pub mod reflog;
 pub mod refs;

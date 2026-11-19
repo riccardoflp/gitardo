@@ -5,7 +5,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the first half of the table.
-pub(super) const FIRST: [SettingInfo; 30] = [
+pub(super) const FIRST: [SettingInfo; 31] = [
     SettingInfo {
         key: "commandPreview",
         title: "Show commands before they run",
@@ -220,6 +220,20 @@ pub(super) const FIRST: [SettingInfo; 30] = [
         is_repository: true,
         is_experimental: false,
         kind: SettingKind::Toggle,
+    },
+    SettingInfo {
+        key: "rebase.updateRefs",
+        title: "Move the branches of a stack with a rebase",
+        section: Some(SettingsSection::PullAndCommits),
+        description: "Whether the other branches on the commits a rebase makes again move with it. As git says: git's own rebase.updateRefs decides, and they move when it is not set either.",
+        default: "not set",
+        is_repository: true,
+        is_experimental: false,
+        kind: SettingKind::ToggleOrUnset {
+            on: "Move them",
+            off: "Leave them",
+            unset: "As git says",
+        },
     },
     SettingInfo {
         key: "commit.signOff",

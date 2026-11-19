@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { PullAction, RepoState, Search, SyncAction } from '../shared/protocol';
-import { useMenu } from './ContextMenu';
+import { hasDiverged } from '../shared/rangeDiff';
+import { type MenuEntry, useMenu } from './ContextMenu';
 import { Icon } from './Icon';
 import { RepoSelect } from './RepoSelect';
 import { ScopeButton } from './ScopeButton';
 import { WorktreeSelect } from './WorktreeSelect';
-import { act } from './menus';
+import { act, rewriteEntries } from './menus';
 import { useKept } from './kept';
 import { moreMenu, viewMenu } from './toolbarMenus';
 import { loadUiState, post, saveUiState } from './vscode';
@@ -96,11 +97,14 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   // What the button runs, among the ways to pull: the settings choose it.
   const pull = PULL_VARIANTS.find(({ action }) => action === state.defaultPull) ?? PULL_VARIANTS[0];
   /** A menu of the ways to pull or push, which says which one the button beside it runs. */
+  // The branch checked out against its upstream, commit by commit, while each has commits the other has not (M36).
+  const checkedOut = state.branches.find((branch) => branch.isCheckedOut);
+  const compare = checkedOut && hasDiverged(checkedOut) ? rewriteEntries(checkedOut).slice(1) : [];
   const variants = (list: typeof PUSH_VARIANTS, button: SyncAction) => (event: MouseEvent) =>
-    openMenu(
-      event,
-      list.map(({ action, label }) => ({ label, hint: action === button ? 'default' : undefined, run: () => sync(action) })),
-    );
+    openMenu(event, [
+      ...list.map(({ action, label }) => ({ label, hint: action === button ? 'default' : undefined, run: () => sync(action) })),
+      ...(button === 'push' && compare.length ? (['separator', ...compare] as MenuEntry[]) : []),
+    ]);
 
   const typed = text.trim();
   // Not among the loaded commits, it may still be the hash of one further back, or of one no branch reaches.

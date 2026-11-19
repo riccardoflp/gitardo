@@ -173,6 +173,12 @@ pub enum Query {
         /// The branch rewritten, or the commit of a detached `HEAD`.
         tip: String,
     },
+    /// The last rebase or amend of a branch, or the last force push a fetch found of a remote branch
+    /// (`range-diff.read-last-rewrite`). The answer is [`super::Answer::LastRewrite`].
+    LastRewrite {
+        /// The full name of the reference: `refs/heads/feature`, `refs/remotes/origin/feature`.
+        reference: String,
+    },
     /// The whole messages of commits (`git log -1 --format=%B <hash>`). The answer is [`super::Answer::Messages`], in
     /// the same order.
     Messages {

@@ -15,7 +15,9 @@ user's answer.
 - **Asks**: one dialog with the plan's title, its steps exactly as they will be logged, the data passed on standard
   input or through a file beside the step that takes it (the patch of `git apply --cached`, the todo list of an
   interactive rebase, a patch from the clipboard), the reason when the plan is destructive, and **Run** and **Cancel**.
-  **Run** is the default only when the plan is not destructive.
+  **Run** is the default only when the plan is not destructive. A plan that offers another operation instead
+  (`FollowUp::OfferBeforeRun`) has a third button with its words, **Compare first** before a force push
+  (`range-diff.compare`): it runs nothing of the plan and runs that operation once the dialog has closed.
 - **Plan**: none of its own: on **Run**, the plan it was given runs unchanged.
 - **Danger**: None
 - **Undo**: Nothing to undo: **Cancel** runs nothing.
@@ -124,7 +126,9 @@ before it. It always shows what it is about to do first. With nothing in the jou
   - a squash merge, until something is committed: `git reset --merge`;
   - a cherry-pick of several commits or a patch applied as commits, also continued in Gitardo after a conflict:
     `git reset --keep <HEAD before it>`, all of it at once;
-  - a squash, or a split of an older commit: `git reset --keep <HEAD before it>`.
+  - a squash, or a split of an older commit: `git reset --keep <HEAD before it>`;
+  - a rewrite that moved the other branches of a stack: the reset of the branch rewritten by its reflog, then one
+    `git update-ref -m "undo: back to before the rebase" --stdin` that puts the others back (`undo.moved-branches`);
   - a note written, removed, fetched or merged in Gitardo: `git update-ref <reference> <before> <after>`, the reference
     of notes put back where it was, or `git update-ref -d <reference> <after>` when there was none (`note.edit`,
     `note.remove`, `note.fetch`, Q1215); notes do not move `HEAD`, so the entry holds until `HEAD` moves.
@@ -206,7 +210,7 @@ The journal entry of a rewrite that moved the other branches of a stack keeps wh
 them back with the branch rewritten.
 
 - **Kind**: Derivation
-- **Function**: `engine::undo::moved_branches(entry: &JournalEntry, state: &RepoState) -> MovedBranchesUndo`
+- **Function**: `model::contract::moved_branches(moved: &[MovedBranch], state: &RepositoryState) -> MovedBranchesUndo`
 - **Uses**: `undo.journal`, `undo.last`, `rebase.update-refs`, `rebase.read-stacked-branches`.
 - **Extension**: the engine's, in the plan of `undo.last` that the extension runs on the engine.
 
@@ -226,6 +230,10 @@ Rules:
 - The dialog says it in words: *Undo the rebase of `p3`, and put `p1` and `p2` back where they were.*
 - With no entry in the journal (the engine started again since), Undo goes by the reflog as before, and takes back the
   branch rewritten alone (Q1133).
+- As built: the plan of a rewrite whose branches move says `Undo::Journal(UndoRecord::Rewrite { moved })`, each branch
+  with the commit it was on; `undo.journal` adds the commit each is on once the plan ran, read from the state after it.
+  A rewrite that stopped, on a conflict or to edit a commit, and was continued leaves its entry to the plan that
+  continued it, which is taken back by the reflog: the branch rewritten goes back alone (Q1425).
 
 Acceptance:
 
@@ -235,6 +243,7 @@ Acceptance:
       dialog says so.
 - [ ] After a rebase that moved no other branch, the plan of Undo has no `git update-ref`.
 - [ ] Extension: one **Undo** after a rebase that moved `p1` puts both branches back.
+- [ ] The journal entry of a rewrite that moved `p1` keeps the commit `p1` was on and the one it left it on.
 
 ### `activity.track` — Say what is running
 

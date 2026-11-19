@@ -17,6 +17,7 @@ mod host;
 mod journal;
 mod mermaid;
 mod outgoing;
+mod range_diff;
 mod reads;
 mod repository;
 mod session;

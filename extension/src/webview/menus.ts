@@ -25,6 +25,7 @@ import { submoduleFolder, submoduleStatus } from '../shared/submodules';
 export { pullOf, pushedName };
 import { scopeRefs, toggleScopeRef } from '../shared/scope';
 import { notPushedCount } from '../shared/tagMarks';
+import { hasDiverged, upstreamOf } from '../shared/rangeDiff';
 import type { MenuEntry } from './ContextMenu';
 import type { DragSource } from './drag';
 import { shortHash } from './util';
@@ -375,6 +376,22 @@ export function selectionMenu(rows: Row[], state: RepoState, onCompare: (compari
 }
 
 /**
+ * What a rewrite of a branch changed, commit by commit (`range-diff.compare`): its last rewrite, and the branch against
+ * its upstream when each has commits the other has not.
+ */
+export function rewriteEntries(branch: Branch): MenuEntry[] {
+  const { name } = branch;
+  const upstream = upstreamOf(branch);
+  return [
+    { label: 'What its last rewrite changed', run: () => act({ kind: 'rangeDiff', target: 'branch', name }) },
+    hasDiverged(branch) && {
+      label: `Compare with ${upstream} commit by commit`,
+      run: () => act({ kind: 'rangeDiff', target: 'branch', name, withUpstream: true }),
+    },
+  ];
+}
+
+/**
  * **Open pull request #12**, **Open merge request !12** on GitLab, or **Create pull request…** for a branch with none
  * known (`github.open-pull-request`, `hosting.open-pull-request`).
  */
@@ -429,6 +446,7 @@ export function branchMenu(branch: Branch, state: RepoState, onCompare: (compari
     'separator',
     compareWithHead(name, branch.commit, state, onCompare),
     compareWith(name, branch.commit),
+    ...rewriteEntries(branch),
     revealEntry(branch.commit, onReveal),
     ...scopeEntries(`refs/heads/${name}`, state),
     pullEntry(pushedName(branch, state), state, true),
@@ -523,6 +541,7 @@ export function remoteBranchMenu(ref: RemoteBranch, state: RepoState, onCompare:
     'separator',
     compareWithHead(name, ref.commit, state, onCompare),
     compareWith(name, ref.commit),
+    { label: 'What the force push changed', run: () => act({ kind: 'rangeDiff', target: 'remote', name }) },
     revealEntry(ref.commit, onReveal),
     ...scopeEntries(`refs/remotes/${name}`, state),
     pullEntry(nameOnRemote(name, state), state, false),

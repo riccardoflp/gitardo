@@ -80,7 +80,7 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
-Version 1.11 adds what milestones M31, M32, M34, M35, M37, M38 and M40 needed. For M31
+Version 1.11 adds what milestones M31, M32, M34, M35, M36, M37, M38 and M40 needed. For M31
 ([D76](../08-decisions.md#d76--ask-gitardo-how-to-do-something-answered-from-the-catalog)): `read/help.ask`, a question
 of VS Code's Chat to Ask Gitardo, a read that takes no repository and asks the model chosen in the Chat
 ([Ask Gitardo](#ask-gitardo)); the purpose `help` of `host/languageModel`; and `features` in its parameters, the
@@ -103,6 +103,11 @@ none of the reads. For M35
 `read/tag.read-remote-tags`, the tags of a remote asked of it and compared with those of the repository, and the
 follow-up `tagsOnRemote`, what an operation on tags changed of them on a remote; an older extension asks no such read
 and leaves the follow-up unknown, as it does any other.
+For M36
+([D81](../08-decisions.md#d81--the-branches-of-a-stack-move-with-a-rewrite-and-what-a-rewrite-changed-is-shown-commit-by-commit-proposed)):
+`read/range-diff.read-pairs`, the pairs of what a rewrite changed ([What a rewrite changed](#what-a-rewrite-changed));
+the follow-up `openRangeDiff`, which opens the tab of those pairs; and `offerBeforeRun`, an operation the warning of a
+plan offers in its place ([`feature/followUps`](#featurefollowups)).
 For M37: the kinds `pullRequestNumber` of the validation of a question, the number
 of a pull request typed as `12`, `#12` or `!12`, and `pullRequestBranch`, the name of the local branch it is checked out
 in, one of `branches` taken too (`hosting.checkout-pull-request`); the host question of the token of a GitLab
@@ -523,6 +528,28 @@ of the features the answer names, each once, in the order first named; the exten
 for each that has a command. Cancelled while the first request runs, no second one is sent and the read answers
 `cancelled`. It is not logged, having no repository to log it in.
 
+### What a rewrite changed
+
+`read/range-diff.read-pairs` (1.11, `range-diff.read-pairs`) reads, in a repository opened, the pairs of the two lines
+of commits that the follow-up `openRangeDiff` gave, as they came (`crates/protocol/src/range_diff.rs`).
+
+```ts
+params: { repository: string, ranges: { arguments: string[], before: Line, now: Line } }   // Line: { from, to }
+result: {
+  pairs: Array<{
+    kind: "same" | "changed" | "added" | "dropped",
+    before: string | null, now: string | null,   // full ids; none for one added, or one dropped
+    subject: string,                             // now, or before for one dropped
+    messageChanged: boolean, changesChanged: boolean,
+    diff: string[],                              // its diff of diffs, empty unless it changed
+  }>,
+  beforeCount: number, nowCount: number,
+  counts: string,                                // "2 the same · 1 changed · 1 dropped"
+}
+```
+
+It fails as git does, or when a line has more than 1,000 commits, which Gitardo does not compare.
+
 ## Features
 
 ### `feature/run`
@@ -608,13 +635,19 @@ the follow-ups that are the host's to carry out, in their order. The engine keep
 object with a `kind` and the fields of its variant. Stage 2 sends `say`, `selectHead`, `selectCommit`,
 `selectBeforeHead`, `openCommitPage`, `emptyCommitMessage`, `preparedMessage`, `fillCommitMessage`,
 `readPullRequests`, `offer`, `copyToClipboard`, `openUrl`, `openReview`, `closeMergePage`, `openWindow`, `showFolder`,
-`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); version 1.3 adds `offerRun`; the others
-are sent from the stage that moves their features.
+`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); version 1.3 adds `offerRun`; version 1.11
+adds `openRangeDiff` and `offerBeforeRun`; the others are sent from the stage that moves their features.
 
 `offerRun` is `{ kind: "offerRun", label, feature, target: Target, answers: Record<string, Answer> }`: a button named
 `label` that runs `feature` on `target` with `answers` given, as **Remove anyway** after git refuses a worktree with
 changes, or **Choose What It Gets…** (`worktree-setup.page`) after a worktree is made. An offer whose target or answers
 cannot cross (an answer of the engine's own reads, such as a list of names) is left out.
+
+`offerBeforeRun` (1.11) has the fields of `offerRun`, and comes in the `after` of a plan that `feature/confirm` asks
+about: its `label` is a third button of the warning, **Compare First** before a force push, which answers
+`{ run: false }` and sends `feature/run` of `feature` once the plan backed out. `openRangeDiff` (1.11) is
+`{ kind: "openRangeDiff", title, branch, ranges }`: the tab of what a rewrite changed opens, named `<branch> · what
+changed`, and asks `read/range-diff.read-pairs` with `ranges`.
 
 | `FollowUp` | Carried out by | In the extension |
 | --- | --- | --- |
@@ -643,6 +676,9 @@ cannot cross (an answer of the engine's own reads, such as a list of names) is l
 | `OpenFileDiff` | extension | VS Code's diff editor or the Flow Diff |
 | `TrustFolder`, `ForgetTrustedFolders` | not sent | VS Code's workspace trust (Q396) |
 | `TagsOnRemote` (1.11) | extension | `{ remote, pushed, notPushed }`, `remote` null for a tag made here: the marks of the tags (`tag.remote-marks`) follow it when that remote is the one checked |
+| `OpenRangeDiff` (1.11) | extension | the tab of what a rewrite changed |
+| `OfferBeforeRun` (1.11) | extension | a third button of the modal dialog of `feature/confirm` |
+| `CheckForcePushed` | not sent | the extension compares the upstreams before and after a fetch itself |
 | `WriteSetting` (1.6, Q399) | extension | `WorkspaceConfiguration.update` in the user's settings, `{ key, value }` by the desktop's name, `value` null to remove it; `ai.model` and `ai.effort` are `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400) |
 
 ## Undo and the journal

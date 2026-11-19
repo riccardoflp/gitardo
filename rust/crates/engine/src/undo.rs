@@ -1,6 +1,6 @@
 //! The journal of what Undo needs for the operations of Gitardo that the reflog does not see (`undo.journal`).
 
-use model::contract::{JournalEntry, Plan, Text, Undo, UndoRecord};
+use model::contract::{JournalEntry, MovedBranch, Plan, Text, Undo, UndoRecord};
 use model::state::{Head, RepositoryState};
 
 /// How many entries the journal keeps for a repository: the oldest go first.
@@ -115,6 +115,9 @@ fn record_of(plan: &Plan, before: &RepositoryState, after: &RepositoryState) -> 
                 .then(|| after.notes.tip.clone())
                 .flatten(),
         }),
+        Undo::Journal(UndoRecord::Rewrite { moved }) => Recorded::Entry(UndoRecord::Rewrite {
+            moved: moved_to(moved, after),
+        }),
         Undo::Journal(record) => Recorded::Entry(record.clone()),
         Undo::TakesBack(number) => Recorded::TakesBack(*number),
         Undo::Impossible(reason) if references_changed(before, after) => {
@@ -122,6 +125,21 @@ fn record_of(plan: &Plan, before: &RepositoryState, after: &RepositoryState) -> 
         }
         Undo::Impossible(_) => Recorded::Nothing,
     }
+}
+
+/// The branches a rewrite was to move, each with the commit it is on once the rewrite ran (`undo.moved-branches`).
+fn moved_to(moved: &[MovedBranch], after: &RepositoryState) -> Vec<MovedBranch> {
+    moved
+        .iter()
+        .map(|branch| MovedBranch {
+            after: after
+                .branches
+                .iter()
+                .find(|each| each.name == branch.name)
+                .map(|each| each.commit.clone()),
+            ..branch.clone()
+        })
+        .collect()
 }
 
 /// Whether anything but the files and the index changed between two reads: what is checked out, a branch, a remote
@@ -310,5 +328,33 @@ mod tests {
             after.newest().map(|entry| entry.title.as_str()),
             Some("Delete branch old")
         );
+    }
+
+    #[test]
+    fn undo_journal__a_rewrite_that_moved_branches_keeps_where_it_left_each() {
+        let mut after = at('c');
+        after.branches.push(model::state::Branch {
+            name: String::from("p1"),
+            commit: commit('d'),
+            upstream: None,
+            is_checked_out: false,
+            date: model::Timestamp::default(),
+        });
+        let moved = vec![model::contract::MovedBranch {
+            name: String::from("p1"),
+            before: commit('b'),
+            after: None,
+        }];
+        let journal = journal_after(
+            &Journal::new(),
+            Some(&plan(Undo::Journal(UndoRecord::Rewrite { moved }))),
+            &at('a'),
+            &after,
+        );
+        let Some(UndoRecord::Rewrite { moved }) = journal.newest().map(|entry| &entry.record) else {
+            panic!("the entry keeps the branches moved")
+        };
+        assert_eq!(moved.first().and_then(|branch| branch.after.clone()), Some(commit('d')));
+        assert_eq!(moved.first().map(|branch| branch.before.clone()), Some(commit('b')));
     }
 }

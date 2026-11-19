@@ -78,6 +78,18 @@ pub(super) fn setting_row(
         shifted.width,
         block_height(ui, row),
     );
+    if let SettingKind::ToggleOrUnset { on, off, unset } = row.info.kind {
+        match three_way_control(row, ui, cells.rest(), [on, off, unset]) {
+            Some(ThreeWay::Set(is_on)) => intents.push(Intent::SetSetting(SettingChange {
+                key: row.info.key,
+                value: SettingValue::Toggle(is_on),
+                target: state.target,
+            })),
+            Some(ThreeWay::Unset) if row.is_set_here => intents.push(reset_intent(state, row)),
+            Some(ThreeWay::Unset) | None => {}
+        }
+        return intents;
+    }
     let value = setting_control(row, ui, cells.rest()).or_else(|| block_control(ui, row, below));
     intents.extend(value.map(|value| {
         Intent::SetSetting(SettingChange {
@@ -190,6 +202,45 @@ fn reset_intent(state: &SettingsPageState<'_>, row: &SettingRow) -> Intent {
         Target::Head,
         answers,
     ))
+}
+
+/// What was chosen in the menu of a setting that is `true`, `false` or not set.
+enum ThreeWay {
+    /// The choice that writes `true` or `false`.
+    Set(bool),
+    /// The choice that takes it out of the file.
+    Unset,
+}
+
+/// The menu of a setting that is `true`, `false` or not set, showing the choice of its value; none when nothing was
+/// chosen or the value chosen is the one it has.
+fn three_way_control(row: &SettingRow, ui: &mut Ui<'_>, rect: Rect, labels: [&'static str; 3]) -> Option<ThreeWay> {
+    let [on, off, unset] = labels;
+    let current = match row.value.as_str() {
+        "true" => on,
+        "false" => off,
+        _ => unset,
+    };
+    let items: Vec<MenuEntry<'_, &'static str>> = labels
+        .iter()
+        .map(|choice| MenuEntry::Item(icons::without_icon(choice, *choice)))
+        .collect();
+    let button = Button::secondary(current)
+        .kind(ButtonKind::Outline)
+        .with_trailing(icons::CHOOSE);
+    let (width, height) = ui.button_size(&button);
+    let cell = place(rect, (width.min(rect.width), height), (Align::End, Align::Center));
+    let chosen = ui.menu_button(("setting", row.info.key), cell, &button, &items)?;
+    if chosen == current {
+        return None;
+    }
+    Some(if chosen == on {
+        ThreeWay::Set(true)
+    } else if chosen == off {
+        ThreeWay::Set(false)
+    } else {
+        ThreeWay::Unset
+    })
 }
 
 /// The control of a setting on the right of its row: a switch, a menu of its choices, or a field; returns the value

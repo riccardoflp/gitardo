@@ -12,6 +12,16 @@ pub enum SettingKind {
     Toggle,
     /// One of some words, changed by choosing one.
     Choice(&'static [&'static str]),
+    /// `true`, `false` or not set, changed by choosing one of three: what `true` does, what `false` does, and what
+    /// happens when it is not set, which takes it out of the file of the tab shown (Q1400).
+    ToggleOrUnset {
+        /// The choice that writes `true`.
+        on: &'static str,
+        /// The choice that writes `false`.
+        off: &'static str,
+        /// The choice that takes it out of the file.
+        unset: &'static str,
+    },
     /// A whole number between two, typed in a field that refuses one out of its range.
     Number {
         /// The least it takes.

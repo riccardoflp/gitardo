@@ -1272,12 +1272,32 @@ their tests passing; the first five in Gitardo Desktop, the last in the extensio
 
 Phase 1 is built: `git --version` read once for each engine (`Query::GitVersion`), and the branches on the commits a
 rebase makes again with the worktree of each and git's `rebase.updateRefs` (`Query::StackedBranches`).
-Phase 2 is built in part: the decision (`model::rebase::update_refs`), Gitardo's setting `rebase.updateRefs` read from
-the settings files, and `--update-refs` or `--no-update-refs` on `rebase.onto` and `rebase.branch-onto`, with the note
-when a branch stays and what is said after. The `update-ref` lines of Gitardo's own todo lists, `fixup.commit`, the
-interactive rebase page and the entry of the settings page (Q1400) are not built yet; nor are phases 3 to 6.
+Phase 2 is built: the decision (`model::rebase::update_refs`), Gitardo's setting `rebase.updateRefs`, and
+`--update-refs` or `--no-update-refs` on `rebase.onto`, `rebase.branch-onto` and `fixup.commit`, with the note when a
+branch stays and what is said after; the `update-ref` lines of Gitardo's own todo lists, for the interactive rebase,
+`message.edit`, the squashes and the split, after the `exec` of a reword and after the squashes and fixups of a
+commit; the other branches on each commit on the interactive rebase page; and the setting on the settings page as a
+choice of three, **Move them**, **Leave them** and **As git says** (Q1400).
+Phase 3 is built: the journal entry of a rewrite keeps each branch it moved (`UndoRecord::Rewrite`), and Undo resets
+the branch rewritten by its reflog, then puts the others back in one `git update-ref --stdin`
+(`model::contract::moved_branches`), leaving out and naming a branch moved since. A rewrite that stopped and was
+continued goes back by the reflog alone (Q1425).
+Phase 4 is built: rule R9.3 names `git range-diff`, the last rewrite of a branch or a remote branch from its reflog
+(`Query::LastRewrite`), the ranges compared (`model::range_diff::ranges`), and the pairs read with the count of each
+line and the subjects now (`git::read::range_diff::read_pairs`), tested on output recorded in
+`crates/git/tests/golden/range-diff`.
+Phase 5 is built: the page of what a rewrite changed (`range-diff.page`), opened by `range-diff.compare` from **See
+what changed** after a rewrite, the menus of a branch and of a remote branch, the menu of **Sync**, **Compare first** in
+the warning of a force push, and what is said after a fetch that found an upstream force pushed; not after a pull, nor
+with `Ctrl+F` on the page.
+Phase 6 is built: protocol 1.11 with `read/range-diff.read-pairs`, `openRangeDiff` and `offerBeforeRun`; the setting
+`gitardo.rebase.updateRefs`, a choice of **As git says**, **Move them** and **Leave them**; the tab of what a rewrite
+changed; **What its last rewrite changed**, **Compare with `<upstream>` commit by commit** and **What the force push
+changed** in the menus, the comparison also beside **Push**; **Compare First** in the modal dialog of a force push; and
+**See What Changed** on the messages after a rewrite and after a fetch that found an upstream force pushed. The
+end-to-end step that rebases a stack and undoes it is written; the integration tests run the same against the engine.
 
-Nothing is built yet.
+Built: the six phases, in Gitardo Desktop and in the extension.
 
 Exit: in a repository with `p1`, `p2` on it and `p3` on `p2`, all above an older `main`, **Rebase p3 onto main**
 runs `git rebase --update-refs main`, and `p1` and `p2` are on the new commits after, what is said naming them; with

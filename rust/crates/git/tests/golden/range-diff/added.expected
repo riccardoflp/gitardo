@@ -1,0 +1,69 @@
+[
+    Pair {
+        kind: Same,
+        before: Some(
+            CommitId(
+                "7c00397dd1b2445e952af147d75d41feb9527f0b",
+            ),
+        ),
+        now: Some(
+            CommitId(
+                "3c6e730e2340a64c61ac6b88346c0629aab13c55",
+            ),
+        ),
+        subject: "Add the parser",
+        diff: [],
+    },
+    Pair {
+        kind: Same,
+        before: Some(
+            CommitId(
+                "00a28a1f827c35f63875b35d34b45709a4bfacd5",
+            ),
+        ),
+        now: Some(
+            CommitId(
+                "16d24935d50317cec2c4e9fcd45380a602baa124",
+            ),
+        ),
+        subject: "Add the lexer",
+        diff: [],
+    },
+    Pair {
+        kind: Same,
+        before: Some(
+            CommitId(
+                "e9d5a83126de9060e005fd8efc7d2ea82c29dafe",
+            ),
+        ),
+        now: Some(
+            CommitId(
+                "1400eaa3f187f9b9b197a746fc1317d3ca6e7ecd",
+            ),
+        ),
+        subject: "Add the checker",
+        diff: [],
+    },
+    Pair {
+        kind: Dropped,
+        before: Some(
+            CommitId(
+                "923dc46644c6817e6587d2c36e6e8786a45511be",
+            ),
+        ),
+        now: None,
+        subject: "Add the printer",
+        diff: [],
+    },
+    Pair {
+        kind: Added,
+        before: None,
+        now: Some(
+            CommitId(
+                "dbb1576c1cc3c6fa5b0b5f2fcb4f1243fafca281",
+            ),
+        ),
+        subject: "Add the tests",
+        diff: [],
+    },
+]

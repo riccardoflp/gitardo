@@ -258,6 +258,7 @@ impl ViewData {
                 is_running: state.is_operation_running,
                 built: views::graph::SYNC_FEATURES.map(|feature| features::operation(feature).is_some()),
                 pull_way: pull_way(&state.settings.features),
+                has_diverged: upstream.is_some_and(|(ahead, behind)| ahead > 0 && behind > 0),
             }),
             view: ViewMenuState {
                 timeline: read.map(|_| timeline_menu(state)),

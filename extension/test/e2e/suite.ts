@@ -2289,6 +2289,39 @@ export async function run(): Promise<void> {
     assert.ok(state().branches.some((branch) => branch.name === 'topic'));
   });
 
+  await step('rebases a stack of branches with the ones above it moved too, and one Undo puts them all back (M36)', async () => {
+    const was = (await git(app, ['rev-parse', '--abbrev-ref', 'HEAD'])).stdout.trim();
+    const commitOf = async (ref: string) => (await git(app, ['rev-parse', ref])).stdout.trim();
+    await git(app, ['branch', 'stack-base']);
+    await git(app, ['switch', '--quiet', '-c', 'stack-a']);
+    write('stack-a.txt', 'a\n');
+    await git(app, ['add', 'stack-a.txt']);
+    await git(app, ['commit', '--quiet', '-m', 'Add stack a']);
+    await git(app, ['switch', '--quiet', '-c', 'stack-b']);
+    write('stack-b.txt', 'b\n');
+    await git(app, ['add', 'stack-b.txt']);
+    await git(app, ['commit', '--quiet', '-m', 'Add stack b']);
+    await git(app, ['switch', '--quiet', 'stack-base']);
+    write('stack-base.txt', 'base\n');
+    await git(app, ['add', 'stack-base.txt']);
+    await git(app, ['commit', '--quiet', '-m', 'Add stack base']);
+    await git(app, ['switch', '--quiet', 'stack-b']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    const before = [await commitOf('stack-a'), await commitOf('stack-b')];
+    answer = run;
+    try {
+      await controller.action({ kind: 'rebase', onto: 'stack-base' });
+      assert.equal(await commitOf('stack-a^'), await commitOf('stack-base'), 'stack-a moved with stack-b');
+      assert.equal(await commitOf('stack-b^'), await commitOf('stack-a'));
+      await controller.action({ kind: 'undo' });
+      assert.deepEqual([await commitOf('stack-a'), await commitOf('stack-b')], before);
+    } finally {
+      await git(app, ['switch', '--quiet', was]);
+      await git(app, ['branch', '--quiet', '-D', 'stack-a', 'stack-b', 'stack-base']);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('offers the forced delete when git refuses an unmerged branch', async () => {
     asked.length = 0;
     answer = run;

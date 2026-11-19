@@ -4,10 +4,12 @@
 //! The operations Gitardo makes that the reflog does not see (a branch or a stash deleted, conflicts resolved, a series
 //! of cherry-picks) are taken back from the engine's journal, filled by the plans of the cards that make them.
 
+use std::ffi::OsString;
+
 use model::CommitId;
 use model::contract::{
-    AnswerKey, Answers, Context, Danger, FollowUp, JournalEntry, Outcome, Plan, Query, ReflogEntry, Refusal, Step,
-    Text, Undo, UndoRecord,
+    AnswerKey, Answers, Context, Danger, FollowUp, JournalEntry, MovedBranch, Outcome, Plan, Query, ReflogEntry,
+    Refusal, Step, Text, Undo, UndoRecord, moved_branches,
 };
 
 /// The newest entry of the engine's journal that still holds.
@@ -63,6 +65,21 @@ pub fn last(context: &Context, answers: &Answers) -> Outcome {
             }),
             other => other,
         },
+        Some(JournalEntry {
+            record: UndoRecord::Rewrite { moved },
+            number,
+            ..
+        }) => match by_reflog(context, answers) {
+            Outcome::Run(plan) => Outcome::Run(with_moved_back(
+                context,
+                Plan {
+                    undo: Undo::TakesBack(*number),
+                    ..plan
+                },
+                moved,
+            )),
+            other => other,
+        },
         Some(entry) => Outcome::Run(super::journal::plan(context, entry)),
         None => by_reflog(context, answers),
     }
@@ -107,6 +124,48 @@ fn by_reflog(context: &Context, answers: &Answers) -> Outcome {
     match reset_mode(context, answers, undone, &previous.commit) {
         Ok(mode) => Outcome::Run(reset_plan(context, undone, &previous.commit, mode)),
         Err(query) => Outcome::Read(FILES_MATCH, query),
+    }
+}
+
+/// The Undo of a rewrite by the reflog, then the other branches it moved put back in one
+/// `git update-ref -m "undo: back to before the rebase" --stdin`, which git makes whole or not at all; a branch moved
+/// since stays where it is, and the dialog says so (`undo.moved-branches`).
+fn with_moved_back(context: &Context, mut plan: Plan, moved: &[MovedBranch]) -> Plan {
+    let undo = moved_branches(moved, &context.repository);
+    let mut said = Vec::new();
+    if !undo.back.is_empty() {
+        plan.steps.push(Step::Git {
+            arguments: ["update-ref", "-m", "undo: back to before the rebase", "--stdin"]
+                .map(OsString::from)
+                .to_vec(),
+            directory: context.repository.folder.clone(),
+            input: Some(undo.lines.into_bytes()),
+        });
+        said.push(format!(
+            "Undo the rebase of `{}`, and put {} back where {} were.",
+            crate::rebase::current_name(context),
+            and_list(&undo.back),
+            if undo.back.len() == 1 { "it" } else { "they" }
+        ));
+    }
+    said.extend(
+        undo.moved_since
+            .iter()
+            .map(|name| format!("`{name}` moved since the rebase and stays where it is.")),
+    );
+    if !said.is_empty() {
+        plan.danger = Danger::Destructive(Text::from(said.join(" ")));
+    }
+    plan
+}
+
+/// `` `a` ``, `` `a` and `b` ``, `` `a`, `b` and `c` ``.
+fn and_list(names: &[String]) -> String {
+    let quoted: Vec<String> = names.iter().map(|name| format!("`{name}`")).collect();
+    match quoted.as_slice() {
+        [] => String::new(),
+        [one] => one.clone(),
+        [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
     }
 }
 

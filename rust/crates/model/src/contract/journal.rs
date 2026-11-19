@@ -72,6 +72,13 @@ pub enum UndoRecord {
         /// The commit that was split.
         commit: CommitId,
     },
+    /// A rewrite of the branch checked out that moved the other branches of a stack with it (`rebase.update-refs`):
+    /// Undo takes the branch rewritten back by the reflog, then puts the others back in one `git update-ref --stdin`
+    /// (`undo.moved-branches`).
+    Rewrite {
+        /// The branches it moved, with the commit each was on before, and, once it ran, the one it left each on.
+        moved: Vec<super::MovedBranch>,
+    },
 }
 
 impl UndoRecord {

@@ -66,6 +66,8 @@ pub enum Answer {
     GitVersion(Option<crate::rebase::GitVersion>),
     /// The branches of a stack over the commits a rebase makes again (`Query::StackedBranches`).
     Stacked(crate::rebase::StackedBranches),
+    /// The last rewrite of a reference, none when its reflog has none (`Query::LastRewrite`).
+    LastRewrite(Option<crate::range_diff::Rewrite>),
     /// The whole messages of commits, in the order asked.
     Messages(Vec<String>),
     /// Commits as one patch made by `git format-patch`, oldest first (`patch.read-format-patch`).

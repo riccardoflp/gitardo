@@ -49,6 +49,8 @@ pub enum Page {
     Search,
     /// The Ask Gitardo page (`help.page`).
     Help,
+    /// The page of what a rewrite changed, commit by commit (`range-diff.page`).
+    RangeDiff,
 }
 
 impl Page {
@@ -70,6 +72,7 @@ impl Page {
             Page::NewWorktrees => crate::text::worktree_setup::PAGE,
             Page::Search => crate::text::file_search::PAGE,
             Page::Help => crate::text::help::PAGE,
+            Page::RangeDiff => crate::text::range_diff::PAGE,
         }
     }
 }
@@ -113,6 +116,8 @@ pub enum PageState<'a> {
     Search(Box<crate::file_search::SearchPageState<'a>>),
     /// The Ask Gitardo page.
     Help(crate::help::HelpState<'a>),
+    /// The page of what a rewrite changed.
+    RangeDiff(crate::range_diff::RewriteState<'a>),
 }
 
 impl<'a> PageState<'a> {
@@ -135,6 +140,7 @@ impl<'a> PageState<'a> {
             PageState::NewWorktrees(..) => Page::NewWorktrees,
             PageState::Search(_) => Page::Search,
             PageState::Help(_) => Page::Help,
+            PageState::RangeDiff(_) => Page::RangeDiff,
         }
     }
 
@@ -155,6 +161,7 @@ impl<'a> PageState<'a> {
             PageState::CompareBeside(beside) => beside.diff.title,
             PageState::Merge(_, title) | PageState::NewWorktrees(_, title) => title,
             PageState::Review(review) => review.title,
+            PageState::RangeDiff(rewrite) => rewrite.title,
             PageState::File(file) => file.title,
             PageState::FilesBeside(beside) => beside.file.title,
             PageState::ChangesBeside(beside) => beside.title(),
@@ -260,6 +267,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::NewWorktrees(setup, _) => crate::worktree_setup::page(setup, ui),
         PageState::Search(search) => crate::file_search::page_view(search, ui),
         PageState::Help(help) => crate::help::page_view(help, ui),
+        PageState::RangeDiff(rewrite) => crate::range_diff::page(rewrite, ui),
     }));
     // `Alt+Left` is read after the page, which may use it in a field.
     if state.has_trail && trail::is_back_pressed(ui) {

@@ -1,0 +1,68 @@
+[
+    Pair {
+        kind: Same,
+        before: Some(
+            CommitId(
+                "7c00397dd1b2445e952af147d75d41feb9527f0b",
+            ),
+        ),
+        now: Some(
+            CommitId(
+                "3c6e730e2340a64c61ac6b88346c0629aab13c55",
+            ),
+        ),
+        subject: "Add the parser",
+        diff: [],
+    },
+    Pair {
+        kind: Changed,
+        before: Some(
+            CommitId(
+                "3f1327216e0f5c6352b80ac57d673f9edb88757c",
+            ),
+        ),
+        now: Some(
+            CommitId(
+                "16d24935d50317cec2c4e9fcd45380a602baa124",
+            ),
+        ),
+        subject: "Fix: the lexer ! 2:  is not a pair",
+        diff: [
+            "@@ Metadata",
+            " Author: Test Author <author@example.com>",
+            " ",
+            "  ## Commit message ##",
+            "-    Fix: the lexer ! 2:  is not a pair",
+            "+    Add the lexer",
+            " ",
+            "  ## lexer.rs (new) ##",
+            " @@",
+        ],
+    },
+    Pair {
+        kind: Same,
+        before: Some(
+            CommitId(
+                "ad33f6126b9456d7f75477de6664051621117301",
+            ),
+        ),
+        now: Some(
+            CommitId(
+                "1400eaa3f187f9b9b197a746fc1317d3ca6e7ecd",
+            ),
+        ),
+        subject: "Add the checker",
+        diff: [],
+    },
+    Pair {
+        kind: Dropped,
+        before: Some(
+            CommitId(
+                "26cfd52486001e23ccf277b3256820fc65c8c9f1",
+            ),
+        ),
+        now: None,
+        subject: "Add the printer",
+        diff: [],
+    },
+]

@@ -206,6 +206,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadNewWorktrees { folder, .. } => (folder, activity::LOOKING_AT_IGNORED),
         JobKind::ReadIgnored { folder, .. } => (folder, activity::CHECKING_IGNORED),
         JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),
+        JobKind::ReadRangeDiff { folder, .. } => (folder, activity::COMPARING_COMMITS),
     };
     (Text::from(activity::reading(&folder_name(folder))), Text::from(cause))
 }

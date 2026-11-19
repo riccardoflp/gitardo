@@ -134,6 +134,8 @@ export function engineRuns(
       return [{ feature: 'branch.delete', target: { kind: 'branch', name: action.name } }];
     case 'fastForward':
       return [{ feature: 'branch.fast-forward', target: { kind: 'branch', name: action.name } }];
+    case 'rangeDiff':
+      return [rangeDiffRun(action.target, action.name, action.withUpstream ?? false)];
     case 'deleteRemoteBranch':
       return [{ feature: 'remote.delete-branch', target: { kind: 'remoteBranch', name: action.name } }];
     case 'createTag':
@@ -352,4 +354,13 @@ function newestFirst(hashes: string[], rows: RepoState['rows'] | undefined): str
   const order = new Map((rows ?? []).map((row, index) => [row.hash, index]));
   if (!hashes.every((hash) => order.has(hash))) return hashes;
   return [...hashes].sort((one, other) => order.get(one)! - order.get(other)!);
+}
+
+/** What a rewrite changed (`range-diff.compare`): of a branch or of a remote branch, or of a branch against its upstream. */
+export function rangeDiffRun(target: 'branch' | 'remote', name: string, withUpstream: boolean): EngineRun {
+  return {
+    feature: 'range-diff.compare',
+    target: target === 'branch' ? { kind: 'branch', name } : { kind: 'remoteBranch', name },
+    answers: withUpstream ? { 'range-diff.with': { kind: 'choice', identifier: 'upstream' } } : {},
+  };
 }

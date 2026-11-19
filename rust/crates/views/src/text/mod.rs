@@ -25,6 +25,7 @@ pub mod pages;
 pub mod panel;
 pub mod patch;
 pub mod rail;
+pub mod range_diff;
 pub mod rebase;
 pub mod repo;
 pub mod review;

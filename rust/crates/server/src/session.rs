@@ -205,6 +205,7 @@ impl Session {
             protocol::mermaid::methods::FILE_VIEW_MERMAID => crate::mermaid::draw(&parameters(params)?),
             protocol::help::methods::ASK => crate::help::ask(self, id, &parameters(params)?, cancel),
             protocol::summaries::methods::WORKTREE_SUMMARY => summaries::follow(self, &parameters(params)?, cancel),
+            protocol::range_diff::methods::RANGE_DIFF_PAIRS => crate::range_diff::pairs(self, params, cancel),
             read if crate::reads::is_read(read) => crate::reads::answer(self, id, read, params, cancel),
             // Area 6 of stage 4: the reads that ask a language model of VS Code.
             read if crate::ai::is_ai_read(read) => crate::ai::answer(self, id, read, params, cancel),

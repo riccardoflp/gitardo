@@ -55,6 +55,7 @@ fn message_edit__an_older_commit_is_reworded_by_one_rebase_with_autostash() {
         .with(EDITED, Answer::Commits(vec![row(commit('b'), commit('a'))]))
         .with(LINE, Answer::Commits(line))
         .with(PUSHED, Answer::Names(Vec::new()));
+    let answers = crate::rebase::stack::no_stack(answers);
     let plan = plan(edit(&context, &answers));
     let lines = lines(&plan);
     assert_eq!(lines.len(), 3, "{lines:?}");
@@ -87,6 +88,7 @@ fn message_edit__the_files_of_the_rebase_are_deleted_once_it_ended_also_after_it
         .with(EDITED, Answer::Commits(vec![row(commit('b'), commit('a'))]))
         .with(LINE, Answer::Commits(vec![row(commit('c'), commit('b'))]))
         .with(PUSHED, Answer::Names(Vec::new()));
+    let answers = crate::rebase::stack::no_stack(answers);
     let plan = plan(edit(&context, &answers));
     let folder = std::path::PathBuf::from("repository/.git").join(crate::rebase::FILES_FOLDER);
     assert!(

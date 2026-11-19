@@ -13,6 +13,7 @@ use model::state::RepositoryState;
 use views::Intent;
 
 pub use super::effect::Effect;
+pub use super::job::{Job, JobId};
 pub use super::timeline_message::{Known, MorePages};
 use crate::settings::Settings;
 
@@ -211,6 +212,13 @@ pub enum Message {
         /// What was read.
         result: Box<crate::work::new_worktrees::SetupReadout>,
     },
+    /// A job that read the pairs of the page of what a rewrite changed is done (`range-diff.read-pairs`).
+    RangeDiffRead {
+        /// The job.
+        job: JobId,
+        /// The pairs, or what git said.
+        result: Result<model::range_diff::RangeDiff, String>,
+    },
     /// A job that read the blame of a File page is done (`blame.current-line`, `blame.file`).
     BlameRead {
         /// The job.
@@ -310,10 +318,6 @@ pub enum Found {
 
 /// How the timeline of a repository is read: the engine's, which turns it into git's arguments.
 pub use engine::timeline::TimelineRequest;
-
-/// The number of a job, unique in its window.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct JobId(pub u64);
 
 /// What a job does, on a worker.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -480,6 +484,13 @@ pub enum JobKind {
         /// What is read.
         request: crate::work::new_worktrees::SetupRequest,
     },
+    /// Reads the pairs of the page of what a rewrite changed (`range-diff.read-pairs`).
+    ReadRangeDiff {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// The two lines compared.
+        request: git::read::range_diff::RangeDiffRequest,
+    },
     /// Reads the blame of the line under the cursor of a File page, or of its file (`blame.current-line`,
     /// `blame.file`).
     ReadBlame {
@@ -488,13 +499,4 @@ pub enum JobKind {
         /// What is read.
         job: crate::work::blame::BlameJob,
     },
-}
-
-/// A job for a worker.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Job {
-    /// Its number, which its result carries back.
-    pub id: JobId,
-    /// What it does.
-    pub kind: JobKind,
 }

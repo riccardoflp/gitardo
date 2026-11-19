@@ -1,6 +1,7 @@
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
 import type { Hosting, HostingService } from './hosting';
+import type { RangeDiffPairs, RangeDiffTarget } from './rangeDiff';
 import type { RepositoryRow, ShownParts } from './repositories';
 import type { TagMarks } from './tagMarks';
 import type { Choice, ConflictRef, ConflictReview } from './resolution';
@@ -352,7 +353,14 @@ export type ViewKind =
   | 'compare'
   | 'worktreeSetup'
   | 'conflicts'
-  | 'repositories';
+  | 'repositories'
+  | 'rangeDiff';
+
+/** The pairs of the tab of what a rewrite changed: being read, read, or what git said. */
+export type RangeDiffRead =
+  | { kind: 'comparing' }
+  | { kind: 'read'; target: RangeDiffTarget; pairs: RangeDiffPairs }
+  | { kind: 'failed'; target: RangeDiffTarget; message: string };
 
 /** The views that show the graph, and so are sent its commits. */
 export const showsGraph = (kind: ViewKind) => kind === 'graph' || kind === 'sideGraph';
@@ -421,6 +429,11 @@ export type Action =
   | { kind: 'deleteBranch'; name: string }
   /** Moves a branch that is not checked out up to its upstream, which is fetched first. */
   | { kind: 'fastForward'; name: string }
+  /**
+   * What the last rewrite of a branch or the last force push of a remote branch changed, commit by commit, or with
+   * `withUpstream` a branch against its upstream (`range-diff.compare`).
+   */
+  | { kind: 'rangeDiff'; target: 'branch' | 'remote'; name: string; withUpstream?: boolean }
   | { kind: 'deleteRemoteBranch'; name: string }
   /** As the settings of git say when `mode` is left out; `ask` asks which way. */
   | { kind: 'merge'; ref: string; mode?: MergeMode | 'ask' }
@@ -611,7 +624,9 @@ export type HostMessage =
    * looked for and whenever a row says something else, with what the menus of the rows need of the repository shown.
    * Null, with `engineMissing`, when there is no engine to read them with (D49).
    */
-  | { type: 'repositories'; rows: RepositoryRow[] | null; shown?: ShownParts | null; engineMissing?: boolean };
+  | { type: 'repositories'; rows: RepositoryRow[] | null; shown?: ShownParts | null; engineMissing?: boolean }
+  /** What the tab of what a rewrite changed shows (`range-diff.page`): the pairs while they are read, once read, or why not. */
+  | { type: 'rangeDiff'; read: RangeDiffRead };
 
 /** Things the UI can ask for that need the extension to prompt, pick or open something. */
 export type UiCommand =
