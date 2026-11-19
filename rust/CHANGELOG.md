@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The Diff page of an image shows its two versions side by side in place of *This file looks binary.*, at one scale
+  so that a picture that grew looks larger, **Empty** on a side with none, and over them what changed: the sizes and
+  the weights, or *Only the bytes of the file changed; the pixels are the same.* An SVG opens on **Image**, its two
+  pictures, and **Text** shows the diff of its lines with everything that page has. **Stage file**, **Unstage file**
+  and **Discard changes** stay, and `F7` stops on an image once in a page of several files.
 - An image opens in the File page as its picture, in place of *This file is not text.*: centered, fit to the page,
   on a ground of squares that shows what is transparent, with its size in pixels, its format and its weight under it.
   `Ctrl` with the wheel, `Ctrl+=` and `Ctrl+-` zoom it in steps up to 800%, its pixels square, and `Ctrl+0` fits it

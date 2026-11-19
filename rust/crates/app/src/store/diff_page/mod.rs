@@ -6,6 +6,7 @@
 pub mod beside;
 mod edit;
 mod follow;
+mod images;
 mod lines;
 mod navigate;
 mod owner;
@@ -116,6 +117,8 @@ pub struct DiffPage {
     /// Whether it is shown beside the list of the Changes page, in place of being a page of its own
     /// (`changes.beside-file`).
     pub is_in_changes: bool,
+    /// Whether its SVG files show their pictures or the diff of their lines (`diff.image`).
+    pub images: images::PageImages,
 }
 
 /// Opens the Diff page of a target in the repository shown, or shows the one it has: there is never a second page for
@@ -125,6 +128,14 @@ pub fn open(state: &mut State, target: DiffTarget) -> Vec<Effect> {
 }
 
 /// Opens a Diff page as [`open`] does, as a page of its own or beside what opened it; gives the page beside a
+/// Shows the page there is for a diff, once it is open: there is never a second page for the same diff.
+fn show_if_open(state: &mut State, id: DiffPageId, is_open: bool) -> Vec<Effect> {
+    if is_open {
+        super::pages::show_page(state, Page::Diff(id));
+    }
+    Vec::new()
+}
+
 /// comparison its number.
 pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
@@ -137,24 +148,22 @@ pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Eff
         .iter()
         .find(|page| page.target == target && page.owner() == Owner::Alone && same_folder(&page.folder, &folder))
         .filter(|_| owner == Owner::Alone);
-    if let Some(page) = found {
-        if page.is_open {
-            super::pages::show_page(state, Page::Diff(page.id));
-        }
-        return Vec::new();
+    if let Some((found, is_open)) = found.map(|page| (page.id, page.is_open)) {
+        return show_if_open(state, found, is_open);
     }
     let (beside, comparison) = owner.fields();
     let is_in_changes = owner == Owner::Changes;
     let id = DiffPageId(state.diff_pages.next);
     state.diff_pages.next += 1;
     let count = target.files.len();
+    let is_open = count != 1;
     let page = DiffPage {
         id,
         folder,
         top,
         title: target.page_title(),
         target,
-        is_open: count != 1,
+        is_open,
         diffs: vec![FileDiff::Loading; count],
         jobs: vec![None; count],
         generation,
@@ -174,9 +183,9 @@ pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Eff
         beside,
         comparison,
         is_in_changes,
+        images: images::PageImages::default(),
     };
     state.diff_pages.pages.push(page);
-    let is_open = count != 1;
     let effects: Vec<Effect> = (0..count)
         .filter_map(|file| read_file(state, id, file, is_open))
         .collect();
@@ -307,6 +316,15 @@ pub fn diff_read(state: &mut State, job: JobId, result: DiffRead) -> Vec<Effect>
             lines::rebuild(page);
             show_opened(state, id);
         }
+        DiffRead::Image(images) => {
+            page.is_open = true;
+            let shown = images::file_diff(page, file, images);
+            if let Some(diff) = page.diffs.get_mut(file) {
+                *diff = shown;
+            }
+            lines::rebuild(page);
+            show_opened(state, id);
+        }
         DiffRead::Large => state.diff_pages.asking = Some(id),
         DiffRead::Binary => refuse(state, id, Some(Notice::DiffLooksBinary)),
         DiffRead::TooComplex => refuse(state, id, Some(Notice::DiffTooComplex)),
@@ -419,6 +437,7 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
     let page = state.diff_pages.pages.iter().find(|page| page.id == id)?;
     let single_text = match page.diffs.as_slice() {
         [FileDiff::Text(text)] => Some(text.sides),
+        [FileDiff::Image(images)] => Some((images.left.is_some(), images.right.is_some())),
         _ => None,
     };
     let (left, right) = single_text.unwrap_or((true, true));
@@ -446,6 +465,7 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
         caret: edit::caret_state(state, page),
         edited_at: page.edited_at,
         is_stale: page.is_stale,
+        svg_text: images::svg_text(page),
     })
 }
 

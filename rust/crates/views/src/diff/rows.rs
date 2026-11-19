@@ -9,7 +9,7 @@ use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{CodeKind, CodeSpan, Color, Label, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
 
 use super::columns::Columns;
-use super::{DiffIntent, DiffPageIntent, DiffPageState, DiffText, FileDiff, PageLine};
+use super::{DiffIntent, DiffPageIntent, DiffPageState, DiffText, FileDiff, ImageBlock, PageLine, image_view};
 use crate::intent::Intent;
 use crate::text::diff as words;
 
@@ -61,6 +61,25 @@ pub(crate) fn row(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (row, columns): (&
             Vec::new()
         }
         PageLine::Folded(file, rows) => folded(ui, state, (*file, rows, row.rect)),
+        PageLine::Image(file, part, count) => {
+            if let Some(FileDiff::Image(images)) = state.diffs.get(*file) {
+                let height = row.rect.height;
+                let to_float = crate::number::float_of_count;
+                let block = ImageBlock {
+                    images,
+                    rect: Rect::new(
+                        row.rect.x,
+                        row.rect.y - height * to_float(*part),
+                        row.rect.width,
+                        height * to_float(*count),
+                    ),
+                    left: columns.left,
+                    right: columns.right,
+                };
+                return ui.clip(row.rect, |ui| image_view(&block, ui));
+            }
+            Vec::new()
+        }
         PageLine::Row(file, index) => {
             if let Some(FileDiff::Text(text)) = state.diffs.get(*file)
                 && let Some(aligned) = text.aligned.rows.get(*index)
@@ -101,7 +120,7 @@ fn note(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (file, rect): (usize, Rect))
         Some(FileDiff::Binary) => words::LOOKS_BINARY,
         Some(FileDiff::TooComplex) => words::TOO_MANY_DIFFERENCES,
         Some(FileDiff::Failed) => words::COULD_NOT_READ,
-        Some(FileDiff::Text(_)) => words::NO_CHANGE,
+        Some(FileDiff::Text(_) | FileDiff::Image(_)) => words::NO_CHANGE,
     };
     let cell = inset(rect, Insets::symmetric(ui.theme().sizes.spacing.large, 0.0));
     let _ = ui.label(cell, &Label::new(said).tone(Tone::Muted));

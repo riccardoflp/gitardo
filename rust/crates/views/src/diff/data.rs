@@ -151,6 +151,8 @@ pub enum FileDiff {
     Failed,
     /// Its two sides in rows.
     Text(Box<DiffText>),
+    /// The two versions of an image, side by side (`diff.image`).
+    Image(Box<super::DiffImages>),
 }
 
 /// The two sides of a file and their lines in rows.
@@ -219,6 +221,9 @@ pub enum PageLine {
     Folded(usize, Range<usize>),
     /// What a file with no rows says: being read, binary, too complex, or no change.
     Note(usize),
+    /// A row of the pictures of an image file (`diff.image`): the file, which row of its pictures it is, and how many
+    /// rows they take.
+    Image(usize, usize, usize),
 }
 
 /// Where a change is: its file, its place among the changes of the file, and the row of the page it starts at.

@@ -6,7 +6,7 @@ mod beside;
 mod edit;
 mod find;
 mod go_to_line;
-mod image;
+pub(crate) mod image;
 mod markdown;
 mod question;
 

@@ -6,6 +6,10 @@ use views::diff::{ChangePlace, FileDiff, PageLine};
 
 use super::DiffPage;
 
+/// The height of a row the pictures of an image are counted in: about that of a line of code, which the view draws
+/// them in, fitting them to the rows it is given.
+const IMAGE_ROW_HEIGHT: f32 = 20.0;
+
 /// Makes the rows of a page and the places of its changes again, after a file was read or a fold changed; the current
 /// change is kept while there are as many.
 pub(super) fn rebuild(page: &mut DiffPage) {
@@ -13,6 +17,20 @@ pub(super) fn rebuild(page: &mut DiffPage) {
     page.changes.clear();
     for (file, diff) in page.diffs.iter().enumerate() {
         page.lines.push(PageLine::Header(file));
+        if let FileDiff::Image(images) = diff {
+            // An image is one change, which `F7` stops on once.
+            if !images.is_same_bytes {
+                page.changes.push(ChangePlace {
+                    file,
+                    change: 0,
+                    line: page.lines.len(),
+                });
+            }
+            let rows = images.rows(IMAGE_ROW_HEIGHT);
+            page.lines
+                .extend((0..rows).map(|part| PageLine::Image(file, part, rows)));
+            continue;
+        }
         let FileDiff::Text(text) = diff else {
             page.lines.push(PageLine::Note(file));
             continue;

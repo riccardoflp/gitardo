@@ -811,7 +811,9 @@ Rules:
   page of several files they stop on it once.
 - The page is drawn again when either side changes, as `diff.page` is: a picture of the working tree saved by another
   program shows its new pixels.
-- In a page of several files an image takes its place among them, its height that of its pictures.
+- In a page of several files an image takes its place among them, its height that of its pictures, between 8 and 26
+  rows of the page, the pictures fit to the rows. A file whose two sides have the same bytes, as against the index
+  once it is staged, says *No changes.* over them and is no change for `F7`.
 - Extension: a diff of an image opened from Gitardo (the Gitardo Changes view, the graph, the page of a commit, a
   comparison) opens VS Code's diff editor, which draws the two pictures with its preview of images; the side of a
   revision, of the index or of a conflict is read as bytes from the engine. With the Flow Diff on, an image opens
@@ -819,16 +821,16 @@ Rules:
 
 Acceptance:
 
-- [ ] A PNG changed in the working tree opens the Diff page with `HEAD` on the left and the working tree on the right,
+- [x] A PNG changed in the working tree opens the Diff page with `HEAD` on the left and the working tree on the right,
       both drawn, and the line over them says their sizes.
-- [ ] A PNG of 100 × 100 that became 200 × 200 is drawn half as wide on the left as on the right.
-- [ ] An added PNG shows **Empty** on the left and the picture on the right.
-- [ ] A PNG saved again with the same pixels says *Only the bytes of the file changed; the pixels are the same.*
-- [ ] An SVG opens on **Image** with its two pictures; **Text** shows the diff of its lines, and the right side of the
+- [x] A PNG of 100 × 100 that became 200 × 200 is drawn half as wide on the left as on the right.
+- [x] An added PNG shows **Empty** on the left and the picture on the right.
+- [x] A PNG saved again with the same pixels says *Only the bytes of the file changed; the pixels are the same.*
+- [x] An SVG opens on **Image** with its two pictures; **Text** shows the diff of its lines, and the right side of the
       working tree can be edited there.
-- [ ] **Stage file** on an image of the working tree stages it, and the page against the index has no change left.
-- [ ] A file with a NUL byte that is not an image still refuses with *This file looks binary.*
-- [ ] In a page of a text file and an image, `F7` goes from the last change of the text to the image, and on to the
+- [x] **Stage file** on an image of the working tree stages it, and the page against the index has no change left.
+- [x] A file with a NUL byte that is not an image still refuses with *This file looks binary.*
+- [x] In a page of a text file and an image, `F7` goes from the last change of the text to the image, and on to the
       next file.
 - [ ] Extension: opening a changed PNG from the Gitardo Changes view shows VS Code's diff editor with the two pictures,
       not their bytes as text.

@@ -642,7 +642,7 @@ earns it.
 | [`diff.stage-file`](17-diff-and-merge-views.md#diffstage-file--stage-file) | Stage file | Operation | Built | Built |
 | [`diff.unstage-file`](17-diff-and-merge-views.md#diffunstage-file--unstage-file) | Unstage file | Operation | Built | Built |
 | [`diff.discard-file`](17-diff-and-merge-views.md#diffdiscard-file--discard-changes) | Discard changes | Operation | Built | Differs (A4) |
-| [`diff.image`](17-diff-and-merge-views.md#diffimage--two-versions-of-an-image-side-by-side) | Two versions of an image side by side | View | Specified | Planned |
+| [`diff.image`](17-diff-and-merge-views.md#diffimage--two-versions-of-an-image-side-by-side) | Two versions of an image side by side | View | Built | Planned |
 | [`merge-view.page`](17-diff-and-merge-views.md#merge-viewpage--the-merge-page) | The Merge page | View | Built | Built |
 | [`merge-view.read-sides`](17-diff-and-merge-views.md#merge-viewread-sides--the-versions-of-a-file-in-conflict) | The versions of a file in conflict | Read | Built | Built |
 | [`merge-view.three-way`](17-diff-and-merge-views.md#merge-viewthree-way--the-regions-of-a-file-in-conflict) | The regions of a file in conflict | Derivation | Built | Built |

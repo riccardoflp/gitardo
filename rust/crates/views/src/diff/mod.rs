@@ -12,6 +12,7 @@ mod columns;
 mod data;
 mod edit;
 mod gutter;
+mod image;
 mod question;
 mod rows;
 mod targets;
@@ -33,6 +34,7 @@ pub use data::{
 pub use edit::{DrawnSides, RECOMPUTE_AFTER, edit_view, open_at_line_view};
 #[cfg(test)]
 pub(crate) use gutter::revert_change_icon;
+pub use image::{DiffImages, IMAGE_ROWS, ImageBlock, image_view, what_changed};
 pub use question::{LargeDiffQuestion, large_diff_question_view};
 pub use targets::{
     changes_file, changes_files, commit_file, commit_files, commit_sides, file_sides, listed_file, untracked_file,
@@ -80,6 +82,9 @@ pub struct DiffPageState<'a> {
     pub edited_at: Option<Duration>,
     /// Whether the rows were moved by an edit and the diff not computed again since: the buttons of the gutter wait.
     pub is_stale: bool,
+    /// Whether a file of the page is an SVG, and whether it shows the diff of its lines, **Text**, rather than its
+    /// pictures, **Image** (`diff.image`).
+    pub svg_text: Option<bool>,
 }
 
 /// Something asked of the Diff pages.
@@ -143,6 +148,8 @@ pub enum DiffPageIntent {
     Unfold(usize, usize),
     /// The gutter dragged: the width of the left side in whole logical pixels, or none after a double click.
     Resize(Option<u32>),
+    /// **Text** of an SVG, the diff of its lines, or **Image**, its pictures (`diff.image`).
+    ShowSvgText(bool),
 }
 
 /// The Diff page, over the rectangle its caller clipped it to: its bar, the names of its columns, and its rows.
