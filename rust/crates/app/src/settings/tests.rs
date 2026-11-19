@@ -173,3 +173,49 @@ fn settings_read__the_settings_page_says_which_key_and_why_and_shows_the_default
     assert_eq!(first_parent.source, views::settings::SettingSource::User);
     assert_eq!(first_parent.problem, None);
 }
+
+#[test]
+fn settings_read__hosting_self_hosted_names_a_service_of_ones_own_and_a_kind_it_does_not_take_is_said() {
+    let user = r#"{ "hosting.selfHosted": {
+        "git.example.com": "gitlab",
+        "SSH.Example.com": { "kind": "gitea", "web": "https://code.example.com" },
+    } }"#;
+    let known = parse(Some(user), None).features.hosting;
+    let kinds: Vec<(&str, model::hosting::HostingService, Option<&str>)> = known
+        .by_host
+        .iter()
+        .map(|(host, own)| (host.as_str(), own.service, own.web.as_deref()))
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            ("git.example.com", model::hosting::HostingService::GitLab, None),
+            (
+                "ssh.example.com",
+                model::hosting::HostingService::Gitea,
+                Some("https://code.example.com")
+            ),
+        ]
+    );
+    let settings = parse(
+        Some(r#"{ "hosting.selfHosted": { "git.example.com": "github" } }"#),
+        None,
+    );
+    assert!(settings.features.hosting.by_host.is_empty());
+    let problem = settings
+        .problems
+        .iter()
+        .find(|problem| problem.key == "hosting.selfHosted");
+    assert!(matches!(
+        problem.map(|found| &found.reason),
+        Some(ProblemReason::NotAChoice { .. })
+    ));
+    let settings = parse(
+        None,
+        Some(r#"{ "hosting.selfHosted": { "git.example.com": "gitlab" } }"#),
+    );
+    assert!(
+        settings.features.hosting.by_host.is_empty(),
+        "only the user's file sets it"
+    );
+}

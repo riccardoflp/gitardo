@@ -22,6 +22,9 @@ Acceptance:
 - [ ] A setting the repository's file sets comes before the user's, for the settings marked **Repository**.
 - [ ] A value of the wrong type is ignored, the default is used, and the settings page says which key and why.
 - [ ] A change to either file is applied without restarting, within a second.
+- [ ] `hosting.selfHosted` naming `git.example.com` as `gitlab`, and `ssh.example.com` as `gitea` with its pages at
+      `https://code.example.com`, gives both, by their host names in lower case; a kind it does not take, or the
+      setting in the repository's file, is not taken, and the settings page says why.
 
 ### `settings.edit` — Open the settings page
 
@@ -207,6 +210,7 @@ Acceptance:
 | `cherryPick.recordOrigin` | Say where cherry-picks come from | Pull and commits | `false` | User, Repository | Cherry-picks end their message with `(cherry picked from commit …)`, as `-x` does. | `cherry-pick.commit` |
 | `submodules.updateOnCheckout` | Update submodules on checkout | Pull and commits | `true` | User, Repository | After a checkout, update the submodules to the commits it records. | `submodule.update-on-checkout` |
 | `changes.openOnClick` | Click on a changed file | Pull and commits | `"diff"` | User | What a click on a file of the changes opens: `diff` or `file`. `gitardo.changes.openOnClick` in the extension, where it is `file` by default (Q763). | `changes.open` |
+| `hosting.selfHosted` | Hosting services of your own | Pull and commits | `{}` | User | **New.** The GitLab, Gitea or Forgejo of one's own, by the host name of its remotes: `"gitlab"`, `"gitea"` or `"forgejo"`, or `{ "kind": "gitlab", "web": "https://git.example.com" }` when its pages are on another name (Q1155). `gitardo.hosting.selfHosted` in the extension. | `hosting.detect-remote` |
 | `worktrees.openIn` | Open worktrees in | Worktrees | `"window"` | User | Where a worktree opens: `window` (a new window of Gitardo Desktop), `editor` (the external editor) or `terminal`. **New** values: the extension had `window` and `agents`. | `worktree.open` |
 | `worktrees.folder` | Folder of new worktrees | Worktrees | `"${repo}.worktrees"` | User, Repository | Where new worktrees go. | `worktree.create` |
 | `worktrees.linkFolders` | Folders to link | Worktrees | `[]` | User, Repository | Ignored folders to link into new worktrees, in `.gitignore` syntax. | `worktree-setup.link-and-copy-steps` |

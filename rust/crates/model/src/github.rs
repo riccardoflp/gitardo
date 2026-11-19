@@ -2,7 +2,7 @@
 //! pull requests, the link that opens the pull request of a branch (`github.open-pull-request`), and the offer to
 //! create one after the first push of a branch (`github.offer-after-push`).
 
-mod link;
+pub(crate) mod link;
 mod offer;
 mod pulls;
 

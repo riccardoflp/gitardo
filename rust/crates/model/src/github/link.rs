@@ -131,7 +131,7 @@ pub fn comparison_url(repository: &GitHubRepo, compared: &ComparedOnGitHub<'_>) 
 }
 
 /// A part of an address with every byte but letters, digits, `-`, `.`, `_` and `~` written `%XX`.
-fn percent_encoded(part: &str) -> String {
+pub(crate) fn percent_encoded(part: &str) -> String {
     let mut encoded = String::with_capacity(part.len());
     for byte in part.bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {

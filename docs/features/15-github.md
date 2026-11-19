@@ -265,11 +265,14 @@ Rules:
     (`https://<org>.visualstudio.com/[DefaultCollection/]<project>/_git/<repo>`): Azure DevOps, the organization,
     the project and the repository, on the web at `https://dev.azure.com/<org>/<project>/_git/<repo>`;
   - `codeberg.org`: Forgejo, `<owner>/<repo>`;
-  - a host name of `hosting.selfHosted`, with the service it is given there, `gitlab` or `gitea` (Gitea and Forgejo
-    alike), and the address of its web pages when it is given, `https://<host>` otherwise (Q1155);
+  - a host name of `hosting.selfHosted`, with the service it is given there, `gitlab`, `gitea` or `forgejo` (whose
+    pages are Gitea's; `forgejo` only names it so in the menus), and the address of its web pages when it is given,
+    otherwise `https://<host>`, with the port of an `https` URL, and `http` for a remote reached by `http` (Q1155);
+    the path of a GitLab has two parts or more, that of a Gitea or a Forgejo two;
   - any other host name: nothing, and none of the entries of this area is offered.
 - The result is the service, the address of the project on the web (`https://gitlab.com/group/sub/app`), its path there,
-  the name of the remote and the URL it is fetched from.
+  the host name of its pages, which its API is asked at and its token kept for, the name of the remote and the URL it
+  is fetched from. The branch `refs/remotes/<remote>/HEAD` names is read beside it, for `hosting.web-links`.
 - When the result changes, the pull requests known are forgotten, as for `github.detect-remote`.
 
 Acceptance:

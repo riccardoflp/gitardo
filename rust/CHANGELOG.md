@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- The setting `hosting.selfHosted`, under **Pull and commits** on the settings page, names the GitLab, Gitea or
+  Forgejo of one's own by the host name of its remotes, with the address of its pages when they are on another name.
+  Gitardo now knows which hosting service the main remote is on, GitHub, GitLab, Bitbucket, Azure DevOps, Gitea or
+  Forgejo (codeberg.org), and the addresses of a pull request, of the page that creates one and of a comparison on
+  each.
+
 ## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of

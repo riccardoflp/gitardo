@@ -590,8 +590,8 @@ earns it.
 | [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Built | Built |
 | [`github.open-pull-request`](15-github.md#githubopen-pull-request--open-or-create-the-pull-request-of-a-branch) | Open or create the pull request of a branch | Derivation | Built | Built |
 | [`github.offer-after-push`](15-github.md#githuboffer-after-push--offer-to-create-a-pull-request-after-the-first-push) | Offer to create a pull request after the first push | Derivation | Built | Built |
-| [`hosting.detect-remote`](15-github.md#hostingdetect-remote--the-hosting-service-of-the-main-remote) | The hosting service of the main remote | Derivation | Specified | Planned |
-| [`hosting.web-links`](15-github.md#hostingweb-links--the-pages-of-a-hosting-service) | The pages of a hosting service | Derivation | Specified | Planned |
+| [`hosting.detect-remote`](15-github.md#hostingdetect-remote--the-hosting-service-of-the-main-remote) | The hosting service of the main remote | Derivation | Built | Planned |
+| [`hosting.web-links`](15-github.md#hostingweb-links--the-pages-of-a-hosting-service) | The pages of a hosting service | Derivation | Built | Planned |
 | [`hosting.open-pull-request`](15-github.md#hostingopen-pull-request--open-or-create-the-pull-request-of-a-branch-on-another-hosting-service) | Open or create the pull request of a branch, on another hosting service | Derivation | Specified | Planned |
 | [`hosting.offer-after-push`](15-github.md#hostingoffer-after-push--offer-to-create-a-pull-request-after-the-first-push-on-another-hosting-service) | Offer to create a pull request after the first push, on another hosting service | Derivation | Specified | Planned |
 | [`hosting.token`](15-github.md#hostingtoken--read-the-token-of-a-gitlab) | Read the token of a GitLab | Read | Specified | Planned |

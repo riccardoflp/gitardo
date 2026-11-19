@@ -5,6 +5,7 @@ use json::Value;
 use model::ai::{AiProvider, AiSettings, Effort};
 use model::contract::{BlameSettings, CommandPreview, FeatureSettings, OpenIn, WorktreeOpenIn, WorktreeSettings};
 use model::graph::PageSize;
+use model::hosting::{KnownHosts, SELF_HOSTED_KINDS, SelfHosted, self_hosted_kind};
 use model::refs::SortOrder;
 
 use crate::keys::{self, Scope};
@@ -30,8 +31,8 @@ pub fn sort_order(lookup: &mut Lookup) -> Option<SortOrder> {
 
 /// The settings the operations read: `commandPreview`, `branches.format`, `branches.inputs`, `branches.openIn`,
 /// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash`, `cherryPick.recordOrigin`,
-/// `conflicts.autoResolve`, `conflicts.ai`, `editor.external`, `blame.enabled`, `blame.ignoreWhitespaceAndMoves` and
-/// `fileBlame.everyFile`.
+/// `conflicts.autoResolve`, `conflicts.ai`, `editor.external`, `blame.enabled`, `blame.ignoreWhitespaceAndMoves`,
+/// `fileBlame.everyFile` and `hosting.selfHosted`.
 pub fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
     let defaults = FeatureSettings::default();
     let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
@@ -82,6 +83,9 @@ pub fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         trust: defaults.trust,
         blame: blame_settings(lookup, &defaults.blame),
         worktrees: worktree_settings(lookup),
+        hosting: lookup
+            .first((keys::SELF_HOSTED, Scope::User), known_hosts)
+            .unwrap_or_default(),
         // The values given last for the inputs and the offset of the local time are the window's, set when an
         // operation starts.
         ..defaults
@@ -161,4 +165,30 @@ fn identity_profiles(value: &Value) -> Result<Vec<model::contract::IdentityProfi
             })
         })
         .collect())
+}
+
+/// `hosting.selfHosted`: an object from a host name to `gitlab`, `gitea` or `forgejo`, or to an object with that
+/// `kind` and the address of its pages in `web`. A value that is neither makes the whole setting a problem, so that
+/// it is said on the settings page (Q1155).
+fn known_hosts(value: &Value) -> Result<KnownHosts, ProblemReason> {
+    let members = value
+        .as_object()
+        .ok_or(ProblemReason::WrongType { expected: "an object" })?;
+    let mut known = KnownHosts::default();
+    for member in members {
+        let (kind, web) = match &member.value {
+            Value::Object(_) => (
+                member.value.get("kind").and_then(Value::as_str),
+                member.value.get("web").and_then(Value::as_str).map(str::to_owned),
+            ),
+            other => (other.as_str(), None),
+        };
+        let service = kind.and_then(self_hosted_kind).ok_or(ProblemReason::NotAChoice {
+            choices: &SELF_HOSTED_KINDS,
+        })?;
+        let _before = known
+            .by_host
+            .insert(member.name.to_ascii_lowercase(), SelfHosted { service, web });
+    }
+    Ok(known)
 }

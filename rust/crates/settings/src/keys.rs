@@ -124,6 +124,8 @@ pub const TERMINAL_SCROLLBACK: &str = "terminal.scrollbackLines";
 pub const WORKTREES_FOLDER: &str = "worktrees.folder";
 /// `worktrees.openIn`.
 pub const WORKTREES_OPEN_IN: &str = "worktrees.openIn";
+/// `hosting.selfHosted`.
+pub const SELF_HOSTED: &str = "hosting.selfHosted";
 /// The values of `worktrees.openIn`: where a worktree opens.
 pub const WORKTREES_OPEN_INS: [&str; 3] = ["window", "editor", "terminal"];
 

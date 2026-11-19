@@ -73,7 +73,9 @@ pub(super) fn value_control(ui: &mut Ui<'_>, row: &SettingRow, rect: Rect) -> Op
         SettingKind::Text { placeholder } => {
             field(ui, key, (rect, &row.text, placeholder), (&anything, false)).map(SettingValue::Text)
         }
-        SettingKind::Json => field(ui, key, (rect, &row.value, "[]"), (&anything, false)).map(SettingValue::Json),
+        SettingKind::Json => {
+            field(ui, key, (rect, &row.value, row.info.default), (&anything, false)).map(SettingValue::Json)
+        }
         SettingKind::Color => color_field(ui, row, rect),
         SettingKind::Font => font_menu(ui, row, rect),
         _ => None,

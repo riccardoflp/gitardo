@@ -140,6 +140,9 @@ pub struct FeatureSettings {
     /// models, which need no AI provider and no key, and VS Code's settings, written with `FollowUp::WriteSetting` in
     /// place of a step that writes the user's settings file (`ai.choose-model`). Never in Gitardo Desktop.
     pub uses_host_models: bool,
+    /// `hosting.selfHosted`: the services of one's own, GitLab, Gitea and Forgejo,, by their host names
+    /// (`hosting.detect-remote`).
+    pub hosting: crate::hosting::KnownHosts,
 }
 
 /// The settings of the blame the features switch.
@@ -235,6 +238,7 @@ impl Default for FeatureSettings {
             blame: BlameSettings::default(),
             worktrees: WorktreeSettings::default(),
             uses_host_models: false,
+            hosting: crate::hosting::KnownHosts::default(),
         }
     }
 }
