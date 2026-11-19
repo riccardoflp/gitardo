@@ -38,7 +38,7 @@ pub(crate) const ACCEPT_SIMPLE: Icon = Icon::CheckAll;
 /// Add: stage a file or a change, take a side into the result, a new terminal, a submodule, a tab.
 pub(crate) const ADD: Icon = Icon::Plus;
 
-/// Unstage.
+/// Unstage; take a file out of the index, leaving it on disk.
 pub(crate) const UNSTAGE: Icon = Icon::Minus;
 
 /// Back to how it was: discard the changes of a file, revert a change, Undo.
@@ -59,7 +59,7 @@ pub(crate) const FILTER: Icon = Icon::Filter;
 /// Show, show beside.
 pub(crate) const SHOW: Icon = Icon::Eye;
 
-/// Hide.
+/// Hide: from what is shown, or from git, by ignoring a file.
 pub(crate) const HIDE: Icon = Icon::EyeOff;
 
 /// Branch.

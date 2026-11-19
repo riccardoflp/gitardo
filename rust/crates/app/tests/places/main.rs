@@ -56,6 +56,7 @@ mod group_tabs;
 mod header_menus;
 mod histories;
 mod history;
+mod ignore;
 mod inspector;
 mod inspector_files;
 mod islands;

@@ -1269,7 +1269,11 @@ fourth brings the milestone to the extension.
    the Worktrees section, the group **Hidden from git** at the end of the **Gitardo Changes** view, and the lock on the
    rows of the worktrees, all run by the engine. Cards: the cards of the first three phases, in the extension.
 
-Nothing is built yet.
+Built so far: the first phase. **Ignore…** in the menu of a file of the changes and of a file or a folder of the
+Files page offers the patterns of `changes.ignore-patterns` and the places each can be written in, asks git with
+`git check-ignore` whether the path is ignored already, and writes the line as one `write` step; on a tracked path it
+offers to stop tracking it, which **Stop tracking, keep on disk…** does alone too, with **Stop tracking anyway** when
+git refuses. The message after has no **Open `<file>`** yet (Q1450).
 
 Exit: in a repository with `debug.log` untracked, **Ignore…** with **All `.log` files** writes `*.log` at the end of
 the `.gitignore`, `debug.log` leaves the changes and the `.gitignore` comes in; **Ignore…** on the tracked

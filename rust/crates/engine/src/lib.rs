@@ -16,6 +16,7 @@ pub mod github;
 mod held;
 mod history;
 mod host;
+mod ignoring;
 pub mod log;
 mod new_repository;
 mod preview;

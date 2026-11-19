@@ -5462,6 +5462,10 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1185** — `changes.ignore`, `changes.stop-tracking`, `changes.skip`: in the extension the entries are planned in the
   **Gitardo Changes** view and in the context menu of VS Code's Explorer. Should they be in the Explorer, where VS Code
   and other extensions have many entries already, or in Gitardo's views alone?
+- **Q1450** — `changes.ignore`: the message after it says which pattern ignores the path, in which file, without
+  **Open `<file>`**: the messages after an operation have no button that opens a file at a line, only the operations
+  offered after it (`FollowUp::OfferRun`). Should a follow-up that says something with a button that opens a file be
+  added, for this and for the other operations that write a file?
 
 ### Of large files and remembered resolutions, from Q1190
 

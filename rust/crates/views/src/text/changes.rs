@@ -62,6 +62,10 @@ pub const OPEN_CHANGES: &str = "Open changes";
 pub const SAVE: &str = "Save";
 /// **Stash this file…**.
 pub const STASH_FILE: &str = "Stash this file\u{2026}";
+/// **Ignore…**, which has git ignore the file by a pattern (`changes.ignore`).
+pub const IGNORE: &str = "Ignore\u{2026}";
+/// **Stop tracking, keep on disk…** (`changes.stop-tracking`).
+pub const STOP_TRACKING: &str = "Stop tracking, keep on disk\u{2026}";
 /// **Discard changes**.
 pub const DISCARD: &str = "Discard changes";
 /// **Compare with the saved file**.

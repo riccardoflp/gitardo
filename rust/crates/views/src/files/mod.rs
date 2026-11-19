@@ -8,14 +8,16 @@ mod marks;
 
 use std::collections::BTreeSet;
 
-use model::changes::{FolderMark, MarkedFile, TreeMarks};
+use model::changes::{FolderMark, MarkedFile, TreeMark, TreeMarks};
 use model::contract::FeatureId;
 use model::details::TreeNode;
+use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, FileIconStyle, FileOrFolder, Label, List, MenuEntry, Rect, SelectionMode, Sense, Tone, Ui};
 
 use crate::icons;
 use crate::intent::Intent;
+use crate::text::changes as changes_words;
 use crate::text::files as words;
 
 /// What the Files page shows.
@@ -103,6 +105,10 @@ enum MenuChoice {
     Compare,
     /// **Search here** (`file-search.open`).
     SearchHere,
+    /// **Ignore…** (`changes.ignore`).
+    Ignore,
+    /// **Stop tracking, keep on disk…** (`changes.stop-tracking`).
+    StopTracking,
 }
 
 /// The Files page over the rectangle its caller clipped it to: the tree of the files of the working tree under the row
@@ -259,7 +265,8 @@ fn row_icons(ui: &mut Ui<'_>, parts: &mut Area, row: &FilesRow<'_>) {
 
 /// The context menu of a row: **Open file**, **Show file history**, **Compare with…** and **Search here** for a file;
 /// **Show folder history**, **Compare with…** and **Search here** for a folder; **Compare with…** and **Search here**
-/// for the top folder, whose history is all of it.
+/// for the top folder, whose history is all of it. A file or a folder then has **Ignore…** and **Stop tracking, keep
+/// on disk…**, the second not on a file git does not track, and neither on a file deleted or in conflict.
 fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_>, &str)) -> Option<Intent> {
     let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
     let compare = item(icons::COMPARE, words::COMPARE_WITH, MenuChoice::Compare);
@@ -268,7 +275,7 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
         crate::text::file_search::SEARCH_HERE,
         MenuChoice::SearchHere,
     );
-    let entries: Vec<MenuEntry<'_, MenuChoice>> = match row {
+    let mut entries: Vec<MenuEntry<'_, MenuChoice>> = match row {
         FilesRow::File { .. } => vec![
             item(icons::OPEN_FILE, words::OPEN_FILE, MenuChoice::Open),
             item(icons::HISTORY, words::SHOW_FILE_HISTORY, MenuChoice::FileHistory),
@@ -284,12 +291,15 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
         ],
         FilesRow::Top => vec![compare, search_here],
     };
+    entries.extend(ignore_entries(row));
     let run = |feature: &'static str| files_intent(FilesPageIntent::Run(FeatureId(feature), path.to_owned()));
     match ui.context_menu(("files row menu", path), response, &entries)? {
         MenuChoice::Open => Some(files_intent(FilesPageIntent::OpenFile(path.to_owned()))),
         MenuChoice::FileHistory => Some(run("file-history.file")),
         MenuChoice::FolderHistory => Some(run("file-history.folder")),
         MenuChoice::Compare => Some(run("compare.path-with")),
+        MenuChoice::Ignore => Some(run("changes.ignore")),
+        MenuChoice::StopTracking => Some(run("changes.stop-tracking")),
         MenuChoice::SearchHere => {
             let place = |is_file| model::file_search::Place {
                 path: path.to_owned(),
@@ -302,6 +312,28 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
             };
             Some(Intent::FileSearch(crate::file_search::FileSearchIntent::Here(place)))
         }
+    }
+}
+
+/// **Ignore…** and **Stop tracking, keep on disk…** under a line, for the rows that have them.
+fn ignore_entries(row: &FilesRow<'_>) -> Vec<MenuEntry<'static, MenuChoice>> {
+    let mark = match row {
+        FilesRow::Top => return Vec::new(),
+        FilesRow::File { mark, .. } => mark.map(|file| file.mark),
+        FilesRow::Folder { .. } => None,
+    };
+    let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
+    match mark {
+        Some(TreeMark::Conflicted | TreeMark::Changed(ChangeKind::Deleted)) => Vec::new(),
+        Some(TreeMark::Untracked) => vec![
+            MenuEntry::Separator,
+            item(icons::HIDE, changes_words::IGNORE, MenuChoice::Ignore),
+        ],
+        _ => vec![
+            MenuEntry::Separator,
+            item(icons::HIDE, changes_words::IGNORE, MenuChoice::Ignore),
+            item(icons::UNSTAGE, changes_words::STOP_TRACKING, MenuChoice::StopTracking),
+        ],
     }
 }
 

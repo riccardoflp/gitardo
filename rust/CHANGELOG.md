@@ -20,6 +20,15 @@
   history**; and the last row of the timeline says **The history ends here: this is a shallow clone.** with **Load
   more history**, which fetches a number of commits further back, `100` by default (`git fetch --deepen`), and **Load
   the whole history** (`git fetch --unshallow`), both in Quick search too while the repository is shallow.
+- **Ignore…**, in the menu of a file of the changes and in the context menu of a file or a folder of the Files page,
+  has git ignore it: the patterns offered are **This file**, **All `.log` files** and **The folder `logs`** for
+  `logs/today.log`, **This folder** and **Every folder named `node_modules`** for a folder, or one typed, each written
+  in the `.gitignore` of the repository, the one of the folder of the file, or the exclude file of the repository
+  (**Only on this computer**, not committed). A path some pattern ignores already is refused, with the pattern and its
+  file; on a file git tracks, **Stop tracking it, and keep it on disk** is offered too.
+- **Stop tracking, keep on disk…**, in the same menus, takes a file or a folder out of the index with
+  `git rm --cached`, after a warning: the file stays on disk, and its deletion is staged for the next commit. When git
+  refuses because the version staged is found nowhere else, **Stop tracking anyway** is offered, as destructive.
 
 ## 1.2.0 - 2026-11-18
 

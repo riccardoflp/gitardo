@@ -288,6 +288,16 @@ pub enum Query {
         /// The folder.
         folder: std::path::PathBuf,
     },
+    /// The file and the pattern that ignore a path already (`git check-ignore -v -z --no-index`), for
+    /// `changes.ignore`. The answer is [`super::Answer::Names`]: the file and the pattern, or none when nothing ignores
+    /// it.
+    IgnoredBy {
+        /// The path from the top of the working tree, with `/`.
+        path: String,
+    },
+    /// The exclude file of the repository, in full (`git rev-parse --git-path info/exclude`), for `changes.ignore`.
+    /// The answer is [`super::Answer::Path`].
+    ExcludeFile,
     /// The links in worktrees to folders outside them, which git on Windows would empty when it removes a worktree
     /// (`worktree.read-folder-links`), for every worktree named. The answer is [`super::Answer::Paths`].
     FolderLinks {
