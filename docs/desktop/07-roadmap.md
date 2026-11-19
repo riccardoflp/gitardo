@@ -1389,7 +1389,12 @@ Then the third phase: **Fetch notes** and, while the repository has notes, **Pus
 the branch rail and in Quick search run `git fetch <remote> <reference>:<reference>` and `git push <remote>
 <reference>`; when git refuses the fetch, **Merge the notes** fetches them beside and runs `git notes merge
 --strategy=cat_sort_uniq`, and a push refused offers **Fetch notes** (Q1458).
-Not built yet: the sixth phase, the extension.
+Then the sixth phase: in the extension, the block **Note** under the message in the details and in the tab of a
+commit, read again when the reference of notes moves; **Add note…**, **Edit note…**, **Remove note** and **Save as
+archive…** in the context menus of the graph and of the Branches view; **Fetch notes from `<remote>`** and **Push
+notes to `<remote>`** in the menu of the title **Remotes**, which has no row for each remote; and **Clean up…** and
+**Look after it in the background…** on the row of the repository shown in the **Gitardo Repositories** view, all
+sent to the engine as `feature/run` (Q1459).
 
 Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
 in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save

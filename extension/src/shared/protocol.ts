@@ -480,6 +480,16 @@ export type Action =
   | { kind: 'createTag'; at: string }
   | { kind: 'deleteTag'; name: string }
   | { kind: 'pushTag'; name: string }
+  /** Writes the note of a commit, proposing the one it has, or removes it (`note.edit`, `note.remove`). */
+  | { kind: 'editNote' | 'removeNote'; hash: string }
+  /** Fetches the notes of a remote, or pushes the notes to it (`note.fetch`, `note.push`). */
+  | { kind: 'fetchNotes' | 'pushNotes'; remote: string }
+  /** Saves the files of a commit, a branch, a remote branch or a tag as a zip or a tar.gz: `at` is a hash or a full name (`archive.save`). */
+  | { kind: 'saveArchive'; at: string }
+  /** Cleans up the repository shown with `git gc` (`upkeep.clean-up`). */
+  | { kind: 'cleanUp' }
+  /** Has git look after the repository shown in the background, or stop (`upkeep.start-background`, `upkeep.stop-background`). */
+  | { kind: 'lookAfter'; start: boolean }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }

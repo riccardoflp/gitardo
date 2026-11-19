@@ -78,11 +78,11 @@ earns it.
 | [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built | Host only |
 | [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built | Host only |
 | [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Built | Host only |
-| [`upkeep.read-size`](01-repositories.md#upkeepread-size--the-size-of-a-repository) | The size of a repository | Read | Built | Planned |
-| [`upkeep.clean-up`](01-repositories.md#upkeepclean-up--clean-up-a-repository) | Clean up a repository | Operation | Built | Planned |
-| [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Built | Planned |
-| [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Built | Planned |
-| [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Built | Planned |
+| [`upkeep.read-size`](01-repositories.md#upkeepread-size--the-size-of-a-repository) | The size of a repository | Read | Built | Built |
+| [`upkeep.clean-up`](01-repositories.md#upkeepclean-up--clean-up-a-repository) | Clean up a repository | Operation | Built | Built |
+| [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Built | Built |
+| [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Built | Built |
+| [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Built | Built |
 
 ## Graph
 
@@ -209,12 +209,12 @@ earns it.
 | [`commit-page.initial-folds`](04-details-and-commit-page.md#commit-pageinitial-folds--which-diffs-start-folded) | Which diffs start folded | Derivation | Built | Built |
 | [`commit-page.images`](04-details-and-commit-page.md#commit-pageimages--the-images-of-a-commit-in-its-page) | The images of a commit in its page | View | Specified | Planned |
 | [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-timeline) | Show a commit in the timeline | View | Built | Built |
-| [`note.read`](04-details-and-commit-page.md#noteread--read-the-notes-of-commits) | Read the notes of commits | Read | Built | Planned |
-| [`note.show`](04-details-and-commit-page.md#noteshow--the-note-of-a-commit-in-the-inspector-and-in-its-page) | The note of a commit, in the inspector and in its page | View | Built | Planned |
-| [`note.edit`](04-details-and-commit-page.md#noteedit--add-or-edit-the-note-of-a-commit) | Add or edit the note of a commit | Operation | Built | Planned |
-| [`note.remove`](04-details-and-commit-page.md#noteremove--remove-the-note-of-a-commit) | Remove the note of a commit | Operation | Built | Planned |
-| [`note.fetch`](04-details-and-commit-page.md#notefetch--fetch-the-notes-of-a-remote) | Fetch the notes of a remote | Operation | Built | Planned |
-| [`note.push`](04-details-and-commit-page.md#notepush--push-the-notes-to-a-remote) | Push the notes to a remote | Operation | Built | Planned |
+| [`note.read`](04-details-and-commit-page.md#noteread--read-the-notes-of-commits) | Read the notes of commits | Read | Built | Built |
+| [`note.show`](04-details-and-commit-page.md#noteshow--the-note-of-a-commit-in-the-inspector-and-in-its-page) | The note of a commit, in the inspector and in its page | View | Built | Built |
+| [`note.edit`](04-details-and-commit-page.md#noteedit--add-or-edit-the-note-of-a-commit) | Add or edit the note of a commit | Operation | Built | Built |
+| [`note.remove`](04-details-and-commit-page.md#noteremove--remove-the-note-of-a-commit) | Remove the note of a commit | Operation | Built | Built |
+| [`note.fetch`](04-details-and-commit-page.md#notefetch--fetch-the-notes-of-a-remote) | Fetch the notes of a remote | Operation | Built | Built |
+| [`note.push`](04-details-and-commit-page.md#notepush--push-the-notes-to-a-remote) | Push the notes to a remote | Operation | Built | Built |
 
 ## Changes and commit
 
@@ -578,7 +578,7 @@ earns it.
 | [`patch.check`](14-patches.md#patchcheck--check-a-patch-before-applying-it) | Check a patch before applying it | Read | Built | Built |
 | [`patch.apply`](14-patches.md#patchapply--apply-a-patch) | Apply a patch | Operation | Built | Built |
 | [`patch.am-stopped`](14-patches.md#patcham-stopped--a-patch-that-stopped-on-a-conflict) | A patch that stopped on a conflict | View | Built | Built |
-| [`archive.save`](14-patches.md#archivesave--save-as-an-archive) | Save as an archive… | Operation | Built | Planned |
+| [`archive.save`](14-patches.md#archivesave--save-as-an-archive) | Save as an archive… | Operation | Built | Built |
 
 ## GitHub
 

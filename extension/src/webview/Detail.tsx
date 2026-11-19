@@ -7,6 +7,7 @@ import { ActionButtons, Check, FileRow, type FileAction, type FileMark } from '.
 import { FileTree, toggled } from './FileTree';
 import { useMenu } from './ContextMenu';
 import { Icon } from './Icon';
+import { NoteBlock } from './NoteBlock';
 import { act, fileMenu } from './menus';
 import { fullDate, shortHash } from './util';
 import { loadUiState, post, saveUiState } from './vscode';
@@ -235,6 +236,11 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
               <h2>{message?.title}</h2>
               {message?.text && <Said key={hash} text={message.text} />}
             </>
+          )}
+          {!worktree && detail.note && (
+            <NoteBlock hash={id} editable>
+              <Said key={`${hash} note`} text={detail.note} />
+            </NoteBlock>
           )}
           {!worktree && (
             <dl>

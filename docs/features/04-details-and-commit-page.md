@@ -659,7 +659,7 @@ Which commits have a note, and the text of the note of one commit.
   With no reference of notes, there are none.
 - **Uses**: `repo.read-state`, with which the list is read, again only when the reference of notes moved
   (`repo.watch-changes`); by `note.show`.
-- **Extension**: read by the engine with the details of a commit: planned.
+- **Extension**: read by the engine with the details of a commit (`note` of `CommitDetail`, `notes` of the state): built.
 
 Acceptance:
 
@@ -678,8 +678,9 @@ The note of a commit under its message, wherever the commit is read.
   commit that has a note.
 - **Reads**: `note.read`.
 - **Uses**: `details.show`, `commit-page.view`, `note.edit`, `note.remove`, `ui.menu-icons`.
-- **Extension**: planned: the same block under the message in the details beside the graph (`Detail.tsx`) and in the
-  tab of a commit (`CommitApp.tsx`).
+- **Extension**: built: the same block under the message in the details beside the graph (`Detail.tsx`), cut with
+  **Show more**, and in the tab of a commit (`CommitApp.tsx`), with the pencil of **Edit note…** and the bin of
+  **Remove note** on its title; the note is read again when the reference of notes moves (Q1459).
 
 - Under the message, a block titled **Note**, with its text as it was written, lines kept as they are and not joined as
   those of a message are (Q1212), in the font of the message; in the inspector, a note of more than 12 lines is cut
@@ -718,8 +719,8 @@ Writes the note of a commit, a new one or in place of the one it had.
   the note has: **The note is the same: nothing to change.**, and nothing runs; the draft and a stash: **Only a commit
   has a note.**
 - **Uses**: `note.read`, `note.show`, `undo.last`.
-- **Extension**: planned: **Add Note…** and **Edit Note…** in the context menu of a commit in the graph, the text asked
-  in an input box of VS Code, sending `feature/run` of `note.edit` to the engine.
+- **Extension**: built: **Add note…** and **Edit note…** in the context menu of a commit in the graph, the text asked
+  in an input box of VS Code, which takes one line, sending `feature/run` of `note.edit` to the engine (Q1459).
 
 Acceptance:
 
@@ -743,7 +744,7 @@ Takes the note of a commit away.
 - **Undo**: as `note.edit`, from the reflog of the reference of notes.
 - **After**: the block **Note** is gone.
 - **Uses**: `note.read`, `note.show`, `undo.last`.
-- **Extension**: planned: **Remove Note** in the context menu of a commit with a note in the graph and on the block of
+- **Extension**: built: **Remove note** in the context menu of a commit with a note in the graph and on the block of
   the note, sending `feature/run` of `note.remove` to the engine.
 
 Acceptance:
@@ -772,8 +773,9 @@ Brings the notes of a remote into the reference of notes of the repository, whic
 - **After**: says **Fetched the notes of `<remote>`.** (Q1458); the inspector shows the notes fetched.
 - **Refuses**: a remote with no notes: **`<remote>` has no notes.**
 - **Uses**: `note.read`, `remote.read-remotes`, `undo.last`.
-- **Extension**: planned: **Fetch Notes** in the context menu of a remote among the references and in the Branches
-  view, sending `feature/run` of `note.fetch` to the engine.
+- **Extension**: built: **Fetch notes from `<remote>`**, one for each remote, in the menu of the title **Remotes**
+  among the references and in the Branches view, which have no row for each remote, sending `feature/run` of
+  `note.fetch` to the engine (Q1459).
 
 Acceptance:
 
@@ -798,8 +800,8 @@ Sends the reference of notes to a remote, which `git push` does not do by itself
 - **Refuses**: a repository with no notes: **This repository has no notes to push.** When the remote refuses because
   it has notes this repository has not, git's message with **Fetch notes** (`note.fetch`) (Q1458).
 - **Uses**: `note.fetch`, `remote.read-remotes`.
-- **Extension**: planned: **Push Notes** in the context menu of a remote, sending `feature/run` of `note.push` to the
-  engine.
+- **Extension**: built: **Push notes to `<remote>`** in the same menu, while the repository has notes, sending
+  `feature/run` of `note.push` to the engine (Q1459).
 
 Acceptance:
 

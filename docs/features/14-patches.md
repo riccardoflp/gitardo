@@ -263,7 +263,7 @@ Saves the files of a commit, or of one folder of it, in a zip or a tar.gz file t
 - **After**: says **Saved `<file>`**; **Reveal in the file manager** is not offered with it yet, since a message after
   an operation offers only operations (Q1456).
 - **Uses**: `commit-page.open`, `compare.resolve-revision`.
-- **Extension**: planned: **Save as Archive…** in the context menu of a commit, a branch, a remote branch or a tag in
+- **Extension**: built: **Save as archive…** in the context menu of a commit, a branch, a remote branch or a tag in
   the graph and in the Branches view, the questions in VS Code's pickers and its save dialog, sending `feature/run` of
   `archive.save` to the engine.
 

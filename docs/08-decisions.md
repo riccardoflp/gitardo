@@ -5494,6 +5494,14 @@ asked while it is planned; each is built as it says until the maintainer answers
   **Fetch Notes…** and **Push Notes…** in Quick search run on the only remote and, with several, are refused with
   where to choose one, the branch rail, rather than asking which. Should a follow-up read the count, the refusal be
   matched on what git said, and Quick search ask the remote?
+- **Q1459** — notes and upkeep in the extension: the entries are in sentence case, as the other entries of the menus of
+  the webviews (**Add note…**, **Clean up…**), not in the title case the cards planned. The references list the remote
+  branches under one title, with no row for each remote, so **Fetch notes from `<remote>`** and **Push notes to
+  `<remote>`** are in the menu of that title, one for each remote. A note is asked in VS Code's input box, which takes
+  one line: a note of several lines is written in Gitardo Desktop. The block **Note** has a pencil and a bin rather
+  than a pencil and **…**, as the details have no menu button of their own. The upkeep is on the row of the repository
+  shown alone, as in Gitardo Desktop, since the engine runs on that one. Should the extension ask a note in an editor
+  tab, and should the references get a row for each remote?
 
 ### Of large files and remembered resolutions, from Q1190
 

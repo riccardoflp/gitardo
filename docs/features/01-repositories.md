@@ -1475,7 +1475,7 @@ How much room the objects of a repository take, loose and packed, and how much o
   that are in a pack too; `garbage` and `size-garbage`, the files of the object folder that are not objects. Without
   `-H`, whose sizes are for people. It runs when asked, never with the reads of the repository.
 - **Uses**: by `upkeep.clean-up`.
-- **Extension**: read by the engine for the question of `upkeep.clean-up`: planned.
+- **Extension**: read by the engine for the question of `upkeep.clean-up`: built.
 
 Acceptance:
 
@@ -1505,8 +1505,9 @@ room it takes before and after.
   tab (`activity.status-bar`), as long as it takes.
 - **Refuses**: git's message when another `git gc` runs in the repository.
 - **Uses**: `upkeep.read-size`, `repo.tabs`, `activity.status-bar`.
-- **Extension**: planned: **Clean Up…** in the context menu of a row of the **Gitardo Repositories** view
-  (`repositoryRowMenu`), its question in a modal dialog, sending `feature/run` of `upkeep.clean-up` to the engine.
+- **Extension**: built: **Clean up…** in the context menu of the row of the repository shown in the **Gitardo
+  Repositories** view (`repositoryRowMenu`), its question in a modal dialog, sending `feature/run` of `upkeep.clean-up`
+  to the engine (Q1459).
 
 Acceptance:
 
@@ -1524,7 +1525,7 @@ Whether the repository is among those git's scheduled maintenance looks after.
 - **Reads**: `git config --global --get-all maintenance.repo`, the repositories registered, each compared with the
   folder of this one as git writes it (absolute, with `/`); none set reads as none registered.
 - **Uses**: `repo.read-state`, with which it runs, again only when the user's configuration changed.
-- **Extension**: read by the engine for the menu of the row: planned.
+- **Extension**: read by the engine for the menu of the row, sent as `isLookedAfter`: built.
 
 Acceptance:
 
@@ -1552,8 +1553,9 @@ packs and checks the repository each hour, day and week, so that it stays quick 
 - **After**: the entry of the menu is ticked.
 - **Refuses**: git's message when the system's scheduler refuses, as without the rights to it.
 - **Uses**: `upkeep.read-background`, `upkeep.stop-background`, `repo.tabs`.
-- **Extension**: planned: **Look After It in the Background…** in the context menu of a row of the **Gitardo
-  Repositories** view, sending `feature/run` of `upkeep.start-background` to the engine.
+- **Extension**: built: **Look after it in the background…** in the context menu of the row of the repository shown in
+  the **Gitardo Repositories** view, ticked while `isLookedAfter`, sending `feature/run` of `upkeep.start-background`
+  to the engine (Q1459).
 
 Acceptance:
 
@@ -1575,7 +1577,7 @@ Takes the repository out of those git's scheduled maintenance looks after; the o
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: `upkeep.start-background` registers it again.
 - **Uses**: `upkeep.read-background`, `upkeep.start-background`.
-- **Extension**: planned, with `upkeep.start-background`.
+- **Extension**: built, with `upkeep.start-background`: the same entry, ticked.
 
 Acceptance:
 

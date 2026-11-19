@@ -198,6 +198,7 @@ export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): 
     'separator',
     ...integrate(hash, hash, state),
     canReword(hash, state) && { label: 'Edit message…', run: onEditMessage },
+    ...(row.stash ? [] : noteEntries(hash, state)),
     // A merge has no one set of changes to take out, and the first commit nothing before it to go back to.
     canReword(hash, state) && row.parents.length === 1 && { label: 'Split this commit…', run: () => act({ kind: 'split', hash }) },
     range && {
@@ -230,7 +231,32 @@ export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): 
     { label: 'Copy message', run: () => copy(row.subject) },
     canFormatPatch([row]) && { label: 'Copy as patch', run: () => formatPatch([row]) },
     canFormatPatch([row]) && { label: 'Save as patch…', run: () => formatPatch([row], true) },
+    !row.stash && { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: hash }) },
   ];
+}
+
+/** Whether a commit has a note, in the reference of notes git uses (protocol 1.11, `note.read`). */
+export const hasNote = (hash: string, state: Pick<RepoState, 'notes'>) => state.notes?.commits.includes(hash) ?? false;
+
+/** **Add note…**, or **Edit note…** and **Remove note** for a commit with a note (`note.edit`, `note.remove`). */
+function noteEntries(hash: string, state: RepoState): MenuEntry[] {
+  const noted = hasNote(hash, state);
+  return [
+    { label: noted ? 'Edit note…' : 'Add note…', run: () => act({ kind: 'editNote', hash }) },
+    noted && { label: 'Remove note', run: () => act({ kind: 'removeNote', hash }) },
+  ];
+}
+
+/**
+ * **Fetch notes from `<remote>`** for each remote, and **Push notes to `<remote>`** while the repository has notes
+ * (`note.fetch`, `note.push`): the references list the remote branches under one title, without a row for each remote.
+ */
+export function remoteNotesEntries(state: Pick<RepoState, 'remotes' | 'notes'>): MenuEntry[] {
+  const pushes = !!state.notes?.tip;
+  return state.remotes.flatMap((remote): MenuEntry[] => [
+    { label: `Fetch notes from ${remote}`, run: () => act({ kind: 'fetchNotes', remote }) },
+    pushes && { label: `Push notes to ${remote}`, run: () => act({ kind: 'pushNotes', remote }) },
+  ]);
 }
 
 /** Whether these commits can be made into a patch: git makes none of a merge commit. */
@@ -344,6 +370,7 @@ export function branchMenu(branch: Branch, state: RepoState, onCompare: (compari
       danger: true,
       run: () => act({ kind: 'worktreeRemove', path: worktree.folder, deleteBranch: true }),
     },
+    { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: `refs/heads/${name}` }) },
     'separator',
     { label: 'Copy name', run: () => copy(name) },
   ];
@@ -424,6 +451,7 @@ export function remoteBranchMenu(ref: RemoteBranch, state: RepoState, onCompare:
     pullEntry(state.github ? nameOnRemote(name, state) : null, state, false),
     favoriteEntry(`refs/remotes/${name}`, state),
     'separator',
+    { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: `refs/remotes/${name}` }) },
     { label: 'Delete from remote', danger: true, run: () => act({ kind: 'deleteRemoteBranch', name }) },
     'separator',
     { label: 'Copy name', run: () => copy(name) },
@@ -445,6 +473,7 @@ export function tagMenu(tag: Tag, state: RepoState, onCompare: (comparing: Compa
     ...scopeEntries(`refs/tags/${name}`, state),
     'separator',
     state.remotes.length > 0 && { label: 'Push tag', run: () => act({ kind: 'pushTag', name }) },
+    { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: `refs/tags/${name}` }) },
     { label: 'Delete', danger: true, run: () => act({ kind: 'deleteTag', name }) },
     'separator',
     { label: 'Copy name', run: () => copy(name) },
@@ -598,7 +627,25 @@ export function submoduleMenu(submodule: Submodule, state: Pick<RepoState, 'root
  * Gitardo shows have what their menus have in the Branches view, which is made of its state; the other rows have what
  * asks only for their folder.
  */
-export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown'>, shown: ShownParts | null | undefined): MenuEntry[] {
+export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' | 'kind'>, shown: ShownParts | null | undefined): MenuEntry[] {
+  // The upkeep runs on the repository Gitardo shows, and so is offered on its row alone (`upkeep.clean-up`).
+  const upkeep: MenuEntry[] =
+    shown && row.isShown && row.kind === 'repository'
+      ? [
+          'separator',
+          { label: 'Clean up…', run: () => act({ kind: 'cleanUp' }) },
+          {
+            label: 'Look after it in the background…',
+            checked: !!shown.isLookedAfter,
+            run: () => act({ kind: 'lookAfter', start: !shown.isLookedAfter }),
+          },
+        ]
+      : [];
+  return [...rowEntries(row, shown), ...upkeep];
+}
+
+/** What a row has before the upkeep: the menu of a worktree or a submodule of the repository shown, or what asks for a folder. */
+function rowEntries(row: Pick<RepositoryRow, 'folder' | 'isShown'>, shown: ShownParts | null | undefined): MenuEntry[] {
   const { folder: path } = row;
   const worktree = shown?.worktrees.find((each) => samePath(each.folder, path));
   if (shown && worktree) return worktreeMenu(worktree, shown);

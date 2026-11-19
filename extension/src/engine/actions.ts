@@ -104,6 +104,22 @@ export function engineRuns(
       return [{ feature: 'tag.delete', target: { kind: 'tag', name: action.name } }];
     case 'pushTag':
       return [{ feature: 'tag.push', target: { kind: 'tag', name: action.name } }];
+
+    // Notes, archives and upkeep (M40).
+    case 'editNote':
+      return [{ feature: 'note.edit', target: { kind: 'commit', commit: action.hash } }];
+    case 'removeNote':
+      return [{ feature: 'note.remove', target: { kind: 'commit', commit: action.hash } }];
+    case 'fetchNotes':
+      return [{ feature: 'note.fetch', target: { kind: 'remote', name: action.remote } }];
+    case 'pushNotes':
+      return [{ feature: 'note.push', target: { kind: 'remote', name: action.remote } }];
+    case 'saveArchive':
+      return [{ feature: 'archive.save', target: targetOf(action.at, state) }];
+    case 'cleanUp':
+      return [{ feature: 'upkeep.clean-up', target: { kind: 'head' } }];
+    case 'lookAfter':
+      return [{ feature: action.start ? 'upkeep.start-background' : 'upkeep.stop-background', target: { kind: 'head' } }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
     case 'merge':
       if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];

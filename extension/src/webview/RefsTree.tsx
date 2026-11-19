@@ -15,6 +15,7 @@ import {
   openBranch,
   openRemoteBranch,
   remoteBranchMenu,
+  remoteNotesEntries,
   stashMenu,
   submoduleMenu,
   tagMenu,
@@ -318,14 +319,16 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
       branches.find((item) => item.key === name),
     ),
   );
-  // Branches and tags are listed in the same order, which the menu of each of their sections chooses.
-  const sorting = (what: string): SectionAction[] => [
+  // Branches and tags are listed in the same order, which the menu of each of their sections chooses; the menu of the
+  // remotes fetches and pushes their notes too, as no row stands for each remote.
+  const sorting = (what: string, more: MenuEntry[] = []): SectionAction[] => [
     {
       icon: 'ellipsis',
       title: `More actions for ${what}`,
       menu: () => [
         { label: 'Sort by name', checked: state.sortOrder === 'name', run: () => post({ type: 'setBranchSort', sort: 'name' }) },
         { label: 'Sort by date', checked: state.sortOrder === 'date', run: () => post({ type: 'setBranchSort', sort: 'date' }) },
+        ...(more.length ? ['separator' as const, ...more] : []),
       ],
     },
   ];
@@ -373,7 +376,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
       {section('recent', 'Recent', 'history', recentItems, true)}
       {section('branches', 'Local', 'git-branch', branches, false, sorting('branches'))}
       {/* While the filter of the list lists some references only, a list it leaves empty is left out (Q415). */}
-      {section('remotes', 'Remotes', 'cloud', remotes, !!state.listed, sorting('remote branches'))}
+      {section('remotes', 'Remotes', 'cloud', remotes, !!state.listed, sorting('remote branches', remoteNotesEntries(state)))}
       {section(
         'tags',
         'Tags',

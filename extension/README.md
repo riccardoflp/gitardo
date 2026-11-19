@@ -496,6 +496,17 @@ Git leaves the submodules where they are on a checkout, so they no longer match 
 
 Gitardo follows what happens in the submodules: a commit or a checkout made in one, in its window or a terminal, updates its icon.
 
+### Notes
+
+A note is a text git keeps beside a commit without changing it. The note of a commit is shown under its message, in the details beside the graph and in the tab of the commit, in a block **Note** with its lines as they were written.
+
+- **Add note…** in the context menu of a commit writes its note; a commit with a note has **Edit note…**, which proposes the note it has, and **Remove note**. The pencil and the bin on the block **Note** do the same, and **Undo** takes each back.
+- The menu of the title **Remotes**, among the references and in the Branches view, has **Fetch notes from `<remote>`** and, while the repository has notes, **Push notes to `<remote>`**: `git fetch` and `git push` leave the notes out. When each side has notes the other has not, **Merge the notes** puts the two notes of a commit one after the other.
+
+### Archives
+
+**Save as archive…** in the context menu of a commit, a branch, a remote branch or a tag saves its files, every file or one folder, as a zip or a tar.gz, under a folder of its name, where you choose. The changes not committed are not in it.
+
 ### Remotes
 
 **Gitardo: Manage Remotes** lists the remotes with their URLs. Pick one to fetch it alone (`git fetch --prune <name>`), change its URL, rename it, copy its URL or remove it; or add a new one. Removing a remote always asks first: its remote-tracking branches go with it, and local branches that followed them lose their upstream, though nothing changes on the remote itself.
@@ -580,6 +591,7 @@ The **Gitardo Repositories** view of the side bar lists them all at once, with w
 - Click a row to show it in Gitardo: the graph, the changes, the commits and the branches are its own from then on. The row of what Gitardo shows has a bar on its left, and choosing a repository anywhere else, in the list of the toolbar or in VS Code's own Repositories view, moves the bar; a row clicked here is selected in VS Code's view too, while that view lists one repository at a time. Nothing is chosen while an operation runs, and the row of the repository it runs in has a spinner.
 - The chevron at the left of a repository folds the rows under it. Folded, the row stands for the one of them Gitardo shows: it says `api › feature/login`, what that worktree is on, and has the bar. What is folded is remembered for the workspace.
 - Right-click a row for **Open in terminal**, **Reveal in File Explorer** (**Reveal in Finder** on macOS), **Show in Gitardo** and **Copy path**. A worktree of the repository Gitardo shows has there the whole menu it has in the Worktrees section of the Branches view, with **Open in New Window**, **Rename…**, **Bring ignored files…** and **Remove…**, and a submodule of it the menu it has in the Submodules section; show another repository to have them for its own.
+- The row of the repository Gitardo shows has **Clean up…**, which says the room the repository takes, runs `git gc` and says the room it took before, and **Look after it in the background…**, ticked while git's scheduled maintenance looks after the repository: chosen, it registers the repository with `git maintenance start`, which schedules git on the computer, and ticked, it unregisters it.
 - `Tab` moves to the view, the arrows up and down from row to row, left and right fold and unfold, and `Enter` or `Space` shows the row. A screen reader is told each row with what it is on, and which one is shown.
 - Each folder is read once when the view opens, by Gitardo's engine, in the background, and again only when something changed in it or in its git folder: saving a file in a worktree that is not shown updates its count within a couple of seconds. No folder is read more than once in two seconds, none while an operation runs, and while the view is folded or the side bar is closed nothing is read: what changed meanwhile is read when the view is in sight again.
 

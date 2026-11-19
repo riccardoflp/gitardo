@@ -2,6 +2,14 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- The note of a commit, the text `git notes` keeps beside it, is shown under its message in the details beside the graph and in the tab of the commit, in a block **Note** with its lines as they were written. **Add note…** in the context menu of a commit writes it; a commit with a note has **Edit note…** and **Remove note**, also on the pencil and the bin of the block, and **Undo** takes them back. The menu of the title **Remotes**, among the references and in the Branches view, has **Fetch notes from `<remote>`** and **Push notes to `<remote>`**, which `git fetch` and `git push` do not do by themselves.
+- **Save as archive…** in the context menu of a commit, a branch, a remote branch and a tag saves its files as a zip or a tar.gz, every file or one folder, under a folder of its name.
+- The context menu of the row of the repository shown in the **Gitardo Repositories** view has **Clean up…**, which says the room the repository takes and runs `git gc`, and **Look after it in the background…**, ticked while git's scheduled maintenance looks after the repository, which registers it with `git maintenance start` or, ticked, unregisters it.
+
 ## 1.2.0 - 2026-11-18
 
 ### Added
