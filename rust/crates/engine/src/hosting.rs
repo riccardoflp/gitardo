@@ -8,6 +8,12 @@ use json::{Member, Value};
 use model::github::{Checks, PullRequest, PullRequests, Token};
 use model::hosting::HostingRepo;
 
+mod list;
+
+pub use list::{
+    GITHUB_LIST_QUERY, GITLAB_LIST_QUERY, PullListRequest, parse_github_list, parse_gitlab_list, read_pull_request_list,
+};
+
 /// What is asked of a GitLab: the 100 open merge requests updated last, each with its number in the project, title,
 /// address, whether it is a draft, its branch, the projects it goes from and into, and the state of its pipeline.
 pub const MERGE_REQUESTS_QUERY: &str = "query($path: ID!) { project(fullPath: $path) { mergeRequests(state: opened, \
@@ -198,3 +204,6 @@ fn pipeline(status: &str) -> Option<Checks> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod list_tests;

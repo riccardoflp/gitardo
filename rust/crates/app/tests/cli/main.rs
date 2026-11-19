@@ -16,6 +16,7 @@ mod merge;
 mod message;
 mod patch;
 mod picks;
+mod pull_requests;
 mod push;
 mod rebase;
 mod remote;

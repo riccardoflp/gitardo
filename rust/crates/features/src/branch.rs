@@ -1,7 +1,7 @@
 //! Branches: creating, checking out, renaming, deleting, fast-forwarding and cleaning up
 //! (`docs/features/06-branches-tags-remotes.md`).
 
-mod checkout;
+pub(crate) mod checkout;
 mod checkout_detached;
 mod checkout_remote;
 mod checkout_remote_and_rebase;

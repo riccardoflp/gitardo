@@ -5412,6 +5412,20 @@ it was planned; each is built as it says until the maintainer answers otherwise.
   in the configuration of the branch, a key of `.git/config` that git ignores?
 - **Q1163** — `hosting.checkout-pull-request`: the pull request is checked out in the worktree shown. Should it be offered
   in a worktree of its own too, as `worktree.open-in-worktree` does for a branch?
+- **Q1500** — `hosting.checkout-pull-request`: the search of the window takes only one of its choices, so a number that
+  is not listed is typed after **Type its number…**, the last choice of the pick, in a box of its own; with nothing
+  listed (Gitea, Forgejo, no token kept) the box comes at once and says why. Should the search take what is typed when
+  it is a number, as the card plans?
+- **Q1501** — `hosting.checkout-pull-request`: a number with no pull request is said in git's words, "couldn't find remote
+  ref refs/pull/99/head", under **Check out pull request #99**, since a plan has no way to say other words for some of
+  git's. Should plans have one, as `OfferWhenFailed` has for an offer?
+- **Q1502** — `hosting.checkout-pull-request`: a pull request from a branch of the repository whose local branch exists
+  is fetched by the reference of the service into that branch, which git does only as a fast-forward, rather than by the
+  plan of `branch.checkout-remote`, whose question of the way is asked before the fetch, on what was fetched last.
+  Should it fetch first, then ask the way?
+- **Q1503** — `hosting.read-pull-request-list`: the pick reads with the token kept for the service and never runs git's
+  credential helper; with none kept, nothing is listed and the box says to sign in. Should the pick offer **Sign in to
+  GitHub** or **Sign in to GitLab** there?
 - **Q1164** — `compare.open-on-service`: Bitbucket, Gitea and Forgejo compare only since the two diverged, so the entry
   is not there in **Everything that differs**. Should it open the comparison since they diverged there, saying so?
 

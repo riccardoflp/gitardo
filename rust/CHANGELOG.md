@@ -17,6 +17,12 @@
   helper, or asked for once and kept in the credential store of the system. The label of a branch with an open merge
   request then ends with `!12` in the color of its pipeline, and they are read again on their own as pull requests
   are on GitHub; a token GitLab refuses is taken out of the store.
+- **Check out a pull request…** (**Check out a merge request…** on GitLab), in Quick search and in the **…** menu on
+  GitHub, GitLab, Gitea and Forgejo, picks one of the open pull requests, those from forks included, or takes its
+  number typed. One from a branch of the repository is fetched and checked out as its remote branch; one from a fork
+  is fetched by the reference the service keeps it under into a local branch named `<owner>/<branch>`, then checked
+  out, and checking it out again brings that branch up to the new commits. The menu of a remote branch whose label
+  shows a pull request has **Check out pull request #12**.
 
 ## 1.2.0 - 2026-11-18
 

@@ -6,6 +6,7 @@
 mod detect;
 mod links;
 mod offer;
+mod pulls;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
@@ -14,6 +15,7 @@ mod tests_links;
 pub use detect::{SELF_HOSTED_KINDS, detect_remote, self_hosted_kind};
 pub use links::{HostingPullLinkInput, NamedSide, SideKind, pull_request_link, web_link};
 pub use offer::{HostingPushOutcome, offer_after_push};
+pub use pulls::{PullList, PullListEntry, typed_number};
 
 use std::collections::BTreeMap;
 

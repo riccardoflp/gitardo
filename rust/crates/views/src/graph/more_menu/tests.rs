@@ -19,7 +19,7 @@ fn words(state: &MoreMenuState) -> Vec<&'static str> {
 }
 
 /// The words of the whole menu, in the groups and the order of the card.
-const IN_ORDER: [&str; 21] = [
+const IN_ORDER: [&str; 22] = [
     "Refresh",
     "Branch",
     "Stash",
@@ -38,6 +38,7 @@ const IN_ORDER: [&str; 21] = [
     "Switch identity\u{2026}",
     "-",
     "Load pull requests from GitHub",
+    "Check out a pull request\u{2026}",
     "-",
     "Settings",
     "Theme\u{2026}",
@@ -148,4 +149,29 @@ fn hosting_load_merge_requests__on_github_the_menu_has_no_such_entry_and_on_gitl
         !on_gitea.contains(&LOAD),
         "only a GitLab has merge requests Gitardo reads"
     );
+    assert!(on_gitea.contains(&"Check out a pull request\u{2026}"));
+    assert!(on_gitlab.contains(&"Check out a merge request\u{2026}"));
+}
+
+#[test]
+fn hosting_checkout_pull_request__on_bitbucket_neither_entry_is_offered() {
+    let on_bitbucket = words(&MoreMenuState {
+        main_remote: MainRemote::OnService(model::hosting::HostingService::Bitbucket),
+        ..everything()
+    });
+    assert!(
+        !on_bitbucket.iter().any(|word| word.starts_with("Check out a")),
+        "{on_bitbucket:?}"
+    );
+    assert!(
+        !on_bitbucket.iter().any(|word| word.starts_with("Load")),
+        "{on_bitbucket:?}"
+    );
+    assert_eq!(
+        on_bitbucket.iter().filter(|word| **word == "-").count(),
+        3,
+        "no line of an empty group"
+    );
+    let label = crate::text::github::check_out_this_pull_request(model::hosting::HostingService::GitLab, 12);
+    assert_eq!(label, "Check out merge request !12");
 }

@@ -1223,13 +1223,15 @@ Desktop, the last in the extension.
    storage of the extension; **Gitardo: Check Out Pull Request…**, the entries of the menus and of the Compare tab; the
    numbers of merge requests on the labels of the graph. Cards: every card above.
 
-Phases 1 to 3 are built: `model::hosting::detect_remote` and `web_link`, and `hosting.selfHosted` read with the
+Phases 1 to 4 are built: `model::hosting::detect_remote` and `web_link`, and `hosting.selfHosted` read with the
 other settings and listed on the settings page; the project of the main remote looked for with the repository on
 GitHub, with the default branch of its remote; **Create merge request…**, **Create pull request…** and **Open merge
 request !`<n>`** in the menus of the branches, the offer after a first push, and **Open on `<service>`** in the
 comparison page (`compare.open-on-service`); the token of a GitLab (`git::read::hosting::read_token`, the query
 `HostingToken` of the engine), **Load merge requests from GitLab** in the **…** menu and **Sign in to GitLab** in Quick
-search, `engine::hosting::read_merge_requests`, and `!<n>` on the labels in the color of the pipeline.
+search, `engine::hosting::read_merge_requests`, and `!<n>` on the labels in the color of the pipeline;
+`engine::hosting::read_pull_request_list` and **Check out a pull request…** in Quick search, in the **…** menu and on
+a remote branch whose label shows one, with the questions Q1500–Q1503.
 
 Exit: in a clone of a project on gitlab.com, **Create merge request…** on a pushed branch opens GitLab's page with the
 branch filled in, and the first push of a new branch offers it; **Load merge requests from GitLab**, given a token,

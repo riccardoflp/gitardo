@@ -235,14 +235,29 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
 mod tests;
 
 /// The entries of the pull requests of the hosting service of the main remote, after a line: **Load pull requests from
-/// GitHub** (`github.load-pull-requests`), or **Load merge requests from GitLab** (`hosting.load-merge-requests`).
+/// GitHub** (`github.load-pull-requests`), or **Load merge requests from GitLab** (`hosting.load-merge-requests`); then
+/// **Check out a pull request…** (**Check out a merge request…** on GitLab, `hosting.checkout-pull-request`) on a
+/// service that keeps a reference of each.
 fn pull_request_entries(main_remote: MainRemote, operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
-    let load = match main_remote {
-        MainRemote::OnGitHub => (crate::text::github::LOAD_PULL_REQUESTS, "github.load-pull-requests"),
-        MainRemote::OnService(model::hosting::HostingService::GitLab) => {
-            (crate::text::github::LOAD_MERGE_REQUESTS, "hosting.load-merge-requests")
-        }
-        MainRemote::OnService(_) | MainRemote::Elsewhere => return Vec::new(),
+    use model::hosting::HostingService;
+    let words = crate::text::github::LOAD_PULL_REQUESTS;
+    let (load, service) = match main_remote {
+        MainRemote::OnGitHub => (Some((words, "github.load-pull-requests")), HostingService::GitHub),
+        MainRemote::OnService(HostingService::GitLab) => (
+            Some((crate::text::github::LOAD_MERGE_REQUESTS, "hosting.load-merge-requests")),
+            HostingService::GitLab,
+        ),
+        MainRemote::OnService(service) => (None, service),
+        MainRemote::Elsewhere => return Vec::new(),
     };
-    vec![MenuEntry::Separator, operation_item(load.0, load.1, operations)]
+    let mut entries = vec![MenuEntry::Separator];
+    entries.extend(load.map(|(label, feature)| operation_item(label, feature, operations)));
+    if service.pull_request_reference(1).is_some() {
+        let label = crate::text::github::check_out_pull_request(service);
+        entries.push(operation_item(label, "hosting.checkout-pull-request", operations));
+    }
+    if entries.len() == 1 {
+        entries.clear();
+    }
+    entries
 }

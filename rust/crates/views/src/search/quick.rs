@@ -123,6 +123,8 @@ pub enum QuickCommand {
     SignInToGitHub,
     /// **Sign in to GitLab** (`hosting.load-merge-requests`).
     SignInToGitLab,
+    /// **Check out a pull request…** (`hosting.checkout-pull-request`).
+    CheckOutPullRequest,
     /// **Undo Last Operation** (`undo.last`).
     UndoLastOperation,
     /// **Review the resolutions of the conflicts** (`review.page`).
@@ -159,7 +161,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 54] = [
+    pub const ALL: [QuickCommand; 55] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -210,6 +212,7 @@ impl QuickCommand {
         QuickCommand::SwitchIdentity,
         QuickCommand::SignInToGitHub,
         QuickCommand::SignInToGitLab,
+        QuickCommand::CheckOutPullRequest,
         QuickCommand::UndoLastOperation,
         QuickCommand::ReviewConflicts,
         QuickCommand::ChooseAiModel,
@@ -267,6 +270,7 @@ impl QuickCommand {
             QuickCommand::SwitchIdentity => Some("identity.switch"),
             QuickCommand::SignInToGitHub => Some("github.load-pull-requests"),
             QuickCommand::SignInToGitLab => Some("hosting.load-merge-requests"),
+            QuickCommand::CheckOutPullRequest => Some("hosting.checkout-pull-request"),
             QuickCommand::UndoLastOperation => Some("undo.last"),
             QuickCommand::SwitchWorktree => Some("worktree.switch"),
             QuickCommand::CreateWorktree => Some("worktree.create"),

@@ -56,7 +56,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 166] = [
+pub const OPERATIONS: [(FeatureId, Operation); 167] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -157,6 +157,10 @@ pub const OPERATIONS: [(FeatureId, Operation); 166] = [
     (FeatureId("compare.open-on-github"), compare::open_on_github),
     (FeatureId("compare.open-on-service"), compare::open_on_service),
     (FeatureId("hosting.load-merge-requests"), hosting::load_merge_requests),
+    (
+        FeatureId("hosting.checkout-pull-request"),
+        hosting::checkout_pull_request,
+    ),
     (FeatureId("compare.path-with"), compare::path_with),
     (FeatureId("compare.selected-before"), compare::selected_before),
     (FeatureId("compare.take-file"), compare::take_file),

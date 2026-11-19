@@ -273,6 +273,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::SwitchIdentity => "Switch identity",
         QuickCommand::SignInToGitHub => super::github::SIGN_IN,
         QuickCommand::SignInToGitLab => super::github::SIGN_IN_TO_GITLAB,
+        QuickCommand::CheckOutPullRequest => super::github::CHECK_OUT_PULL_REQUEST,
         QuickCommand::ShowCommandLog => "Show Command Log",
         QuickCommand::ShowTerminal => "Show Terminal",
         QuickCommand::NewTerminal => "New Terminal",

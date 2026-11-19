@@ -220,6 +220,13 @@ pub enum ValidationJson {
         /// The expression.
         pattern: String,
     },
+    /// The number of a pull request: `12`, `#12` or `!12` (since 1.11).
+    PullRequestNumber,
+    /// The name of the local branch a pull request is checked out in, one of the local branches taken too (since 1.11).
+    PullRequestBranch {
+        /// The names of the local branches.
+        branches: Vec<String>,
+    },
 }
 
 fn text_of(text: &Text) -> String {
@@ -263,6 +270,10 @@ impl From<&Validation> for ValidationJson {
             Validation::Pattern(pattern) => ValidationJson::Pattern {
                 pattern: pattern.clone(),
             },
+            Validation::PullRequestNumber => ValidationJson::PullRequestNumber,
+            Validation::PullRequestBranch { branches } => ValidationJson::PullRequestBranch {
+                branches: branches.clone(),
+            },
         }
     }
 }
@@ -296,6 +307,8 @@ impl From<ValidationJson> for Validation {
                 taken_folders: taken_folders.into_iter().map(PathBuf::from).collect(),
             })),
             ValidationJson::Pattern { pattern } => Validation::Pattern(pattern),
+            ValidationJson::PullRequestNumber => Validation::PullRequestNumber,
+            ValidationJson::PullRequestBranch { branches } => Validation::PullRequestBranch { branches },
         }
     }
 }

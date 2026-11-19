@@ -492,6 +492,9 @@ the pick of `hosting.checkout-pull-request`.
   - GitLab: the request of `hosting.read-merge-requests`, asking also for `author { username }` and
     `sourceProject { fullPath }`, and leaving none out;
   - Gitea, Forgejo, Bitbucket and Azure DevOps: nothing is read (Q1157).
+
+  The token is the one kept for the service, read without running git's credential helper; with none, nothing is read
+  and the pick says "Sign in to `<service>` to list the open pull requests." (Q1503)
 - **Uses**: `github.token`, `hosting.token`, `github.read-pull-requests`, `hosting.read-merge-requests`.
 - **Extension**: the engine's read, asked by the extension for its quick pick.
 
@@ -525,7 +528,9 @@ Checks out the commits of a pull request in a local branch, also one from a fork
      placeholder **Pick one, or type its number**: the open ones (`hosting.read-pull-request-list`), newest first, each
      `#12 Add the parser` described with its author and its branch, `contributor:fix-parser` for one from a fork. A
      number typed, `12`, `#12` or `!12`, is taken whether or not it is listed; on Gitea and Forgejo, where nothing is
-     listed, it is the only way.
+     listed, it is the only way. In the window, the number not listed is typed after **Type its number…**, the last
+     choice of the pick, in a box with the placeholder `#12` (`!12` on GitLab), which comes at once when nothing is
+     listed and says why (Q1500).
   2. For a pull request from a fork, or one whose branch is not known: the name of the local branch, in an input box
      titled **Check out #`<n>` as**, starting from `<owner of the fork>/<branch>`, or `pull/<n>` (`merge-request/<n>`
      on GitLab) when the branch is not known (Q1151); checked by `branch.validate-name`. A name a local branch has is
@@ -542,14 +547,16 @@ Checks out the commits of a pull request in a local branch, also one from a fork
     (`submodule.update-on-checkout`).
   - When `<name>` is the branch checked out: `git pull --ff-only --no-rebase <remote> refs/pull/<n>/head` (or the
     reference of GitLab), and no checkout.
+  - A pull request from a branch of the repository whose local branch exists already is fetched as one from a fork,
+    into that branch, which keeps its upstream (Q1502).
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
 - **Undo**: By the reflog: Undo checks out again what was checked out before (`undo.last`); the branch stays, and
   `branch.delete` removes it.
 - **After**: the tip of the pull request is selected; for one from a fork, Gitardo says "Checked out #`<n>` as
   `<name>`. It has no upstream: a push would make a branch `<name>` on `<remote>`." (Q1152)
-- **On failure**: when the service has no pull request of that number, git's "couldn't find remote ref" is said as "There
-  is no pull request #`<n>` on `<remote>`."; when the branch would not be fast-forwarded, git's refusal is shown and
-  nothing changed.
+- **On failure**: when the service has no pull request of that number, git's "couldn't find remote ref
+  refs/pull/`<n>`/head" is said under **Check out pull request #`<n>`** (Q1501); when the branch would not be
+  fast-forwarded, git's refusal is shown and nothing changed.
 - **Refuses**: *Finish or abort the `<operation>` first.*; *End the bisect first.*; "`<name>` is checked out in
   another worktree: check out the pull request there." when it is. What is typed in the pick and is neither a pull
   request listed nor a number is refused while it is typed: "Type the number of a pull request".

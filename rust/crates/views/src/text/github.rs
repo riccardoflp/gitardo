@@ -16,6 +16,29 @@ pub const READING_MERGE_REQUESTS: &str = "Reading the merge requests from GitLab
 pub const LOAD_MERGE_REQUESTS: &str = "Load merge requests from GitLab";
 /// The command of Quick search that loads the merge requests of a GitLab.
 pub const SIGN_IN_TO_GITLAB: &str = "Sign in to GitLab";
+/// The entry that checks out a pull request: **Check out a pull request…**, **Check out a merge request…** on GitLab.
+#[must_use]
+pub fn check_out_pull_request(service: HostingService) -> &'static str {
+    if service.has_merge_requests() {
+        CHECK_OUT_MERGE_REQUEST
+    } else {
+        CHECK_OUT_PULL_REQUEST
+    }
+}
+
+/// **Check out a pull request…** (`hosting.checkout-pull-request`).
+pub const CHECK_OUT_PULL_REQUEST: &str = "Check out a pull request\u{2026}";
+
+/// **Check out a merge request…** (`hosting.checkout-pull-request`), on GitLab.
+pub const CHECK_OUT_MERGE_REQUEST: &str = "Check out a merge request\u{2026}";
+
+/// The entry of the menu of a remote branch whose label shows a pull request: **Check out pull request #12**,
+/// **Check out merge request !12** on GitLab.
+#[must_use]
+pub fn check_out_this_pull_request(service: HostingService, number: u64) -> String {
+    format!("Check out {} {}", service.pull_request_words(), service.number(number))
+}
+
 /// The line under the tooltip of a badge: **Click to open it on GitHub**.
 #[must_use]
 pub fn click_to_open(service: HostingService) -> String {

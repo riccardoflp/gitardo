@@ -238,6 +238,9 @@ impl Engine {
                     };
                     answers.insert(key, Answer::Token(token));
                 }
+                Outcome::Read(key, Query::PullRequestList { repository }) => {
+                    answers.insert(key, Answer::PullList(self.pull_request_list(*repository)));
+                }
                 Outcome::Read(key, Query::AiModels { settings, key: typed }) => {
                     answers.insert(key, Answer::AiModels(self.ai_models(settings, typed)));
                 }

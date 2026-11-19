@@ -650,7 +650,9 @@ In this order, separated in groups:
    **Manage remotes…** (`remote.manage`), **Add submodule…** (`submodule.add`) while the repository has no submodule
    (the Submodules list has it otherwise), **Select repository…** (`repo.select`) when it is offered.
 3. **Switch identity…** (`identity.switch`).
-4. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub.
+4. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub, or **Load merge
+   requests from GitLab** (`hosting.load-merge-requests`) on a GitLab; then **Check out a pull request…** (**Check out
+   a merge request…** on GitLab, `hosting.checkout-pull-request`) on GitHub, GitLab, Gitea and Forgejo.
 5. **Settings** (`settings.edit`), **Theme…** (`settings.theme`).
 
 **Theme…** stays here, though it changes how the window looks: it opens a picker rather than switching something on

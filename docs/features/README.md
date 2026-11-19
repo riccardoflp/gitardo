@@ -597,8 +597,8 @@ earns it.
 | [`hosting.token`](15-github.md#hostingtoken--read-the-token-of-a-gitlab) | Read the token of a GitLab | Read | Built | Planned |
 | [`hosting.load-merge-requests`](15-github.md#hostingload-merge-requests--load-merge-requests-from-gitlab) | Load merge requests from GitLab | Operation | Built | Planned |
 | [`hosting.read-merge-requests`](15-github.md#hostingread-merge-requests--read-the-open-merge-requests-of-gitlab) | Read the open merge requests of GitLab | Read | Built | Planned |
-| [`hosting.read-pull-request-list`](15-github.md#hostingread-pull-request-list--read-the-open-pull-requests-to-pick-from) | Read the open pull requests to pick from | Read | Specified | Planned |
-| [`hosting.checkout-pull-request`](15-github.md#hostingcheckout-pull-request--check-out-a-pull-request) | Check out a pull request | Operation | Specified | Planned |
+| [`hosting.read-pull-request-list`](15-github.md#hostingread-pull-request-list--read-the-open-pull-requests-to-pick-from) | Read the open pull requests to pick from | Read | Built | Planned |
+| [`hosting.checkout-pull-request`](15-github.md#hostingcheckout-pull-request--check-out-a-pull-request) | Check out a pull request | Operation | Built | Planned |
 
 ## Undo, command preview and the log
 
