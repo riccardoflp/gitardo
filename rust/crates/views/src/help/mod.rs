@@ -4,6 +4,9 @@
 
 mod conversation;
 mod foot;
+mod show_me;
+
+pub use show_me::{ShowMeButton, button_label, page_of};
 
 use model::contract::FeatureId;
 use ui::editor::{Buffer, Command, Cursor};
@@ -28,6 +31,8 @@ pub struct HelpExchange {
     pub has_words: bool,
     /// Why there is no answer: what the provider said, or that the question was not sent.
     pub failed: Option<String>,
+    /// The buttons of **Show me** under the answer, for the features it named (`help.show-me`).
+    pub buttons: Vec<ShowMeButton>,
 }
 
 /// What the Ask Gitardo page shows.

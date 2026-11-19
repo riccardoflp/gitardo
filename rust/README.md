@@ -63,7 +63,8 @@ with the user's own sign-in and subscription; the CLI is installed and signed in
 The same provider answers **Ask Gitardo**, a page where a question about how to do something with Gitardo, in the
 user's own words, is answered from the cards of the catalog, with the words of the controls as they are on screen; it is
 opened from Quick search, where a question that finds no command is asked by the last entry, and from the **…** menu.
-Nothing of the repository is sent with a question.
+Under an answer, a button for each feature it named runs the operation as Quick search would, opens the page, or shows
+where the feature is and says what to choose there. Nothing of the repository is sent with a question.
 
 Gitardo runs on Windows, on macOS and on Linux; on Linux both on X11 and on Wayland, where the window, its title bar
 and its menu, and the clipboard speak to the compositor itself, with no XWayland, wherever the compositor offers a

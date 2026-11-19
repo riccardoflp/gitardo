@@ -36,3 +36,35 @@ pub const CONVERSATION: &str = "Conversation";
 pub fn ask_about(typed: &str) -> String {
     format!("{PAGE}: \"{}\"", typed.trim())
 }
+
+/// The button under an answer that shows where a feature is (`help.show-me`).
+pub const SHOW_WHERE: &str = "Show where";
+
+/// The button under an answer that opens a page: **Open Search**.
+#[must_use]
+pub fn open_page(name: &str) -> String {
+    format!("Open {name}")
+}
+
+/// What the status bar says to choose, once **Show where** showed the place of a feature.
+#[must_use]
+pub fn what_to_choose(place: model::help::Place) -> &'static str {
+    use model::help::Place;
+    match place {
+        Place::Timeline => "Right-click a commit in the timeline.",
+        Place::BranchRail => "Right-click a branch in the branch rail.",
+        Place::KeptAside => {
+            "Right-click a stash, a worktree, a tag or a submodule under Kept aside, in the branch rail."
+        }
+        Place::DiffPages => "Open a file of a commit or of the changes: its diff opens on a page.",
+        Place::ConflictsPage => "Open a file in conflict from the Changes page.",
+        Place::Header => "Look in the header, at the top of the window.",
+        Place::Repositories => "Right-click a repository under Repositories, in the side column.",
+        Place::FilesPage => "Right-click a file on the Files page.",
+        Place::ComparePage => "Right-click a branch or a commit, and compare it.",
+        Place::ChangesPage => "Right-click a file on the Changes page.",
+        Place::Inspector => "Select a commit in the timeline: the inspector shows it.",
+        Place::BottomPanel => "Look in the bottom panel, under the timeline.",
+        Place::SettingsPage => "Find it on the settings page.",
+    }
+}

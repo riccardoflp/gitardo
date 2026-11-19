@@ -5194,6 +5194,10 @@ planned and built; each is built as it says until the maintainer answers otherwi
 - **Q1353** — `help.page`: an input box of the window has one line, so the box that grows to 6 lines is the editor of
   code, without its numbers of lines, in the font of code. Should the toolkit have a box of several lines in the font
   of the text, for this box and for the message of a commit?
+- **Q1354** — `help.show-me`: a page that opens only on something chosen (the Diff, Merge and File pages on a file, the
+  page of a rebase's steps while one is under way) cannot be opened by a button with nothing to open it on, so its
+  button is **Show where**, which shows the place it is opened from. Should the button open it on the file selected when
+  there is one?
 
 ### Of cloning and creating a repository, and of a shallow clone, from Q1050
 

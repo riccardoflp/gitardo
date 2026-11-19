@@ -279,6 +279,42 @@ impl QuickCommand {
     }
 }
 
+impl QuickCommand {
+    /// The card of the catalog the command does, for those Ask Gitardo may name (`help.show-me`): the operation it
+    /// runs, or the feature of the window it shows.
+    #[must_use]
+    pub fn feature(self) -> Option<&'static str> {
+        let window = match self {
+            QuickCommand::GoToCommit => "search.go-to-commit",
+            QuickCommand::OpenCommitAsPage => "commit-page.open",
+            QuickCommand::OpenFolder => "repo.open-folder",
+            QuickCommand::SelectRepository => "repo.select",
+            QuickCommand::OpenWorkspaceFile => "repo.open-code-workspace",
+            QuickCommand::OpenRepositoryInTab => "repo.open-tab",
+            QuickCommand::CloseTab => "repo.close-tab",
+            QuickCommand::ImportGroups => "tasks.import-groups",
+            QuickCommand::ExportGroups => "tasks.export-groups",
+            QuickCommand::RunTask => "tasks.quick-run",
+            QuickCommand::Welcome => "welcome.page",
+            QuickCommand::OpenSettings => "settings.edit",
+            QuickCommand::ShowStashes => "stash.pane",
+            QuickCommand::ReviewConflicts => "review.page",
+            QuickCommand::SearchInFiles => "file-search.open",
+            QuickCommand::ChooseWhatNewWorktreesGet => "worktree-setup.page",
+            _ => return self.operation(),
+        };
+        Some(window)
+    }
+
+    /// The command of Quick search that does a card of the catalog, when there is one.
+    #[must_use]
+    pub fn of_feature(feature: &str) -> Option<QuickCommand> {
+        QuickCommand::ALL
+            .into_iter()
+            .find(|command| command.feature() == Some(feature))
+    }
+}
+
 /// **Search**: its icon and its word, with the keys `Ctrl K` after it, or its icon alone in a narrow window.
 fn search_button(ui: &Ui<'_>) -> Button<'static> {
     if crate::line::is_narrow(ui) {

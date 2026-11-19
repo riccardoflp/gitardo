@@ -6,7 +6,9 @@
   language, is answered by the AI provider from the documents of Gitardo's features, with the words of the controls as
   they are on screen. **Ask Gitardo…** in Quick search and in the **…** menu opens it; a question typed in Quick search
   that finds no command is asked by its last entry, **Ask Gitardo: "…"**. The answer comes as it is written, **Stop**
-  keeps what came, **New conversation** starts again, and closing the page forgets it. Nothing of the repository is
+  keeps what came, **New conversation** starts again, and closing the page forgets it. Under an answer, up to four
+  buttons do the features it named: **Stash Changes** runs the stash as Quick search runs it, **Open Search** opens the
+  page, **Show where** shows the place and says in the status bar what to choose there. Nothing of the repository is
   sent: no path, no branch, no commit.
 - The window, the taskbar and a release say **Gitardo**: the title of the window is *\<repository\> — Gitardo*, the
   archives of a release are named `gitardo-<version>-<system>`, and the settings page says *a new window of Gitardo*.

@@ -1,16 +1,20 @@
 //! The Ask Gitardo page (`help.page`, decision D76): the conversation of the window, each question asked of the AI
-//! provider with the ones before it and their answers, the answer read as it comes; forgotten when the page closes.
+//! provider with the ones before it and their answers, the answer read as it comes; forgotten when the page closes. The
+//! buttons of **Show me** under an answer run, open or show the features it named (`help.show-me`).
 
 use engine::help::HelpRequest;
-use model::help::{App, Exchange, HelpInput, guide, read_answer};
+use model::contract::Target;
+use model::help::{App, Exchange, HelpAnswer, HelpInput, Place, Showing, guide, read_answer, shown_feature};
 use ui::editor::{Cursor, Document, apply};
 use views::Intent;
+use views::feature::FeatureIntent;
 use views::file_view::MarkdownContent;
-use views::help::{HelpExchange, HelpIntent, HelpState};
+use views::help::{HelpExchange, HelpIntent, HelpState, ShowMeButton, button_label, page_of};
 use views::page::Page;
-use views::search::{QuickChoice, SearchIntent};
+use views::search::{QuickChoice, QuickCommand, SearchIntent};
 use views::settings::SettingsAnchor;
 
+use super::feature::Said;
 use super::message::{Effect, Message};
 use super::state::State;
 use crate::work::ai::{AiQuestion, AiReply, AiResult, AiWork, AskId};
@@ -92,7 +96,7 @@ pub fn reduce(state: &mut State, intent: HelpIntent) -> Vec<Effect> {
             )
         }
         HelpIntent::OpenLink(link) => open_link(state, &link),
-        HelpIntent::ShowMe(_) => Vec::new(),
+        HelpIntent::ShowMe(feature) => show_me(state, feature.0),
     }
 }
 
@@ -102,10 +106,12 @@ fn open(state: &mut State) {
     state.help.focus += 1;
 }
 
-/// A link of an answer: an address of the web opens in the browser; the others, the features of `help.show-me`
-/// apart, go nowhere.
+/// A link of an answer: a feature it named does what its button does (`help.show-me`); an address of the web opens
+/// in the browser; the others go nowhere.
 fn open_link(state: &mut State, link: &str) -> Vec<Effect> {
-    let _ = state;
+    if let Some(feature) = shown_feature(link) {
+        return show_me(state, feature);
+    }
     if link.starts_with("https://") || link.starts_with("http://") {
         return vec![Effect::OpenUrl(link.to_owned())];
     }
@@ -212,10 +218,7 @@ fn answered(state: &mut State, result: AiResult) {
     state.help.focus += 1;
     match result {
         Ok(AiReply::Help { answer, text }) => {
-            if let Some(exchange) = state.help.exchanges.last_mut() {
-                exchange.has_words = !answer.markdown.trim().is_empty();
-                exchange.answer = content(&answer.markdown);
-            }
+            show_read(state, &answer);
             if let Some(kept) = state.help.answers.last_mut() {
                 *kept = text;
             }
@@ -234,11 +237,71 @@ fn answered(state: &mut State, result: AiResult) {
 
 /// The answer so far read as the page draws it, without a `[[` whose end has not come yet.
 fn show_answer(state: &mut State, text: &str) {
-    let answer = read_answer(text, &guide(App::Desktop));
+    show_read(state, &read_answer(text, &guide(App::Desktop)));
+}
+
+/// An answer read put under the last question, with a button for each feature it named, at most 4.
+fn show_read(state: &mut State, answer: &HelpAnswer) {
+    let guide = guide(App::Desktop);
+    let buttons = model::help::buttons(&answer.named, &guide)
+        .iter()
+        .map(|shown| ShowMeButton {
+            label: button_label(shown),
+            feature: shown.feature,
+        })
+        .collect();
     if let Some(exchange) = state.help.exchanges.last_mut() {
         exchange.has_words = !answer.markdown.trim().is_empty();
         exchange.answer = content(&answer.markdown);
+        exchange.buttons = buttons;
     }
+}
+
+/// The button of a feature pressed: an operation run as Quick search runs it, a page opened, or the place of the
+/// feature shown with what to choose there said in the status bar.
+fn show_me(state: &mut State, feature: &str) -> Vec<Effect> {
+    let guide = guide(App::Desktop);
+    let Some(shown) = guide.card(feature).and_then(model::help::show_me) else {
+        return Vec::new();
+    };
+    match shown.showing {
+        Showing::Run => {
+            let run = match QuickCommand::of_feature(shown.feature.0) {
+                Some(command) => Intent::Search(SearchIntent::ChooseQuick(QuickChoice::Command(command))),
+                None => Intent::Feature(FeatureIntent::Run(shown.feature, Target::Head)),
+            };
+            super::reduce(state, Message::Intent(run))
+        }
+        Showing::Open => match page_of(shown.feature.0) {
+            Some((_, open)) => super::pages::starting_again(state, |state| super::reduce(state, Message::Intent(open))),
+            None => Place::of(shown.place).map_or_else(Vec::new, |place| show_where(state, place)),
+        },
+        Showing::Where(place) => show_where(state, place),
+    }
+}
+
+/// **Show where**: the place shown, and what to choose there said in the status bar.
+fn show_where(state: &mut State, place: Place) -> Vec<Effect> {
+    let mut intents = match place {
+        Place::FilesPage => vec![Intent::Files(views::files::FilesPageIntent::Open)],
+        Place::ChangesPage | Place::ConflictsPage => vec![Intent::Changes(views::changes::ChangesIntent::Open)],
+        Place::BottomPanel => vec![Intent::Panel(views::panel::PanelIntent::Open)],
+        Place::SettingsPage => vec![Intent::ShowPage(Page::Settings)],
+        _ => vec![Intent::ShowTimeline],
+    };
+    let in_side_column = matches!(place, Place::BranchRail | Place::KeptAside | Place::Repositories);
+    if in_side_column && super::timeline::workspace_panes(state).is_rail_hidden {
+        intents.push(Intent::Graph(views::graph::GraphIntent::ToggleReferences));
+    }
+    let effects: Vec<Effect> = super::pages::starting_again(state, |state| {
+        intents
+            .into_iter()
+            .flat_map(|intent| super::reduce(state, Message::Intent(intent)))
+            .collect()
+    });
+    let said = views::text::help::what_to_choose(place).to_owned();
+    state.operations.said = Some(Said::new(said, false));
+    effects
 }
 
 /// The Markdown of an answer, laid out as the preview of a file lays it out.

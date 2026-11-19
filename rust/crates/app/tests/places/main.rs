@@ -55,6 +55,7 @@ mod going_to;
 mod group_tabs;
 mod header_menus;
 mod help;
+mod help_show_me;
 mod histories;
 mod history;
 mod inspector;

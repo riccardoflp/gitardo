@@ -114,6 +114,9 @@ fn height(laid: &LaidExchange<'_>, ui: &Ui<'_>) -> f32 {
     let mut height = laid.bubble.1;
     if let Some(answer) = &laid.answer {
         height += sizes.spacing.medium + answer.height();
+        if !laid.exchange.buttons.is_empty() {
+            height += sizes.spacing.medium + super::show_me::row_height(&laid.exchange.buttons, ui);
+        }
     } else if laid.is_looking {
         height += sizes.spacing.medium + sizes.row_height;
     }
@@ -138,6 +141,12 @@ fn draw(laid: &LaidExchange<'_>, index: usize, ui: &mut Ui<'_>, at: Point, width
         let clicked = draw_markdown(answer, ("help answer", index), ui, Point::new(at.x, top));
         intents.extend(clicked.into_iter().map(|link| Intent::Help(HelpIntent::OpenLink(link))));
         top += answer.height() + spacing.medium;
+        let buttons = &laid.exchange.buttons;
+        if !buttons.is_empty() {
+            let row = Rect::new(at.x, top, width, super::show_me::row_height(buttons, ui));
+            intents.extend(super::show_me::buttons_view(buttons, index, ui, row));
+            top = row.bottom() + spacing.medium;
+        }
     } else if laid.is_looking {
         let line = Rect::new(at.x, top, width, theme.sizes.row_height);
         let _ = ui.label(line, &Label::new(words::LOOKING).tone(Tone::Muted));

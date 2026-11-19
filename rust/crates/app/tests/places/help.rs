@@ -21,17 +21,17 @@ use super::pointer::apply;
 use super::support::{AiDriver, Window, has, run, says, says_in, typed};
 
 /// The size of the window.
-const SIZE: (u32, u32) = (1100, 720);
+pub(super) const SIZE: (u32, u32) = (1100, 720);
 
 /// A repository of one commit.
-fn one_commit() -> Repository {
+pub(super) fn one_commit() -> Repository {
     let mut repository = Repository::new();
     let _ = repository.commit("Add the readme", &[("README.md", "Gitardo\n")]);
     repository
 }
 
 /// A window showing a repository, with an AI provider set up at a port, or none.
-fn window_with(repository: &Repository, port: Option<u16>) -> State {
+pub(super) fn window_with(repository: &Repository, port: Option<u16>) -> State {
     let mut state = super::showing(repository.path().to_path_buf());
     if let Some(port) = port {
         let ai = &mut state.settings.features.ai;
@@ -43,13 +43,13 @@ fn window_with(repository: &Repository, port: Option<u16>) -> State {
 }
 
 /// Draws the window twice, so that what it shows is laid out and scrolled, and gives its tree.
-fn settled(window: &mut Window, state: &State) -> TreeUpdate {
+pub(super) fn settled(window: &mut Window, state: &State) -> TreeUpdate {
     let _ = window.draw(state, &[]);
     window.draw(state, &[]).1
 }
 
 /// Reduces an intent of the page, and gives the question it asked of the AI provider, if it asked one.
-fn help(state: &mut State, intent: HelpIntent) -> (Vec<Effect>, Option<AskId>) {
+pub(super) fn help(state: &mut State, intent: HelpIntent) -> (Vec<Effect>, Option<AskId>) {
     let effects = run(state, Message::Intent(Intent::Help(intent)));
     let asked = effects.iter().find_map(|effect| match effect {
         Effect::Ask(question) => Some(question.id),
@@ -77,7 +77,7 @@ fn earlier_of(effects: &[Effect]) -> Option<Vec<String>> {
 }
 
 /// The whole answer of a question, read as the engine reads it.
-fn answered(state: &mut State, ask: AskId, text: &str) {
+pub(super) fn answered(state: &mut State, ask: AskId, text: &str) {
     let answer = model::help::read_answer(text, &model::help::guide(model::help::App::Desktop));
     let result = Ok(AiReply::Help {
         answer,

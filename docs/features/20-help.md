@@ -242,6 +242,12 @@ What the button of a feature does, from its place in the guide:
 
 At most 4 buttons, in the order the features were named. Nothing runs until a button is pressed.
 
+An operation's button has the words of its entry in Quick search, as **Stash Changes**, and the title of its card when
+Quick search does not list it. A page's button has the name of the page, as **Open Search** and **Open Compare**, which
+asks what to compare as the bar of views does. A page that opens only on something chosen, as the Diff page on a file,
+or the steps of a rebase while one is under way, has **Show where** in its place, since there is nothing to open it on
+(Q1354). A link of the answer to a feature does what its button does.
+
 Acceptance:
 
 - [ ] An answer naming `stash.push` has the button **Stash Changes**, which asks what Quick search's **Stash Changes**
