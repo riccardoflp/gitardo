@@ -572,9 +572,10 @@ result: Finished
 The answer comes when the feature has finished: refused, backed out of, not confirmed, or run. In between the engine
 asks the extension, as requests on the same connection: `feature/ask` for each question, `feature/confirm` for the
 plan when it must be confirmed, and the host questions. Only one `feature/run` runs at a time in a repository, from
-its start to its answer, questions included; a second is answered `busy`, and the extension drops it without a word,
-as `Controller.run` does today while `this.running` is set (`controller.ts:2421`). The engine of each repository lives
-on a thread of its own (`crates/server/src/repository.rs`), which takes one feature at a time.
+its start to its answer, questions included; a second is answered `busy`. The extension refuses one asked while its
+own runs before sending it, and says either as Gitardo Desktop does: "Gitardo: `<title>` is running in `<repository>`.
+Try again once it ends." (`repo.switch-tab`). The engine of each repository lives on a thread of its own
+(`crates/server/src/repository.rs`), which takes one feature at a time.
 
 An answer in `answers` answers the question of its key without asking it, once. A `confirmed` answer is also read by a
 feature that never asks it: **Remove anyway** sends `force` so (1.3). `inputs` is what the desktop keeps in

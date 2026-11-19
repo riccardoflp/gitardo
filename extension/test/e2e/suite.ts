@@ -1396,13 +1396,18 @@ export async function run(): Promise<void> {
       // The page says it is ready once its module ran, which proves the Monaco bundle loads under the content security policy.
       await until('the Flow Diff page to load', () => panel.initSent);
 
+      errors.length = 0;
       panel.onMessage({ type: 'stageChunk', chunkId: 0 });
+      // One operation runs at a time: another one asked meanwhile is refused, and that is said, as Gitardo Desktop says it.
+      panel.onMessage({ type: 'unstageChunk', chunkId: 0 });
+      await until('the refusal to be said', () => errors.length > 0);
+      assert.deepEqual(errors, ['Gitardo: diff.stage-change is running in app. Try again once it ends.']);
       await until('the change to show as staged', () => panel.currentModel?.chunks[0]?.staged === true);
       assert.equal(await index(), 'one\ntwo\nthree\n');
       // As Gitardo's own operations: in its log, exactly as it ran.
       assert.ok(logged.includes('> git apply --cached --unidiff-zero --whitespace=nowarn -'));
       // The panel follows the index as soon as git writes it, while the engine still reads the repository after the
-      // operation; one operation runs at a time, so the next waits for this one to end.
+      // operation; an unstage asked before it ends would be refused as above.
       await until('the operation to end', () => !(controller as unknown as { running: boolean }).running);
 
       panel.onMessage({ type: 'unstageChunk', chunkId: 0 });

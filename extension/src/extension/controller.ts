@@ -157,6 +157,13 @@ function failureText(error: unknown): string {
   return output || errorText(error);
 }
 
+/**
+ * What is said of an operation asked while another runs, with its title when Gitardo knows it, as Gitardo Desktop says
+ * it (`repo.switch-tab`).
+ */
+const runningElsewhere = (title: string | null, repository: string) =>
+  `Gitardo: ${title ?? 'another operation'} is running in ${repository}. Try again once it ends.`;
+
 /** The title of the tab of a comparison. */
 const compareTitle = (from: CompareSide, to: CompareSide, path: string | null) =>
   `${from.name} ↔ ${to.name}${path ? ` · ${path.slice(path.lastIndexOf('/') + 1)}` : ''}`;
@@ -270,7 +277,12 @@ export class Controller implements vscode.Disposable {
   private operations = 0;
   /** Something changed since that read started. */
   private dirty = false;
-  private running = false;
+  /** The operation `runOnEngine` runs, which another one asked meanwhile is refused for. */
+  private operation: { feature: string; root: string; asker: VscodeAsker } | undefined;
+  /** Whether an operation runs: nothing is read meanwhile. */
+  private get running(): boolean {
+    return this.operation !== undefined;
+  }
   /** Gitardo's engine, which reads the repository and runs every operation on it; without it, the views say so (D49). */
   private engine?: WindowEngine;
   /**
@@ -1973,8 +1985,8 @@ export class Controller implements vscode.Disposable {
 
   /**
    * Runs a feature of the engine in a repository, its questions asked with VS Code's input boxes and picks, its log in
-   * the output channel, and the follow-ups it leaves carried out here; false when there is no engine to run it, which is
-   * said.
+   * the output channel, and the follow-ups it leaves carried out here; false when it did not run, for want of an engine
+   * or because another operation runs, which is said.
    */
   private async runOnEngine(runs: EngineRun[], repo: Repository, hooks: HostHooks = {}, ran?: () => void): Promise<boolean> {
     const client = this.engine?.running;
@@ -1983,19 +1995,25 @@ export class Controller implements vscode.Disposable {
       return false;
     }
     for (const { feature, target, answers } of runs) {
-      // One operation at a time; the engine would answer busy anyway.
-      if (this.running) return true;
-      this.running = true;
+      // One operation at a time, as in Gitardo Desktop: another one asked meanwhile is refused, and that is said.
+      if (this.operation) {
+        const { feature: running, root, asker } = this.operation;
+        void vscode.window.showErrorMessage(runningElsewhere(asker.confirmed ?? running, this.repositoryNamed(root)));
+        return false;
+      }
+      const asker = new VscodeAsker(client, repo.root, hooks);
+      this.operation = { feature, root: repo.root, asker };
       this.operations++;
       this.post({ type: 'busy', title: feature });
       this.repositoriesView.ran(repo.root);
       let result: Awaited<ReturnType<typeof client.runFeature>> | undefined;
-      const asker = new VscodeAsker(client, repo.root, hooks);
       let failed: unknown;
+      let busy = false;
       try {
         const inputs = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
         result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs }, asker);
       } catch (failure) {
+        busy = failure instanceof EngineError && failure.code === ErrorCode.busy;
         if (!(failure instanceof EngineError && (failure.code === ErrorCode.busy || failure.code === ErrorCode.cancelled))) {
           const data = failure instanceof EngineError ? (failure.data as { output?: string | null; followUps?: FollowUp[] } | undefined) : undefined;
           const said = data?.output?.trim();
@@ -2004,7 +2022,7 @@ export class Controller implements vscode.Disposable {
         }
       } finally {
         // The repository is read once the run is over: nothing is read while an operation runs.
-        this.running = false;
+        this.operation = undefined;
         this.post({ type: 'busy', title: null });
         this.repositoriesView.ran(null);
       }
@@ -2014,6 +2032,11 @@ export class Controller implements vscode.Disposable {
         await this.followUpsBeforeRead(this.worktreeMade(feature, finished, followUps, repo), { feature, target, repo, title: finished.plan.title });
       }
       await this.refresh();
+      // The engine runs one operation in a repository at a time, whoever asked for it.
+      if (busy) {
+        void vscode.window.showErrorMessage(runningElsewhere(null, this.repositoryNamed(repo.root)));
+        return false;
+      }
       // Said once the repository is read again, which tells whether it stopped on conflicts.
       if (failed !== undefined) this.reportEngineFailure(failed, asker.confirmed, repo);
       if (finished?.kind === 'refused') this.offerAfterRefusal(finished.message, finished.offer, target, repo);
@@ -3038,6 +3061,12 @@ export class Controller implements vscode.Disposable {
     let ran = false;
     await this.runOnEngine(runs, repo, {}, () => (ran = true));
     return ran;
+  }
+
+  /** The name of a repository as the list of the repositories has it. */
+  private repositoryNamed(root: string): string {
+    const folders = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
+    return this.repos.find((repo) => samePath(repo.root, root))?.name ?? repositoryName(root, folders);
   }
 
   /** The newest entry of the engine's journal of a repository, for the label of **Undo**; null without an engine. */

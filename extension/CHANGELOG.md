@@ -31,6 +31,10 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - The context menu of the row of the repository shown in the **Gitardo Repositories** view has **Clean up…**, which says the room the repository takes and runs `git gc`, and **Look after it in the background…**, ticked while git's scheduled maintenance looks after the repository, which registers it with `git maintenance start` or, ticked, unregisters it.
 - An image at a commit, in the index or in a conflict, opened from Gitardo, opens in VS Code's preview of images, and the diff of an image in VS Code's diff editor with its two pictures: the files of the scheme `gitardo` are given to VS Code as their bytes. Before, an image at a revision opened as its bytes in a text editor.
 
+### Fixed
+
+- An operation asked while another runs, such as **Unstage** in the Flow Diff clicked while the **Stage** before it still ends, is refused with "Gitardo: `<operation>` is running in `<repository>`. Try again once it ends.", as Gitardo Desktop says it. Before, it was dropped without a word, and counted as done.
+
 ## 1.2.0 - 2026-11-18
 
 ### Added

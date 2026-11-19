@@ -219,7 +219,8 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
   nothing of it themselves.
 - **One repository at a time**: the `Controller` shows one repository of the workspace, chosen in the toolbar's list or
   remembered from the last time. A tab of a commit or a comparison stays with the repository it was opened for.
-- **One operation at a time**: while `Controller.runOnEngine` runs one (`running`), another is refused and nothing is
+- **One operation at a time**: while `Controller.runOnEngine` runs one (`operation`), another is refused, with
+  "Gitardo: `<title>` is running in `<repository>`. Try again once it ends." as in Gitardo Desktop, and nothing is
   read; the read that was under way is let finish and dropped.
 - **Reads follow the files**: file system watchers on `.git` (its `HEAD`, `index`, `refs`, `logs/refs/stash`,
   `worktrees`, `modules`, …) and on the working tree schedule a read, once per burst of changes. A read that started

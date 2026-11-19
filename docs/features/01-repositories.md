@@ -1202,6 +1202,9 @@ Shows the repository of another tab, as it was left.
   shown the next time it opens.
 - **Refuses**: nothing; showing the tab shown already reads nothing.
 - **Uses**: `repo.keep-open`, `repo.watch-hidden`, `repo.owner-of-file`.
+- **Extension**: Host only: VS Code shows one repository at a time (`repo.select`). It runs one operation at a time
+  too, and one asked meanwhile, by a command, a view or a button of the Flow Diff or the Flow Merge, is refused with
+  the sentence below, as is one the engine answers `busy`, with "another operation" for its title.
 
 While an operation runs, tabs can still be switched, and what the other tabs show can be looked at, searched and
 opened. The tab of the operation shows a spinner, keeps what it shows while it runs whatever `repositories.keepOpen`
@@ -1218,6 +1221,8 @@ Acceptance:
 - [ ] While a pull runs in `api`, `web` can be shown, scrolled and searched, and the tab of `api` shows a spinner.
 - [ ] A question the operation of `api` asks while `web` is shown is asked once `api` is shown again.
 - [ ] Starting a commit in `web` while a pull runs in `api` is refused with that sentence.
+- [ ] In the extension, **Unstage** in the Flow Diff while its **Stage** runs is refused with that sentence, and
+  nothing is unstaged.
 - [ ] **Show File History** of a file of `web`, chosen while `api` is shown, shows the tab of `web`.
 - [ ] The tab shown is the one shown when the window opens again.
 
