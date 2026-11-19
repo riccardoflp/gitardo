@@ -5508,6 +5508,10 @@ asked while it is planned; each is built as it says until the maintainer answers
   Should the review say so when rerere is on?
 - **Q1205** — `lfs.show-in-pages`: the content of a file stored with Git LFS is diffed as text, or said binary. Should
   an image stored with Git LFS be shown as images are, once the window shows images?
+- **Q1400** — `rebase.update-refs`: Gitardo's `rebase.updateRefs` has three states, `true`, `false` and not set, and
+  the settings page draws a setting of `true` or `false` as a switch, which cannot say "not set". It is read from the
+  two settings files and is not on the settings page yet. Should the page give it a choice of three, **Move them**,
+  **Leave them** and **As git says**?
 
 ### Of notes, archives and upkeep, from Q1210
 

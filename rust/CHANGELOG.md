@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Rebasing a branch onto another, or a branch dropped on a commit, moves with it the other local branches on the commits
+  it makes again, a stack of branches each started from the one under it: `git rebase --update-refs`, and what is said
+  after names them. A branch checked out in another worktree stays, and so do all of them with a git older than 2.38;
+  the rebase then asks first and says which stay and why. The setting `rebase.updateRefs`, in the settings files,
+  turns it off or on whatever git's own setting says.
 - **Create branch with no history…**, in Quick search and in **…** after **Branch**, starts a branch whose first commit
   has no parent: **Start with no files** takes the tracked files out of the working tree and leaves the untracked ones,
   **Keep the files, staged** stages every file as new. Undo right after checks out again what was checked out before.

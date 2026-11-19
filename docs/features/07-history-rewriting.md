@@ -633,6 +633,11 @@ Rules:
   for an interactive rebase, its steps. Output: the option of the rebase, the `update-ref` lines of the todo list, the
   branches that move and those that stay, and the note of the plan.
 - The branches move when Gitardo's setting is `true`, or when it is not set and git's is not `false`.
+- As built so far: `rebase.onto` and `rebase.branch-onto` read the version of git and the branches of the stack, and
+  get the option, the note in their confirmation when a branch stays, and what is said after; the `update-ref` lines
+  of the todo lists Gitardo writes (`rebase.interactive` and the operations built on it), `fixup.commit`, the branches
+  shown on the interactive rebase page and the setting on the settings page (Q1400) are not built yet. The note that
+  says which branches move is said after the run, as the plan of a rebase that moves them all asks nothing.
 - With no branch on the commits made again, nothing changes: no option, no line, no note.
 - A rebase with git's own todo list (`rebase.onto`, `rebase.branch-onto`, `fixup.commit`) gets `--update-refs` when
   the branches move, and `--no-update-refs` when they do not and git's setting is `true`, so that the command says what

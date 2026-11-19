@@ -1208,8 +1208,11 @@ their tests passing; the first five in Gitardo Desktop, the last in the extensio
    operation. Cards: every card above.
 
 Phase 1 is built: `git --version` read once for each engine (`Query::GitVersion`), and the branches on the commits a
-rebase makes again with the worktree of each and git's `rebase.updateRefs` (`Query::StackedBranches`); nothing uses them
-yet, so the user sees no change.
+rebase makes again with the worktree of each and git's `rebase.updateRefs` (`Query::StackedBranches`).
+Phase 2 is built in part: the decision (`model::rebase::update_refs`), Gitardo's setting `rebase.updateRefs` read from
+the settings files, and `--update-refs` or `--no-update-refs` on `rebase.onto` and `rebase.branch-onto`, with the note
+when a branch stays and what is said after. The `update-ref` lines of Gitardo's own todo lists, `fixup.commit`, the
+interactive rebase page and the entry of the settings page (Q1400) are not built yet; nor are phases 3 to 6.
 
 Nothing is built yet.
 

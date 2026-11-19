@@ -72,6 +72,8 @@ pub const BRANCH_OPEN_INS: [&str; 2] = ["checkout", "worktree"];
 pub const PULL_REBASE: &str = "pull.rebase";
 /// `pull.autostash`.
 pub const PULL_AUTOSTASH: &str = "pull.autostash";
+/// `rebase.updateRefs`.
+pub const REBASE_UPDATE_REFS: &str = "rebase.updateRefs";
 /// `identities`.
 pub const IDENTITIES: &str = "identities";
 /// `cherryPick.recordOrigin`.
