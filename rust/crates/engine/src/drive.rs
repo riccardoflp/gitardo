@@ -89,6 +89,8 @@ pub struct Engine {
     http: Option<http::Http>,
     task_steps: TaskSteps,
     host: Option<Box<dyn crate::Host>>,
+    /// The GitHub Copilot CLI of the window, which lists the models when `ai.provider` is `copilot` (`ai.copilot`).
+    copilot: Option<crate::ai::CopilotCli>,
 }
 
 impl Engine {
@@ -109,6 +111,7 @@ impl Engine {
             http: None,
             task_steps: TaskSteps::InPlace,
             host: None,
+            copilot: None,
         }
     }
 

@@ -10,11 +10,13 @@ pub enum AiProvider {
     Anthropic,
     /// `openai-compatible`: the chat completions of `OpenAI`, as many servers offer them.
     OpenAiCompatible,
+    /// `copilot`: GitHub Copilot, through the GitHub Copilot CLI and the user's own sign-in (`ai.copilot`).
+    Copilot,
 }
 
 impl AiProvider {
-    /// The values the setting takes, in this order: `anthropic`, `openai-compatible`.
-    pub const VALUES: [&'static str; 2] = ["anthropic", "openai-compatible"];
+    /// The values the setting takes, in this order: `anthropic`, `openai-compatible`, `copilot`.
+    pub const VALUES: [&'static str; 3] = ["anthropic", "openai-compatible", "copilot"];
 
     /// The provider a value of the setting names; none for an empty value or one it does not take.
     #[must_use]
@@ -22,6 +24,7 @@ impl AiProvider {
         match value {
             "anthropic" => Some(AiProvider::Anthropic),
             "openai-compatible" => Some(AiProvider::OpenAiCompatible),
+            "copilot" => Some(AiProvider::Copilot),
             _ => None,
         }
     }
@@ -32,6 +35,7 @@ impl AiProvider {
         match self {
             AiProvider::Anthropic => "anthropic",
             AiProvider::OpenAiCompatible => "openai-compatible",
+            AiProvider::Copilot => "copilot",
         }
     }
 
@@ -142,7 +146,44 @@ pub enum AiModels {
     KeyNeeded,
     /// It failed: why, in words.
     Failed(String),
+    /// GitHub Copilot cannot be asked until the user does something first (`ai.copilot`).
+    CopilotNeeds(CopilotNeed),
 }
+
+/// What the user does before GitHub Copilot can be asked (`ai.copilot`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CopilotNeed {
+    /// Install the GitHub Copilot CLI: `copilot` is not on the `PATH`.
+    Install,
+    /// Sign in to it, with `copilot login`.
+    SignIn,
+}
+
+impl CopilotNeed {
+    /// What it says: *The GitHub Copilot CLI is not installed. Install it, then try again.*
+    #[must_use]
+    pub fn sentence(self) -> &'static str {
+        match self {
+            CopilotNeed::Install => "The GitHub Copilot CLI is not installed. Install it, then try again.",
+            CopilotNeed::SignIn => "GitHub Copilot is not signed in.",
+        }
+    }
+
+    /// The words of the button that does it: **How to install** or **Sign in**.
+    #[must_use]
+    pub fn button(self) -> &'static str {
+        match self {
+            CopilotNeed::Install => "How to install",
+            CopilotNeed::SignIn => "Sign in",
+        }
+    }
+}
+
+/// GitHub's page on installing the GitHub Copilot CLI, which **How to install** opens.
+pub const COPILOT_INSTALL_PAGE: &str = "https://docs.github.com/copilot/how-tos/set-up/install-copilot-cli";
+
+/// The command **Sign in** runs in a terminal of the bottom panel.
+pub const COPILOT_SIGN_IN: &str = "copilot login";
 
 /// What is asked of the language model: one message from the user.
 #[derive(Clone, Debug, PartialEq, Eq)]

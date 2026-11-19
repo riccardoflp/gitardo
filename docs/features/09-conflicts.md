@@ -1699,8 +1699,9 @@ conflicts the rules leave, and the draft of a commit message
 ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)).
 
 - **Kind**: Read
-- **Function**: `engine::ai::CopilotModel`, the `LanguageModel` that `ai.ask-conflict`, `commit.draft-message` and
-  `ai.choose-model` are given when `ai.provider` is `copilot`, in place of `engine::ai::ProviderModel`.
+- **Function**: `engine::ai::copilot_model(cli: &CopilotCli, settings: &AiSettings, cancel: &Cancel) -> CopilotModel`,
+  the `LanguageModel` that `ai.ask-conflict`, `commit.draft-message` and `ai.choose-model` are given when
+  `ai.provider` is `copilot`, in place of `engine::ai::ProviderModel`.
 - **Reads**: the GitHub Copilot CLI, the program `copilot` found on the `PATH`
   ([Q862](../08-decisions.md#open-questions)), started once for the window in its server mode and spoken to over its
   standard input and output in JSON-RPC, as the Copilot SDK speaks to it: the models the subscription offers, for
@@ -1713,6 +1714,26 @@ conflicts the rules leave, and the draft of a commit message
   reads nothing of the repository but what the question carries, and runs nothing.
 - **Settings**: `ai.provider` (`copilot`), `ai.model`, `ai.effort`; `ai.endpoint` is not used.
 - **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`, as the other providers.
+- **Protocol**: read from the Copilot SDK's client for Rust, `github-copilot-sdk` 0.1.0, of protocol version 2, which
+  speaks to the CLI of its time; the CLI itself could not be run where it was built, so its answers are those of the
+  fake ([Q1350](../08-decisions.md#open-questions)).
+  - `copilot --server --stdio --no-auto-update --log-level error`, found on the `PATH` (`copilot.cmd`, which npm
+    installs, on Windows, from `PATHEXT`), started the first time a question needs it and kept for the window; it
+    leads a process group of its own (a job object on Windows), ended with what it started when the window closes.
+  - JSON-RPC 2.0, each message framed with `Content-Length: <bytes>` and an empty line, as the Language Server
+    Protocol frames them.
+  - `auth.getStatus` before each question: `isAuthenticated` false is *not signed in*.
+  - `models.list`: `{"models": [{"id", "name"}, …]}`, for `ai.choose-model` and for the first model when `ai.model`
+    is empty.
+  - `session.create` with `model`, `reasoningEffort` (`low`, `medium`, `high`, or `xhigh` for **Extra high** and
+    **Max**) when `ai.effort` is set, `streaming` true, `availableTools` empty and `requestPermission` true; it answers
+    `sessionId`. Then `session.send` with `sessionId` and `prompt`.
+  - The notifications `session.event`, with `sessionId` and `event` (`type`, `data`): `assistant.message_delta` with
+    `deltaContent`, each piece passed on; `assistant.message` with `content`, the answer when no piece came;
+    `session.idle`, the end; `session.error` with `message`, Copilot's refusal.
+  - Cancelled: `session.abort`. Answered, failed or cancelled: `session.destroy`; the CLI keeps running.
+  - What the CLI asks of Gitardo: `permission.request` is answered `{"result": {"kind": "reject"}}`, `tool.call`
+    `{"result": {"resultType": "rejected", …}}`, and any other request with the error `-32601`.
 - **Refuses**: without `copilot` on the `PATH`: *The GitHub Copilot CLI is not installed. Install it, then try again.*
   with **How to install**, which opens GitHub's page on installing it; when it is not signed in: *GitHub Copilot is not
   signed in.* with **Sign in**, which runs `copilot login` in a terminal of the bottom panel; when Copilot refuses the

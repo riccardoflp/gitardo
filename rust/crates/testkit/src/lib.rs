@@ -6,6 +6,7 @@
 //!   `GITARDO_GOLDEN_RECORD=1` is set.
 //! - [`Random`] is a seeded random source that says its seed when a test fails, so that `GITARDO_TEST_SEED` can run it
 //!   again with the same numbers.
+//! - [`FakeCopilot`] answers as the GitHub Copilot CLI does, over pipes, so that no account is needed.
 //! - [`png`] writes and reads the PNG images of the view snapshots, and draws the differences between two of them.
 //!
 //! This crate is only ever a `dev-dependency`: it is never shipped. That is why it may run `git` itself with
@@ -17,6 +18,7 @@
 // message is the right way to say it, as it is in the tests themselves.
 #![allow(clippy::panic, clippy::expect_used, clippy::unwrap_used)]
 
+mod copilot;
 mod environment;
 mod error;
 mod folder;
@@ -26,6 +28,7 @@ mod random;
 mod remote;
 mod repository;
 
+pub use copilot::{CopilotScript, FakeCopilot};
 pub use environment::FIRST_COMMIT_TIME;
 pub use error::Error;
 pub use golden::assert_golden;

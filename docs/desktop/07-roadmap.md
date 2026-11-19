@@ -957,6 +957,9 @@ leaves the CLI running and the next one is answered; with the CLI signed out, **
 `copilot login`, and once it ends the question is answered; without the CLI, the refusal offers **How to install**;
 every card of the milestone passes its tests, against the fake CLI.
 
+Built so far: phase 1, `engine::ai::CopilotCli` and `copilot_model`, with the fake CLI of `testkit` (`FakeCopilot`);
+the parts of the protocol are in the card, read from the Copilot SDK (Q1350).
+
 ## M31 — Ask Gitardo how to do something
 
 A question in the user's own words, in any language, about how to do something with Gitardo, answered by the AI

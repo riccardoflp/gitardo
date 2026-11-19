@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use git::GitError;
 use git::read::github::{TokenRequest, read_token, token_arguments};
 use http::{Cancel, Http, Proxies, ProxySettings, Trust};
-use model::ai::{AiModels, AiSettings, Key};
+use model::ai::{AiModels, AiProvider, AiSettings, Key};
 use model::contract::FollowUp;
 use model::github::{HelperAsked, Token};
 
@@ -99,6 +99,9 @@ impl Engine {
         let Some(provider) = settings.provider else {
             return AiModels::Failed(String::from("No AI provider is set up."));
         };
+        if provider == AiProvider::Copilot {
+            return self.copilot_models();
+        }
         let key = typed.or_else(|| match self.secrets.read(&provider.key_name()) {
             Ok(kept) => kept.map(Key),
             Err(error) => {
@@ -123,6 +126,26 @@ impl Engine {
             &crate::ai::Provider { settings, key },
         );
         let line = String::from("list the models of the AI provider");
+        self.log.record_read(self.clock.now(), line, started.elapsed());
+        listed
+    }
+
+    /// Lists the models with the GitHub Copilot CLI of the window, which `ask_copilot_with` gives, or one of its own.
+    pub fn ask_copilot_with(&mut self, cli: crate::ai::CopilotCli) {
+        self.copilot = Some(cli);
+    }
+
+    /// The models of the user's Copilot subscription (`ai.copilot`).
+    fn copilot_models(&mut self) -> AiModels {
+        let cli = self.copilot.get_or_insert_with(crate::ai::CopilotCli::system).clone();
+        let token = self.cancel.clone();
+        let cancel = Cancel::following(move || token.is_cancelled());
+        let started = Instant::now();
+        let listed = match cli.models(&cancel) {
+            Ok(models) => AiModels::Listed(models),
+            Err(error) => crate::ai::failed_models(error.into()),
+        };
+        let line = String::from("list the models of GitHub Copilot");
         self.log.record_read(self.clock.now(), line, started.elapsed());
         listed
     }

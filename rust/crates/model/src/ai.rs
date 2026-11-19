@@ -9,7 +9,10 @@ mod trim;
 
 pub use answer::{AnswerError, Confidence, ConflictAnswer, read_answer, streamed_lines};
 pub use question::{LinesAround, QuestionInput, conflict_question, lines_around};
-pub use settings::{AiModel, AiModels, AiProvider, AiRequest, AiSettings, Effort, Key};
+pub use settings::{
+    AiModel, AiModels, AiProvider, AiRequest, AiSettings, COPILOT_INSTALL_PAGE, COPILOT_SIGN_IN, CopilotNeed, Effort,
+    Key,
+};
 pub use trim::{TrimInput, trim_answer};
 
 /// Whether a line is a conflict marker: 7 signs `<`, `=`, `>` or `|`, then the end of the line or a space.

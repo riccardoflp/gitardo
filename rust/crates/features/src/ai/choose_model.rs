@@ -1,7 +1,7 @@
 //! `ai.choose-model`: chooses the model of the AI provider that is asked about conflicts, and how much it thinks,
 //! written in the user's settings file.
 
-use model::ai::{AiModel, AiModels, Effort, Key};
+use model::ai::{AiModel, AiModels, CopilotNeed, Effort, Key};
 use model::contract::{
     Answer, AnswerKey, Answers, Choice, Context, Danger, FeatureId, FollowUp, Outcome, Plan, Query, Question,
     QuestionKind, Refusal, SettingWritten, Step, Text, Undo, Validation,
@@ -24,6 +24,13 @@ pub const SETTINGS: AnswerKey = AnswerKey("settings file");
 pub const FIRST_MODEL: &str = "first";
 /// The choice of the effort the model is set up with, which removes `ai.effort`.
 pub const AS_SET_UP: &str = "as set up";
+
+/// **How to install**, offered when the GitHub Copilot CLI is not on the `PATH`: the window opens GitHub's page on
+/// installing it (`ai.copilot`).
+pub const COPILOT_INSTALL: FeatureId = FeatureId("ai.copilot-install");
+/// **Sign in**, offered when the GitHub Copilot CLI is not signed in: the window runs `copilot login` in a terminal of
+/// the bottom panel (`ai.copilot`).
+pub const COPILOT_SIGN_IN: FeatureId = FeatureId("ai.copilot");
 
 /// The prefix of the choice of a model listed.
 const MODEL_PREFIX: &str = "model:";
@@ -169,6 +176,20 @@ fn listed(context: &Context, answers: &Answers, typed: Option<&Key>) -> Result<V
             "The AI provider refused the key.",
         )))),
         AiModels::Failed(reason) => Err(Box::new(Outcome::Refuse(Refusal::saying(reason)))),
+        AiModels::CopilotNeeds(need) => Err(Box::new(Outcome::Refuse(copilot_refusal(*need)))),
+    }
+}
+
+/// What GitHub Copilot needs first, with the button that does it: **How to install** or **Sign in** (`ai.copilot`).
+#[must_use]
+pub fn copilot_refusal(need: CopilotNeed) -> Refusal {
+    let feature = match need {
+        CopilotNeed::Install => COPILOT_INSTALL,
+        CopilotNeed::SignIn => COPILOT_SIGN_IN,
+    };
+    Refusal {
+        message: Text::from(need.sentence()),
+        offer: Some((feature, Text::from(need.button()))),
     }
 }
 

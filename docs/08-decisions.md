@@ -5128,6 +5128,11 @@ built; each is built as it says until the maintainer answers otherwise.
   VS Code. Should the settings page or the review say so before the first question?
 - **Q865** — The archives of a release are named `gitardo-<version>-windows-x64.zip`, `gitardo-<version>-linux-x64.tar.gz`
   and `gitardo-<version>-macos-arm64.tar.gz`, no longer `gitardo-desktop-…`. Is that the name?
+- **Q1350** — `ai.copilot`: the protocol of the GitHub Copilot CLI was read from the Copilot SDK's client for Rust
+  (`github-copilot-sdk` 0.1.0), not from a CLI run, and is tried against a fake: the flags of its server mode, the
+  answer to `permission.request` (`kind` `reject`, where older CLIs took `denied-interactively-by-user`) and the
+  shape of `models.list` may differ in the CLI a user has. Should **Before a release** try each part against the CLI
+  of the day, and the card name the version that passed?
 
 ### Of Ask Gitardo, from Q866
 
