@@ -899,7 +899,7 @@ reads it in the title; `gitardo-demo`, the setting `worktrees.openIn` and the ca
 `release.yml` names the archives `gitardo-<version>-…` and the part of the notes **Gitardo**; the folder of the
 settings and the names of the secrets are as they were. The release on a test tag is left to the pipeline's next run.
 
-## M29 — Wayland of its own
+## M29 — Wayland of its own (done)
 
 Gitardo on Wayland as much as on X11, with nothing it needs taken through XWayland
 ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider), Q2). Built in
@@ -932,7 +932,14 @@ compositor offers neither, as GNOME's and Weston's, through XWayland then (Q1380
 Wayland `winit` 0.30.13 asks `xdg_toplevel.show_window_menu` already; on X11, where it asks nothing,
 `crates/platform/src/linux/window_menu.rs` sends `_GTK_SHOW_WINDOW_MENU` to the window manager on `winit`'s connection
 of Xlib, through `x11-dl`, which `winit` uses too (Q1381); Q570 is answered, and `window.title-bar` has its line of the
-menu on Linux.
+menu on Linux. Phase 3: the Linux job of `check.yml` runs the tests of `platform` again under Xvfb, and under Weston
+with its headless backend, `WAYLAND_DISPLAY` set and `DISPLAY` not; **Before a release** has the pass on GNOME and KDE
+Plasma on Wayland, and the README says Linux runs on both. Tried in WSL before the pipeline: the tests of `platform`
+pass with no display, under WSLg's X server, and under a Weston 14 of its own with the headless backend (extracted
+from Ubuntu's packages, without root); WSLg's own compositor, which serves its windows over RDP, drops a connection
+now and then while no window of it is shown, so its runs fail at random as they open a window, with or without M29. Weston offers no protocol of data control, so the test of
+the clipboard returns there once the clipboard is refused (Q1380); the menu of the window is asked of a compositor
+nothing answers in a test, and is left to **Before a release**.
 
 ## M30 — GitHub Copilot, an AI provider (done)
 
@@ -1414,6 +1421,11 @@ By hand, on each system, with a real account and a real model:
       a conflict and draft a message with GitHub Copilot; sign out with `copilot logout` and sign in again from
       **Sign in** (`ai.copilot`, Q1350).
 - [ ] Choose a folder, a file to open and a file to save with the system's dialogs.
+- [ ] On Linux, on GNOME and on KDE Plasma, both on Wayland: move the window by its title bar, maximize it with a
+      double click and resize it from an edge; open the menu of the window with a right click on the caption; type a
+      text with an input method; copy a hash and paste it in another program, and paste in Gitardo a text copied
+      there; choose a file with the dialogs, through the portal; look at the window at a scale of 125% and of 200%;
+      run a command in the terminal of the bottom panel (M29).
 - [ ] Open a worktree in a new window, in the external editor and in a terminal.
 - [ ] Remove a worktree with a linked `node_modules` on Windows, and check that the original `node_modules` is intact.
 - [ ] Look at every snapshot that changed since the last release.

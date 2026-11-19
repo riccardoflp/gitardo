@@ -44,12 +44,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: The libraries the window needs on Linux
+      - name: The libraries the window needs on Linux, Xvfb and Weston
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev \
-            libgl1-mesa-dev libfontconfig1-dev libdbus-1-dev pkg-config
+            libgl1-mesa-dev libfontconfig1-dev libdbus-1-dev pkg-config xvfb weston
       # rustup installs the toolchain rust-toolchain.toml names, with rustfmt and clippy, on first use.
       - name: The toolchain
         run: rustup show active-toolchain
@@ -69,6 +69,21 @@ jobs:
           git config --global core.autocrlf false
       - name: cargo xtask check
         run: cargo xtask check
+      # The tests of platform that open windows, use the clipboard or watch folders return at once without a display, as
+      # in the check above: here they run on X11 (Xvfb) and on Wayland alone, under Weston with its headless backend,
+      # with WAYLAND_DISPLAY set and no DISPLAY, so that nothing goes through XWayland (milestone M29).
+      - name: The tests of platform on X11 and on Wayland
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run -a cargo test -p platform
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/wayland"
+          mkdir -p -m 0700 "$XDG_RUNTIME_DIR"
+          weston --backend=headless-backend.so --socket=gitardo-tests --idle-time=0 > "$RUNNER_TEMP/weston.log" 2>&1 &
+          weston=$!
+          for _ in $(seq 50); do [ -S "$XDG_RUNTIME_DIR/gitardo-tests" ] && break; sleep 0.2; done
+          if [ ! -S "$XDG_RUNTIME_DIR/gitardo-tests" ]; then cat "$RUNNER_TEMP/weston.log"; exit 1; fi
+          env -u DISPLAY WAYLAND_DISPLAY=gitardo-tests cargo test -p platform
+          kill "$weston"
       # Both targets of the Mac are built, which with the check above closes M11 of the desktop (D48).
       - name: The other target of the Mac
         if: runner.os == 'macOS'

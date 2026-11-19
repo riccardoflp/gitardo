@@ -61,6 +61,11 @@ Conflicts can be resolved and commit messages drafted by a language model, once 
 or `openai-compatible` over HTTP, or `copilot` for GitHub Copilot, which Gitardo asks through the GitHub Copilot CLI
 with the user's own sign-in and subscription; the CLI is installed and signed in to by the user (`copilot login`).
 
+Gitardo runs on Windows, on macOS and on Linux; on Linux both on X11 and on Wayland, where the window, its title bar
+and its menu, and the clipboard speak to the compositor itself, with no XWayland, wherever the compositor offers a
+clipboard to programs (`ext-data-control` or `wlr-data-control`, as KDE Plasma and Sway do; on GNOME, through
+XWayland).
+
 The only program needed besides the Rust toolchain is `git`, 2.40 or later for the previews of conflicts. Building
 needs the C compiler the Rust toolchain uses on the system, for the cryptography of the TLS library.
 
