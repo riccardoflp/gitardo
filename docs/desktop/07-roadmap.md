@@ -958,7 +958,10 @@ leaves the CLI running and the next one is answered; with the CLI signed out, **
 every card of the milestone passes its tests, against the fake CLI.
 
 Built so far: phase 1, `engine::ai::CopilotCli` and `copilot_model`, with the fake CLI of `testkit` (`FakeCopilot`);
-the parts of the protocol are in the card, read from the Copilot SDK (Q1350).
+the parts of the protocol are in the card, read from the Copilot SDK (Q1350). Phase 2: `copilot` taken by
+`ai.provider`, one CLI for the window shared by the questions and by `ai.choose-model`, the endpoint left out of the
+settings page, and the refusals with **How to install** and **Sign in**. The settings page has no labels for the
+values of a text setting, so the description of `ai.provider` names **GitHub Copilot** beside `copilot`.
 
 ## M31 — Ask Gitardo how to do something
 

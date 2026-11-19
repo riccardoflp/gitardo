@@ -157,15 +157,22 @@ impl DesktopWindow {
         )?;
         apply_text(&mut surface, &settings)?;
         let activities = Activities::new();
+        // One GitHub Copilot CLI for the window, started the first time it is asked, and ended as the window closes.
+        let access = GitHubAccess::system();
         let mut state = State::new(persisted, settings, user_file);
         state.caption = caption_of(&surface);
         Ok(DesktopWindow {
             surface,
             state,
             workers: Workers::new(WORKERS, &activities, deliver),
-            operations: Operations::new(&activities, deliver),
-            asking: crate::work::ai::Asking::new(deliver, &activities, Box::new(engine::SystemSecrets)),
-            github: GitHubReader::new(GitHubAccess::system(), &activities, deliver),
+            operations: Operations::with_access(&activities, deliver, access.clone()),
+            asking: crate::work::ai::Asking::new(
+                deliver,
+                &activities,
+                Box::new(engine::SystemSecrets),
+                &access.copilot,
+            ),
+            github: GitHubReader::new(access, &activities, deliver),
             commands: CommandsWork::new(deliver),
             terminals: crate::work::Terminals::new(deliver),
             task_runs: crate::work::TaskRuns::new(deliver),

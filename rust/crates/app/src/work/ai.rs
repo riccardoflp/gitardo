@@ -8,11 +8,13 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use engine::ai::{ConflictReply, ConflictRequest, Provider, ProviderModel, Sending};
+use engine::ai::{
+    ConflictReply, ConflictRequest, CopilotCli, CopilotError, LanguageModel, Provider, ProviderModel, Sending,
+};
 use engine::{Activities, SecretStore};
 use git::read::commit::{DraftDiffRequest, read_draft_diff};
 use http::{Cancel, Http, Proxies, ProxySettings, Trust};
-use model::ai::{AiSettings, Key};
+use model::ai::{AiProvider, AiSettings, CopilotNeed, Key};
 use model::commit::DraftInput;
 use model::contract::Text;
 
@@ -79,6 +81,8 @@ pub struct AiFailed {
     pub text: String,
     /// Whether no other question is to be asked: the model chosen is not there.
     pub stops_the_rest: bool,
+    /// What GitHub Copilot needs first, which the window offers to do: install its CLI, or sign in (`ai.copilot`).
+    pub need: Option<CopilotNeed>,
 }
 
 impl AiFailed {
@@ -88,15 +92,21 @@ impl AiFailed {
         AiFailed {
             text,
             stops_the_rest: false,
+            need: None,
         }
     }
 }
 
 impl From<engine::ai::AiError> for AiFailed {
     fn from(error: engine::ai::AiError) -> AiFailed {
+        let need = match &error {
+            engine::ai::AiError::Copilot(CopilotError::Needs(need)) => Some(*need),
+            _ => None,
+        };
         AiFailed {
             stops_the_rest: matches!(error, engine::ai::AiError::ModelMissing(_)),
             text: error.to_string(),
+            need,
         }
     }
 }
@@ -116,13 +126,22 @@ pub struct Asking {
     running: Arc<Mutex<HashMap<AskId, Cancel>>>,
     /// Where a draft of a message is put while it is written.
     activities: Activities,
+    /// The GitHub Copilot CLI of the window, asked when `ai.provider` is `copilot`.
+    copilot: CopilotCli,
 }
 
 impl Asking {
-    /// The questions of a window, which take the key of the provider from `secrets` and give what comes to `deliver`.
+    /// The questions of a window, which take the key of the provider from `secrets`, ask GitHub Copilot through
+    /// `copilot`, and give what comes to `deliver`.
     #[must_use]
-    pub fn new(deliver: &Deliver, activities: &Activities, secrets: Box<dyn SecretStore>) -> Asking {
+    pub fn new(
+        deliver: &Deliver,
+        activities: &Activities,
+        secrets: Box<dyn SecretStore>,
+        copilot: &CopilotCli,
+    ) -> Asking {
         Asking {
+            copilot: copilot.clone(),
             activities: activities.clone(),
             deliver: Arc::clone(deliver),
             secrets: Arc::new(Mutex::new(secrets)),
@@ -144,6 +163,7 @@ impl Asking {
             Arc::clone(&self.http),
             Arc::clone(&self.running),
         );
+        let copilot = self.copilot.clone();
         let spawned = thread::Builder::new()
             .name(format!("question {}", question.id))
             .spawn(move || {
@@ -152,7 +172,12 @@ impl Asking {
                     let started = model::Timestamp(seconds_now());
                     activities.track(Text::from(DRAFTING), Text::from(DRAFTING_CAUSE), started)
                 });
-                let result = answer(question, (&secrets, &http), &cancel, &deliver);
+                let asked = Asked {
+                    secrets: &secrets,
+                    http: &http,
+                    copilot: &copilot,
+                };
+                let result = answer(&question, asked, &cancel, &deliver);
                 let _done = lock(&running).remove(&id);
                 if !cancel.is_cancelled() {
                     deliver(Message::AiAnswered { ask: id, result });
@@ -198,24 +223,24 @@ fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-/// Asks the provider, passing on the text of the answer so far at most every [`PIECE_INTERVAL`].
-fn answer(
-    question: AiQuestion,
-    (secrets, http): (&Mutex<Box<dyn SecretStore>>, &Mutex<Option<Http>>),
-    cancel: &Cancel,
-    deliver: &Deliver,
-) -> AiResult {
+/// Who is asked, and with what: the key of the provider, the client of its requests, and the GitHub Copilot CLI.
+#[derive(Clone, Copy)]
+struct Asked<'a> {
+    /// Where the key of the provider is kept.
+    secrets: &'a Mutex<Box<dyn SecretStore>>,
+    /// The client that sends the requests, once made.
+    http: &'a Mutex<Option<Http>>,
+    /// The GitHub Copilot CLI of the window.
+    copilot: &'a CopilotCli,
+}
+
+/// Asks the provider, or GitHub Copilot through the CLI of the window, passing on the text of the answer so far at most
+/// every [`PIECE_INTERVAL`].
+fn answer(question: &AiQuestion, asked: Asked<'_>, cancel: &Cancel, deliver: &Deliver) -> AiResult {
+    let Asked { secrets, http, copilot } = asked;
     let Some(kind) = question.settings.provider else {
         return Err(engine::ai::AiError::NotSetUp.into());
     };
-    // A store that cannot be read keeps no key: the provider may need none, and says so when it does.
-    let key = lock(secrets).read(&kind.key_name()).ok().flatten().map(Key);
-    let http = client(http).map_err(|error| AiFailed::saying(error.to_string()))?;
-    let provider = Provider {
-        settings: question.settings,
-        key,
-    };
-    let sending = Sending { http: &http, cancel };
     let mut so_far = String::new();
     let mut told: Option<Instant> = None;
     let id = question.id;
@@ -229,12 +254,29 @@ fn answer(
             });
         }
     };
+    if kind == AiProvider::Copilot {
+        let mut model = engine::ai::copilot_model(copilot, &question.settings, cancel);
+        return work(&question.work, &mut model, cancel, &mut pieces);
+    }
+    // A store that cannot be read keeps no key: the provider may need none, and says so when it does.
+    let key = lock(secrets).read(&kind.key_name()).ok().flatten().map(Key);
+    let http = client(http).map_err(|error| AiFailed::saying(error.to_string()))?;
+    let provider = Provider {
+        settings: question.settings.clone(),
+        key,
+    };
+    let sending = Sending { http: &http, cancel };
     let mut model = ProviderModel {
         sending,
         provider: &provider,
     };
-    let result = match &question.work {
-        AiWork::Conflict(request) => engine::ai::ask_conflict(&mut model, request, &mut pieces).map(AiReply::Conflict),
+    work(&question.work, &mut model, cancel, &mut pieces)
+}
+
+/// Asks a language model what a question is: how to resolve a conflict, or the message of a commit.
+fn work(work: &AiWork, model: &mut dyn LanguageModel, cancel: &Cancel, pieces: &mut dyn FnMut(&str)) -> AiResult {
+    let result = match work {
+        AiWork::Conflict(request) => engine::ai::ask_conflict(model, request, pieces).map(AiReply::Conflict),
         AiWork::Draft(job) => {
             let diff = draft_diff(job, cancel)?;
             let input = DraftInput {
@@ -242,7 +284,7 @@ fn answer(
                 new_files: &job.new_files,
                 subjects: &job.subjects,
             };
-            engine::ai::draft(&mut model, &input, &mut pieces).map(AiReply::Draft)
+            engine::ai::draft(model, &input, pieces).map(AiReply::Draft)
         }
     };
     result.map_err(AiFailed::from)

@@ -1,9 +1,12 @@
 use std::path::PathBuf;
 
-use model::ai::{AiModel, AiModels, AiProvider, Effort, Key};
+use model::ai::{AiModel, AiModels, AiProvider, CopilotNeed, Effort, Key};
 use model::contract::{Answer, Answers, Context, FollowUp, Outcome, Query, QuestionKind, Step, Target};
 
-use super::{AS_SET_UP, EFFORT, FIRST_MODEL, KEY, MODEL, MODELS, MODELS_WITH_KEY, SETTINGS, choose_model};
+use super::{
+    AS_SET_UP, COPILOT_INSTALL, COPILOT_SIGN_IN, EFFORT, FIRST_MODEL, KEY, MODEL, MODELS, MODELS_WITH_KEY, SETTINGS,
+    choose_model,
+};
 use crate::testing::{context, plan, question, state};
 
 /// A context with the provider `anthropic` set up and the user's settings file.
@@ -197,4 +200,27 @@ fn plan_of_settings(outcome: &Outcome) -> Vec<(String, Option<String>)> {
             _ => None,
         })
         .collect()
+}
+
+#[test]
+fn ai_choose_model__github_copilot_signed_out_or_not_installed_refuses_with_sign_in_or_how_to_install() {
+    let mut context = set_up();
+    context.settings.ai.provider = Some(AiProvider::Copilot);
+    for (need, offered) in [
+        (CopilotNeed::SignIn, (COPILOT_SIGN_IN, "Sign in")),
+        (CopilotNeed::Install, (COPILOT_INSTALL, "How to install")),
+    ] {
+        let answers = Answers::new().with(MODELS, Answer::AiModels(AiModels::CopilotNeeds(need)));
+        let Outcome::Refuse(refusal) = choose_model(&context, &answers) else {
+            panic!("refuses");
+        };
+        assert_eq!(refusal.message.as_str(), need.sentence());
+        let (feature, label) = refusal.offer.unwrap();
+        assert_eq!((feature, label.as_str()), offered);
+    }
+    // No key is asked of GitHub Copilot: the models are read as they are.
+    assert!(matches!(
+        choose_model(&context, &Answers::new()),
+        Outcome::Read(MODELS, _)
+    ));
 }

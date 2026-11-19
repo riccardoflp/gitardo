@@ -264,7 +264,14 @@ pub fn answered(state: &mut State, ask: AskId, result: AiResult) -> Vec<Effect> 
             questions.answers.push((folder, path, answer));
         }
         Ok(AiReply::Draft(_)) => {}
-        Err(AiFailed { text, stops_the_rest }) => {
+        Err(AiFailed {
+            text,
+            stops_the_rest,
+            need,
+        }) => {
+            if let Some(need) = need {
+                state.operations.said = Some(crate::store::draft::copilot_said(need));
+            }
             questions.failed.push((folder, (path, fingerprint), text));
             if stops_the_rest {
                 for waiting in questions.waiting.drain(..) {

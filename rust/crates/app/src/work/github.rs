@@ -42,6 +42,8 @@ pub struct GitHubAccess {
     pub secrets: MakeSecrets,
     /// The variables git runs with: a test's keep it from the user's configuration.
     pub git_variables: Vec<(OsString, OsString)>,
+    /// The GitHub Copilot CLI of the window, which lists the models when `ai.provider` is `copilot` (`ai.copilot`).
+    pub copilot: engine::ai::CopilotCli,
 }
 
 impl GitHubAccess {
@@ -52,6 +54,7 @@ impl GitHubAccess {
             network: Network::System,
             secrets: Arc::new(|| Box::new(SystemSecrets)),
             git_variables: Vec::new(),
+            copilot: engine::ai::CopilotCli::system(),
         }
     }
 

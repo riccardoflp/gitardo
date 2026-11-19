@@ -30,6 +30,7 @@ mod compare_actions;
 mod compare_chooser;
 mod compare_file;
 mod conflicts;
+mod copilot;
 mod diff;
 mod diff_edit;
 mod diff_links;

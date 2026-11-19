@@ -414,13 +414,18 @@ pub struct AiDriver {
 impl AiDriver {
     /// Questions of their own, with the secrets given.
     pub fn new(secrets: engine::MemorySecrets) -> AiDriver {
+        AiDriver::with_copilot(secrets, &engine::ai::CopilotCli::system())
+    }
+
+    /// Questions of their own, with the secrets given, asking GitHub Copilot through the CLI given.
+    pub fn with_copilot(secrets: engine::MemorySecrets, copilot: &engine::ai::CopilotCli) -> AiDriver {
         let (sender, said) = std::sync::mpsc::channel();
         let sender = std::sync::Mutex::new(sender);
         let deliver: app::work::Deliver = std::sync::Arc::new(move |message| {
             let _sent = sender.lock().unwrap().send(message);
         });
         AiDriver {
-            asking: app::work::ai::Asking::new(&deliver, &engine::Activities::new(), Box::new(secrets)),
+            asking: app::work::ai::Asking::new(&deliver, &engine::Activities::new(), Box::new(secrets), copilot),
             said,
         }
     }

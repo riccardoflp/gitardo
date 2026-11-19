@@ -225,8 +225,8 @@ Acceptance:
 | `fileBlame.age.oldColor` | Color of old lines | Files and blame | `"#316dca"` | User | The color of a line changed long ago. | `blame.age-color` |
 | `fileBlame.age.oldAfterDays` | Days before a line is old | Files and blame | `730` | User | After how many days a line has the old color. | `blame.age-color` |
 | `diff.collapseUnchanged` | Fold unchanged lines | Files and blame | `true` | User | The Diff page folds long runs of unchanged lines, keeping 3 around each change. Was `flowDiff.collapseUnchanged`. | `diff.collapse-unchanged` |
-| `ai.provider` | Provider | AI and conflicts | `""` | User | **New.** The kind of HTTP interface of the language model: `anthropic` or `openai-compatible`. Empty: no AI. | `ai.choose-model` |
-| `ai.endpoint` | Endpoint | AI and conflicts | `""` | User | **New.** The base URL of the provider; empty for the provider's own. | `ai.choose-model` |
+| `ai.provider` | Provider | AI and conflicts | `""` | User | **New.** The language model asked: `anthropic` or `openai-compatible` over HTTP, or `copilot` for GitHub Copilot, with the sign-in of its CLI (`ai.copilot`). Empty: no AI. | `ai.choose-model`, `ai.copilot` |
+| `ai.endpoint` | Endpoint | AI and conflicts | `""` | User | **New.** The base URL of the provider; empty for the provider's own. Not used by GitHub Copilot, and not listed on the settings page while `ai.provider` is `copilot`. | `ai.choose-model` |
 | `ai.model` | Model | AI and conflicts | `""` | User | The model asked, as the provider names it. Was `conflicts.aiModel`, now used for drafting commit messages too. | `ai.choose-model` |
 | `ai.effort` | Effort | AI and conflicts | `""` | User | How much the model thinks before it answers: empty, `low`, `medium`, `high`, `xhigh` or `max`. Was `conflicts.aiEffort`. | `ai.choose-model` |
 | `editor.external` | External editor | Terminal and tools | `""` | User | **New.** The command that opens a file in another editor, with `${file}` and `${line}`, such as `code --goto ${file}:${line}`. Empty: the system's default program for the file. | `file-view.open-external` |

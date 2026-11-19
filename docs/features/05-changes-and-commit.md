@@ -1039,7 +1039,8 @@ Asks the AI provider to write the commit message from the changes, and puts its 
   changes, `git diff --no-color --no-ext-diff`, with the paths of the untracked files; and the subjects of the last 10
   commits as the timeline lists them, without the draft and without stashes.
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model` and `ai.effort`, the same as for the conflicts, with the key in
-  the credential store of the system.
+  the credential store of the system; with `ai.provider` set to `copilot`, GitHub Copilot is asked through its CLI
+  (`ai.copilot`).
 - **Uses**: `ai.choose-model`, `changes.read-working-tree`.
 
 The request goes to the AI provider over HTTP as those settings say. It is one message from the user, with these parts,
@@ -1073,6 +1074,7 @@ Acceptance:
 - [ ] The answer "```text\nAdd the parser\n```" puts `Add the parser` in the message box.
 - [ ] No HTTP request is made before the button is pressed.
 - [ ] Cancelling while it runs leaves the message box as it was.
+- [ ] With `ai.provider` set to `copilot`, the draft is written by GitHub Copilot.
 - [ ] Extension: nothing is sent to a model until the sparkle button is pressed.
 - [ ] Extension: with no model in VS Code, the error above is shown and the box keeps what it had.
 - [ ] Extension: nothing in the repository changes, and nothing is written to the log of operations.

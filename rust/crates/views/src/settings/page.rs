@@ -93,12 +93,17 @@ impl SettingsPage {
     #[must_use]
     pub fn listed(&self, rows: &[SettingRow]) -> Vec<usize> {
         let found = find(rows, &self.query).rows;
+        let is_copilot = rows
+            .iter()
+            .any(|row| row.info.key == "ai.provider" && row.text.trim() == "copilot");
         let is_kept = |index: &usize| {
-            rows.get(*index).is_some_and(|row| match self.list {
-                SettingsList::Sections => true,
-                SettingsList::Changed => is_set(row),
-                SettingsList::Experimental => row.info.is_experimental,
-            })
+            rows.get(*index)
+                .is_some_and(|row| !(is_copilot && row.info.key == "ai.endpoint"))
+                && rows.get(*index).is_some_and(|row| match self.list {
+                    SettingsList::Sections => true,
+                    SettingsList::Changed => is_set(row),
+                    SettingsList::Experimental => row.info.is_experimental,
+                })
         };
         let mut listed: Vec<usize> = found.into_iter().filter(is_kept).collect();
         if self.list == SettingsList::Sections {
@@ -112,4 +117,32 @@ impl SettingsPage {
 #[must_use]
 pub fn is_set(row: &SettingRow) -> bool {
     row.source != SettingSource::Default || row.problem.is_some()
+}
+
+#[cfg(test)]
+#[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
+mod tests {
+    use super::*;
+    use crate::settings::default_rows;
+
+    /// Whether the page lists a setting, with `ai.provider` set to a value.
+    fn lists(provider: &str, key: &str) -> bool {
+        let mut rows = default_rows();
+        for row in &mut rows {
+            if row.info.key == "ai.provider" {
+                row.text = provider.to_owned();
+            }
+        }
+        let page = SettingsPage::default();
+        page.listed(&rows)
+            .iter()
+            .any(|index| rows.get(*index).is_some_and(|row| row.info.key == key))
+    }
+
+    #[test]
+    fn ai_copilot__the_settings_page_leaves_out_the_endpoint_while_the_provider_is_copilot() {
+        assert!(lists("anthropic", "ai.endpoint"));
+        assert!(!lists("copilot", "ai.endpoint"));
+        assert!(lists("copilot", "ai.model"));
+    }
 }
