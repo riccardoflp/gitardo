@@ -68,3 +68,9 @@ pub(super) fn svg_text(page: &DiffPage) -> Option<bool> {
             .any(|diff| matches!(diff, FileDiff::Image(images) if images.text.is_some()));
     has_svg.then_some(page.images.shows_text)
 }
+
+/// Whether a file of a page is stored with Git LFS and not downloaded, which the page reads again once the repository
+/// is, since **Download** fills the store (`lfs.download`).
+pub(super) fn is_stored_with_lfs(page: &DiffPage) -> bool {
+    page.diffs.iter().any(|diff| matches!(diff, FileDiff::StoredWithLfs(_)))
+}

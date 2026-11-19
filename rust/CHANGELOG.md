@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- A file stored with Git LFS is never shown as the text of its pointer. Left as a pointer, as after a clone without
+  Git LFS, the File page says **Stored with Git LFS, not downloaded** with its size and **Download**, which pulls it
+  with `git lfs pull --include=<path>`; at a revision, its content is read from the store of the repository when it is
+  there. The Diff page shows the diff of the contents, with **Stored with Git LFS** in its bar, or, when a side is not
+  downloaded, each side's size and **Download**, which fetches the content of a commit not checked out without
+  changing the working tree. The page of a commit says **Stored with Git LFS: 2.0 MB → 2.1 MB** in place of the lines
+  of the pointers. Nothing is downloaded by a read.
 - The Diff page selects lines: dragging over the lines or their numbers of a side, `Shift` with a click or with the
   arrows from the line chosen, or the text selected on the side of the working tree, selects their rows, drawn on both
   sides and in the gutter; `Escape` or a click elsewhere clears them. **Stage lines**, **Unstage lines** and **Revert

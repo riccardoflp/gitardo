@@ -28,8 +28,10 @@ stores with it.
 - **Extension**: read by the engine with the state of the repository: planned.
 - As built, its request carries the version read before (`LfsStatusRequest::version`), so that `git lfs version`
   runs once for the engine, and the patterns read before (`LfsStatusRequest::patterns`), kept when no
-  `.gitattributes` changed; a pattern of a commented line is not one. It runs with `repo.read-state` from the phases
-  that show it.
+  `.gitattributes` changed; a pattern of a commented line is not one. With `repo.read-state`, which is read without
+  what was read before, it runs as `read_repository_status`: the patterns and the configuration at each read, and
+  `git lfs version` only when the repository has patterns or is set up, so that a repository that stores nothing
+  with Git LFS starts no process of it; the **Large files** page reads the version itself.
 
 Acceptance:
 
@@ -138,17 +140,27 @@ on this computer, and otherwise that it is not downloaded, with **Download**, ne
   removed and added, is shown as one line, **Stored with Git LFS: 2.0 MB → 2.1 MB**, with **Open it in the Diff
   page**.
 - Sizes are said in the units of the system, as the window says sizes elsewhere.
+- As built, the File page and the Diff page read the sides on their worker (`app::work::file_view::read_shown`,
+  `app::work::lfs_sides`): a side whose bytes are a pointer (`lfs.pointer`) and whose path `git check-attr` says
+  `lfs` for is read from the store. Each side not downloaded is said with its size, its first ten digits and
+  **Downloaded** or **Not downloaded**, the Diff page naming them **Before** and **After**; a page that shows one is
+  read again with the repository, so that **Download** shows the content once it ran. A file of the working tree that
+  is a pointer is said not downloaded even when the store has its content, since editing the content there would
+  change the file. The page of a commit marks a diff whose lines are those of two pointers, or of one and nothing,
+  when `git check-attr` says `lfs` for its path (`git::read::commit_page::read_patch`), and says it in the note of the
+  diff with **Open it in the Diff page**. **Stored with Git LFS** beside the title of the Diff page is in its bar,
+  after the buttons. The snapshots are those of the File page of a file not downloaded.
 
 Acceptance:
 
-- [ ] After a clone with `GIT_LFS_SKIP_SMUDGE=1`, opening `art/logo.psd` in the File page says **Stored with Git LFS,
+- [x] After a clone with `GIT_LFS_SKIP_SMUDGE=1`, opening `art/logo.psd` in the File page says **Stored with Git LFS,
       not downloaded** with its size and **Download**, and no line of its pointer.
-- [ ] The Diff page of a text file stored with Git LFS, changed and downloaded, shows the lines that changed in its
+- [x] The Diff page of a text file stored with Git LFS, changed and downloaded, shows the lines that changed in its
       content.
-- [ ] The page of a commit that changed `art/logo.psd` shows **Stored with Git LFS: 2.0 MB → 2.1 MB** in place of the
+- [x] The page of a commit that changed `art/logo.psd` shows **Stored with Git LFS: 2.0 MB → 2.1 MB** in place of the
       lines of the pointers.
-- [ ] A file whose text is a pointer at a path the repository does not store with Git LFS is shown as text.
-- [ ] Each of these matches its snapshot in each theme.
+- [x] A file whose text is a pointer at a path the repository does not store with Git LFS is shown as text.
+- [x] Each of these matches its snapshot in each theme.
 
 ### `lfs.download` — Download files stored with Git LFS
 
@@ -174,16 +186,22 @@ for another commit.
 - **Uses**: `lfs.read-status`, `lfs.show-in-pages`, `lfs.page`, `remote.default`.
 - **Extension**: planned: **Download** in the message that a side is not downloaded, sending `feature/run` of
   `lfs.download` to the engine (`Controller.runOnEngine`).
+- As built, it runs on `Target::LfsFiles`, the paths and the commit; a commit that is the one checked out is pulled.
+  A refusal offers an operation only, so the refusal without Git LFS says the message with no **Open git-lfs.com**,
+  which the **Large files** page has. A commit not checked out in a repository with no remote is refused: **This
+  repository has no remote to download the files of another commit from.** **Download** on a folder of the Files
+  page waits for that page to read which files are pointers (Q1190); the folder is downloaded from the **Large
+  files** page.
 
 Acceptance:
 
-- [ ] **Download** on `art/logo.psd` runs `git lfs pull --include=art/logo.psd`, and the File page shows its content
+- [x] **Download** on `art/logo.psd` runs `git lfs pull --include=art/logo.psd`, and the File page shows its content
       after.
-- [ ] **Download** on the folder `art` runs `git lfs pull --include=art/**`.
-- [ ] **Download all** runs `git lfs pull`, and the page lists every file downloaded after.
-- [ ] **Download** in the Diff page of a commit that is not checked out runs `git lfs fetch --include=<path> origin
+- [x] **Download** on the folder `art` runs `git lfs pull --include=art/**`.
+- [x] **Download all** runs `git lfs pull`, and the page lists every file downloaded after.
+- [x] **Download** in the Diff page of a commit that is not checked out runs `git lfs fetch --include=<path> origin
       <commit>`, the working tree unchanged, and the diff then shows the contents.
-- [ ] Without Git LFS, it refuses with the message, and nothing runs.
+- [x] Without Git LFS, it refuses with the message, and nothing runs.
 
 ### `lfs.page` — The Large files page
 

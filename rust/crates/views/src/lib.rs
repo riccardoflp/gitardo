@@ -36,6 +36,7 @@ pub mod graph;
 mod icons;
 mod intent;
 mod islands;
+pub mod lfs;
 mod line;
 pub mod log;
 pub mod merge_view;

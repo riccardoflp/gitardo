@@ -100,6 +100,7 @@ fn repository() -> RepositoryState {
         rebase_stop: None,
         bisect: None,
         submodules: Vec::new(),
+        lfs: model::lfs::LfsStatus::default(),
     }
 }
 

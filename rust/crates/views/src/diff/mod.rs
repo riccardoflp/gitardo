@@ -48,6 +48,10 @@ pub struct DiffPageId(pub u64);
 
 /// What a Diff page shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each says something of its own about the page"
+)]
 pub struct DiffPageState<'a> {
     /// Which page it is.
     pub id: DiffPageId,
@@ -89,6 +93,9 @@ pub struct DiffPageState<'a> {
     pub svg_text: Option<bool>,
     /// The rows selected on a side that is not edited (`diff.select-lines`).
     pub selection: Option<RowSelection>,
+    /// Whether **Download** is offered for a file stored with Git LFS not downloaded: Git LFS is installed
+    /// (`lfs.show-in-pages`).
+    pub can_download_lfs: bool,
 }
 
 /// Something asked of the Diff pages.

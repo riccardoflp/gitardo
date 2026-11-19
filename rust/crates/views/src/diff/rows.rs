@@ -80,6 +80,7 @@ pub(crate) fn row(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (row, columns): (&
             }
             Vec::new()
         }
+        PageLine::StoredWithLfs(file, part, count) => stored_row(ui, state, (*file, *part, *count), row.rect),
         PageLine::Row(file, index) => {
             if let Some(FileDiff::Text(text)) = state.diffs.get(*file)
                 && let Some(aligned) = text.aligned.rows.get(*index)
@@ -102,6 +103,34 @@ pub(crate) fn row(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (row, columns): (&
     }
 }
 
+/// A row of the message of a file stored with Git LFS not downloaded (`lfs.show-in-pages`), drawn whole from its
+/// first row in sight so that its button is declared once.
+fn stored_row(
+    ui: &mut Ui<'_>,
+    state: &DiffPageState<'_>,
+    (file, part, count): (usize, usize, usize),
+    rect: Rect,
+) -> Vec<Intent> {
+    let Some(FileDiff::StoredWithLfs(stored)) = state.diffs.get(file) else {
+        return Vec::new();
+    };
+    if part != 0 && rect.y > ui.current_clip().y {
+        return Vec::new();
+    }
+    let to_float = crate::number::float_of_count;
+    let block = Rect::new(
+        rect.x,
+        rect.y - rect.height * to_float(part),
+        rect.width,
+        rect.height * to_float(count),
+    );
+    let shown = crate::lfs::StoredWithLfsState {
+        stored,
+        can_download: state.can_download_lfs,
+    };
+    ui.clip(block, |ui| crate::lfs::stored_with_lfs(&shown, ui))
+}
+
 /// The header of a file: its path, `old → new` for a renamed file.
 fn header(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (file, rect): (usize, Rect)) {
     let Some(diff_file) = state.files.get(file) else {
@@ -120,7 +149,7 @@ fn note(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (file, rect): (usize, Rect))
         Some(FileDiff::Binary) => words::LOOKS_BINARY,
         Some(FileDiff::TooComplex) => words::TOO_MANY_DIFFERENCES,
         Some(FileDiff::Failed) => words::COULD_NOT_READ,
-        Some(FileDiff::Text(_) | FileDiff::Image(_)) => words::NO_CHANGE,
+        Some(FileDiff::Text(_) | FileDiff::Image(_) | FileDiff::StoredWithLfs(_)) => words::NO_CHANGE,
     };
     let cell = inset(rect, Insets::symmetric(ui.theme().sizes.spacing.large, 0.0));
     let _ = ui.label(cell, &Label::new(said).tone(Tone::Muted));

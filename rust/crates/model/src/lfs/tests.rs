@@ -33,3 +33,64 @@ fn lfs_pointer__text_that_starts_as_a_pointer_and_goes_past_1024_bytes_is_not_on
     assert_eq!(pointer(long.as_bytes()), None);
     assert_eq!(pointer(b""), None, "an empty file is an empty file");
 }
+
+/// A diff of one file of these lines, each `<mark><text>`, `+` added, `-` removed and ` ` kept.
+fn patch_of(lines: &[&str]) -> crate::commit_page::FilePatch {
+    use crate::commit_page::{DiffLine, FilePatch, Hunk, LineKind};
+    FilePatch {
+        path: String::from("logo.psd"),
+        original_path: None,
+        kind: crate::state::ChangeKind::Modified,
+        hunks: vec![Hunk {
+            header: String::from("@@ -1,3 +1,3 @@"),
+            lines: lines
+                .iter()
+                .map(|line| DiffLine {
+                    kind: match line.chars().next() {
+                        Some('+') => LineKind::Added,
+                        Some('-') => LineKind::Removed,
+                        _ => LineKind::Context,
+                    },
+                    text: line.get(1..).unwrap_or_default().to_owned(),
+                    before: None,
+                    after: None,
+                })
+                .collect(),
+        }],
+        added: 0,
+        removed: 0,
+        is_binary: false,
+        is_past_limit: false,
+        stored_with_lfs: None,
+    }
+}
+
+#[test]
+fn lfs_show_in_pages__the_diff_of_two_pointers_gives_the_sizes_of_their_contents_and_another_diff_none() {
+    let other = "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2394";
+    let change = super::pointer_change(&patch_of(&[
+        " version https://git-lfs.github.com/spec/v1",
+        &format!("-oid sha256:{OID}"),
+        "-size 2000",
+        &format!("+oid sha256:{other}"),
+        "+size 2100",
+    ]));
+    assert_eq!(
+        change,
+        Some(super::PointerChange {
+            before: Some(2000),
+            after: Some(2100)
+        })
+    );
+    let added = written(12);
+    let lines: Vec<String> = added.lines().map(|line| format!("+{line}")).collect();
+    let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
+    assert_eq!(
+        super::pointer_change(&patch_of(&lines)),
+        Some(super::PointerChange {
+            before: None,
+            after: Some(12)
+        })
+    );
+    assert_eq!(super::pointer_change(&patch_of(&[" fn main() {}", "-a", "+b"])), None);
+}

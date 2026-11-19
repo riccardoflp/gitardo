@@ -121,6 +121,8 @@ pub enum Message {
         job: JobId,
         /// The bytes, none when the file is not there, or what the system or git said.
         result: Result<Option<Vec<u8>>, String>,
+        /// The file when its bytes are a pointer of Git LFS whose content is not shown (`lfs.show-in-pages`).
+        stored: Option<Box<model::lfs::StoredWithLfs>>,
     },
     /// A job that read an image of the preview of a Markdown file is done (`file-view.markdown-preview`).
     ImageRead {

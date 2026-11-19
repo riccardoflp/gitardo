@@ -101,6 +101,7 @@ mod tests {
             removed: 0,
             is_binary: false,
             is_past_limit: false,
+            stored_with_lfs: None,
         }
     }
 

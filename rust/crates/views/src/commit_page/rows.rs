@@ -115,7 +115,7 @@ fn diff_rows<'a>(state: &CommitPageState<'a>, data: &'a PageData, image_rows: us
             rows.extend((0..image_rows).map(|_| PageRow::Images(index, images)));
             continue;
         }
-        if patch.hunks.is_empty() {
+        if patch.hunks.is_empty() || patch.stored_with_lfs.is_some() {
             let note = rows.len();
             rows.extend((0..NOTE_ROWS).map(|_| PageRow::Note(index, note)));
             continue;

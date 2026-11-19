@@ -716,8 +716,8 @@ earns it.
 | [`lfs.read-files`](21-large-files.md#lfsread-files--the-files-stored-with-git-lfs) | The files stored with Git LFS | Read | Built | Planned |
 | [`lfs.pointer`](21-large-files.md#lfspointer--a-file-left-as-a-pointer) | A file left as a pointer | Derivation | Built | Planned |
 | [`lfs.read-content`](21-large-files.md#lfsread-content--the-content-of-a-file-stored-with-git-lfs-from-the-store-of-the-repository) | The content of a file stored with Git LFS, from the store of the repository | Read | Built | Planned |
-| [`lfs.show-in-pages`](21-large-files.md#lfsshow-in-pages--a-file-stored-with-git-lfs-in-the-pages) | A file stored with Git LFS, in the pages | View | Specified | Planned |
-| [`lfs.download`](21-large-files.md#lfsdownload--download-files-stored-with-git-lfs) | Download files stored with Git LFS | Operation | Specified | Planned |
+| [`lfs.show-in-pages`](21-large-files.md#lfsshow-in-pages--a-file-stored-with-git-lfs-in-the-pages) | A file stored with Git LFS, in the pages | View | Built | Planned |
+| [`lfs.download`](21-large-files.md#lfsdownload--download-files-stored-with-git-lfs) | Download files stored with Git LFS | Operation | Built | Planned |
 | [`lfs.page`](21-large-files.md#lfspage--the-large-files-page) | The Large files page | View | Specified | Planned |
 | [`lfs.set-up`](21-large-files.md#lfsset-up--set-up-git-lfs-for-a-repository) | Set up Git LFS for a repository | Operation | Specified | Planned |
 | [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Specified | Planned |

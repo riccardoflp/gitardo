@@ -298,8 +298,13 @@ fn svg_button(ui: &mut Ui<'_>, page: &Page<'_>, (file, parts): (usize, &mut Area
 /// The note of a diff with no lines, with the link that opens it in the Diff page when it has some elsewhere; or, with
 /// no file, what the page says when the lines cannot be matched to the files.
 pub(crate) fn note(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (Option<usize>, Rect)) -> Vec<Intent> {
+    let stored;
     let (said, link) = match file.and_then(|file| page.patch(file)) {
         None => (words::UNMATCHED, Some(words::OPEN_IN_DIFF_PAGE)),
+        Some(patch) if let Some(change) = patch.stored_with_lfs => {
+            stored = crate::text::lfs::pointer_change(change.before, change.after);
+            (stored.as_str(), Some(crate::text::lfs::OPEN_IN_DIFF_PAGE))
+        }
         Some(patch) if patch.is_binary => (words::BINARY_FILE, Some(words::OPEN_IT_IN_DIFF_PAGE)),
         Some(patch) if patch.is_past_limit => (words::TOO_LONG, Some(words::OPEN_IT_IN_DIFF_PAGE)),
         Some(patch) if patch.kind == ChangeKind::Renamed => (words::RENAMED_NO_CHANGE, None),

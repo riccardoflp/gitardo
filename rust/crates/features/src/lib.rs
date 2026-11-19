@@ -24,6 +24,7 @@ pub mod fixup;
 pub mod github;
 mod history;
 pub mod identity;
+pub mod lfs;
 pub mod merge;
 pub mod merge_view;
 pub mod message;
@@ -55,7 +56,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 167] = [
+pub const OPERATIONS: [(FeatureId, Operation); 168] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -262,6 +263,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 167] = [
     (FeatureId("tasks.run"), tasks::run_task),
     (FeatureId("tasks.run-group"), tasks::run_group),
     (FeatureId("tasks.stop"), tasks::stop_task),
+    // The files stored with Git LFS.
+    (FeatureId("lfs.download"), lfs::download),
 ];
 
 /// The operation of an identifier, when it is built.

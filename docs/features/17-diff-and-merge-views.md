@@ -58,6 +58,10 @@ What it shows, left and right:
 - The page is computed again when either version changes: the file on disk or in a page that edits it, the index, or
   what `HEAD` is. When nothing it is made from changed, nothing is redrawn.
 
+- A file stored with Git LFS shows the diff of its contents, read from the store of the repository, with **Stored
+  with Git LFS** in the bar; a side not downloaded makes the file say so with **Download** in place of its rows
+  (`lfs.show-in-pages`, M39).
+
 Acceptance:
 
 - [ ] Opening the changes of an edited file shows `HEAD` on the left and the working tree on the right, titled
@@ -1179,6 +1183,10 @@ read-only.
 - The context menu: cut, copy, paste, **Find**, **Go to line**, and the entries the blame and the file history add.
 - A file of the working tree that changes on disk while it has no unsaved edits is read again.
 - A file that is not text (a NUL byte) shows *This file is not text.* and nothing else.
+
+- A file stored with Git LFS left as its pointer says **Stored with Git LFS, not downloaded** with its size and
+  **Download** in place of its text; at a revision, its content is read from the store when it is there
+  (`lfs.show-in-pages`, M39).
 
 Acceptance:
 

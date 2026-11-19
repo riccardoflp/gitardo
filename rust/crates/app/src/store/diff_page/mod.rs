@@ -311,24 +311,27 @@ pub fn diff_read(state: &mut State, job: JobId, result: DiffRead) -> Vec<Effect>
         page.is_stale = false;
         return navigate::shown(state, (id, file), result);
     }
+    let opened = match result {
+        DiffRead::Text(text) => FileDiff::Text(text),
+        DiffRead::Image(images) => images::file_diff(page, file, images),
+        DiffRead::StoredWithLfs(stored) => FileDiff::StoredWithLfs(stored),
+        other => {
+            refused(state, id, other);
+            return Vec::new();
+        }
+    };
+    page.is_open = true;
+    if let Some(diff) = page.diffs.get_mut(file) {
+        *diff = opened;
+    }
+    lines::rebuild(page);
+    show_opened(state, id);
+    Vec::new()
+}
+
+/// A page whose first file cannot be shown: asked about when it is large, otherwise closed with what is said.
+fn refused(state: &mut State, id: DiffPageId, result: DiffRead) {
     match result {
-        DiffRead::Text(text) => {
-            page.is_open = true;
-            if let Some(diff) = page.diffs.get_mut(file) {
-                *diff = FileDiff::Text(text);
-            }
-            lines::rebuild(page);
-            show_opened(state, id);
-        }
-        DiffRead::Image(images) => {
-            page.is_open = true;
-            let shown = images::file_diff(page, file, images);
-            if let Some(diff) = page.diffs.get_mut(file) {
-                *diff = shown;
-            }
-            lines::rebuild(page);
-            show_opened(state, id);
-        }
         DiffRead::Large => state.diff_pages.asking = Some(id),
         DiffRead::Binary => refuse(state, id, Some(Notice::DiffLooksBinary)),
         DiffRead::TooComplex => refuse(state, id, Some(Notice::DiffTooComplex)),
@@ -336,8 +339,9 @@ pub fn diff_read(state: &mut State, job: JobId, result: DiffRead) -> Vec<Effect>
             state.last_error = Some(error);
             refuse(state, id, None);
         }
+        // Shown by the page above.
+        DiffRead::Text(_) | DiffRead::Image(_) | DiffRead::StoredWithLfs(_) => {}
     }
-    Vec::new()
 }
 
 /// Closes a page that is open, and forgets it: the page shown before it, or the timeline, shows in its place.
@@ -405,8 +409,8 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
         .collect()
 }
 
-/// Reads again the open pages of the repository shown that show `HEAD`, the index or the working tree, once the
-/// repository was read again since they were.
+/// Reads again the open pages of the repository shown that show `HEAD`, the index or the working tree, or a file
+/// stored with Git LFS not downloaded, once the repository was read again since they were.
 pub fn follow(state: &mut State) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return Vec::new();
@@ -417,7 +421,7 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
         .pages
         .iter_mut()
         .filter(|page| page.is_open && page.generation != generation && same_folder(&page.folder, &folder))
-        .filter(|page| page.target.left.is_live() || page.target.right.is_live())
+        .filter(|page| page.target.left.is_live() || page.target.right.is_live() || images::is_stored_with_lfs(page))
         .flat_map(|page| {
             page.generation = generation;
             let id = page.id;
@@ -471,6 +475,7 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
         is_stale: page.is_stale,
         svg_text: images::svg_text(page),
         selection: page.selection.as_ref().map(|selection| selection.rows),
+        can_download_lfs: state.shown_read().is_some_and(|read| read.state.lfs.version.is_some()),
     })
 }
 

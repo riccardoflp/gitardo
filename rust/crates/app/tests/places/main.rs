@@ -66,6 +66,7 @@ mod jobs;
 mod label_overflow;
 mod lanes;
 mod large_diffs;
+mod lfs;
 mod load_more;
 mod log_secrets;
 mod markdown;

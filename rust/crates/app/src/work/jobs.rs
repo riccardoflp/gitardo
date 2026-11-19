@@ -83,10 +83,14 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::merge_view::read_merge(folder, merge, cancel),
         },
-        JobKind::ReadFile { folder, job: file } => Message::FileRead {
-            job: job.id,
-            result: super::file_view::read_file(folder, file, cancel),
-        },
+        JobKind::ReadFile { folder, job: file } => {
+            let (result, stored) = super::file_view::read_shown(folder, file, cancel);
+            Message::FileRead {
+                job: job.id,
+                result,
+                stored,
+            }
+        }
         JobKind::ReadImage { .. }
         | JobKind::ReadImages { .. }
         | JobKind::DrawImage { .. }

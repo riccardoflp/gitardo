@@ -19,6 +19,7 @@ pub mod filter;
 pub mod github;
 pub mod header;
 pub mod history;
+pub mod lfs;
 pub mod merge_view;
 pub mod pages;
 pub mod panel;

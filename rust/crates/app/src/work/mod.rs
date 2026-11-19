@@ -11,6 +11,7 @@ pub mod file_search;
 pub mod file_view;
 pub mod github;
 pub mod jobs;
+mod lfs_sides;
 pub mod merge_view;
 pub mod new_worktrees;
 mod operations;

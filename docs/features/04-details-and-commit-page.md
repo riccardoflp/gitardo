@@ -525,6 +525,9 @@ What it shows, from the top:
 A page stays of the repository its commit is in, also after the window is pointed at another; it is not read again
 when the repository changes, as a commit does not change.
 
+- The diff of the pointers of a file stored with Git LFS is said in one line, **Stored with Git LFS: 2.0 MB → 2.1
+  MB**, with **Open it in the Diff page** (`lfs.show-in-pages`, M39).
+
 Acceptance:
 
 - [ ] The page shows the message in full, unwrapped as `details.message-unwrap` says, with no **Show more**.

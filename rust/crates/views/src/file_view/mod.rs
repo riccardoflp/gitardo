@@ -75,6 +75,8 @@ pub enum FileShown<'a> {
     Text(FileText<'a>),
     /// The picture of an image file, and where it is drawn (`file-view.image`).
     Image(ImageShown<'a>, ImagePlace),
+    /// A file stored with Git LFS whose content is not on this computer (`lfs.show-in-pages`).
+    StoredWithLfs(crate::lfs::StoredWithLfsState<'a>),
 }
 
 /// The text of a File page, as its editor draws it.
@@ -248,8 +250,12 @@ pub fn page_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             intents.extend(ui.clip(body, |ui| image_view(&image, ui)));
             return;
         }
+        if let FileShown::StoredWithLfs(stored) = state.shown {
+            intents.extend(ui.clip(body, |ui| crate::lfs::stored_with_lfs(&stored, ui)));
+            return;
+        }
         let said = match state.shown {
-            FileShown::Text(_) | FileShown::Image(..) => None,
+            FileShown::Text(_) | FileShown::Image(..) | FileShown::StoredWithLfs(_) => None,
             FileShown::Reading => Some(words::READING),
             FileShown::NotText => Some(words::NOT_TEXT),
             FileShown::Failed(error) => Some(error),

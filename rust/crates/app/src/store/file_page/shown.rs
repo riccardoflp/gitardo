@@ -13,6 +13,10 @@ pub fn page_state(state: &State, id: FilePageId) -> Option<FilePageState<'_>> {
         FileContent::Reading => FileShown::Reading,
         FileContent::NotText => FileShown::NotText,
         FileContent::Failed(error) => FileShown::Failed(error),
+        FileContent::StoredWithLfs(stored) => FileShown::StoredWithLfs(views::lfs::StoredWithLfsState {
+            stored,
+            can_download: state.shown_read().is_some_and(|read| read.state.lfs.version.is_some()),
+        }),
         FileContent::Text(document) => FileShown::Text(FileText {
             buffer: document.buffer(),
             cursor: page.cursor,

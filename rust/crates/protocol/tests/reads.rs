@@ -126,6 +126,7 @@ fn a_patch_is_files_unmatched_or_text_and_its_lines_say_what_they_are() {
         removed: 1,
         is_binary: false,
         is_past_limit: false,
+        stored_with_lfs: None,
     };
     let files = PatchJson::from(&PatchLines::Files(vec![patch]));
     let json = serde_json::to_value(&files).unwrap();

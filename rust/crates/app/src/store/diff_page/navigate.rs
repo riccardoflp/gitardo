@@ -207,6 +207,7 @@ pub(super) fn shown(state: &mut State, (id, file): (DiffPageId, usize), result: 
             None => return Vec::new(),
         },
         DiffRead::Binary => FileDiff::Binary,
+        DiffRead::StoredWithLfs(stored) => FileDiff::StoredWithLfs(stored),
         DiffRead::TooComplex | DiffRead::Large => FileDiff::TooComplex,
         DiffRead::Failed(error) => {
             state.last_error = Some(error);

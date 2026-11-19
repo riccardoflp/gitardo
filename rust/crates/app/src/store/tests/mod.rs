@@ -257,6 +257,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
         JobKind::ReadFile { .. } => Message::FileRead {
             job,
             result: Err(String::from("not read in these tests")),
+            stored: None,
         },
         JobKind::ReadComparison { .. } => Message::ComparisonRead {
             job,

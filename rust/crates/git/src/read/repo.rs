@@ -156,6 +156,7 @@ struct Parts {
     operation: Option<Operation>,
     bisect: Option<model::bisect::Bisect>,
     submodules: Vec<model::submodule::Submodule>,
+    lfs: model::lfs::LfsStatus,
 }
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
@@ -188,6 +189,7 @@ fn read_parts(
             folder: location.folder.clone(),
         };
         let submodules = scope.spawn(move || crate::read::submodule::read_list(git, &submodules_request));
+        let lfs = scope.spawn(|| crate::read::lfs::read_repository_status(git));
         let operation = operation::read_operation(&location.git_folder);
         let (worktrees, counted) = joined(worktrees)?;
         let parts = Parts {
@@ -206,6 +208,7 @@ fn read_parts(
             operation,
             bisect: joined(bisect)?,
             submodules: joined(submodules)?,
+            lfs: joined(lfs)?,
         };
         Ok((parts, counted))
     })
@@ -245,6 +248,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         rebase_stop: None,
         bisect: parts.bisect,
         submodules: parts.submodules,
+        lfs: parts.lfs,
     }
 }
 

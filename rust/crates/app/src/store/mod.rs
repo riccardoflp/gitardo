@@ -157,7 +157,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::ImagesRead { job, images } => commit_images::images_read(state, job, images),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
-        Message::FileRead { job, result } => file_page::file_read(state, job, result),
+        Message::FileRead { job, result, stored } => file_page::file_read(state, job, (result, stored)),
         message @ (Message::ImageRead { .. } | Message::DiagramDrawn { .. }) => file_page::preview_read(state, message),
         Message::ImageDrawn { job, result } => file_page::image_drawn(state, job, result),
         Message::ComparisonRead { job, result } => compare::comparison_read(state, job, result),

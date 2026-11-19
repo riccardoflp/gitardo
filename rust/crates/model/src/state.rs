@@ -50,6 +50,9 @@ pub struct RepositoryState {
     pub bisect: Option<crate::bisect::Bisect>,
     /// The submodules, and theirs, each followed by its own (`submodule.read-list`).
     pub submodules: Vec<crate::submodule::Submodule>,
+    /// Whether Git LFS is set up for the repository and the patterns it stores with it, with the version of Git LFS
+    /// once the repository has patterns or is set up (`lfs.read-status`).
+    pub lfs: crate::lfs::LfsStatus,
 }
 
 impl RepositoryState {

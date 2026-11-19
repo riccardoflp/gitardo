@@ -268,3 +268,48 @@ pub fn content_in(folder: &Path, request: &LfsContentRequest) -> LfsContent {
         _ => LfsContent::NotDownloaded,
     }
 }
+
+/// What the reads of the repository know of Git LFS (`repo.read-state`): whether it is set up and the patterns, and
+/// the version of Git LFS only once the repository has patterns or is set up, so that a repository that stores
+/// nothing with it starts no process of Git LFS.
+///
+/// # Errors
+///
+/// When git cannot be started, is cancelled or fails.
+pub fn read_repository_status(git: &Git) -> Result<LfsStatus, GitError> {
+    let without_version = LfsStatusRequest {
+        version: Some(None),
+        patterns: None,
+    };
+    let status = read_status(git, &without_version)?;
+    if status.patterns.is_empty() && !status.is_set_up {
+        return Ok(status);
+    }
+    Ok(LfsStatus {
+        version: read_version(git)?,
+        ..status
+    })
+}
+
+/// The arguments that ask git whether the repository stores a path with Git LFS: `git check-attr -z filter -- <path>`.
+#[must_use]
+pub fn is_stored_arguments(path: &str) -> Vec<std::ffi::OsString> {
+    arguments(&["check-attr", "-z", "filter", "--", path])
+}
+
+/// Whether what `git check-attr -z filter` printed says `lfs`: `<path>\0filter\0lfs\0`.
+#[must_use]
+pub fn parse_is_stored(printed: &[u8]) -> bool {
+    let fields: Vec<&[u8]> = printed.split(|byte| *byte == 0).collect();
+    fields.chunks(3).any(|field| field.get(2) == Some(&b"lfs".as_slice()))
+}
+
+/// Whether the repository stores a path with Git LFS, as its attributes say (`lfs.show-in-pages`): a file whose bytes
+/// only look like a pointer at another path is shown as it is.
+///
+/// # Errors
+///
+/// When git cannot be started, is cancelled or fails.
+pub fn read_is_stored(git: &Git, path: &str) -> Result<bool, GitError> {
+    Ok(parse_is_stored(&git.run_read(&is_stored_arguments(path))?))
+}

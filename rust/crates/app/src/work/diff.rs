@@ -40,6 +40,8 @@ pub enum DiffRead {
     Text(Box<DiffText>),
     /// The two versions of an image, and for an SVG the diff of its lines (`diff.image`).
     Image(Box<DiffImages>),
+    /// A file stored with Git LFS with a side whose content is not on this computer (`lfs.show-in-pages`).
+    StoredWithLfs(Box<model::lfs::StoredWithLfs>),
     /// A side has a NUL byte.
     Binary,
     /// It took longer than its time.
@@ -58,13 +60,23 @@ pub fn read_diff(folder: &Path, job: &DiffJob, cancel: &CancelToken) -> DiffRead
         Ok(sides) => sides,
         Err(error) => return DiffRead::Failed(error.to_string()),
     };
+    let (sides, is_stored_with_lfs) = match super::lfs_sides::contents(&git, &job.request, sides) {
+        Ok(contents) => contents,
+        Err(stored) => return DiffRead::StoredWithLfs(stored),
+    };
     if let Some(images) = images_of(&git, job, &sides, cancel) {
         return DiffRead::Image(Box::new(images));
     }
     if sides.looks_binary() {
         return DiffRead::Binary;
     }
-    text_diff(&git, job, &sides, cancel)
+    match text_diff(&git, job, &sides, cancel) {
+        DiffRead::Text(mut text) => {
+            text.is_stored_with_lfs = is_stored_with_lfs;
+            DiffRead::Text(text)
+        }
+        other => other,
+    }
 }
 
 /// The two versions of an image file of the page of a commit, drawn, without the diff of their lines
@@ -159,6 +171,7 @@ fn text_diff(git: &Git, job: &DiffJob, sides: &DiffSides, cancel: &CancelToken) 
         left,
         right,
         changes,
+        is_stored_with_lfs: false,
     }))
 }
 

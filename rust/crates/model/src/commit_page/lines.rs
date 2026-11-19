@@ -107,6 +107,7 @@ fn file_patch(file: &FileChange, parts: &[Section<'_>]) -> Option<FilePatch> {
         removed: 0,
         is_binary: false,
         is_past_limit: false,
+        stored_with_lfs: None,
     };
     for part in parts {
         read_part(&mut patch, &part.lines)?;

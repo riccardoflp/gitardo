@@ -10,6 +10,10 @@ use super::DiffPage;
 /// them in, fitting them to the rows it is given.
 const IMAGE_ROW_HEIGHT: f32 = 20.0;
 
+/// The rows the message of a file stored with Git LFS takes besides one for each side: its heading, **Download** and
+/// the room around them, in rows of a line of code.
+const LFS_MESSAGE_ROWS: usize = 5;
+
 /// Makes the rows of a page and the places of its changes again, after a file was read or a fold changed; the current
 /// change is kept while there are as many.
 pub(super) fn rebuild(page: &mut DiffPage) {
@@ -29,6 +33,12 @@ pub(super) fn rebuild(page: &mut DiffPage) {
             let rows = images.rows(IMAGE_ROW_HEIGHT);
             page.lines
                 .extend((0..rows).map(|part| PageLine::Image(file, part, rows)));
+            continue;
+        }
+        if let FileDiff::StoredWithLfs(stored) = diff {
+            let rows = stored.sides.len() + LFS_MESSAGE_ROWS;
+            page.lines
+                .extend((0..rows).map(|part| PageLine::StoredWithLfs(file, part, rows)));
             continue;
         }
         let FileDiff::Text(text) = diff else {

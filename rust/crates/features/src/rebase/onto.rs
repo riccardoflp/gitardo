@@ -43,7 +43,8 @@ pub fn onto(context: &Context, _answers: &Answers) -> Outcome {
         | Target::LineOfFile(_)
         | Target::ListedFile(_)
         | Target::TaskGroups(_)
-        | Target::Task(_) => return refuse("Choose a commit or a branch to rebase onto."),
+        | Target::Task(_)
+        | Target::LfsFiles(_) => return refuse("Choose a commit or a branch to rebase onto."),
     };
     Outcome::Run(Plan {
         title: Text::from(format!("Rebase {} onto {said}", current_name(context))),

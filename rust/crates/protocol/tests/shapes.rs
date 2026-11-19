@@ -97,6 +97,7 @@ fn repository() -> RepositoryState {
             remaining: Some(4),
         }),
         submodules: vec![submodule()],
+        lfs: model::lfs::LfsStatus::default(),
     }
 }
 

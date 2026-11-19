@@ -45,6 +45,16 @@ pub(crate) fn bar_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent
     let navigation_width = 2.0 * side + spacing.medium + ui.measure("000 / 000", ui.text_style(TextKind::Detail));
     let navigation = parts.left(navigation_width.min(parts.rest().width));
     intents.extend(ui.clip(navigation, |ui| navigate_view(state, ui)));
+    let is_stored_with_lfs = state
+        .diffs
+        .iter()
+        .any(|diff| matches!(diff, super::FileDiff::Text(text) if text.is_stored_with_lfs));
+    if is_stored_with_lfs {
+        let said = crate::text::lfs::STORED;
+        let width = ui.measure(said, ui.text_style(TextKind::Detail)) + spacing.medium;
+        let cell = parts.right(width.min(parts.rest().width));
+        let _ = ui.label(cell, &Label::new(said).kind(TextKind::Detail).tone(Tone::Muted));
+    }
     if let Some((hint, until)) = state.hint
         && ui.now() < until
     {
