@@ -94,11 +94,31 @@ pub fn read_state_counting(
     } else {
         None
     };
+    let resolved_as_before = read_resolved_as_before(&git, &location, &parts)?;
     let state = RepositoryState {
         rebase_stop,
+        resolved_as_before,
         ..assemble(location, parts)
     };
     Ok((state, counted))
+}
+
+/// The files git resolved as before, while it remembers resolutions and an operation is stopped or files are in
+/// conflict (`rerere.read-resolved`); none otherwise, without starting git.
+fn read_resolved_as_before(
+    git: &Git,
+    location: &Location,
+    parts: &Parts,
+) -> Result<Vec<model::rerere::ResolvedAsBefore>, GitError> {
+    let conflicted = &parts.working_tree.conflicted;
+    if !parts.rerere.is_on || (parts.operation.is_none() && conflicted.is_empty()) {
+        return Ok(Vec::new());
+    }
+    let request = model::rerere::ResolvedRequest {
+        git_folder: location.git_folder.clone(),
+        conflicted: conflicted.iter().map(|file| file.path.clone()).collect(),
+    };
+    crate::read::rerere::read_resolved(git, &request)
 }
 
 /// Which parts of the state a read of the graph needs besides what is checked out.
@@ -256,6 +276,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         submodules: parts.submodules,
         lfs: parts.lfs,
         rerere: parts.rerere,
+        resolved_as_before: Vec::new(),
     }
 }
 

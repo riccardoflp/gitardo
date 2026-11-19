@@ -25,17 +25,30 @@ pub struct DeletedState<'a> {
 }
 
 /// How many rows the changes take: one per row of the diff, or one for what is said in its place.
-fn rows(file: &DeletedFile) -> usize {
-    match &file.changes {
+pub(super) fn rows(changes: &KeptChanges) -> usize {
+    match changes {
         KeptChanges::Rows(rows) => rows.len(),
         KeptChanges::Nothing | KeptChanges::TooMany => 1,
     }
 }
 
+/// The largest number of a line of the changes, which sets the width of their gutter.
+pub(super) fn largest_number(rows: &[KeptRow]) -> usize {
+    rows.iter()
+        .filter_map(|row| match row {
+            KeptRow::Same(number, _) | KeptRow::Added(number, _) => Some(*number),
+            KeptRow::Removed(_) | KeptRow::LeftOut => None,
+        })
+        .max()
+        .unwrap_or(1)
+}
+
 /// The height of a card of a file deleted on one side.
 pub(super) fn deleted_height(file: &DeletedFile, ui: &Ui<'_>) -> f32 {
     let sizes = ui.theme().sizes;
-    sizes.row_height * crate::number::float_of_count(2 + rows(file)) + sizes.control_height + 2.0 * sizes.spacing.medium
+    sizes.row_height * crate::number::float_of_count(2 + rows(&file.changes))
+        + sizes.control_height
+        + 2.0 * sizes.spacing.medium
 }
 
 /// A file one side deleted and the other changed, over the rectangle its caller clipped it to: its path, which side
@@ -69,15 +82,7 @@ pub fn deleted_card_view(state: &DeletedState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
             let _ = ui.label(area.top(row), &Label::new(words::TOO_MANY_CHANGES).tone(Tone::Muted));
         }
         KeptChanges::Rows(rows) => {
-            let largest = rows
-                .iter()
-                .filter_map(|row| match row {
-                    KeptRow::Same(number, _) | KeptRow::Added(number, _) => Some(*number),
-                    KeptRow::Removed(_) | KeptRow::LeftOut => None,
-                })
-                .max()
-                .unwrap_or(1);
-            let gutter = gutter_width(ui, largest);
+            let gutter = gutter_width(ui, largest_number(rows));
             for kept in rows {
                 kept_row(ui, (area.top(row), gutter), kept);
             }
@@ -127,7 +132,7 @@ fn decide(state: &DeletedState<'_>, ui: &mut Ui<'_>, row: Rect) -> Vec<Intent> {
 }
 
 /// A row of the changes of the side that kept the file.
-fn kept_row(ui: &mut Ui<'_>, (row, gutter): (Rect, f32), kept: &KeptRow) {
+pub(super) fn kept_row(ui: &mut Ui<'_>, (row, gutter): (Rect, f32), kept: &KeptRow) {
     let colors = ui.theme().colors;
     let plain = Look {
         gutter: "",

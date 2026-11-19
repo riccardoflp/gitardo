@@ -102,6 +102,7 @@ fn repository() -> RepositoryState {
         submodules: Vec::new(),
         lfs: model::lfs::LfsStatus::default(),
         rerere: model::rerere::RerereState::default(),
+        resolved_as_before: Vec::new(),
     }
 }
 

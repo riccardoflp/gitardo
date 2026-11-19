@@ -30,6 +30,9 @@ pub enum DiffVersion {
     /// The files with the accepted resolutions of their conflicts in place (`review.show-result`): each file's text
     /// by its path, read from nothing on disk.
     Resolved(Vec<(String, String)>),
+    /// A file in conflict as git marked it when it stopped, before it wrote a resolution it recorded
+    /// (`rerere.read-marked`).
+    Marked,
 }
 
 impl DiffVersion {
@@ -53,6 +56,7 @@ impl DiffVersion {
             DiffVersion::Empty => words::EMPTY,
             DiffVersion::Base => words::BASE,
             DiffVersion::Resolved(_) => crate::text::review::RESULT,
+            DiffVersion::Marked => crate::text::rerere::AS_GIT_MARKED_IT,
         }
     }
 

@@ -179,6 +179,7 @@ impl TryFrom<TargetJson> for Target {
             TargetJson::Path { path } => Target::Path(PathBuf::from(path)),
             TargetJson::Resolutions { files } => Target::Resolutions(Box::new(model::review::Resolutions {
                 files: files.into_iter().map(Into::into).collect(),
+                recorded: Vec::new(),
             })),
             TargetJson::MergeResult(result) => Target::MergeResult(Box::new(result.into())),
             TargetJson::Comparison {

@@ -18,6 +18,14 @@ pub enum ConflictsIntent {
     /// The line number of a card of the review was clicked: open the file where it can be resolved, at that line of
     /// the file as it is on disk, from 1.
     OpenAtLine(String, usize),
+    /// **Show what git wrote** on a file git resolved as before (`rerere.resolved-as-before`): the Diff page of the
+    /// file as git marked it against the file on disk; for a file git staged, of the last commit and the index.
+    ShowWhatGitWrote {
+        /// The file.
+        path: String,
+        /// Whether git staged it.
+        is_staged: bool,
+    },
 }
 
 /// Where a file in conflict opens.

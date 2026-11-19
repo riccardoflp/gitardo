@@ -3,9 +3,13 @@
 //! it can be resolved (`conflicts.open-file`).
 
 mod open_file;
+mod resolved;
 mod stopped;
 #[cfg(test)]
 mod tests;
+
+pub(crate) use resolved::words_width as resolved_words_width;
+pub use resolved::{ResolvedAsBeforeState, resolved_as_before, show_what_git_wrote};
 
 pub(crate) use open_file::open_file_row;
 pub use open_file::{ConflictsIntent, OpenAt, OpenFileState, open_file_view, open_target};
@@ -40,6 +44,8 @@ pub struct BannerState<'a> {
     pub ai: bool,
     /// Whether Gitardo is running something on the repository: every button is disabled.
     pub is_running: bool,
+    /// How many files git resolved as before (`rerere.resolved-as-before`).
+    pub resolved_as_before: usize,
 }
 
 /// A button of the banner, as it is drawn.
@@ -61,6 +67,9 @@ impl BannerState<'_> {
     pub fn says(&self) -> String {
         match &self.stop {
             Some(stop) => crate::rebase::banner_words(stop.stop),
+            None if self.resolved_as_before > 0 => {
+                words::banner(self.operation, self.conflicted) + &crate::text::rerere::banner(self.resolved_as_before)
+            }
             None => words::banner(self.operation, self.conflicted),
         }
     }

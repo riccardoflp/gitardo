@@ -13,13 +13,15 @@ mod deleted;
 mod files;
 mod head;
 mod lines;
+mod recorded;
 #[cfg(test)]
 mod tests;
 mod write_box;
 
 use model::conflicts::SideNames;
 use model::review::{
-    ChoiceKind, DeletedFile, Origin, OriginCounts, ProposalSource, ProposalWarning, Shape, SideDiff, Which,
+    ChoiceKind, DeletedFile, Origin, OriginCounts, ProposalSource, ProposalWarning, RecordedFile, Shape, SideDiff,
+    Which,
 };
 use model::state::Operation;
 
@@ -30,6 +32,7 @@ pub use decide::{accept_view, choose_view};
 pub use deleted::{DeletedState, deleted_card_view};
 pub use files::file_list_view;
 pub use head::{FileState, accept_all_view, accept_file_view, clear_view, page_view, report_view, show_result_view};
+pub use recorded::{RecordedState, recorded_card_view};
 pub use write_box::WritingBox;
 
 /// The thousandths of the width each side column takes before a band is dragged (`review.columns`).
@@ -69,6 +72,8 @@ pub enum Filter {
     NothingProposed,
     /// The conflicts the AI proposes for.
     FromTheAi,
+    /// The files git resolved as before (`review.recorded`).
+    ResolvedAsBefore,
 }
 
 /// A line of the file shown around a conflict, faded, with its number.
@@ -196,6 +201,7 @@ impl ConflictCard {
                 .proposal
                 .as_ref()
                 .is_some_and(|proposal| matches!(proposal.source, ProposalSource::Ai { .. })),
+            Filter::ResolvedAsBefore => false,
         }
     }
 
@@ -278,6 +284,10 @@ pub struct ReviewState<'a> {
     pub files: &'a [FileCards],
     /// The files one side deleted and the other changed.
     pub deleted: &'a [DeletedFile],
+    /// The files git resolved as before (`review.recorded`).
+    pub recorded: &'a [RecordedFile],
+    /// Those of them accepted.
+    pub recorded_accepted: &'a [String],
     /// The other files in conflict.
     pub others: &'a [String],
     /// The filter chosen.
@@ -332,14 +342,52 @@ impl ReviewState<'_> {
             && matches!(self.filter, Filter::All | Filter::NotAccepted | Filter::NothingProposed)
     }
 
-    /// How many conflicts a filter keeps, the files deleted on one side counting with those with nothing proposed.
+    /// Whether a file git resolved as before is accepted.
+    #[must_use]
+    pub fn is_recorded_accepted(&self, file: &RecordedFile) -> bool {
+        self.recorded_accepted.contains(&file.path)
+    }
+
+    /// Whether a file git resolved as before is kept by the filter.
+    #[must_use]
+    pub fn is_recorded_kept(&self, file: &RecordedFile) -> bool {
+        match self.filter {
+            Filter::All | Filter::ResolvedAsBefore => true,
+            Filter::NotAccepted => !self.is_recorded_accepted(file),
+            Filter::NothingProposed | Filter::FromTheAi => false,
+        }
+    }
+
+    /// Whether a file git resolved as before is kept by the filter and the file shown.
+    #[must_use]
+    pub fn is_recorded_shown(&self, file: &RecordedFile) -> bool {
+        self.file_shown.is_none_or(|path| path == file.path) && self.is_recorded_kept(file)
+    }
+
+    /// How many conflicts a filter keeps, the files deleted on one side counting with those with nothing proposed, and
+    /// the files git resolved as before one each.
     #[must_use]
     pub fn count(&self, filter: Filter) -> usize {
         let deleted = match filter {
             Filter::All | Filter::NotAccepted | Filter::NothingProposed => self.deleted.len(),
-            Filter::FromTheAi => 0,
+            Filter::FromTheAi | Filter::ResolvedAsBefore => 0,
         };
-        self.conflicts().filter(|conflict| conflict.is_kept_by(filter)).count() + deleted
+        let recorded = match filter {
+            Filter::All | Filter::ResolvedAsBefore => self.recorded.len(),
+            Filter::NotAccepted => self
+                .recorded
+                .iter()
+                .filter(|file| !self.is_recorded_accepted(file))
+                .count(),
+            Filter::NothingProposed | Filter::FromTheAi => 0,
+        };
+        self.conflicts().filter(|conflict| conflict.is_kept_by(filter)).count() + deleted + recorded
+    }
+
+    /// How many resolutions **Write** writes: the conflicts accepted, and the files git resolved as before accepted.
+    #[must_use]
+    pub fn to_write(&self) -> usize {
+        self.accepted() + self.recorded_accepted.len()
     }
 
     /// How many conflicts **Ask the AI about the rest** asks about: those with nothing proposed that it is not asked
@@ -371,6 +419,10 @@ impl ReviewState<'_> {
 pub enum ReviewIntent {
     /// Open the page, of some files or of every file in conflict (`review.page`).
     Open(Option<Vec<String>>),
+    /// **Accept** on a file git resolved as before, or **Accepted** to take it back (`review.recorded`).
+    AcceptRecorded(String, bool),
+    /// **Forget it** on a file git resolved as before: `rerere.forget`, which asks first.
+    ForgetRecorded(String),
     /// **Keep it, with these changes** or **Delete it** on a file deleted on one side: take that side of the whole file
     /// (`conflicts.take-side`).
     TakeSide(String, Which),

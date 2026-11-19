@@ -7,6 +7,7 @@ use std::path::PathBuf;
 
 use model::conflicts::RuleCounts;
 use views::conflicts::{BannerState, ConflictsIntent, OpenAt, StoppedState, open_target};
+use views::diff::DiffVersion;
 
 use super::feature::Said;
 use super::message::{Effect, JobId, JobKind};
@@ -105,6 +106,7 @@ pub fn banner_state<'a>(state: &'a State, read: &'a RepositoryRead) -> Option<Ba
         auto_resolve: features.conflicts_auto_resolve,
         ai: features.conflicts_ai,
         is_running: state.is_operation_running,
+        resolved_as_before: repository.resolved_as_before.len(),
     })
 }
 
@@ -115,6 +117,7 @@ pub fn reduce(state: &mut State, intent: ConflictsIntent) -> Vec<Effect> {
     let (path, line) = match intent {
         ConflictsIntent::Open(path) => (path, None),
         ConflictsIntent::OpenAtLine(path, line) => (path, Some(line)),
+        ConflictsIntent::ShowWhatGitWrote { path, is_staged } => return show_what_git_wrote(state, &path, is_staged),
     };
     let Some(read) = state.shown_read() else {
         return Vec::new();
@@ -164,5 +167,18 @@ pub fn stopped_state<'a>(state: &'a State, said: &'a Said) -> Option<StoppedStat
         counts: counts_of(state, read),
         auto_resolve: features.conflicts_auto_resolve,
         ai: features.conflicts_ai,
+        resolved_as_before: read.state.resolved_as_before.len(),
     })
+}
+
+/// **Show what git wrote** (`rerere.resolved-as-before`): the Diff page of a file as git marked it, titled **As git
+/// marked it**, against the file on disk; of a file git staged, of the last commit and the index.
+fn show_what_git_wrote(state: &mut State, path: &str, is_staged: bool) -> Vec<Effect> {
+    let (left, right) = if is_staged {
+        (DiffVersion::Head, DiffVersion::Index)
+    } else {
+        (DiffVersion::Marked, DiffVersion::WorkingTree)
+    };
+    let target = views::diff::DiffTarget::file(left, right, views::diff::DiffFile::same(path));
+    super::diff_page::open(state, target)
 }

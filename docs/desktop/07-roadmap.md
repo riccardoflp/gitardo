@@ -1291,7 +1291,7 @@ its reason, **Remove…** on it says the reason first, and **Prune** leaves it o
 do the same in the extension; every card of the milestone passes its tests, and the snapshots of the group and of a
 locked worktree match in each theme.
 
-## M39 — Large files and remembered resolutions
+## M39 — Large files and remembered resolutions (done)
 
 Files stored with Git LFS shown by their content, or as not downloaded with **Download**, never as the text of their
 pointer; storing a pattern with Git LFS; the **Large files** page with the files and the locks; and git's rerere,
@@ -1335,8 +1335,11 @@ page, **Store them with Git LFS in the next commit** and **Stop storing with Git
 read when the page opens and on **Refresh**, never with the reads of the repository, the name of whoever locked a file,
 **Lock**, and **Unlock**, someone else's after the warning, tested against a server of the tests set as `lfs.url`.
 Phase 5 is built: whether git remembers resolutions, read with the repository, and **Remember how conflicts are
-resolved…** in the menu of the row of the repository shown and in Quick search, ticked while it is on. Phase 6 is not
-built yet.
+resolved…** in the menu of the row of the repository shown and in Quick search, ticked while it is on. Phase 6 is built:
+the files git resolved as before, read with the repository from the paths `git rerere remaining` leaves out and from
+`git ls-files --resolve-undo` against the resolutions recorded, said in the banner, the message of the stop and the
+rows of the changes, **Show what git wrote**, **Forget this resolution…**, and their card in the review, accepted and
+staged by **Write**.
 
 Exit: in a clone of a repository that stores `*.psd` with Git LFS, made without downloading, the File page of a `.psd`
 says it is not downloaded, with its size, and **Download** shows its content after; the page of a commit that changed

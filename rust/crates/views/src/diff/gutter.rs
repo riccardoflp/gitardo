@@ -201,7 +201,7 @@ pub(super) fn side_of(version: &DiffVersion) -> DiffSide {
         DiffVersion::WorkingTree => DiffSide::WorkingTree,
         DiffVersion::Commit { commit, .. } => DiffSide::Commit(commit.clone()),
         // The base of a file in conflict offers no button (`offered`): it is never the side of a change.
-        DiffVersion::Empty | DiffVersion::Base | DiffVersion::Resolved(_) => DiffSide::Empty,
+        DiffVersion::Empty | DiffVersion::Base | DiffVersion::Resolved(_) | DiffVersion::Marked => DiffSide::Empty,
     }
 }
 

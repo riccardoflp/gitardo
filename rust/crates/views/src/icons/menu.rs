@@ -23,7 +23,7 @@ fn file_icon(feature: &str) -> Option<Icon> {
     let icon = match feature {
         "diff.stage-lines" | "lfs.track" | "lfs.store-committed" => super::ADD,
         "diff.unstage-lines" => super::UNSTAGE,
-        "diff.revert-lines" => super::UNDO,
+        "diff.revert-lines" | "rerere.forget" => super::UNDO,
         "lfs.download" => super::PULL,
         "lfs.untrack" => super::DELETE,
         "lfs.set-up" => super::SETTINGS,

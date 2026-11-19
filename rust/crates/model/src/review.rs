@@ -11,8 +11,8 @@ mod side_diff;
 mod warnings;
 
 pub use file::{
-    ConflictStretch, DeletedFile, FileLine, KeptChanges, KeptRow, Overlap, ReviewConflict, ReviewFile, ReviewRead,
-    RuleCase, RuleProposal, Which, replaced_text, split_lines,
+    ConflictStretch, DeletedFile, FileLine, KeptChanges, KeptRow, Overlap, RecordedFile, ReviewConflict, ReviewFile,
+    ReviewRead, RuleCase, RuleProposal, Which, replaced_text, split_lines,
 };
 pub use lines::{Origin, OriginCounts, ProposalLines, Shape, Sides, proposal_lines};
 pub use proposals::{

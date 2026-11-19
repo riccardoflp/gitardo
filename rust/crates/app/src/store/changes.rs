@@ -251,10 +251,11 @@ impl ChangesData {
             is_running: state.is_operation_running,
             wants_focus: state.changes.wants_focus,
             on_click: state.settings.open_on_click,
-            banner: super::conflicts::banner_state(state, read),
+            banner: super::conflicts::banner_state(state, read).map(Box::new),
             worktree: super::worktrees::banner_state(state, read),
             marked: state.changes.beside.as_ref().and_then(|beside| beside.path.as_deref()),
             serial: state.changes.beside.as_ref().map_or(0, |beside| beside.serial),
+            resolved_as_before: &read.state.resolved_as_before,
         })
     }
 }

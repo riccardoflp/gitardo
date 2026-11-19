@@ -37,7 +37,11 @@ pub fn contents(git: &Git, request: &DiffRequest, sides: DiffSides) -> Result<(D
     if let Some((_, version)) = stored.iter().find(|(side, _)| !side.is_downloaded) {
         let commit = match &version.version {
             FileVersion::Commit(commit) => Some(commit.clone()),
-            FileVersion::Absent | FileVersion::Index | FileVersion::Base | FileVersion::WorkingTree { .. } => None,
+            FileVersion::Absent
+            | FileVersion::Index
+            | FileVersion::Base
+            | FileVersion::WorkingTree { .. }
+            | FileVersion::Marked => None,
         };
         return Err(Box::new(StoredWithLfs {
             path: version.path.clone(),

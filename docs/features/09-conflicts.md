@@ -23,7 +23,8 @@ resolutions, at the top of the timeline and of the Changes page.
 - **Settings**: `conflicts.autoResolve` decides whether the conflicts that need no choice are counted and offered;
   `conflicts.ai` whether **Resolve with AI** is there.
 - **Uses**: `conflicts.continue-operation`, `conflicts.skip-step`, `conflicts.abort-operation`, `review.page`,
-  `ai.resolve-conflicts`, `rebase.` (the stop to edit a commit), `split.` (the stop to split one).
+  `ai.resolve-conflicts`, `rebase.` (the stop to edit a commit), `split.` (the stop to split one),
+  `rerere.resolved-as-before` (**· git resolved 2 as before** after the count of the files in conflict).
 - **Extension**: `OperationBanner` in `src/webview/OperationBanner.tsx`, above the graph in the panel and in its editor
   tab (not in the Gitardo Graph of the side bar, where the Changes view right above says it) and at the top of the
   Changes view, with `resolvableConflicts(state, path?)` for the count. What it shows is read by the engine: the
@@ -215,7 +216,8 @@ Says that an operation stopped on conflicts, what to do next, and offers the res
 - **Offered when**: the operation failed and at least one file is in conflict afterwards. Any other failure shows the
   first `error:` or `fatal:` line of git with **Show log**.
 - **Settings**: `conflicts.autoResolve`, `conflicts.ai`.
-- **Uses**: `conflicts.resolve-automatically`, `ai.resolve-conflicts`, `log.`.
+- **Uses**: `conflicts.resolve-automatically`, `ai.resolve-conflicts`, `log.`, `rerere.resolved-as-before` (*Git
+  resolved 2 files as it did before: look at them before you continue.* after its text).
 - **Extension**: `Controller.reportFailure(op, error)` in `src/extension/controller.ts`, shown by
   `Controller.reportEngineFailure` when a step of the engine fails and, once the repository is read again, a file is
   in conflict. It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and **Show
@@ -862,6 +864,9 @@ and the page to some of the conflicts.
   accepted while **Not accepted** is on stays in view, folded, until another filter is chosen.
 - Under **Deleted on one side**, the files one side deleted and the other changed; they are shown with the conflicts
   that have nothing proposed, and not under **From the AI**.
+- Under **Resolved as before**, the files git resolved from a resolution it recorded (`review.recorded`), with a fifth
+  filter of that name while there are any; they count one each under **All**, and under **Not accepted** until they
+  are accepted.
 - Under **Also in conflict**, the binary files, the files over 2 MB and the others without markers: *Binary files, very
   large files, and files both sides added are resolved in an editor, or by taking one side.* A click opens the file
   (`conflicts.open-file`).
@@ -1422,10 +1427,17 @@ forget.
 
 Acceptance:
 
-- [ ] After a rebase stopped on a conflict git resolved from a recorded resolution, the review lists the file under
+- [x] After a rebase stopped on a conflict git resolved from a recorded resolution, the review lists the file under
       **Resolved as before**, with the lines git wrote.
-- [ ] **Accept** and **Write** stage the file; the head said *1 file resolved by git as before* before.
-- [ ] **Forget it** asks, then the file has its markers again and its conflicts are cards.
+- [x] **Accept** and **Write** stage the file; the head said *1 file resolved by git as before* before.
+- [x] **Forget it** asks, then the file has its markers again and its conflicts are cards.
+
+- As built, the review lists the files git resolved and left in conflict; a file git staged is no longer in conflict,
+  and the review does not list it. The filter **Resolved as before** is in the list only while such a file is there,
+  and the files are listed under a heading of that name. The card shows the changes from the file as git marked it to
+  the file on disk with three lines around each, as the card of a file deleted on one side shows its changes. With no
+  conflict accepted, **Write** runs as **Stage the file git resolved as before**, `git add` alone. **Forget it…**
+  takes the file away from the files accepted once the page reads it again.
 
 ### `ai.resolve-conflicts` — Resolve conflicts with AI
 
@@ -1830,7 +1842,7 @@ Acceptance:
 Which files in conflict git resolved by itself from a recorded resolution, while an operation is stopped.
 
 - **Kind**: Read
-- **Function**: `git::read::rerere::read_resolved(git: &Git, request: &ResolvedRequest) -> Result<Vec<RepoPath>, GitError>`
+- **Function**: `git::read::rerere::read_resolved(git: &Git, request: &ResolvedRequest) -> Result<Vec<ResolvedAsBefore>, GitError>`
 - **Reads**: while it is on and files are in conflict, `git rerere remaining`, the files in conflict git did not
   resolve, one path to a line: each file of `conflicts.read-files` that it does not list was resolved as before. Git
   prints these paths as they are, with no `-z`: a path with a line ending in it cannot be told apart, and is taken as
@@ -1842,10 +1854,17 @@ Which files in conflict git resolved by itself from a recorded resolution, while
 
 Acceptance:
 
-- [ ] A merge that stops on `m.txt` and `n.txt`, with a resolution recorded for `m.txt` alone, gives `m.txt`.
-- [ ] With `rerere.autoUpdate` on, the same merge gives `m.txt`, which is staged.
-- [ ] With rerere off it runs nothing and gives nothing.
-- [ ] Once the merge is committed or aborted, it gives nothing.
+- [x] A merge that stops on `m.txt` and `n.txt`, with a resolution recorded for `m.txt` alone, gives `m.txt`.
+- [x] With `rerere.autoUpdate` on, the same merge gives `m.txt`, which is staged.
+- [x] With rerere off it runs nothing and gives nothing.
+- [x] Once the merge is committed or aborted, it gives nothing.
+
+- As built, the files git staged are not found in what the operation printed, which Gitardo does not run when the user
+  runs it in a terminal, nor in `MERGE_RR`, which drops them: they are the paths of `git ls-files --resolve-undo -z`
+  that are no longer in conflict and whose text on disk is one of the resolutions git recorded, the files
+  `postimage` of the folder `rr-cache`. The index keeps what `--resolve-undo` lists until a commit is checked out, so
+  the read runs only while an operation is under way or files are in conflict, with the read of the repository, and
+  gives each file with whether git staged it.
 
 ### `rerere.read-marked` — A file as git marked it
 
@@ -1864,10 +1883,13 @@ compare with what git wrote from a recorded resolution.
 
 Acceptance:
 
-- [ ] For `m.txt` resolved as before, the text read has the markers and the lines of both sides that git wrote when it
+- [x] For `m.txt` resolved as before, the text read has the markers and the lines of both sides that git wrote when it
       stopped, named as the Merge page names the sides.
-- [ ] Git's exit code 1, one conflict, is read as success.
-- [ ] Nothing in the working tree or the index changes.
+- [x] Git's exit code 1, one conflict, is read as success.
+- [x] Nothing in the working tree or the index changes.
+
+- As built, each side is named by its branch or the short hash of its commit, as the Merge page names it, and by the
+  words of what it is when it has neither. Every exit code from 0 to 127 is read as success, the number of conflicts.
 
 ### `rerere.resolved-as-before` — The files git resolved as before, where conflicts are shown
 
@@ -1895,12 +1917,15 @@ can be done with each: look at what git wrote, mark it resolved, or forget the r
 
 Acceptance:
 
-- [ ] A merge that stops with `m.txt` resolved as before and `n.txt` not says **Merge in progress · 2 files have
+- [x] A merge that stops with `m.txt` resolved as before and `n.txt` not says **Merge in progress · 2 files have
       conflicts · git resolved 1 as before**.
-- [ ] The row of `m.txt` says **Resolved as before**, and **Show what git wrote** opens a Diff page with the markers
+- [x] The row of `m.txt` says **Resolved as before**, and **Show what git wrote** opens a Diff page with the markers
       on the left and the lines git wrote on the right.
-- [ ] **Mark as resolved** on it runs `git add -- m.txt`.
-- [ ] With rerere off, nothing of this is drawn.
+- [x] **Mark as resolved** on it runs `git add -- m.txt`.
+- [x] With rerere off, nothing of this is drawn.
+
+- As built, the Diff page is titled by the file with **As git marked it ↔ Working tree**, its left side read by
+  `rerere.read-marked` as a version of its own of the diff. **Forget this resolution…** has the icon of Undo.
 
 ### `rerere.forget` — Forget a resolution git recorded
 
@@ -1924,8 +1949,8 @@ wrong and that git would otherwise write each time.
 
 Acceptance:
 
-- [ ] On `m.txt` resolved as before it asks with the warning, then runs `git rerere forget m.txt` and
+- [x] On `m.txt` resolved as before it asks with the warning, then runs `git rerere forget m.txt` and
       `git checkout --merge -- m.txt`; the file has its markers after.
-- [ ] On `m.txt` that git staged, the same two commands leave it in conflict, not staged.
-- [ ] Resolving `m.txt` otherwise and running the same merge again writes the new resolution.
-- [ ] With `commandPreview` set to `off`, it still asks.
+- [x] On `m.txt` that git staged, the same two commands leave it in conflict, not staged.
+- [x] Resolving `m.txt` otherwise and running the same merge again writes the new resolution.
+- [x] With `commandPreview` set to `off`, it still asks.

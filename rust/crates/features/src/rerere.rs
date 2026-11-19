@@ -1,5 +1,9 @@
 //! Git's rerere, which records how conflicts are resolved and writes the same resolution the next time
-//! (`docs/features/09-conflicts.md`, D84): turning it on and off for one repository.
+//! (`docs/features/09-conflicts.md`, D84): turning it on and off for one repository, and forgetting a resolution.
+
+mod forget;
+
+pub use forget::{forget, warning as forget_warning};
 
 use model::contract::{
     Answer, AnswerKey, Answers, Choice, Context, Danger, FollowUp, Outcome, Plan, Question, QuestionKind, Refusal,

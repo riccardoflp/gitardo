@@ -1,5 +1,7 @@
 //! Git's rerere (D84): whether it records and writes again the resolutions of conflicts in a repository
-//! (`rerere.read-state`).
+//! (`rerere.read-state`), the files it resolved as before, and a file as git marked it.
+
+mod resolved;
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -8,6 +10,11 @@ use model::rerere::{RerereState, RerereStateRequest};
 
 use crate::read::fields::arguments;
 use crate::{Git, GitError};
+
+pub use resolved::{
+    marked_arguments, parse_remaining, parse_resolve_undo, read_marked, read_resolved, remaining_arguments,
+    resolve_undo_arguments,
+};
 
 /// The arguments that read the two keys at once, as booleans:
 /// `git config --type=bool --get-regexp ^rerere\.(enabled|autoupdate)$`.

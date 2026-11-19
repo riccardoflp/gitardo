@@ -16,6 +16,12 @@
 - **Remember how conflicts are resolved…** in the menu of the row of the repository shown, or in Quick search, turns
   on git's rerere for the repository, asking whether git leaves the files it resolves as before for you to look at or
   stages them; the entry is ticked while git remembers, and choosing it again turns it off, keeping what git recorded.
+- The files git resolved as before, from a resolution it recorded, are said while an operation is stopped: **· git
+  resolved 1 as before** in the banner, a sentence in the message of the stop, and **Resolved as before** on their
+  rows in the changes, whose menu has **Show what git wrote**, a Diff page of the file as git marked it against the
+  file on disk, **Mark as resolved** and **Forget this resolution…**, which runs `git rerere forget` and marks the
+  conflicts again. The review of the conflicts shows each such file on a card under **Resolved as before**, to accept,
+  which **Write** stages, or to forget.
 - A file stored with Git LFS is never shown as the text of its pointer. Left as a pointer, as after a clone without
   Git LFS, the File page says **Stored with Git LFS, not downloaded** with its size and **Download**, which pulls it
   with `git lfs pull --include=<path>`; at a revision, its content is read from the store of the repository when it is

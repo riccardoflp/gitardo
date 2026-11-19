@@ -216,6 +216,7 @@ pub(super) fn read_file(state: &mut State, id: DiffPageId, file: usize, is_confi
         DiffVersion::Commit { commit, .. } => FileVersion::Commit(commit.clone()),
         DiffVersion::Empty => FileVersion::Absent,
         DiffVersion::Base => FileVersion::Base,
+        DiffVersion::Marked => FileVersion::Marked,
         DiffVersion::Resolved(files) => {
             files
                 .iter()

@@ -55,6 +55,9 @@ pub struct RepositoryState {
     pub lfs: crate::lfs::LfsStatus,
     /// Whether git remembers how conflicts are resolved, and stages what it writes (`rerere.read-state`).
     pub rerere: crate::rerere::RerereState,
+    /// The files git resolved as before during the operation under way, while it remembers resolutions
+    /// (`rerere.read-resolved`).
+    pub resolved_as_before: Vec<crate::rerere::ResolvedAsBefore>,
 }
 
 impl RepositoryState {
