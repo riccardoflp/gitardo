@@ -1185,3 +1185,275 @@ Acceptance:
 - [ ] With `user.name` and `user.email` set in the repository, it runs `git config --unset-all user.name` and
       `git config --unset-all user.email`, and the identity under the commit box is the global one after.
 - [ ] A `user.signingkey` of the repository is unset too.
+
+## What git leaves alone
+
+Telling git to leave a file alone, from the changes and the Files page
+([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)):
+a pattern that ignores an untracked file, written in a `.gitignore` or in `.git/info/exclude`; a tracked file that git
+stops tracking, kept on disk; and the files whose changes git is told not to look at, marked in the index, which are
+listed under the changes so that they are not forgotten. Locking a worktree is in `worktree.`.
+
+### `changes.ignore-patterns` — The patterns that ignore a file
+
+The patterns offered to ignore a file or a folder, the files each can be written in, and the line written there.
+
+- **Kind**: Derivation
+- **Function**: `model::changes::ignore_patterns(input: &IgnoreInput) -> IgnoreChoices`
+- **Uses**: by `changes.ignore`.
+
+Rules:
+
+- **Input**: the path from the top of the repository, whether it is a folder, the path of the exclude file of the
+  repository, and the text of each file a line can go in. **Output**: the patterns, in order, each with its words, and
+  for each place the line written there.
+- For a file, in this order: **This file**, its path; **All `.<extension>` files**, `*.<extension>`, when its name has
+  a dot that is not its first character, the extension being what follows the last dot (`archive.tar.gz` gives `*.gz`,
+  `.env` gives none); **The folder `<folder>`**, the folder that holds it, when it is not at the top.
+- For a folder: **This folder**, its path with `/` at its end; **Every folder named `<name>`**, `<name>/`, which
+  ignores a folder of that name wherever it is, as `node_modules/` does.
+- The places, in this order: **The `.gitignore` of the repository**, at the top; **The `.gitignore` of `<folder>`**,
+  the folder that holds the file, when it is not the top, whether that file exists yet or not; **Only on this
+  computer**, the exclude file of the repository (`git rev-parse --git-path info/exclude`), which is not committed and
+  which the worktrees of the repository share.
+- A path is written from the folder of the file it goes in, with `/` before it so that it names that place only:
+  `/logs/today.log` in the `.gitignore` of the repository, `/today.log` in the one of `logs`. A pattern that names the
+  folder of that `.gitignore` itself, or a place outside it, is not offered for that file.
+- In a path, `*`, `?`, `[` and `\` are written with `\` before them, and so is a space at its end, so that the line
+  names that path and no other: `notes[1].txt` is written `/notes\[1\].txt`. `#` and `!` need nothing, as a path
+  written always starts with `/`.
+- The line goes at the end of the file, on a line of its own, with the line ending the file uses (CRLF when its first
+  line ends with CRLF); a file that does not exist is made with the line alone. A pattern the file has already, as a
+  line equal to it once the spaces at its end are left aside, is not written again.
+
+Acceptance:
+
+- [ ] `logs/today.log` gives **This file** `/logs/today.log`, **All `.log` files** `*.log` and **The folder `logs`**
+      `/logs/`; in the `.gitignore` of `logs`, the first two are `/today.log` and `*.log`, and the third is not offered.
+- [ ] `.env` at the top gives **This file** `/.env` alone; `dist/app.tar.gz` gives `*.gz` among its patterns.
+- [ ] The folder `packages/web/node_modules` gives `/packages/web/node_modules/` and `node_modules/`.
+- [ ] `notes[1].txt` is written `/notes\[1\].txt`, and `git check-ignore` says that line ignores it and not
+      `notes1.txt`.
+- [ ] A `.gitignore` whose last line has no line ending gets the new line on a line of its own; a `.gitignore` with
+      CRLF gets the line with CRLF.
+- [ ] A `.gitignore` that has `*.log ` already is given no second `*.log`.
+
+### `changes.ignore` — Ignore a file or a folder
+
+Has git ignore a file or a folder, by a pattern written where the user chooses; on a file git tracks, offers to stop
+tracking it too, since a pattern does not stop git from following a file it tracks.
+
+- **Kind**: Operation
+- **Function**: `features::changes::ignore(context, answers) -> Outcome`
+- **Entry points**: **Ignore…** in the menu of a file of the changes (`changes.row-menu`), in the Changes page and in
+  the **Changes** section; **Ignore…** in the context menu of a file or a folder of the Files page.
+- **Offered when**: the file or the folder is in the repository, outside its submodules, and no pattern ignores it.
+  Not on a file in conflict, nor on a file only an editor has changed.
+- **Asks**:
+  1. **Ignore what**: the patterns of `changes.ignore-patterns`, **This file** (or **This folder**) by default, each
+     with its pattern beside it, and a pattern typed, which may not be empty nor hold a line ending (Q1170, Q1172).
+  2. **Where**: the places of `changes.ignore-patterns`, **The `.gitignore` of the repository** by default (Q1171),
+     each with the line it writes there; **Only on this computer** says *Not committed, and not shared with anyone*.
+  3. Only when git tracks the file, or files under the folder: **Git tracks `<path>`: a pattern does not stop git from
+     following it.** with **Stop tracking it, and keep it on disk** (the default), which adds the steps of
+     `changes.stop-tracking`, and **Only write the pattern**.
+- **Reads**: `git check-ignore -v -z --no-index -- <path>`, to refuse a path that some pattern ignores already and to
+  say which; `git ls-files -z -- <path>`, to know whether git tracks it or files under it.
+- **Plan**: `write <file>`, the file chosen with the line of `changes.ignore-patterns` added; then, when the third
+  answer says so, the steps of `changes.stop-tracking`. No `write` when the file has the pattern already.
+- **Danger**: None; with the steps of `changes.stop-tracking`, the danger of that card.
+- **Undo**: Not taken back by Undo, which follows the reflog: the line is taken out of the file by hand, which **Open
+  `<file>`** in the message after opens.
+- **After**: says **`<path>` is ignored by `<pattern>` in `<file>`.** with **Open `<file>`**, which opens the File
+  page at the line written. The repository is read again: the path leaves the changes, and the `.gitignore` written is
+  listed as changed, or as untracked when it was made, to be committed (Q1175).
+- **Refuses**: a path that a pattern ignores already: **`<path>` is ignored already, by `<pattern>` in `<file>`.**; a
+  path in a submodule: **`<path>` is in the submodule `<name>`: ignore it there.**
+- **Uses**: `changes.ignore-patterns`, `changes.stop-tracking`, `changes.pathspec`, `changes.row-menu`,
+  `file-view.page`.
+- **Extension**: planned: **Ignore…** in the context menu of a file of the **Gitardo Changes** view and of a file or a
+  folder of VS Code's Explorer (`explorer/context`, beside **Link into New Worktrees**), sending `feature/run` of
+  `changes.ignore` to Gitardo's engine (`Controller.runOnEngine`), its questions asked in VS Code's pickers
+  (`VscodeAsker`) (Q1185). **Open `<file>`** opens the file in an editor of VS Code. VS Code's own **Add to
+  .gitignore** of its Source Control view stays as it is.
+
+Acceptance:
+
+- [ ] On the untracked `debug.log`, **All `.log` files** in the repository's `.gitignore` adds `*.log` at its end and
+      logs `write .gitignore`; once read again, `debug.log` is not in the changes and `.gitignore` is.
+- [ ] **Only on this computer** writes the line in `.git/info/exclude`: `debug.log` leaves the changes, and no file
+      of the working tree changes.
+- [ ] On the folder `build` of the Files page, **This folder** writes `/build/`.
+- [ ] On `config/local.json`, which git tracks, the third question is asked; **Stop tracking it, and keep it on disk**
+      writes the pattern then runs `git rm --cached -- config/local.json`, and the file is still on disk.
+- [ ] **Only write the pattern** on a tracked file writes the line, runs no `git rm`, and the file is still listed as
+      changed.
+- [ ] A pattern typed, `tmp-*`, is written as typed.
+- [ ] On a path that `*.log` in `.gitignore` ignores already, it refuses with **`x.log` is ignored already, by
+      `*.log` in `.gitignore`.**, and writes nothing.
+- [ ] Backing out of any question writes nothing.
+- [ ] Extension: **Ignore…** on `debug.log` in the Explorer writes `/debug.log` in the repository's `.gitignore`
+      through the engine, written to the **Gitardo** output channel.
+
+### `changes.stop-tracking` — Stop tracking a file, and keep it on disk
+
+Takes a file, or every file of a folder, out of the index, so that the next commit deletes it from the repository while
+it stays on disk: for a file committed by mistake, such as a file of local settings, once it is ignored.
+
+- **Kind**: Operation
+- **Function**: `features::changes::stop_tracking(context, answers) -> Outcome`
+- **Entry points**: the third question of `changes.ignore`; **Stop tracking, keep on disk…** in the menu of a tracked
+  file of the changes (`changes.row-menu`) and in the context menu of a file or a folder git tracks in the Files page.
+- **Offered when**: git tracks the file, or files under the folder; not on a file in conflict.
+- **Reads**: `changes.read-skipped`, for the files among them that are hidden from git.
+- **Plan**: for each file hidden from git, `git update-index --no-skip-worktree -- <path>` first, since `git rm`
+  leaves such a file alone; then `git rm --cached -- <path>`, or `git rm --cached -r -- <path>` for a folder, with the
+  path as `changes.pathspec` writes it. When git refuses because the index has a version that is neither the last
+  commit nor the file on disk, Gitardo offers **Stop tracking anyway**, the same plan with `git rm --cached --force`,
+  Destructive, because **The version of `<path>` that is staged is lost: it is neither committed nor on disk.**
+- **Danger**: Confirm, because **`<path>` stays on your disk. Once committed, it is deleted from the repository, and
+  from the disk of whoever pulls that commit.**
+- **Undo**: Not taken back by Undo: unticking the deletion in the changes (`changes.unstage`) takes it back while it
+  is not committed.
+- **After**: the deletion is staged and listed in the changes; the file on disk is not listed when a pattern ignores
+  it, and is listed as untracked otherwise.
+- **Refuses**: **Git does not track `<path>`.**; a file in conflict: **`<path>` is in conflict: resolve it first.**
+- **Uses**: `changes.pathspec`, `changes.read-skipped`, `changes.unskip`, `changes.unstage`.
+- **Extension**: planned: **Stop Tracking, Keep on Disk…** in the context menu of a file of the **Gitardo Changes**
+  view and of a file or a folder of VS Code's Explorer, sending `feature/run` of `changes.stop-tracking` to the
+  engine, its danger asked in a modal dialog (`VscodeAsker`) (Q1174).
+
+Acceptance:
+
+- [ ] On `config/local.json`, it asks with the warning, then runs `git rm --cached -- config/local.json`; the file
+      is on disk after, and the changes list it as deleted, staged.
+- [ ] On the folder `generated`, it runs `git rm --cached -r -- generated`.
+- [ ] On a file hidden from git with `--skip-worktree`, it runs `git update-index --no-skip-worktree` first, and the
+      file is out of the index after.
+- [ ] With `a.txt` staged and changed again on disk, git's refusal is followed by **Stop tracking anyway**, shown as
+      destructive, and nothing changes until it is accepted.
+- [ ] Unticking the staged deletion after it puts the file back in the index as it was.
+- [ ] Extension: the modal dialog shows `git rm --cached -- <path>` with the warning, whatever
+      `gitardo.commandPreview` says.
+
+### `changes.read-skipped` — Read the files hidden from git
+
+Which tracked files git is told not to look at, and how: those marked **skip-worktree**, whose changes stay out of
+commits and which a checkout leaves alone, and those marked **assume unchanged**, a promise git may forget.
+
+- **Kind**: Read
+- **Function**: `git::read::changes::read_skipped(git: &Git, request: &SkippedRequest) -> Result<SkippedFiles, GitError>`
+- **Reads**: `git ls-files -v -z`, with `GIT_OPTIONAL_LOCKS=0`: each record is a letter, a space and a path. A letter
+  in lower case is a file assumed unchanged; `S` is a file skipped in the working tree; `s` is both. Any other letter is
+  a file git looks at as usual. And `git config --type=bool --get core.sparseCheckout`: in a sparse checkout git marks
+  skip-worktree every file it leaves out of the working tree, so there the files marked `S` are the sparse checkout's,
+  not files hidden by hand, and are left out of the result (Q1179).
+- **Uses**: `repo.read-state`, with which it runs, and again only when the index changed since the read before
+  (`repo.watch-changes`), as the counts of the other worktrees are read again only when their git folder changed
+  (Q1177).
+- **Extension**: read by the engine with the state of the repository; the extension shows what it reads.
+
+Acceptance:
+
+- [ ] `h a.txt\0S b.txt\0s c.txt\0H d.txt\0` gives `a.txt` assumed unchanged, `b.txt` skipped, `c.txt` both, and
+      not `d.txt`.
+- [ ] A path with spaces and non-ASCII letters comes back exactly as it is in the index.
+- [ ] With `core.sparseCheckout` on, a file marked `S` is not in the result, and a file marked `h` is.
+- [ ] A read of the repository after a change to a file of the working tree only, the index as it was, does not run
+      `git ls-files -v`.
+
+### `changes.skip` — Hide a file's changes from git
+
+Has git leave the changes of a tracked file alone: they stay on disk and out of every commit, as for a settings file
+that each one changes on their own computer.
+
+- **Kind**: Operation
+- **Function**: `features::changes::skip(context, answers) -> Outcome`
+- **Entry points**: **Hide its changes from git…** in the menu of a tracked file of the changes (`changes.row-menu`)
+  and in the context menu of a tracked file of the Files page.
+- **Offered when**: git tracks the file, it is not hidden already, and it is not in conflict. Not on a folder (Q1184).
+- **Asks**: **How git leaves `<path>` alone**: **Skip it in the working tree** (the default, Q1176), *Git keeps the
+  file as committed and leaves your version on disk alone. A pull that changes it stops until you show its changes to
+  git again.*; **Assume it is unchanged**, *A promise that the file does not change, for speed: git may look at it
+  again, and a checkout may write over your changes.*
+- **Plan**: `git update-index --skip-worktree -- <path>`, or `git update-index --assume-unchanged -- <path>`. The path
+  is given as it is: `git update-index` takes paths, not patterns.
+- **Danger**: None. The question says what each way means.
+- **Undo**: Not taken back by Undo: **Show its changes to git again** (`changes.unskip`) does.
+- **After**: the file leaves the list of the changes and is listed under **Hidden from git** (`changes.skipped-list`).
+- **Refuses**: on a file git does not track: **Git does not track `<path>`: ignore it instead.** with **Ignore…**
+  (`changes.ignore`).
+- **Uses**: `changes.read-skipped`, `changes.skipped-list`, `changes.unskip`, `changes.ignore`.
+- **Extension**: planned: **Hide Its Changes from Git…** in the context menu of a file of the **Gitardo Changes** view
+  and of a file of VS Code's Explorer, sending `feature/run` of `changes.skip` to the engine.
+
+Acceptance:
+
+- [ ] On `config/local.json`, changed, **Skip it in the working tree** runs
+      `git update-index --skip-worktree -- config/local.json`; the file leaves the changes, is listed under **Hidden
+      from git**, and `git status` no longer lists it.
+- [ ] **Assume it is unchanged** runs `git update-index --assume-unchanged -- config/local.json`.
+- [ ] A file named `pages/[id].tsx` is given as `pages/[id].tsx`, not as `:(literal)pages/[id].tsx`.
+- [ ] The entry is not in the menu of an untracked file, of a folder, nor of a file in conflict.
+
+### `changes.unskip` — Show a file's changes to git again
+
+Takes back what `changes.skip` did, for one file or for every file hidden.
+
+- **Kind**: Operation
+- **Function**: `features::changes::unskip(context, answers) -> Outcome`
+- **Entry points**: **Show its changes to git again** in the menu of a row of **Hidden from git**
+  (`changes.skipped-list`) and in the context menu of a hidden file of the Files page; **Show all to git again** in the
+  **…** of the heading of **Hidden from git**.
+- **Offered when**: the file is hidden from git by hand (`changes.read-skipped`).
+- **Plan**: `git update-index --no-skip-worktree -- <path>…` for the files skipped, then
+  `git update-index --no-assume-unchanged -- <path>…` for the files assumed unchanged: one command for each, since
+  `git update-index` given both options at once changes only the first.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: `changes.skip` hides it again.
+- **After**: the file leaves **Hidden from git**, and is listed in the changes when it differs from the last commit.
+- **Uses**: `changes.read-skipped`, `changes.skipped-list`.
+- **Extension**: planned: the same entries in the group **Hidden from git** of the **Gitardo Changes** view, sending
+  `feature/run` of `changes.unskip` to the engine.
+
+Acceptance:
+
+- [ ] On `config/local.json`, skipped and changed on disk, it runs
+      `git update-index --no-skip-worktree -- config/local.json`, and the file is listed in the changes as modified.
+- [ ] On a file both skipped and assumed unchanged, it runs both commands, and `git ls-files -v` marks it `H` after.
+- [ ] **Show all to git again** with three files hidden runs one command for each way they are hidden.
+
+### `changes.skipped-list` — The files hidden from git, under the changes
+
+The files git is told not to look at, listed under the changes while there are any, so that they are not forgotten.
+
+- **Kind**: View
+- **Function**: `views::changes::skipped_list(state: &SkippedListState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: under the list of the changed files, in the Changes page and in the **Changes** section; a mark
+  on the row of such a file in the tree of the Files page.
+- **Offered when**: `changes.read-skipped` gives at least one file; otherwise nothing of it is drawn.
+- **Uses**: `changes.read-skipped`, `changes.unskip`, `changes.open`, `diff.page`, `diff.read-sides`,
+  `file-view.page`, `file-view.files-changes`, `ui.menu-icons`.
+- **Extension**: planned: a group **Hidden from git** at the end of the **Gitardo Changes** view, with the same rows
+  and menus.
+
+- A heading **Hidden from git** with their count, `Hidden from git 2`, unfolded when the repository is first shown,
+  with **…** for **Show all to git again**. Whether it is folded is kept while the window is open, and not remembered
+  (Q1178).
+- A row for each file: its icon, its name, its folder, and in the small text of details, muted, **skip-worktree** or
+  **assumed unchanged**. Its tooltip: *Git does not look at the changes of this file: they stay out of every commit.*
+- A click on a row opens the Diff page of the file between the last commit and the disk, which Gitardo reads itself
+  (`diff.read-sides`) whatever git is told; a file whose version on disk is as committed opens the File page instead.
+  Its menu: **Open changes**, **Open file**, **Show its changes to git again**.
+- In the tree of the Files page, a hidden file has an eye struck through at the end of its row, with the same tooltip,
+  and **Show its changes to git again** in its context menu.
+
+Acceptance:
+
+- [ ] With `config/local.json` skipped, the Changes page and the section list it under **Hidden from git 1**, marked
+      **skip-worktree**, and not in the list of the changes.
+- [ ] A click on it, changed on disk, opens its Diff page between `HEAD` and the disk.
+- [ ] With no file hidden, nothing of the group is drawn.
+- [ ] In a sparse checkout, the files the checkout leaves out are not listed.
+- [ ] The tree of the Files page shows the struck eye on `config/local.json`.
+- [ ] The group matches its snapshots in each theme.

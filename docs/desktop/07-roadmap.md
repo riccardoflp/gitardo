@@ -1235,6 +1235,45 @@ bringing it up to the fork's new commits; with a remote on bitbucket.org, **Crea
 page and nothing offers a checkout; every address of `hosting.web-links` was opened by hand on its service; every card
 of the milestone passes its tests, in the desktop and, after phase 5, in the extension.
 
+## M38 — What git leaves alone
+
+Telling git to leave something alone, from the window: ignoring a file or a folder by a pattern written in the
+`.gitignore` or the exclude file chosen, stopping tracking a file while it stays on disk, hiding the changes of a
+tracked file from git and listing such files so that they are not forgotten, and locking a worktree with a reason
+([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)).
+Asked by the maintainer, with M39 and M40, among the Git features Gitardo did not have. Built in four phases, each one
+commit or more, each ending with its cards built and their tests passing; the first three are Gitardo Desktop's, and the
+fourth brings the milestone to the extension.
+
+1. **Ignore and stop tracking.** **Ignore…** in the menu of a file of the changes and of a file or a folder of the
+   Files page, with the patterns and the places offered, the line written as one `write` step, and git asked whether
+   a path is ignored already; on a tracked file, the offer to stop tracking it, kept on disk, with its warning. Cards:
+   `changes.ignore-patterns`, `changes.ignore`, `changes.stop-tracking`, `changes.row-menu`.
+2. **Files hidden from git.** The files marked skip-worktree or assume unchanged read from the index, the sparse
+   checkout's left out; **Hide its changes from git…** and **Show its changes to git again**; the group **Hidden from
+   git** under the changes, in the Changes page and in the section, and the mark of the Files page. Cards:
+   `changes.read-skipped`, `changes.skip`, `changes.unskip`, `changes.skipped-list`, `changes.section`,
+   `changes.pane`.
+3. **Locked worktrees.** The lock and its reason read from `git worktree list`, the folder of a locked worktree looked
+   for on disk; **Lock…** and **Unlock**; the lock in the Worktrees list and in **Repositories**; **Unlock and
+   remove**, **Unlock and rename**, and **Prune** leaving a locked worktree. Cards: `worktree.lock`,
+   `worktree.unlock`, `worktree.locked`, `worktree.read-list`, `worktree.section`, `worktree.remove`,
+   `worktree.rename`, `worktree.prune`.
+4. **In the extension.** The entries in the **Gitardo Changes** view, in the context menu of VS Code's Explorer and in
+   the Worktrees section, the group **Hidden from git** at the end of the **Gitardo Changes** view, and the lock on the
+   rows of the worktrees, all run by the engine. Cards: the cards of the first three phases, in the extension.
+
+Nothing is built yet.
+
+Exit: in a repository with `debug.log` untracked, **Ignore…** with **All `.log` files** writes `*.log` at the end of
+the `.gitignore`, `debug.log` leaves the changes and the `.gitignore` comes in; **Ignore…** on the tracked
+`config/local.json` with **Stop tracking it** leaves the file on disk and its deletion staged; **Hide its changes from
+git…** on a changed tracked file takes it out of the changes and lists it under **Hidden from git 1**, where a click
+shows its diff and **Show its changes to git again** brings it back; a worktree locked with a reason shows its lock and
+its reason, **Remove…** on it says the reason first, and **Prune** leaves it once its folder is gone; the same entries
+do the same in the extension; every card of the milestone passes its tests, and the snapshots of the group and of a
+locked worktree match in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

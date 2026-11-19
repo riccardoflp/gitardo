@@ -743,6 +743,103 @@ Acceptance:
       Worktrees section no longer lists it; with no missing worktree, the entry is not offered.
 - [ ] Extension: right after it, **Undo** says it is not taken back, rather than taking back the operation before it.
 
+### `worktree.lock` — Lock a worktree
+
+Has git keep a worktree whatever happens to its folder, with the reason why: a worktree on a drive that is not always
+plugged in is not forgotten by **Prune**, and is not removed or moved by mistake
+([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::worktree::lock(context, answers) -> Outcome`
+- **Entry points**: **Lock…** in the context menu of a worktree in the Worktrees list and of the row of a worktree in
+  **Repositories** (`repo.group-tabs`).
+- **Offered when**: the worktree is not the main worktree and is not locked; a missing worktree too, which is what a
+  lock is most for.
+- **Asks**: **Why `<label>` is locked**, a text that may stay empty, with *On a drive that is not always plugged in* as
+  its placeholder and *Prune and Remove leave a locked worktree alone. The reason is shown beside it.* under it (Q1181).
+- **Plan**: `git worktree lock --reason <reason> <folder>`, or `git worktree lock <folder>` when the reason is empty.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: **Unlock** (`worktree.unlock`) does.
+- **After**: the row of the worktree shows its lock (`worktree.locked`).
+- **Refuses**: on the main worktree, as git does: **Git cannot lock the main worktree, the folder the repository was
+  created in.**
+- **Uses**: `worktree.locked`, `worktree.read-list`.
+- **Extension**: planned: **Lock…** in the context menu of a worktree in the Worktrees section, beside the graph and in
+  the Branches view, and of the row of a worktree in the **Gitardo Repositories** view (`worktreeMenu` in
+  `src/webview/menus.ts`), sending `feature/run` of `worktree.lock` to the engine (`Controller.runOnEngine`), the reason
+  asked in an input box of VS Code (`VscodeAsker`).
+
+Acceptance:
+
+- [ ] On `feature/login` with the reason `On the USB drive`, it runs
+      `git worktree lock --reason "On the USB drive" <folder>`, and `git worktree list --porcelain` says
+      `locked On the USB drive` after.
+- [ ] With the reason left empty, it runs `git worktree lock <folder>`.
+- [ ] The entry is not in the menu of the main worktree, nor of a worktree locked already.
+- [ ] Extension: **Lock…** on a worktree of the Worktrees section asks the reason and runs the command in the engine,
+      written to the **Gitardo** output channel.
+
+### `worktree.unlock` — Unlock a worktree
+
+Takes the lock of `worktree.lock` away, so that **Prune**, **Remove…** and **Rename…** treat the worktree as any other.
+
+- **Kind**: Operation
+- **Function**: `features::worktree::unlock(context, answers) -> Outcome`
+- **Entry points**: **Unlock** in the context menu of a locked worktree in the Worktrees list and of its row in
+  **Repositories**.
+- **Offered when**: the worktree is locked.
+- **Plan**: `git worktree unlock <folder>`.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: **Lock…** locks it again, the reason it had proposed in its box.
+- **After**: the row loses its lock; a missing worktree can then be pruned.
+- **Uses**: `worktree.locked`.
+- **Extension**: planned: **Unlock** in the same menus, sending `feature/run` of `worktree.unlock` to the engine.
+
+Acceptance:
+
+- [ ] On a locked worktree it runs `git worktree unlock <folder>`, and the lock is gone from its row.
+- [ ] After unlocking a missing worktree, **Prune missing worktrees** is offered and forgets it.
+- [ ] Extension: **Unlock** runs `git worktree unlock <folder>` in the engine, and the row loses its lock.
+
+### `worktree.locked` — What a locked worktree shows, and what it changes
+
+How a lock is read and shown, and what **Remove…**, **Rename…**, **Prune** and the clean-up of branches do with a
+locked worktree, which git refuses to remove or move and never prunes.
+
+- **Kind**: Derivation
+- **Function**: `model::worktree::locked(input: &LockedInput) -> LockedRules`
+- **Reads**: the line `locked` of each worktree in `git worktree list --porcelain -z` (`worktree.read-list`), and the
+  reason after it when there is one. Git does not mark a locked worktree `prunable` though its folder is gone, so the
+  folder of each locked worktree is looked for on disk, to know whether it is missing.
+- **Uses**: `worktree.read-list`, `worktree.section`, `worktree.remove`, `worktree.rename`, `worktree.prune`,
+  `worktree.unlock`, `branch.clean-up`, `repo.group-tabs`.
+- **Extension**: the same rules, in the engine; the rows of the Worktrees section and of the **Gitardo Repositories**
+  view draw the lock as their tooltips say it: planned.
+
+Rules:
+
+- A locked worktree has a lock after its label in the Worktrees list and on its row in **Repositories**; its tooltip
+  says **Locked: `<reason>`**, or **Locked** with no reason. A missing one says `missing, locked`.
+- **Remove…** on a locked worktree asks first **`<label>` is locked: `<reason>`.** with **Unlock and remove**, whose
+  plan is `git worktree unlock <folder>` followed by the plan of `worktree.remove`; git's `remove -f -f` is never used
+  (Q1182). **Rename…** asks the same with **Unlock and rename**, and locks the worktree again after the move, with the
+  same reason.
+- **Prune missing worktrees** is offered while a missing worktree is not locked; `git worktree prune` leaves a locked
+  one, which keeps its row, and whose menu has **Unlock** so that the next prune forgets it.
+- `branch.clean-up` lists the branch of a locked worktree unticked, with **with its locked worktree `<label>`**, and,
+  when it is ticked, removes the worktree as **Unlock and remove** does (Q1183).
+
+Acceptance:
+
+- [ ] `locked On the USB drive` gives the reason `On the USB drive`; `locked` alone gives a lock with no reason.
+- [ ] A locked worktree whose folder was deleted shows `missing, locked`, and **Prune missing worktrees** is not
+      offered while it is the only one missing.
+- [ ] **Remove…** on a locked worktree says its reason, and **Unlock and remove** runs `git worktree unlock <folder>`
+      then `git worktree remove <folder>`.
+- [ ] **Rename…** on a locked worktree runs `git worktree unlock`, `git worktree move`, then
+      `git worktree lock --reason <reason>` on the new folder.
+- [ ] The worktree list and the row in **Repositories** match their snapshots with a lock, in each theme.
+
 ### `worktree.read-folder-links` — Read the links to folders outside a worktree
 
 On Windows, git deletes what is inside a junction when it removes a worktree: the folder it links to, in the folder the

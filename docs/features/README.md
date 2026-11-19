@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 539 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 549 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -21,14 +21,14 @@ earns it.
 | [02-graph.md](02-graph.md) | Graph | 59 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 20 |
-| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 29 |
+| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 36 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 47 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 37 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 39 |
 | [10-compare.md](10-compare.md) | Compare | 27 |
 | [11-history-and-blame.md](11-history-and-blame.md) | History and blame | 30 |
-| [12-worktrees.md](12-worktrees.md) | Worktrees | 45 |
+| [12-worktrees.md](12-worktrees.md) | Worktrees | 48 |
 | [13-submodules.md](13-submodules.md) | Submodules | 20 |
 | [14-patches.md](14-patches.md) | Patches | 7 |
 | [15-github.md](15-github.md) | GitHub | 15 |
@@ -237,6 +237,13 @@ earns it.
 | [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built | Built |
 | [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built | Built |
 | [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Built | Built |
+| [`changes.ignore-patterns`](05-changes-and-commit.md#changesignore-patterns--the-patterns-that-ignore-a-file) | The patterns that ignore a file | Derivation | Specified | Planned |
+| [`changes.ignore`](05-changes-and-commit.md#changesignore--ignore-a-file-or-a-folder) | Ignore a file or a folder | Operation | Specified | Planned |
+| [`changes.stop-tracking`](05-changes-and-commit.md#changesstop-tracking--stop-tracking-a-file-and-keep-it-on-disk) | Stop tracking a file, and keep it on disk | Operation | Specified | Planned |
+| [`changes.read-skipped`](05-changes-and-commit.md#changesread-skipped--read-the-files-hidden-from-git) | Read the files hidden from git | Read | Specified | Planned |
+| [`changes.skip`](05-changes-and-commit.md#changesskip--hide-a-files-changes-from-git) | Hide a file's changes from git | Operation | Specified | Planned |
+| [`changes.unskip`](05-changes-and-commit.md#changesunskip--show-a-files-changes-to-git-again) | Show a file's changes to git again | Operation | Specified | Planned |
+| [`changes.skipped-list`](05-changes-and-commit.md#changesskipped-list--the-files-hidden-from-git-under-the-changes) | The files hidden from git, under the changes | View | Specified | Planned |
 
 ## Branches, tags, remotes and sync
 
@@ -484,6 +491,9 @@ earns it.
 | [`worktree.copy-path`](12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree) | Copy the path of a worktree | Operation | Built | Built |
 | [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Built | Built |
 | [`worktree.prune`](12-worktrees.md#worktreeprune--prune-missing-worktrees) | Prune missing worktrees | Operation | Built | Built |
+| [`worktree.lock`](12-worktrees.md#worktreelock--lock-a-worktree) | Lock a worktree | Operation | Specified | Planned |
+| [`worktree.unlock`](12-worktrees.md#worktreeunlock--unlock-a-worktree) | Unlock a worktree | Operation | Specified | Planned |
+| [`worktree.locked`](12-worktrees.md#worktreelocked--what-a-locked-worktree-shows-and-what-it-changes) | What a locked worktree shows, and what it changes | Derivation | Specified | Planned |
 | [`worktree.read-folder-links`](12-worktrees.md#worktreeread-folder-links--read-the-links-to-folders-outside-a-worktree) | Read the links to folders outside a worktree | Read | Built | Built |
 | [`worktree.recover-held-folder`](12-worktrees.md#worktreerecover-held-folder--get-past-a-folder-that-windows-holds) | Get past a folder that Windows holds | Derivation | Built | Built |
 | [`worktree.remove-empty-folders`](12-worktrees.md#worktreeremove-empty-folders--leave-no-empty-folders-behind) | Leave no empty folders behind | Derivation | Built | Built |

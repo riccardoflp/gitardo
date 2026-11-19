@@ -2008,6 +2008,50 @@ reference, `refs/pull/<n>/merge` (the result of a merge no one made, not the com
 fork as a remote at each checkout (remotes that pile up; Q1152); the programs of the services, `gh` and `glab` (the
 user may not have them, and they sign in on their own).
 
+## D83 — Ignoring files, files git does not look at, and locked worktrees, from the window (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M38; the details proposed while planning.*
+
+Three ways of telling git to leave something alone were left to a terminal: a pattern in a `.gitignore`, written with
+the right escaping in the right file; the changes of a tracked file kept out of every commit, with
+`git update-index --skip-worktree`; and a worktree locked, so that a prune does not forget it while its drive is not
+plugged in. The last two cannot be seen once done: a file marked by hand stays out of every commit until someone
+remembers it, and a locked worktree refuses **Remove…** and **Rename…** with a message of git's. Gitardo does the
+three, and shows the last two.
+
+- **Ignore…** on a file of the changes and on a file or a folder of the Files page (`changes.ignore`) asks the pattern,
+  **This file**, **All `.log` files** or **The folder `logs`** (`changes.ignore-patterns`), and where it goes: the
+  `.gitignore` of the repository, the one of the folder of the file, or **Only on this computer**, the exclude file of
+  the repository, which is not committed. It is one `write` step, the line at the end of the file, written with `/`
+  before it and its special characters escaped, so that it names that path only.
+- **Git says what is ignored.** Gitardo never reads a `.gitignore` to decide what it ignores: whether a path is ignored
+  already, and by which line, is asked of `git check-ignore -v`, as the Search page leaves the files it searches to git
+  ([D73](#d73--search-a-page-that-finds-files-folders-and-text-in-the-worktree-shown)).
+- **A tracked file** is not ignored by a pattern: the question says so, and offers to stop tracking it, keeping it on
+  disk (`changes.stop-tracking`, `git rm --cached`). It asks first, since whoever pulls the commit that deletes it
+  loses the file from their disk.
+- **Files hidden from git.** **Hide its changes from git…** marks a tracked file **skip-worktree** by default, or
+  **assume unchanged** (`changes.skip`); `git ls-files -v -z` reads them (`changes.read-skipped`). They are listed
+  under the changes, in a group **Hidden from git** with their count that is there while any is, with **Show its
+  changes to git again** (`changes.skipped-list`, `changes.unskip`), and the Files page marks them. In a sparse
+  checkout the files git leaves out are skip-worktree too: those are the checkout's, and not listed.
+- **Locked worktrees.** **Lock…** asks a reason, which may be empty, and **Unlock** takes the lock away
+  (`worktree.lock`, `worktree.unlock`). A locked worktree has a lock in the Worktrees list and in **Repositories**, its
+  reason in the tooltip. **Remove…** and **Rename…** on it say the reason and offer **Unlock and remove** and **Unlock
+  and rename**, never git's `-f -f`; **Prune** leaves it, as git does; and since git does not mark a locked worktree
+  whose folder is gone as prunable, its folder is looked for on disk to say `missing, locked` (`worktree.locked`).
+
+The extension gets every card from the engine in the last phase of the milestone: the entries in the **Gitardo
+Changes** view, in the context menu of VS Code's Explorer as **Link into New Worktrees** is, and in the Worktrees
+section, the group **Hidden from git** at the end of the **Gitardo Changes** view. VS Code's own **Add to .gitignore**
+stays as it is.
+
+Rejected: a page that edits the `.gitignore` files (the File page edits them, and a pattern is one line); reading the
+`.gitignore` files in Gitardo to say which line ignores a file (a second reading of what git reads, as D73 says);
+**assume unchanged** as the default (git takes it as a promise made for speed, may look at the file again, and a
+checkout may write over it); `git worktree remove -f -f` on a locked worktree (the lock has a reason the user should
+read first); hiding a file from git in every clone (git has no such thing: the mark is in the index of each clone).
+
 
 ## Open questions
 
@@ -5256,4 +5300,52 @@ it was planned; each is built as it says until the maintainer answers otherwise.
   in a worktree of its own too, as `worktree.open-in-worktree` does for a branch?
 - **Q1164** — `compare.open-on-service`: Bitbucket, Gitea and Forgejo compare only since the two diverged, so the entry
   is not there in **Everything that differs**. Should it open the comparison since they diverged there, saying so?
+
+### Of what git leaves alone, from Q1170
+
+Questions of milestone M38 ([D83](#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)),
+asked while it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1170** — `changes.ignore`: the pattern proposed first is **This file**, the path of the file alone. For a file
+  such as `debug.log` the pattern wanted is often **All `.log` files**. Should the extension be the default when the
+  file has one, and the file alone otherwise?
+- **Q1171** — `changes.ignore`: the place proposed first is the `.gitignore` of the repository, also when the folder of
+  the file has a `.gitignore` of its own. Should the `.gitignore` nearest the file be the default when it exists?
+- **Q1172** — `changes.ignore-patterns`: a path is written with `/` before it, `/logs/today.log`, which ignores that
+  file only; VS Code's **Add to .gitignore** writes `logs/today.log`, which git reads the same since it has a slash,
+  and the name alone for a file at the top, `debug.log`, which ignores a file of that name in every folder. Is the
+  leading `/` the right way, for a file at the top too?
+- **Q1173** — `changes.ignore`: it acts on one file or one folder. Should several files selected in the Files page, or
+  ticked in the changes, be ignored at once, each by its own path in one `write`?
+- **Q1174** — `changes.stop-tracking`: it is offered on any tracked file. Git can list the files it tracks that a pattern
+  ignores, which were committed before the pattern (`git ls-files -ci --exclude-standard -z`). Should those be shown
+  somewhere, with **Stop tracking** on each?
+- **Q1175** — `changes.ignore`: after it, the `.gitignore` written is a change of the working tree like any other, to be
+  staged with the rest; with **Stop tracking it**, the deletion is staged and the `.gitignore` is not. Should the
+  `.gitignore` be staged too, so that the next commit has both?
+- **Q1176** — `changes.skip`: **Skip it in the working tree** is the default, as git's documentation recommends for
+  changes kept out of commits; **Assume it is unchanged** is offered beside it. Should the second be offered at all?
+- **Q1177** — `changes.read-skipped`: `git ls-files -v -z` prints every file of the index, read with the repository
+  whenever the index changed. Not measured on a repository of 100,000 files. Should it be read only when the group or
+  the Files page is shown, or on **Refresh**?
+- **Q1178** — `changes.skipped-list`: the group is unfolded when a repository is first shown, and what is folded is not
+  remembered, so that the files are seen at least once each time. Should it be remembered for the workspace, under a
+  new key of the side column, or should the heading of **Changes** count the hidden files too?
+- **Q1179** — `changes.read-skipped`: in a sparse checkout the files marked skip-worktree are left out, those being the
+  checkout's; a file hidden by hand there with `--skip-worktree` is not listed either. Should a sparse checkout be
+  shown as such, and the files it leaves out, as a milestone of its own?
+- **Q1180** — `changes.skip`: a pull or a checkout that changes a file skipped in the working tree stops, and git's
+  message names the file. Should Gitardo say that the file is hidden from git and offer **Show its changes to git
+  again** in the message of the failure?
+- **Q1181** — `worktree.lock`: a worktree is locked after it is made. Should **Create worktree…** offer to lock it as
+  it is made (`git worktree add --lock --reason`), for a worktree made on a removable drive?
+- **Q1182** — `worktree.locked`: **Remove…** on a locked worktree asks with its reason and offers **Unlock and
+  remove**. Should it rather refuse, with **Unlock** as the only way on, so that removing it takes two steps?
+- **Q1183** — `worktree.locked`: `branch.clean-up` lists the branch of a locked worktree unticked. Should such branches
+  be left out of its list?
+- **Q1184** — `changes.skip`: it is not offered on a folder. Should **Hide its changes from git…** on a folder of the
+  Files page hide every file git tracks in it, and list them under the folder in **Hidden from git**?
+- **Q1185** — `changes.ignore`, `changes.stop-tracking`, `changes.skip`: in the extension the entries are planned in the
+  **Gitardo Changes** view and in the context menu of VS Code's Explorer. Should they be in the Explorer, where VS Code
+  and other extensions have many entries already, or in Gitardo's views alone?
 
