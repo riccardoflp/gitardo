@@ -3,6 +3,7 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
 mod bisect;
+mod tags;
 mod upstream;
 
 use std::path::PathBuf;
@@ -284,7 +285,7 @@ fn branch_delete__the_branch_checked_out_has_no_delete_entry() {
 }
 
 /// The entries of a tag of the repository, by its name.
-fn of_tag(repository: &RepositoryState, name: &str) -> Vec<String> {
+pub(super) fn of_tag(repository: &RepositoryState, name: &str) -> Vec<String> {
     let tag = repository.tags.iter().find(|tag| tag.name == name);
     labels(&tag.map_or_default(|tag| tag_entries(menus(repository, OpenIn::Checkout), tag)))
 }
@@ -297,42 +298,6 @@ fn tag_push__a_repository_with_no_remote_has_no_push_tag_entry() {
     assert_eq!(
         of_tag(&repository, "v0"),
         ["Check out tag (detached)", "Create branch here\u{2026}", "Delete"]
-    );
-}
-
-#[test]
-fn tag_checkout__a_tag_on_the_commit_checked_out_has_no_such_entry() {
-    let repository = repository();
-    assert_eq!(
-        of_tag(&repository, "v1"),
-        [
-            "Create branch here\u{2026}",
-            "Push tag",
-            "Delete",
-            "Delete from origin",
-            "Delete here and from origin"
-        ]
-    );
-}
-
-#[test]
-fn tag_delete_remote__with_several_remotes_the_entries_ask_which_and_with_none_there_is_neither() {
-    let mut repository = repository();
-    repository.remotes.push(String::from("upstream"));
-    let entries = of_tag(&repository, "v1");
-    assert!(
-        entries.contains(&String::from("Delete from a remote\u{2026}")),
-        "{entries:?}"
-    );
-    assert!(
-        entries.contains(&String::from("Delete here and from a remote\u{2026}")),
-        "{entries:?}"
-    );
-    repository.remotes.clear();
-    let entries = of_tag(&repository, "v1");
-    assert!(
-        !entries.iter().any(|entry| entry.starts_with("Delete from")),
-        "{entries:?}"
     );
 }
 
