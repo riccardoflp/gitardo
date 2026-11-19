@@ -22,6 +22,7 @@ pub mod file_search;
 pub mod files_page;
 pub mod github;
 mod inspector;
+pub mod large_files;
 mod log_lines;
 mod merge_page;
 mod message;
@@ -109,6 +110,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(files_page::follow(state));
     effects.extend(file_search::follow(state));
     effects.extend(new_worktrees::follow(state));
+    effects.extend(large_files::follow(state));
     effects.extend(changes::follow_unsaved(state));
     effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
@@ -165,17 +167,15 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         message @ (Message::FilesRead { .. } | Message::NewWorktreesRead { .. }) => files_page::read(state, message),
+        Message::BlameRead { job, result } => blame::blame_read(state, job, result),
+        Message::LargeFilesRead(job, result) => large_files::read(state, job, *result),
         Message::IgnoredRead { job, result } => reads::ignored_read(state, job, result),
         Message::FileSearch { job, answer } => file_search::answered(state, job, answer),
-        Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::TabChanged { folder, changes, at } => tabs::tab_changed(state, &folder, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
-        Message::SummariesRead(reads) => {
-            tabs::summaries_read(state, reads);
-            Vec::new()
-        }
+        Message::SummariesRead(reads) => tabs::summaries_read(state, reads),
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
         Message::Caption(caption) => workspace::caption_changed(state, caption),
         Message::ReadTook { line, took, time } => {
@@ -428,6 +428,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Rebase(intent) => rebase::reduce(state, intent),
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
         Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
+        Intent::LargeFiles(intent) => large_files::reduce(state, intent),
         Intent::TasksTab(intent) => tasks_tab::reduce(state, intent),
         Intent::Window(intent) => vec![Effect::Window(intent)],
     }

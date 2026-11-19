@@ -231,3 +231,40 @@ fn lfs_read_content__an_object_shorter_than_the_size_of_its_pointer_is_not_downl
     let content = read_content(&git_of(&repository), &request).unwrap();
     assert_eq!(content, LfsContent::NotDownloaded);
 }
+
+#[test]
+fn lfs_store_committed__the_files_to_store_are_those_committed_before_the_pattern_and_renormalize_stages_a_pointer() {
+    let mut repository = Repository::new();
+    let _ = repository.git(&["lfs", "install", "--local"]);
+    let _ = repository.commit(
+        "Add the logo",
+        &[("logo.psd", "plain bytes\n"), ("art/old.psd", "old\n")],
+    );
+    let _ = repository.commit(
+        "Store psd files with Git LFS",
+        &[
+            (".gitattributes", "*.psd filter=lfs diff=lfs merge=lfs -text\n"),
+            ("art/new.psd", "new\n"),
+        ],
+    );
+    let git = git_of(&repository);
+    let every = [String::from(":(attr:filter=lfs)")];
+    assert_eq!(super::read_to_store(&git, &every).unwrap(), ["art/old.psd", "logo.psd"]);
+    let only_logo = [String::from(":(literal)logo.psd")];
+    assert_eq!(super::read_to_store(&git, &only_logo).unwrap(), ["logo.psd"]);
+    // Once added again with --renormalize, the index has a pointer and it is not listed any more.
+    let _ = repository.git(&["add", "--renormalize", "--", "logo.psd"]);
+    let staged = repository.git(&["cat-file", "blob", ":logo.psd"]);
+    assert!(pointer(staged.as_bytes()).is_some(), "{staged}");
+    assert_eq!(super::read_to_store(&git, &every).unwrap(), ["art/old.psd"]);
+    // The commit before keeps it as it had it.
+    assert_eq!(
+        repository.git(&["cat-file", "blob", "HEAD~1:logo.psd"]),
+        "plain bytes\n"
+    );
+}
+
+#[test]
+fn lfs_read_files__a_repository_with_no_file_prints_files_null_and_none_is_listed() {
+    assert_eq!(parse_files_json("{\n \"files\": null\n}\n"), []);
+}

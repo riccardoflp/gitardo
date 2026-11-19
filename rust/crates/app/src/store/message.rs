@@ -202,6 +202,8 @@ pub enum Message {
         /// What it says.
         answer: crate::work::file_search::SearchAnswer,
     },
+    /// A job that read Git LFS and the files it stores for the Large files page is done, with what it read (`lfs.page`).
+    LargeFilesRead(JobId, Box<Result<crate::work::large_files::LargeFilesRead, String>>),
     /// A job that read the settings of new worktrees, and what git ignores, for their page is done
     /// (`worktree-setup.page`).
     NewWorktreesRead {
@@ -465,6 +467,8 @@ pub enum JobKind {
         /// What is read.
         job: crate::work::file_search::SearchJob,
     },
+    /// Reads Git LFS and the files it stores, in the top folder of a working tree, for the Large files page.
+    ReadLargeFiles(PathBuf),
     /// Reads the settings of new worktrees, and what git ignores when the page looks, for their page
     /// (`worktree-setup.page`).
     ReadNewWorktrees {

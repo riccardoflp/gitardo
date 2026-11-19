@@ -147,3 +147,29 @@ pub(crate) fn describe_worktree_reading(query: &Query) -> String {
         _ => String::new(), // The engine sends only these two here.
     }
 }
+
+/// The files of Git LFS a query reads (`lfs.store-committed`, `lfs.set-up`): those a pattern takes that it does not
+/// store yet, or those left as pointers.
+pub(crate) fn lfs(git: &Git, query: &Query) -> Result<Answer, GitError> {
+    match query {
+        Query::LfsToStore { pathspecs } => git::read::lfs::read_to_store(git, pathspecs).map(Answer::Names),
+        Query::LfsPointers { version } => {
+            let request = model::lfs::LfsFilesRequest {
+                version: version.clone(),
+            };
+            git::read::lfs::read_pointers(git, &request).map(Answer::Names)
+        }
+        _ => Ok(Answer::Names(Vec::new())),
+    }
+}
+
+/// What a query of the files of Git LFS runs, as the log writes it.
+pub(crate) fn describe_lfs(query: &Query) -> String {
+    match query {
+        Query::LfsToStore { pathspecs } => format!(
+            "{}, git lfs ls-files --name-only",
+            git::command_line(&git::read::lfs::tracked_arguments(pathspecs))
+        ),
+        _ => String::from("git lfs ls-files --json"),
+    }
+}

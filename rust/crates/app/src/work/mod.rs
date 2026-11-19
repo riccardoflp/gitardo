@@ -11,6 +11,7 @@ pub mod file_search;
 pub mod file_view;
 pub mod github;
 pub mod jobs;
+pub mod large_files;
 mod lfs_sides;
 pub mod merge_view;
 pub mod new_worktrees;
@@ -199,6 +200,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadFiles { folder } => (folder, activity::LISTING_FILES),
         JobKind::FileSearch { folder, .. } => (folder, activity::SEARCHING_FILES),
         JobKind::ReadNewWorktrees { folder, .. } => (folder, activity::LOOKING_AT_IGNORED),
+        JobKind::ReadLargeFiles(folder) => (folder, activity::READING_LARGE_FILES),
         JobKind::ReadIgnored { folder, .. } => (folder, activity::CHECKING_IGNORED),
         JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),
     };

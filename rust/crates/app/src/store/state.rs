@@ -95,6 +95,8 @@ pub struct State {
     pub file_search: super::file_search::FileSearchPage,
     /// The page that chooses what new worktrees get (`worktree-setup.page`).
     pub new_worktrees: super::new_worktrees::NewWorktreesPage,
+    /// The Large files page (`lfs.page`).
+    pub large_files: super::large_files::LargeFilesPage,
     /// The blame of the File pages (`blame.current-line`, `blame.file`).
     pub blames: super::blame::Blames,
     /// Another worktree shown in this window, and what the operations of worktrees are told of the window.

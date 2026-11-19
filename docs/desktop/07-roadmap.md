@@ -1329,8 +1329,10 @@ Phase 1 is built: `model::lfs::pointer` tells a pointer from a file, and `git::r
 installed and set up with the patterns of the files of attributes, the files with their sizes, and the content of a
 pointer from the store of the repository, tested against repositories made with Git LFS. Phase 2 is built: the File
 page, the Diff page and the page of a commit show a file stored with Git LFS by its content or as not downloaded with
-**Download**, tested on a clone made with `GIT_LFS_SKIP_SMUDGE=1` from a remote beside it. Phases 3 to 6 are not
-built yet.
+**Download**, tested on a clone made with `GIT_LFS_SKIP_SMUDGE=1` from a remote beside it. Phase 3 is built: the
+**Large files** page with the patterns and the files, **Set up**, **Store with Git LFS…** in the Files page and on the
+page, **Store them with Git LFS in the next commit** and **Stop storing with Git LFS**; `lfs.page` is built with the
+locks of phase 4. Phases 4 to 6 are not built yet.
 
 Exit: in a clone of a repository that stores `*.psd` with Git LFS, made without downloading, the File page of a `.psd`
 says it is not downloaded, with its size, and **Download** shows its content after; the page of a commit that changed

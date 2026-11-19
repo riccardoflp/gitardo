@@ -150,8 +150,8 @@ pub fn follow(state: &mut State) -> Option<Effect> {
 
 /// What a batch of reads found: a summary read takes the place of the one before; a read that failed keeps it, muted;
 /// a folder in which nothing changed keeps it as it was. Worktrees listed take the place of those before, whose folders
-/// the next batch reads.
-pub fn read(state: &mut State, reads: Vec<SummaryRead>) {
+/// the next batch reads. Nothing is to be done after.
+pub fn read(state: &mut State, reads: Vec<SummaryRead>) -> Vec<Effect> {
     let summaries = &mut state.tabs.summaries;
     summaries.is_reading = false;
     for read in reads {
@@ -182,6 +182,7 @@ pub fn read(state: &mut State, reads: Vec<SummaryRead>) {
             None => {}
         }
     }
+    Vec::new()
 }
 
 /// Changes seen in a folder read in the background mark it due: a file of its working tree reads it whatever its git

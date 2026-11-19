@@ -121,6 +121,8 @@ pub enum Intent {
     Conflicts(crate::conflicts::ConflictsIntent),
     /// Something asked of the Merge pages (`merge-view.page`).
     MergeView(crate::merge_view::MergeIntent),
+    /// Something asked of the Large files page (`lfs.page`).
+    LargeFiles(crate::lfs::LargeFilesIntent),
     /// Something asked of the Files page.
     Files(crate::files::FilesPageIntent),
     /// Something asked of the Search page (`file-search.page`).

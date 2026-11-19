@@ -287,6 +287,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::ChooseAiModel => "Choose the model that resolves conflicts",
         QuickCommand::TrustedFolders => "Trusted folders\u{2026}",
         QuickCommand::ChooseWhatNewWorktreesGet => crate::text::worktree_setup::COMMAND,
+        QuickCommand::LargeFiles => crate::text::lfs::COMMAND,
         QuickCommand::ShowFileHistory => crate::text::blame::SHOW_FILE_HISTORY,
         QuickCommand::ShowLinesHistory => crate::text::blame::SHOW_LINES_HISTORY,
         QuickCommand::ToggleFileBlame => crate::text::blame::TOGGLE_FILE_BLAME,

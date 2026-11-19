@@ -59,6 +59,7 @@ impl ViewData {
                 state,
                 self.panes.search_results,
             )))),
+            Page::LargeFiles => Some(PageState::LargeFiles(crate::store::large_files::page_state(state))),
             Page::NewWorktrees => Some(PageState::NewWorktrees(
                 crate::store::new_worktrees::page_state(state),
                 &state.new_worktrees.title,

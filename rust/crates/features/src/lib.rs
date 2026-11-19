@@ -56,7 +56,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 168] = [
+pub const OPERATIONS: [(FeatureId, Operation); 172] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -265,6 +265,10 @@ pub const OPERATIONS: [(FeatureId, Operation); 168] = [
     (FeatureId("tasks.stop"), tasks::stop_task),
     // The files stored with Git LFS.
     (FeatureId("lfs.download"), lfs::download),
+    (FeatureId("lfs.set-up"), lfs::set_up),
+    (FeatureId("lfs.track"), lfs::track),
+    (FeatureId("lfs.store-committed"), lfs::store_committed),
+    (FeatureId("lfs.untrack"), lfs::untrack),
 ];
 
 /// The operation of an identifier, when it is built.

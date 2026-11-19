@@ -135,6 +135,8 @@ pub enum QuickCommand {
     TrustedFolders,
     /// **Choose What New Worktrees Get…** (`worktree-setup.page`).
     ChooseWhatNewWorktreesGet,
+    /// **Large Files (Git LFS)…**: the Large files page (`lfs.page`).
+    LargeFiles,
     /// **Show file history** (`file-history.file`), for the File page in front.
     ShowFileHistory,
     /// **Show history of selected lines** (`file-history.lines`).
@@ -157,7 +159,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 53] = [
+    pub const ALL: [QuickCommand; 54] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -183,6 +185,7 @@ impl QuickCommand {
         QuickCommand::ShowFiles,
         QuickCommand::SearchInFiles,
         QuickCommand::ChooseWhatNewWorktreesGet,
+        QuickCommand::LargeFiles,
         QuickCommand::ShowFileHistory,
         QuickCommand::ShowLinesHistory,
         QuickCommand::ToggleFileBlame,
@@ -225,6 +228,7 @@ impl QuickCommand {
                     | QuickCommand::ShowFiles
                     | QuickCommand::SearchInFiles
                     | QuickCommand::ChooseWhatNewWorktreesGet
+                    | QuickCommand::LargeFiles
             )
     }
 

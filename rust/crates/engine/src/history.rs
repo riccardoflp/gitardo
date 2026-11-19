@@ -25,19 +25,29 @@ pub(crate) fn blame(git: &Git, query: &BlameQuery) -> Result<Answer, GitError> {
     read_file(git, &blame_request(query)).map(Answer::Blame)
 }
 
+/// The commands a query of the history of a file or of the blame runs, as the log writes them.
+pub(crate) fn describe(query: &model::contract::Query) -> String {
+    match query {
+        model::contract::Query::FileNames { path } => describe_file_names(path),
+        model::contract::Query::CommittedLines(lines) => describe_committed_lines(lines),
+        model::contract::Query::Blame(blame) => describe_blame(blame),
+        _ => String::new(),
+    }
+}
+
 /// The command that reads the names of a file.
-pub(crate) fn describe_file_names(path: &str) -> String {
+fn describe_file_names(path: &str) -> String {
     git::command_line(&names_arguments(&NamesRequest { path: path.to_owned() }))
 }
 
 /// The commands that find some lines in the commit checked out.
-pub(crate) fn describe_committed_lines(query: &CommittedLinesQuery) -> String {
+fn describe_committed_lines(query: &CommittedLinesQuery) -> String {
     let path = query.renamed_from.as_deref().unwrap_or(&query.path);
     format!("git rev-parse HEAD, git cat-file -e HEAD:{path}, git show HEAD:{path}")
 }
 
 /// The command that reads the blame of a file.
-pub(crate) fn describe_blame(query: &BlameQuery) -> String {
+fn describe_blame(query: &BlameQuery) -> String {
     git::command_line(&file_arguments(&blame_request(query)))
 }
 

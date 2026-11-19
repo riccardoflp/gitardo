@@ -9,8 +9,11 @@ use model::lfs::{LfsContent, LfsContentRequest, LfsFile, LfsFilesRequest, LfsPat
 use crate::read::fields::arguments;
 use crate::{Git, GitError};
 
+mod committed;
 #[cfg(test)]
 mod tests;
+
+pub use committed::{parse_stored, parse_tracked, read_pointers, read_to_store, tracked_arguments};
 
 /// Whether Git LFS is installed and its version, whether the repository is set up for it, and the patterns its files of
 /// attributes store with it: those git tracks and the exclude file of attributes of the repository.
@@ -130,8 +133,9 @@ pub fn parse_files_json(printed: &str) -> Vec<LfsFile> {
     let mut current: Option<LfsFile> = None;
     for line in printed.lines().map(str::trim) {
         let Some((key, value)) = line.split_once("\": ") else {
+            // `"files": null` of a repository with no file opens no object of a file.
             if line.starts_with('}')
-                && let Some(file) = current.take()
+                && let Some(file) = current.take().filter(|file| !file.path.is_empty())
             {
                 files.push(file);
             }

@@ -31,6 +31,9 @@ pub struct FilesPageState<'a> {
     pub marks: &'a TreeMarks,
     /// The file shown beside the tree, by its path, which the tree marks (`file-view.beside-files`).
     pub marked: Option<&'a str>,
+    /// Whether the menu of a file offers **Store with Git LFS…**: Git LFS is installed and set up, and the repository
+    /// stores files with it already (`lfs.track`).
+    pub can_store_with_lfs: bool,
 }
 
 /// The files of the page, or why there are none to show.
@@ -103,6 +106,8 @@ enum MenuChoice {
     Compare,
     /// **Search here** (`file-search.open`).
     SearchHere,
+    /// **Store with Git LFS…** (`lfs.track`).
+    StoreWithLfs,
 }
 
 /// The Files page over the rectangle its caller clipped it to: the tree of the files of the working tree under the row
@@ -227,7 +232,7 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
             FilesRow::Top => {}
         }
     }
-    intents.extend(row_menu(ui, &response, (row, path)));
+    intents.extend(row_menu(ui, &response, (row, path, state.can_store_with_lfs)));
     intents
 }
 
@@ -259,8 +264,9 @@ fn row_icons(ui: &mut Ui<'_>, parts: &mut Area, row: &FilesRow<'_>) {
 
 /// The context menu of a row: **Open file**, **Show file history**, **Compare with…** and **Search here** for a file;
 /// **Show folder history**, **Compare with…** and **Search here** for a folder; **Compare with…** and **Search here**
-/// for the top folder, whose history is all of it.
-fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_>, &str)) -> Option<Intent> {
+/// for the top folder, whose history is all of it. A file also has **Store with Git LFS…** in a repository that stores
+/// files with Git LFS.
+fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path, lfs): (&FilesRow<'_>, &str, bool)) -> Option<Intent> {
     let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
     let compare = item(icons::COMPARE, words::COMPARE_WITH, MenuChoice::Compare);
     let search_here = item(
@@ -268,7 +274,7 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
         crate::text::file_search::SEARCH_HERE,
         MenuChoice::SearchHere,
     );
-    let entries: Vec<MenuEntry<'_, MenuChoice>> = match row {
+    let mut entries: Vec<MenuEntry<'_, MenuChoice>> = match row {
         FilesRow::File { .. } => vec![
             item(icons::OPEN_FILE, words::OPEN_FILE, MenuChoice::Open),
             item(icons::HISTORY, words::SHOW_FILE_HISTORY, MenuChoice::FileHistory),
@@ -284,12 +290,20 @@ fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_
         ],
         FilesRow::Top => vec![compare, search_here],
     };
+    if lfs && matches!(row, FilesRow::File { .. }) {
+        entries.push(MenuEntry::Item(icons::action(
+            icons::ADD,
+            crate::text::lfs::STORE_WITH_LFS,
+            MenuChoice::StoreWithLfs,
+        )));
+    }
     let run = |feature: &'static str| files_intent(FilesPageIntent::Run(FeatureId(feature), path.to_owned()));
     match ui.context_menu(("files row menu", path), response, &entries)? {
         MenuChoice::Open => Some(files_intent(FilesPageIntent::OpenFile(path.to_owned()))),
         MenuChoice::FileHistory => Some(run("file-history.file")),
         MenuChoice::FolderHistory => Some(run("file-history.folder")),
         MenuChoice::Compare => Some(run("compare.path-with")),
+        MenuChoice::StoreWithLfs => Some(run("lfs.track")),
         MenuChoice::SearchHere => {
             let place = |is_file| model::file_search::Place {
                 path: path.to_owned(),

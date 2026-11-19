@@ -147,6 +147,9 @@ fn files_read(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: count_conflicts(folder, cancel).map_err(|error| error.to_string()),
         },
+        JobKind::ReadLargeFiles(folder) => {
+            Message::LargeFilesRead(job.id, Box::new(super::large_files::read_large_files(folder, cancel)))
+        }
         JobKind::ReadNewWorktrees { folder, request } => Message::NewWorktreesRead {
             job: job.id,
             result: Box::new(super::new_worktrees::read_setup(folder, request, cancel)),

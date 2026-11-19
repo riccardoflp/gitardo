@@ -104,6 +104,8 @@ enum TabCommand {
     Reveal,
     /// **Copy path**.
     CopyPath,
+    /// **Large files…** (`lfs.page`).
+    LargeFiles,
 }
 
 /// The height of a row of **Repositories**: one line, its name and what it is on.
@@ -179,6 +181,13 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
         worktree_words::COPY_PATH,
         TabCommand::CopyPath,
     )));
+    entries.extend([
+        MenuEntry::Separator,
+        MenuEntry::Item(icons::without_icon(
+            crate::text::lfs::MENU_ENTRY,
+            TabCommand::LargeFiles,
+        )),
+    ]);
     match ui.context_menu(("tab menu", index), response, &entries)? {
         TabCommand::Close => Some(Intent::CloseTab(index)),
         TabCommand::CloseOthers => Some(Intent::CloseOtherTabs(index)),
@@ -187,6 +196,7 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
             ui.copy_to_clipboard(tab.folder.clone());
             None
         }
+        TabCommand::LargeFiles => Some(Intent::LargeFiles(crate::lfs::LargeFilesIntent::OpenForTab(index))),
     }
 }
 

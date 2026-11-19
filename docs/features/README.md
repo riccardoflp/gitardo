@@ -719,10 +719,10 @@ earns it.
 | [`lfs.show-in-pages`](21-large-files.md#lfsshow-in-pages--a-file-stored-with-git-lfs-in-the-pages) | A file stored with Git LFS, in the pages | View | Built | Planned |
 | [`lfs.download`](21-large-files.md#lfsdownload--download-files-stored-with-git-lfs) | Download files stored with Git LFS | Operation | Built | Planned |
 | [`lfs.page`](21-large-files.md#lfspage--the-large-files-page) | The Large files page | View | Specified | Planned |
-| [`lfs.set-up`](21-large-files.md#lfsset-up--set-up-git-lfs-for-a-repository) | Set up Git LFS for a repository | Operation | Specified | Planned |
-| [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Specified | Planned |
-| [`lfs.store-committed`](21-large-files.md#lfsstore-committed--store-with-git-lfs-the-files-committed-before) | Store with Git LFS the files committed before | Operation | Specified | Planned |
-| [`lfs.untrack`](21-large-files.md#lfsuntrack--stop-storing-a-pattern-with-git-lfs) | Stop storing a pattern with Git LFS | Operation | Specified | Planned |
+| [`lfs.set-up`](21-large-files.md#lfsset-up--set-up-git-lfs-for-a-repository) | Set up Git LFS for a repository | Operation | Built | Planned |
+| [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Built | Planned |
+| [`lfs.store-committed`](21-large-files.md#lfsstore-committed--store-with-git-lfs-the-files-committed-before) | Store with Git LFS the files committed before | Operation | Built | Planned |
+| [`lfs.untrack`](21-large-files.md#lfsuntrack--stop-storing-a-pattern-with-git-lfs) | Stop storing a pattern with Git LFS | Operation | Built | Planned |
 | [`lfs.read-locks`](21-large-files.md#lfsread-locks--the-locks-of-the-files-stored-with-git-lfs) | The locks of the files stored with Git LFS | Read | Specified | Planned |
 | [`lfs.lock`](21-large-files.md#lfslock--lock-a-file-stored-with-git-lfs) | Lock a file stored with Git LFS | Operation | Specified | Planned |
 | [`lfs.unlock`](21-large-files.md#lfsunlock--unlock-a-file-stored-with-git-lfs) | Unlock a file stored with Git LFS | Operation | Specified | Planned |

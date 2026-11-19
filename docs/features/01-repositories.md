@@ -871,7 +871,8 @@ that folder. Each row and each chevron takes the keyboard with `Tab`, `Enter` or
 the screen reader its name and whether it is the one shown, or whether its rows are unfolded. The **×** of a row is on
 the row under the pointer and the row shown, and stays while the pointer is on it, the row still lit as a row under
 the pointer; a middle click closes it; its context menu has **Close tab** and **Close other tabs**
-(`repo.close-tab`), **Reveal in the file manager** and **Copy path**. Its tooltip is the folder of what it
+(`repo.close-tab`), **Reveal in the file manager** and **Copy path**, then **Large files…**, which shows the
+repository and opens its **Large files** page (`lfs.page`). Its tooltip is the folder of what it
 shows. A name too long for the row is cut at its start with `…`, so that the name of the repository's own folder
 stays. When the rows do not fit the height of the section, it scrolls.
 

@@ -77,6 +77,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::FileNames { path } => history::file_names(git, path),
         Query::CommittedLines(query) => history::committed_lines(git, query),
         Query::Blame(query) => history::blame(git, query),
+        Query::LfsToStore { .. } | Query::LfsPointers { .. } => readings::lfs(git, query),
     }
 }
 
@@ -318,9 +319,8 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::FileTexts { .. } | Query::SetupTakes(_) | Query::PathStatuses { .. } => describe_reads(query),
         Query::GitFolder { folder } => format!("git -C {} rev-parse --absolute-git-dir", folder.display()),
         Query::HasFiles { path } => format!("look in {}", path.display()),
-        Query::FileNames { path } => history::describe_file_names(path),
-        Query::CommittedLines(query) => history::describe_committed_lines(query),
-        Query::Blame(query) => history::describe_blame(query),
+        Query::FileNames { .. } | Query::CommittedLines(_) | Query::Blame(_) => history::describe(query),
+        Query::LfsToStore { .. } | Query::LfsPointers { .. } => readings::describe_lfs(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
     }
 }
