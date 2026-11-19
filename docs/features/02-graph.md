@@ -891,6 +891,39 @@ Acceptance:
       end at each page, with the rows of before under the first page, dimmed, and never the row that says **Loading
       more commits…** in sight; once the last page is there, the 3,001 commits are listed and none of before.
 
+### `graph.shallow-end` — Where the history of a shallow clone ends
+
+In a shallow clone the timeline says where the commits fetched end, and offers to fetch more, so that the last commit
+listed is not taken for the first commit of the project
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
+
+- **Kind**: View
+- **Function**: `views::graph::shallow_end_view(state: &ShallowEndState, ui) -> Vec<Intent>`
+- **Entry points**: the timeline and the inspector of a shallow repository.
+- **Offered when**: `repo.read-shallow` says the repository is shallow.
+- **Uses**: `repo.read-shallow`, `graph.lanes`, `graph.load-more`, `details.show`, `sync.deepen`, `sync.unshallow`.
+- **Extension**: Planned: the same lines and the same last row in the graph and in Gitardo Graph, its two buttons
+  sending `feature/run` of `sync.deepen` and `sync.unshallow` to the engine.
+
+- The line of a commit whose parents were not fetched does not end at its dot, as the line of a first commit does: it
+  goes on under the dot to the bottom of its row, dashed (Q1062). Its tooltip says **The commits before this one were
+  not fetched: this repository is a shallow clone.**
+- The inspector of such a commit says **Parents** **Not fetched**, with **Load more history**.
+- Once the last page is read, the last row of the timeline says **The history ends here: this is a shallow clone.**,
+  with **Load more history** and **Load the whole history** after it. While a filter or a search narrows the timeline,
+  the row is there too, since what was not fetched was not searched.
+- A repository that is not shallow, or no longer is, has none of these.
+
+Acceptance:
+
+- [ ] In a clone with `--depth 2` of a history of five commits, the timeline lists two commits; the line of the older
+      goes on under its dot, dashed, and the last row says **The history ends here: this is a shallow clone.** with
+      its two buttons.
+- [ ] The first commit of a repository cloned whole ends at its dot, and no row is under it.
+- [ ] **Load more history** on the last row runs `sync.deepen`, **Load the whole history** runs `sync.unshallow`.
+- [ ] Selecting the older commit shows **Not fetched** for its parents in the inspector.
+- [ ] The snapshots of the end of a shallow history match in the dark and in the light theme.
+
 ### `graph.lanes` — Lay out the lines of the graph
 
 Where each commit's dot goes, and the lines between commits, row by row.

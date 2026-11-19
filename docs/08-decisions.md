@@ -1696,6 +1696,56 @@ questions and its preview); a small window over the timeline (what Gitardo shows
 is one more thing to lose behind the others); a webview of Gitardo's own for the conversation in the extension (VS
 Code's Chat has the models, the history and the box, and users know it).
 
+## D77 — Clone and create a repository, and the history of a shallow clone (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M32; the details proposed while planning.*
+
+Gitardo Desktop is a window of its own, and its Welcome page opens a folder or a recent workspace (`repo.open-folder`,
+`repo.open-recent`): a repository that is not on disk yet has to be cloned or created in a terminal first. And a
+shallow clone, which many continuous integrations and some guides make, lists its last commits as if the first of them
+were the first commit of the project.
+
+- **Clone** (`repo.clone`): the URL, or a path on disk; the folder that holds the clone, in the system's dialog,
+  remembered as `cloneFolder`, a new key of `state.json`; the name of its folder, by default the name of the
+  repository (`repo.folder-from-url`); then a pick of many for what is not every day: another branch than the
+  remote's default, a shallow clone of some commits, and the submodules, which are ticked. One `git clone`, run in the
+  folder that holds the clone, so that the command preview and the log say it whole.
+- **Create** (`repo.init`): `git init` in a folder, with the first branch that `init.defaultBranch` names, and the one
+  typed, `main` by default, when git's configuration names none. A folder that is a repository is refused; one inside a
+  repository is asked about.
+- **Opened after.** The clone or the new repository opens in a tab of its own and is shown, its folder added to the
+  workspace; with no workspace open, it is the workspace.
+- **Where.** The Welcome page, beside **Open folder…**; the menu of **+** in the heading of **Repositories**, which is
+  where the window opens what it shows, since it has no menu bar and the title bar it draws has none
+  ([D58](#d58--the-window-draws-its-own-title-bar-with-the-logo-and-the-name-of-gitardo)); Quick
+  search; and the timeline of a workspace with no repository (`repo.no-repository`), with **Create a repository here**.
+- **Progress, new to the engine.** A clone can take minutes, and a row that says only how long it has run tells nothing
+  of how much is left. The engine reads what git prints on its standard error while a step runs, for the steps that
+  ask git for its progress (`--progress`), and the last line of it is the detail of the row of the operation in the
+  **Activity** tab and in the tooltip of the activity indicator (`activity.describe-task`).
+- **Credentials are git's** ([D1](#d1--the-git-executable-not-a-library)): git runs with `GIT_TERMINAL_PROMPT=0`, as
+  for every fetch, and a credential helper may open its own window. Gitardo never asks for a password.
+- **A shallow clone says so.** `repo.read-shallow` reads, with the state, whether the repository is shallow and which
+  commits have parents that were not fetched (the file `shallow` of the common git folder). In the timeline the line of
+  such a commit goes on under its dot, dashed, where the line of a first commit ends; the last row says **The history
+  ends here: this is a shallow clone.** (`graph.shallow-end`).
+- **More history, or all of it.** **Load more history** asks how many commits further back, 100 by default, and runs
+  `git fetch --deepen=<n>` (`sync.deepen`); **Load the whole history** runs `git fetch --unshallow`
+  (`sync.unshallow`), each from the remote of the upstream, or the default remote.
+
+The extension: cloning and creating a repository are VS Code's own, **Git: Clone** and **Git: Initialize Repository**,
+so `repo.clone`, `repo.folder-from-url` and `repo.init` are *Host only* there. VS Code shows nothing of a shallow
+clone, and the graph is Gitardo's: the four cards of the shallow history are *Planned* there, for a later milestone.
+
+Rejected: a dialog of its own with every field of the clone at once (the questions of the contract are asked one after
+another everywhere else, and the options that are not every day stay out of the way in one pick); the clone as a page,
+as some clients have (one URL and a folder do not need one); a menu bar for **File** (the window draws its own title
+bar without one, D58, and **+** opens what the window shows); asking for credentials in Gitardo (D1, and git's helpers
+already do it); the shallow commits read from `%d` of `git log`, which decorates them `grafted` (every page of the
+timeline would pay for a decoration that a handful of repositories need, where one file, read with the state, says
+it); `--shallow-since` and `--shallow-exclude` (asked, Q1064).
+
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -4687,3 +4737,57 @@ planned and built; each is built as it says until the maintainer answers otherwi
 - **Q875** — `help.ask`: each question is two requests to the model, and with GitHub Copilot each request counts
   against the user's subscription (Q864). Should the first request be skipped when the question names a feature by its
   title, or be asked of a smaller model?
+
+### Of cloning and creating a repository, and of a shallow clone, from Q1050
+
+Questions of milestone M32 ([D77](#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)),
+asked while it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1050** — `repo.clone`: the window has no menu bar and the title bar it draws has no **File** menu, so **Clone a
+  repository…** and **Create a repository…** go into the menu of **+** in the heading of **Repositories**, after
+  **Open folder…**, as well as on the Welcome page and in Quick search. Should they be in the **…** menu of the header
+  too, or should the title bar get a menu of its own for what opens a repository?
+- **Q1051** — `repo.clone`: clone and create are operations of the engine, given the context of no repository, their
+  steps run in the folder chosen, so that they have the command preview, the log and the **Activity** tab as every
+  operation has. Should they rather be functions of the store, as **Open folder…** is (Q43), with their one git
+  command run by the store?
+- **Q1052** — `repo.clone`: the URL box starts with the text of the clipboard when it is one line that looks like the
+  URL of a repository, as many clients do; reading the clipboard is a host question. Is that wanted, or should the box
+  start empty?
+- **Q1053** — `repo.clone`: credentials are git's own; with `GIT_TERMINAL_PROMPT=0` a repository that needs a password
+  git's helper does not have fails with git's message. Should Gitardo say more in that case, such as how to set up a
+  credential helper or an SSH key, or ask for a token and give it to git for that clone alone?
+- **Q1054** — `repo.clone`: the clone is added to the workspace open and shown in a tab, without asking, where **Open
+  folder…** asks **Replace the workspace** or **Add to the workspace**. Should the clone ask the same, or open in a new
+  window?
+- **Q1055** — `repo.clone`: a shallow clone fetches only the branch checked out, as `--depth` makes git do; the question
+  of the depth says so. Should it add `--no-single-branch`, so that every branch is fetched to the same depth, and
+  `--shallow-submodules` for the submodules?
+- **Q1056** — `repo.clone`: the last line of progress git prints is the detail of the row of the clone in the
+  **Activity** tab. Should the fetch, the pull, the push, `sync.deepen` and `sync.unshallow` ask git for their progress
+  too, which costs nothing but the reading of what git prints, and should the row draw a bar of the percentage?
+- **Q1057** — `repo.clone`: once it runs, a clone cannot be stopped from the window, as no operation can. Should the row
+  of the **Activity** tab have **Stop**, which ends git and deletes the folder of the clone, since git does not always
+  take it away when it is ended?
+- **Q1058** — `repo.folder-from-url`: `submodule.add` has its own code for the same rule. Should it use this function,
+  in the phase that builds it?
+- **Q1059** — `repo.init`: **Create a repository here**, on a workspace of several folders none of which is a
+  repository, creates it in the first. Should it ask which, among the folders of the workspace?
+- **Q1060** — `repo.init`: a folder inside a repository is asked about, then a repository is created in it; the files
+  the repository around it tracks there stay tracked by it. Should Gitardo refuse instead, or say which files the
+  repository around it tracks in that folder?
+- **Q1061** — `repo.init`: without `init.defaultBranch`, the first branch is asked, `main` by default, where git 2.53
+  says `master` and suggests setting the key. Should Gitardo set `init.defaultBranch` in the user's configuration of
+  git when asked, so that the question is not asked again?
+- **Q1062** — `graph.shallow-end`: the line of a commit whose parents were not fetched goes on under its dot, dashed, to
+  the bottom of its row. Is that the mark wanted, or a mark beside the dot, or a label **shallow** on the row, as git
+  decorates such a commit `grafted`?
+- **Q1063** — `sync.deepen`: **Load more history** asks how many commits, 100 by default. Should it ask nothing and
+  fetch 100, or as many as `graph.pageSize`, at each click?
+- **Q1064** — `repo.clone`: the depth is a number of commits; `git clone --shallow-since=<date>` and
+  `--shallow-exclude=<ref>` are left out, and so is `--filter=blob:none`, a partial clone that fetches the files only
+  when they are needed. Are any of them wanted?
+- **Q1065** — `graph.shallow-end`: in a shallow clone, the comparison of two branches, the blame and the history of a
+  file stop at the commits fetched, and say nothing of it. Should those pages say that the history is shallow, with
+  **Load the whole history**?
+

@@ -116,6 +116,145 @@ Acceptance:
       last.
 - [ ] A workspace whose folder was deleted is refused with that message and leaves the list.
 
+### `repo.clone` — Clone a repository
+
+Copies a repository from its URL, or from its folder on disk, into a new folder, and opens the copy in a tab
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::repo::clone(context, answers) -> Outcome`, given the context of no repository: its step
+  runs in the folder chosen to hold the clone (Q1051)
+- **Entry points**: **Clone a repository…** on the Welcome page, beside **Open folder…**; in the menu of **+** in the
+  heading of **Repositories**, after **Open folder…**; on the timeline of `repo.no-repository`; **Clone Repository…**
+  in Quick search. The window has no menu bar, and the title bar it draws has none (`window.title-bar`): the menu of
+  **+** is where the window opens what it shows (Q1050).
+- **Extension**: Host only: **Git: Clone** of VS Code clones and opens the clone in VS Code, where Gitardo reads it as
+  any folder of the workspace.
+- **Asks**:
+  1. **URL of the repository, or its path on disk**, with `https://github.com/owner/repo.git` as a placeholder, and the
+     text of the clipboard as its default when it is one line that starts with `https://`, `ssh://`, `git@` or
+     `file://` (Q1052). Refused while typed: **Enter a URL** when empty, **That is not a URL** when it starts with `-`.
+  2. The folder that will hold the clone, in the system's folder dialog, starting at the one the last clone went in
+     (`cloneFolder` in `state.json`), or at the user's home folder the first time.
+  3. **Name of the folder of the clone**, by default the one `repo.folder-from-url` gives. The box says **In `<full
+     path>`**, or refuses: **Enter a name**; **Enter the name of one folder** for a name with `/`, `\` or `..`, or one
+     that starts with `-`; **`<full path>` is not empty**, since git clones only into a folder that is new or empty.
+  4. **How to clone `<name>`**, a pick of many, `Enter` cloning as ticked:
+     - **Check out another branch than the remote's default one**, not ticked;
+     - **Only the last commits, a shallow clone**, not ticked, and not offered for a path on disk, where git ignores
+       the depth;
+     - **The submodules too, and theirs**, ticked.
+  5. With the first ticked: **Branch to check out**, refused while typed when empty or when git would not take it as
+     a branch name (`branch.validate-name`).
+  6. With the second ticked: **How many commits to fetch**, `1` by default, refused while typed when it is not a whole
+     number of at least 1; its detail says **Only this branch is fetched, as git does for a shallow clone.** (Q1055)
+- **Plan**: `git clone --progress [--branch <branch>] [--depth <n>] [--recurse-submodules] -- <url> <name>`, run in the
+  folder that holds the clone, titled **Clone `<url>` into `<name>`**. `--progress` makes git print its progress though
+  it writes to no terminal, for the **Activity** tab (below).
+- **Danger**: None: nothing that was on disk is changed, the folder being new or empty.
+- **Undo**: Not taken back by Undo: the folder of the clone is the user's to delete.
+- **After**: the folder that holds the clone is kept as `cloneFolder`. The clone is opened in a tab and shown, its
+  folder added to the workspace as **Open folder…** adds one, or, with no workspace open, made the workspace
+  (`repo.open-tab`, `repo.open-folder`, Q1054); the status bar says **Cloned into `<full path>`**. A shallow clone shows
+  where its history ends (`graph.shallow-end`). When git fails, its message is said with **Show the log**; git has
+  taken away the folder it made.
+- **Refuses**: what the boxes refuse while typed; a folder that has files by the time it runs: **`<full path>` is not
+  empty.**
+- **Settings**: `commandPreview`.
+- **Uses**: `repo.folder-from-url`, `branch.validate-name`, `repo.open-tab`, `repo.open-folder`,
+  `activity.describe-task`, `graph.shallow-end`.
+
+While it runs, its row of the **Activity** tab and the activity indicator of the status bar say its title, and its
+detail is the last line of progress git printed, `Receiving objects: 45% (1203/2671), 1.20 MiB | 3.40 MiB/s`, read as
+git prints it (Q1056). Nothing stops it once it runs (Q1057). The credentials are git's own
+([D1](../08-decisions.md#d1--the-git-executable-not-a-library)): git runs with `GIT_TERMINAL_PROMPT=0`, a credential
+helper such as Git Credential Manager may open its own window, and a private repository git has no credentials for
+fails with git's message (Q1053).
+
+Acceptance:
+
+- [ ] `https://example.com/acme/lib.git` cloned into `C:\work`, with nothing ticked but the submodules, runs
+      `git clone --progress --recurse-submodules -- https://example.com/acme/lib.git lib` in `C:\work`; `C:\work\lib`
+      opens in a tab and is shown.
+- [ ] With the branch `stable` and 50 commits, it runs `git clone --progress --branch stable --depth 50
+      --recurse-submodules -- <url> lib`, and the timeline of the clone shows where its history ends.
+- [ ] A name whose folder holds a file is refused while typed with **`<full path>` is not empty**; an empty folder of
+      that name is taken.
+- [ ] `--upload-pack=x` as the URL and `-lib` as the name are refused while typed, and nothing runs.
+- [ ] A path on disk does not offer **Only the last commits, a shallow clone**.
+- [ ] During a clone of more than half a second, the **Activity** tab lists **Clone `<url>` into lib**, with git's
+      last line of progress under it, changing as git prints.
+- [ ] A clone of a URL that does not exist says git's message with **Show the log**, and leaves no folder `lib`.
+- [ ] The folder dialog of the next clone starts at `C:\work`, after the window is closed and opened again.
+- [ ] With no workspace open, the clone becomes the workspace, and is first among the recent ones of the Welcome page.
+- [ ] Backing out of any question runs nothing.
+
+### `repo.folder-from-url` — The name of a clone's folder
+
+The name the folder of a clone gets by default: the name of the repository, from its URL or its path.
+
+- **Kind**: Derivation
+- **Function**: `model::repo::folder_from_url(url: &str) -> Option<String>`
+- **Uses**: by `repo.clone`.
+- **Extension**: Host only, as `repo.clone`.
+
+The name is the last part of the URL or the path, after its last `/`, its last `\` or the `:` of `host:path`, once the
+slashes at its end are taken away, without `.git` or `.bundle` at its end; for a path that ends with the folder
+`.git`, the folder above it. When nothing is left, as for `https://example.com/`, there is none, and the box starts
+empty. It is the rule `submodule.add` follows for the folder of a submodule, which may use this function (Q1058).
+
+Acceptance:
+
+- [ ] `https://github.com/owner/lib.git`, `git@github.com:owner/lib.git`, `ssh://host:2222/srv/lib.git/` and
+      `C:\repos\lib\` all give `lib`.
+- [ ] `C:\repos\lib\.git` gives `lib`, and `https://example.com/acme/tools.bundle` gives `tools`.
+- [ ] `https://example.com/` gives none.
+
+### `repo.init` — Create a repository
+
+Makes an empty repository in a folder, with the first branch git's configuration says or the one typed, and opens it in
+a tab ([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::repo::init(context, answers) -> Outcome`, given the context of no repository, as
+  `repo.clone`
+- **Entry points**: **Create a repository…** on the Welcome page and in the menu of **+** in the heading of
+  **Repositories**, after **Clone a repository…**; **Create Repository…** in Quick search; **Create a repository
+  here** on the timeline of `repo.no-repository`, for the folder of the workspace that has none (with several, the
+  first; Q1059).
+- **Extension**: Host only: **Git: Initialize Repository** of VS Code, and its **Initialize Repository** button in the
+  Source Control side bar of a folder with no repository.
+- **Asks**:
+  1. The folder, in the system's folder dialog; not asked from `repo.no-repository`, which gives it.
+  2. When the folder is inside a repository: **`<folder>` is inside the repository `<top>`. Create another repository
+     in it?**, with **Create** (Q1060).
+  3. Only when git's configuration has no `init.defaultBranch`: **Name of the first branch**, `main` by default (Q1061),
+     refused while typed when git would not take it as a branch name (`branch.validate-name`).
+- **Reads**: in the folder, `git rev-parse --show-toplevel`, for the repository it is in, if any; `git config --get
+  init.defaultBranch`, for the first branch.
+- **Plan**: `git init`, run in the folder, or `git init --initial-branch=<name>` when the name was asked. Titled
+  **Create a repository in `<folder>`**.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: the folder `.git` stays, and deleting it is the user's.
+- **After**: the repository is opened in a tab and shown, as after `repo.clone`, or, from `repo.no-repository`, read
+  in its place; the timeline has the draft alone, with the files of the folder untracked. The status bar says
+  **Created a repository in `<folder>`**.
+- **Refuses**: a folder that is the top of a repository already, where `git init` would only initialize it again:
+  **`<folder>` is a repository already.**
+- **Uses**: `branch.validate-name`, `repo.open-tab`, `repo.open-folder`, `repo.no-repository`, `repo.read-state`.
+
+Acceptance:
+
+- [ ] With `init.defaultBranch` set to `trunk`, creating a repository in `C:\work\new` asks no branch, runs `git init`
+      there, and the row of `new` says `trunk`, with no commit.
+- [ ] Without `init.defaultBranch`, the branch asked starts as `main`; `release` runs `git init
+      --initial-branch=release`.
+- [ ] `a..b` as the first branch is refused while typed.
+- [ ] A folder that is a repository is refused, and nothing runs.
+- [ ] A folder inside a repository asks first; declining runs nothing.
+- [ ] **Create a repository here**, on a workspace whose folder has no repository, runs `git init` in it, and the
+      timeline shows the new repository with its files untracked.
+
 ### `repo.select` — Choose the repository shown
 
 Gitardo shows one repository at a time; in a workspace with several, this chooses which.
@@ -271,6 +410,29 @@ Acceptance:
       read runs `git status` there too; **Refresh** runs it in all of them.
 - [ ] No read takes `index.lock`: while it runs, `git commit` in a terminal does not fail because of it.
 - [ ] With `readOnStartup` off, starting the window runs no git command until **Read the repository** is clicked.
+
+### `repo.read-shallow` — Whether the history is shallow, and where it ends
+
+Whether the repository is a shallow clone, and the commits whose parents were not fetched, where its history ends
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
+
+- **Kind**: Read
+- **Function**: `git::read::repo::read_shallow(git, request: &ShallowRequest) -> Result<Shallow, GitError>`
+- **Reads**: `git rev-parse --is-shallow-repository --git-path shallow`, with the reads of `repo.read-state` and at
+  once with them; when the first line says `true`, the file the second line names, in the common git folder, which
+  holds the hash of each commit whose parents were not fetched, one a line. Git lists those commits with no parent,
+  as first commits.
+- **Uses**: by `repo.read-state`, `graph.shallow-end`, `sync.deepen` and `sync.unshallow`. A change of that file asks
+  for a read, as a change of the references does (`repo.watch-changes`).
+- **Extension**: Planned: with `read/repo.read-state` of the engine, for `graph.shallow-end` in the graph.
+
+Acceptance:
+
+- [ ] In a clone made with `--depth 2` of a history of five commits, the repository is shallow, and the older of the
+      two commits listed is the one whose parents were not fetched.
+- [ ] A clone of the whole history is not shallow, and no file is read.
+- [ ] A worktree of a shallow repository reads the same commits as its main worktree.
+- [ ] After `git fetch --unshallow` in a terminal, the next read says the repository is not shallow.
 
 ### `repo.common-folder` — The git folder the worktrees share
 

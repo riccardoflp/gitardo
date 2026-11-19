@@ -1035,6 +1035,66 @@ Acceptance:
 - [ ] Extension: **Fetch** runs `git fetch --all --prune` in the engine, and the log has it.
 - [ ] Extension: in a repository without a remote, nothing runs and the warning offers **Add remote…**.
 
+### `sync.deepen` — Load more history
+
+Fetches more of the history of a shallow clone: a number of commits further back than where it ends now
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::sync::deepen(context, answers) -> Outcome`
+- **Entry points**: **Load more history** on the last row of the timeline and in the inspector of a commit whose
+  parents were not fetched (`graph.shallow-end`); **Load More History** in Quick search.
+- **Extension**: Planned: the same buttons in the graph, and **Gitardo: Load More History** in the Command Palette,
+  each sending `feature/run` of `sync.deepen` to the engine.
+- **Offered when**: the repository is shallow (`repo.read-shallow`).
+- **Asks**: **How many commits further back**, `100` by default (Q1063), refused while typed when it is not a whole
+  number of at least 1.
+- **Reads**: `repo.read-shallow`.
+- **Plan**: `git fetch --deepen=<n> <remote>`, from the remote of the upstream of the branch checked out, or from the
+  default remote (`remote.default`). Titled **Load `<n>` more commits of history from `<remote>`**.
+- **Danger**: None.
+- **Undo**: Impossible: a fetch only adds commits, which Undo does not take back.
+- **After**: the timeline is read again, and lists the commits fetched under those it had. When git reached the first
+  commits of the history, the repository is no longer shallow, and `graph.shallow-end` shows nothing.
+- **Refuses**: in a repository with no remote: "This repository has no remote." with **Add remote…** (`remote.add`).
+- **Uses**: `repo.read-shallow`, `remote.default`, `graph.shallow-end`, `remote.add`.
+
+Acceptance:
+
+- [ ] In a clone with `--depth 2` of a history of ten commits, **Load more history** with `3` runs `git fetch
+      --deepen=3 origin`; the timeline lists five commits after, and still ends with the row of a shallow clone.
+- [ ] With `100`, the timeline lists the ten commits after, the repository is no longer shallow, and the row is gone.
+- [ ] A repository that is not shallow has no **Load More History** in Quick search.
+- [ ] `0` and `ten` are refused while typed.
+
+### `sync.unshallow` — Load the whole history
+
+Fetches all the history a shallow clone does not have, so that it is a clone like any other
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::sync::unshallow(context, answers) -> Outcome`
+- **Entry points**: **Load the whole history** on the last row of the timeline (`graph.shallow-end`); **Load the
+  Whole History** in Quick search.
+- **Extension**: Planned: the same button in the graph, and **Gitardo: Load the Whole History** in the Command
+  Palette, sending `feature/run` of `sync.unshallow` to the engine.
+- **Offered when**: the repository is shallow (`repo.read-shallow`).
+- **Reads**: `repo.read-shallow`.
+- **Plan**: `git fetch --unshallow <remote>`, from the remote `sync.deepen` fetches from. Titled **Load the whole
+  history from `<remote>`**.
+- **Danger**: None.
+- **Undo**: Impossible: a fetch only adds commits, which Undo does not take back.
+- **After**: the timeline is read again and lists the whole history; `graph.shallow-end` shows nothing.
+- **Refuses**: in a repository with no remote: "This repository has no remote." with **Add remote…** (`remote.add`).
+- **Uses**: `repo.read-shallow`, `sync.deepen`, `graph.shallow-end`, `remote.add`.
+
+Acceptance:
+
+- [ ] In a clone with `--depth 1` of a history of ten commits, it runs `git fetch --unshallow origin`, and the timeline
+      lists the ten commits after, the last one ending at its dot.
+- [ ] While it runs for more than half a second, the **Activity** tab lists **Load the whole history from origin**.
+- [ ] A repository that is not shallow has no **Load the Whole History** in Quick search.
+
 ### `sync.pull` — Pull
 
 Brings what the upstream has into the branch checked out, the way the settings choose.

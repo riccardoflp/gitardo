@@ -998,6 +998,46 @@ up; in VS Code, `@gitardo how do I put my changes aside` in the Chat answers wit
 Changes**; every card of the milestone is Built in both apps, and the snapshots of the page match in the dark and in the
 light theme.
 
+## M32 — Clone and create a repository, and the history of a shallow clone
+
+The window clones a repository and creates one, where it could only open a folder already on disk, and a shallow clone
+says where its history ends and fetches more of it
+([D77](../08-decisions.md#d77--clone-and-create-a-repository-and-the-history-of-a-shallow-clone-proposed)). Asked by
+the maintainer on 2026-11-19. Built in four phases, each one commit or more, each ending with its cards built and their
+tests passing. Desktop first: cloning and creating are VS Code's own in the extension, and those cards are *Host only*
+there; the shallow history is *Planned* in the extension, for a later milestone.
+
+1. **Progress in the Activity tab.** The engine reads what git prints on its standard error while a step that asks
+   for its progress runs, and the last line of it is the detail of the row of the operation in the **Activity** tab
+   and in the tooltip of the activity indicator. Cards: `activity.describe-task`, `activity.what-is-running`,
+   `activity.track`.
+2. **Clone.** The name of the folder from the URL; the questions of the clone, the folder that holds it remembered as
+   `cloneFolder` in `state.json`; `git clone --progress` with its options; the clone opened in a tab, or as the
+   workspace. **Clone a repository…** on the Welcome page, in the menu of **+** of **Repositories**, on the timeline
+   of a workspace with no repository and in Quick search. Cards: `repo.folder-from-url`, `repo.clone`, `welcome.page`,
+   `repo.open-tab`, `repo.no-repository`.
+3. **Create.** `git init`, with the first branch of `init.defaultBranch` or the one asked; a folder that is a
+   repository refused, one inside a repository asked about; **Create a repository…** where **Clone a repository…**
+   is, and **Create a repository here** on the timeline of a workspace with no repository. Cards: `repo.init`,
+   `welcome.page`, `repo.no-repository`.
+4. **A shallow clone.** Whether the repository is shallow and where its history ends, read with the state and read
+   again when the file `shallow` changes; the line that goes on under the dot of those commits, **Not fetched** in the
+   inspector, the last row of the timeline with **Load more history** and **Load the whole history**, and the two
+   fetches behind them. Cards: `repo.read-shallow`, `repo.read-state`, `repo.watch-changes`, `graph.shallow-end`,
+   `sync.deepen`, `sync.unshallow`.
+
+Nothing is built yet.
+
+Exit: on the Welcome page, **Clone a repository…** with the URL of a public repository, into a folder chosen, with
+nothing else ticked than the submodules, shows the clone in the **Activity** tab with git's progress under it, then
+opens it in a tab with its submodules initialized; a URL that does not exist says git's message and leaves no folder;
+**Create a repository…** on an empty folder, with `init.defaultBranch` not set, asks the first branch, `main`, and
+shows the new repository with its files untracked; a clone with **Only the last commits** and `2` lists two commits,
+the line of the older going on under its dot and the last row saying **The history ends here: this is a shallow
+clone.**; **Load more history** with `3` lists five, and **Load the whole history** lists them all and takes the row
+away; the cards of the milestone are Built in the desktop, and the snapshots of the end of a shallow history match in
+each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

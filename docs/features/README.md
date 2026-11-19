@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 493 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 500 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -17,12 +17,12 @@ earns it.
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 30 |
-| [02-graph.md](02-graph.md) | Graph | 58 |
+| [01-repositories.md](01-repositories.md) | Repositories | 34 |
+| [02-graph.md](02-graph.md) | Graph | 59 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 18 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 24 |
-| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 37 |
+| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 39 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 39 |
@@ -46,10 +46,14 @@ earns it.
 | [`repo.name-repositories`](01-repositories.md#reponame-repositories--name-the-repositories-in-lists) | Name the repositories in lists | Derivation | Built | Built |
 | [`repo.open-folder`](01-repositories.md#repoopen-folder--open-a-folder) | Open a folder | Operation | Built | Host only |
 | [`repo.open-recent`](01-repositories.md#repoopen-recent--open-a-recent-workspace) | Open a recent workspace | Operation | Built | Host only |
+| [`repo.clone`](01-repositories.md#repoclone--clone-a-repository) | Clone a repository | Operation | Specified | Host only |
+| [`repo.folder-from-url`](01-repositories.md#repofolder-from-url--the-name-of-a-clones-folder) | The name of a clone's folder | Derivation | Specified | Host only |
+| [`repo.init`](01-repositories.md#repoinit--create-a-repository) | Create a repository | Operation | Specified | Host only |
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | Operation | Built | Built |
 | [`repo.owner-of-file`](01-repositories.md#repoowner-of-file--the-repository-a-file-is-in) | The repository a file is in | Derivation | Built | Built |
 | [`repo.no-repository`](01-repositories.md#repono-repository--no-repository-in-the-workspace) | No repository in the workspace | View | Built | Built |
 | [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built | Built |
+| [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Specified | Planned |
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Built | Built |
 | [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Built | Built |
@@ -98,6 +102,7 @@ earns it.
 | [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Built | Host only |
 | [`ui.page-trail`](02-graph.md#uipage-trail--the-way-back-in-the-title-of-a-page) | The way back, in the title of a page | Derivation | Built | Host only |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
+| [`graph.shallow-end`](02-graph.md#graphshallow-end--where-the-history-of-a-shallow-clone-ends) | Where the history of a shallow clone ends | View | Specified | Planned |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built | Built |
 | [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Built | Built |
 | [`graph.resize-graph`](02-graph.md#graphresize-graph--give-the-graph-less-room-or-more) | Give the graph less room or more | View | Built | Built |
@@ -259,6 +264,8 @@ earns it.
 | [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Built | Built |
 | [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built | Built |
 | [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Built | Built |
+| [`sync.deepen`](06-branches-tags-remotes.md#syncdeepen--load-more-history) | Load more history | Operation | Specified | Planned |
+| [`sync.unshallow`](06-branches-tags-remotes.md#syncunshallow--load-the-whole-history) | Load the whole history | Operation | Specified | Planned |
 | [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Built | Built |
 | [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Built | Built |
 | [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Built | Built |
