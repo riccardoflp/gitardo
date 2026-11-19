@@ -7,6 +7,13 @@
   **Bad**, **Cannot be checked**, or **Signed, not checked** for a commit signed with SSH while no allowed signers are
   set. Its tooltip has the kind of signature, the key, its fingerprint and its trust. The signature is checked once the
   details are shown, for the commit selected alone; a commit not signed has no line.
+- **Commit options**, a button beside **Commit** and **Amend**, opens a menu with **Sign this commit**, ticked to start
+  when git signs every commit, **Add Signed-off-by** and **Skip the hooks**, for the next commit alone: once it is
+  made, they are back where they start. Each repository keeps its own while the window is open. While one differs
+  from where it starts, a line under the commit box says so, such as `Not signed · Hooks skipped`, and its tooltip has
+  the arguments added to `git commit`. When git signs with SSH or X.509 and has no key, **Sign this commit** cannot be
+  ticked and **Switch identity…** is beside it. The new setting `commit.signOff` (User, Repository) ticks **Add
+  Signed-off-by** to start.
 
 ## 1.2.0 - 2026-11-18
 

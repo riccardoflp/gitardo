@@ -1094,6 +1094,11 @@ their tests passing. Desktop first: the extension gets the line of the signature
 Phase 1 is built: the line **Signature** of the inspector and of the page of a commit, read once the details are
 drawn, the read before cancelled when another commit is selected, and tested with commits signed by an SSH key made
 for each test. The object of the commit is read first, where the plan read it only after `N` (the card says why).
+Phase 2 is built: how git signs, read with the state; the button **Commit options** beside **Commit** and its menu
+with **Sign this commit**, **Add Signed-off-by** and **Skip the hooks**; their arguments, given to `commit.create` and
+`commit.amend` as answers the command line never asks; the line under the box; the setting `commit.signOff`; each
+repository keeping its own options until its next commit. What an entry signs with, or adds, is its tooltip, not a line
+under it (the card of `commit.options` says why). `commit.options` is Built with phase 3, which lists the co-authors.
 
 Exit: in a repository signing with an SSH key whose allowed signers are set, selecting a commit signed shows
 **Signature** `Good` with the signer, and one not signed shows no such line; without the allowed signers, the same

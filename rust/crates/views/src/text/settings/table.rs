@@ -5,7 +5,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the first half of the table.
-pub(super) const FIRST: [SettingInfo; 28] = [
+pub(super) const FIRST: [SettingInfo; 29] = [
     SettingInfo {
         key: "commandPreview",
         title: "Show commands before they run",
@@ -216,6 +216,16 @@ pub(super) const FIRST: [SettingInfo; 28] = [
         title: "Say where cherry-picks come from",
         section: Some(SettingsSection::PullAndCommits),
         description: "Cherry-picks end their message with (cherry picked from commit \u{2026}), as -x does.",
+        default: "false",
+        is_repository: true,
+        is_experimental: false,
+        kind: SettingKind::Toggle,
+    },
+    SettingInfo {
+        key: "commit.signOff",
+        title: "Add Signed-off-by to every commit",
+        section: Some(SettingsSection::PullAndCommits),
+        description: "Add Signed-off-by starts ticked in the options of each commit.",
         default: "false",
         is_repository: true,
         is_experimental: false,

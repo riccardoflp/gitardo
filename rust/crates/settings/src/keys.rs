@@ -76,6 +76,8 @@ pub const PULL_AUTOSTASH: &str = "pull.autostash";
 pub const IDENTITIES: &str = "identities";
 /// `cherryPick.recordOrigin`.
 pub const CHERRY_PICK_RECORD_ORIGIN: &str = "cherryPick.recordOrigin";
+/// `commit.signOff`.
+pub const COMMIT_SIGN_OFF: &str = "commit.signOff";
 /// `conflicts.autoResolve`.
 pub const CONFLICTS_AUTO_RESOLVE: &str = "conflicts.autoResolve";
 /// `conflicts.ai`.

@@ -8,6 +8,7 @@ mod actions_tests;
 mod beside;
 mod commit_box;
 mod menu;
+mod options;
 mod rows;
 mod section;
 
@@ -30,6 +31,7 @@ pub use actions::{RowAction, buttons_kept, conflict_actions, file_actions, headi
 pub use beside::{BesideFile, BesideFileState, BesideShown, beside_file_view, beside_request};
 pub use commit_box::{CommitBox, CommitKind, Draft};
 pub use menu::{RowMenuState, row_menu};
+pub use options::{CommitOptionsState, OptionsIntent, commit_options_view};
 
 /// What the Changes page shows.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -57,6 +59,8 @@ pub struct ChangesRepository<'a> {
     pub commit: CommitBox<'a>,
     /// The identity commits are made with.
     pub identity: &'a Identity,
+    /// The options of the next commit (`commit.options`).
+    pub options: Box<CommitOptionsState>,
     /// Whether an operation runs: the buttons that change something are disabled.
     pub is_running: bool,
     /// Whether the keyboard goes to the message box in this frame, as **Show changes** in Quick search asks.
@@ -94,6 +98,8 @@ pub enum ChangesIntent {
     DraftMessage,
     /// Stop drafting the message: the box is left as it was.
     StopDraft,
+    /// Something asked of the options of the next commit (`commit.options`).
+    Options(OptionsIntent),
     /// A file of the list, or every file, opened on the right of the list (`changes.beside-file`).
     OpenBeside(BesideFile),
     /// `Alt+Down` or `Alt+Up` beside the list: the next or the previous file of the list, in the same place.

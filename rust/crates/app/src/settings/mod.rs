@@ -71,6 +71,8 @@ pub struct Settings {
     pub word_wrap: LineWrap,
     /// `markdown.openAsPreview`: a Markdown file opens in its preview rather than its text.
     pub markdown_open_as_preview: bool,
+    /// `commit.signOff`: **Add Signed-off-by** starts ticked in the options of each commit (`commit.options`).
+    pub commit_sign_off: bool,
     /// `fileBlame.format`, `fileBlame.groupLines` and `fileBlame.age.*`: how the blame beside the lines of a file looks.
     pub file_blame: FileBlameLook,
     /// `terminal.shellPath` and `terminal.scrollbackLines`: the shell the terminals start, and what they keep.
@@ -98,6 +100,7 @@ impl Default for Settings {
             open_on_click: OpenOnClick::Diff,
             word_wrap: LineWrap::Cut,
             markdown_open_as_preview: false,
+            commit_sign_off: false,
             file_blame: FileBlameLook::default(),
             terminal: TerminalChoice::default(),
             values: BTreeMap::new(),

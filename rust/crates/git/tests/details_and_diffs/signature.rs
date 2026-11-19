@@ -83,3 +83,44 @@ fn details_read_signature__a_signed_commit_whose_message_was_changed_afterwards_
     let read = signature(&repository, forged.trim_end());
     assert_eq!(read.verdict, SignatureVerdict::Bad, "{read:?}");
 }
+
+/// How git signs commits in a repository whose global configuration is a file of the test.
+fn signing(repository: &Repository, global: &str) -> model::commit::SigningConfig {
+    let folder = repository.path().parent().unwrap();
+    let global_file = folder.join("signing.gitconfig");
+    fs::write(&global_file, global).unwrap();
+    let git = Git::new(repository.path())
+        .with_variable("GIT_CONFIG_GLOBAL", global_file)
+        .with_variable("GIT_CONFIG_NOSYSTEM", "1");
+    git::read::commit::read_signing(&git, &git::read::commit::SigningRequest).unwrap()
+}
+
+#[test]
+fn commit_read_signing__with_nothing_set_git_does_not_sign_in_openpgp_with_no_key() {
+    let repository = Repository::new();
+    let _ = repository.git(&["config", "--unset", "commit.gpgsign"]);
+    let read = signing(&repository, "");
+    assert!(!read.signs_every_commit);
+    assert_eq!(read.kind, model::commit::SigningKind::OpenPgp);
+    assert_eq!(read.key, None);
+}
+
+#[test]
+fn commit_read_signing__yes_in_the_global_configuration_and_false_in_the_repository_does_not_sign() {
+    let repository = Repository::new();
+    let _ = repository.git(&["config", "commit.gpgSign", "false"]);
+    let read = signing(&repository, "[commit]\n\tgpgSign = yes\n");
+    assert!(!read.signs_every_commit);
+    let _ = repository.git(&["config", "--unset", "commit.gpgsign"]);
+    assert!(signing(&repository, "[commit]\n\tgpgSign = yes\n").signs_every_commit);
+}
+
+#[test]
+fn commit_read_signing__ssh_with_a_key_path_is_ssh_with_that_key() {
+    let repository = Repository::new();
+    let _ = repository.git(&["config", "gpg.format", "ssh"]);
+    let _ = repository.git(&["config", "user.signingKey", "~/.ssh/id_ed25519.pub"]);
+    let read = signing(&repository, "");
+    assert_eq!(read.kind, model::commit::SigningKind::Ssh);
+    assert_eq!(read.key.as_deref(), Some("~/.ssh/id_ed25519.pub"));
+}

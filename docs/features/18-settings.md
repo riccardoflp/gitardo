@@ -205,6 +205,7 @@ Acceptance:
 | `pull.rebase` | Pull with rebase | Pull and commits | `true` | User, Repository | **Pull** adds `--rebase`. | `sync.pull` |
 | `pull.autostash` | Pull with autostash | Pull and commits | `true` | User, Repository | **Pull** adds `--autostash`. | `sync.pull` |
 | `cherryPick.recordOrigin` | Say where cherry-picks come from | Pull and commits | `false` | User, Repository | Cherry-picks end their message with `(cherry picked from commit …)`, as `-x` does. | `cherry-pick.commit` |
+| `commit.signOff` | Add Signed-off-by to every commit | Pull and commits | `false` | User, Repository | **New.** **Add Signed-off-by** starts ticked in the options of each commit. `gitardo.commit.signOff` in the extension, once it has the options (D79). | `commit.options` |
 | `submodules.updateOnCheckout` | Update submodules on checkout | Pull and commits | `true` | User, Repository | After a checkout, update the submodules to the commits it records. | `submodule.update-on-checkout` |
 | `changes.openOnClick` | Click on a changed file | Pull and commits | `"diff"` | User | What a click on a file of the changes opens: `diff` or `file`. `gitardo.changes.openOnClick` in the extension, where it is `file` by default (Q763). | `changes.open` |
 | `worktrees.openIn` | Open worktrees in | Worktrees | `"window"` | User | Where a worktree opens: `window` (a new window of Gitardo Desktop), `editor` (the external editor) or `terminal`. **New** values: the extension had `window` and `agents`. | `worktree.open` |

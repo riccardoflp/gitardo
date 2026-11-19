@@ -81,6 +81,7 @@ fn repository() -> RepositoryState {
             name: Some(String::from("Ada Lovelace")),
             email: Some(String::from("ada@example.com")),
         },
+        signing: model::commit::SigningConfig::default(),
         branch_sort: Some(String::from("-committerdate")),
         reflog_subjects: vec![String::from("checkout: moving from feature to main")],
         working_tree: working_tree(),

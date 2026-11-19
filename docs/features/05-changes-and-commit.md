@@ -771,12 +771,14 @@ Makes a commit of what is staged, with the message of the commit box.
   the button is disabled.
 - **Asks**: when nothing is staged and some change is not: a confirmation, "There are no staged changes. Stage all
   changes and commit them?", with **Stage all and commit**.
-- **Plan**: `git commit -m <message>`, the message without the spaces and blank lines around it; after the
-  confirmation, `git add --all` first.
+- **Plan**: `git commit -m <message>`, the message without the spaces and blank lines around it, with the arguments of
+  the options of the commit box between `commit` and `-m` (`commit.option-arguments`), given as answers the command
+  line never asks; after the confirmation, `git add --all` first.
 - **Danger**: None.
 - **Undo**: By the reflog: Undo moves the branch back to the commit before, with `git reset --soft`, and the changes of
   the commit stay staged (`undo.last`).
-- **After**: the message box is emptied and **Amend last commit** unticked; the timeline selects nothing new.
+- **After**: the message box is emptied, **Amend last commit** unticked and the options of the commit back where they
+  start (`commit.options`); the timeline selects nothing new.
 - **Refuses**: "Enter a commit message." with an empty message; "There are no changes to commit." when nothing is
   staged and nothing else is changed.
 - **Uses**: `changes.stage-all`.
@@ -827,11 +829,13 @@ Replaces the last commit with one that has the staged changes too, and the new m
 - **Offered when**: there is a commit: the box **Amend last commit** is disabled before the first one. Nothing needs to
   be staged.
 - **Plan**: `git commit --amend -m <message>`; with the message box empty, `git commit --amend --no-edit`, which keeps
-  the message the commit has.
+  the message the commit has. The arguments of the options of the commit box go after `--amend`
+  (`commit.option-arguments`).
 - **Danger**: None.
 - **Undo**: By the reflog: Undo takes the branch back to the commit as it was before the amend, with `git reset --soft`,
   and what the amend added stays staged (`undo.last`).
-- **After**: the message box is emptied and **Amend last commit** unticked.
+- **After**: the message box is emptied, **Amend last commit** unticked and the options of the commit back where they
+  start.
 
 The tooltip of the box says what it does: **Replace the last commit instead of adding a new one. Leave the message empty
 to keep it.**
@@ -885,6 +889,13 @@ A tick changed holds for the next commit or amend alone: once it is made, the bo
 the co-authors are emptied (Q1093, Q1094). Each repository open keeps its own, as it keeps its message. While any option
 differs from where it starts, or a co-author is chosen, a line under the box says them, muted, in the order of the
 menu: `Not signed · Signed-off-by · With Ben, +1 · Hooks skipped`, and its tooltip says the arguments they add.
+
+As built, the menu differs from the plan in three things, since a menu of the window has no line under an entry and an
+entry that switches shows its check alone (`ui.menu-icons`): what **Sign this commit** signs with, the
+`Signed-off-by` line and what **Skip the hooks** does are the tooltips of their entries; a ticked option has the check
+and no icon of its own; and when no key can sign, **Switch identity…** is an entry of its own under **Sign this
+commit**, which cannot be chosen and says **No key to sign with: set one with Switch identity…** in its tooltip. The
+options a repository keeps last while the window is open, as its message does not: they are not written to disk.
 
 Acceptance:
 

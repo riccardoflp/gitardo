@@ -150,6 +150,7 @@ struct Parts {
     worktrees: Vec<Worktree>,
     remotes: Vec<String>,
     identity: Identity,
+    signing: model::commit::SigningConfig,
     branch_sort: Option<String>,
     reflog_subjects: Vec<String>,
     working_tree: WorkingTree,
@@ -177,6 +178,7 @@ fn read_parts(
         let worktrees = scope.spawn(|| worktree::read_list_counting(git, &worktree_request, before));
         let remotes = scope.spawn(|| remotes::read_remotes(git));
         let identity = scope.spawn(|| identity::read_identity(git));
+        let signing = scope.spawn(|| crate::read::commit::read_signing(git, &crate::read::commit::SigningRequest));
         let branch_sort = scope.spawn(|| branch_sort::read_branch_sort(git));
         let reflog_subjects = scope.spawn(|| reflog_subjects::read_reflog_subjects(git));
         let working_tree = scope.spawn(|| status::read_status(git));
@@ -200,6 +202,7 @@ fn read_parts(
             worktrees,
             remotes: joined(remotes)?,
             identity: joined(identity)?,
+            signing: joined(signing)?,
             branch_sort: joined(branch_sort)?,
             reflog_subjects: joined(reflog_subjects)?,
             working_tree: joined(working_tree)?,
@@ -238,6 +241,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         worktrees,
         remotes: parts.remotes,
         identity: parts.identity,
+        signing: parts.signing,
         branch_sort: parts.branch_sort,
         reflog_subjects: parts.reflog_subjects,
         working_tree: parts.working_tree,

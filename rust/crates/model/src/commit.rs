@@ -2,8 +2,10 @@
 //! by the language model (`commit.draft-message`).
 
 mod draft;
+mod options;
 
 pub use draft::{DraftInput, clean_draft, draft_message};
+pub use options::{CoAuthor, CommitOptions, SigningConfig, SigningKind, is_true, option_arguments};
 
 use crate::{CommitId, Timestamp};
 

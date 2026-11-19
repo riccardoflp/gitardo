@@ -121,6 +121,12 @@ pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     if ui.button("commit", cell, &button).clicked {
         intents.push(Intent::Changes(ChangesIntent::Commit));
     }
+    let options = place(
+        button_row.left(control),
+        (control, control),
+        (Align::Start, Align::Center),
+    );
+    intents.extend(ui.clip(options, |ui| super::options::commit_options_view(&state.options, ui)));
     let mut amend = Choice::check_box(words::AMEND_LAST_COMMIT, commit.is_amend());
     if !commit.has_commit || state.is_running {
         amend = amend.disabled();
@@ -130,7 +136,17 @@ pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     if response.clicked {
         intents.push(Intent::Changes(ChangesIntent::Amend(!commit.is_amend())));
     }
-    intents.extend(identity_line(state, ui, area.rest()));
+    let under = area.rest();
+    let (asked, used) = identity_line(state, ui, under);
+    intents.extend(asked);
+    let gap = theme.sizes.spacing.large;
+    let beside = Rect::new(
+        under.x + used + gap,
+        under.y,
+        (under.width - used - gap).max(0.0),
+        under.height,
+    );
+    super::options::options_line(&state.options, ui, beside);
     intents
 }
 
@@ -159,8 +175,8 @@ fn message_box(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> Ve
 }
 
 /// The identity commits will be made with, `Name <email>` or **No identity configured**: a click on it switches it
-/// (`identity.switch`).
-fn identity_line(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
+/// (`identity.switch`). Gives what was asked, and the width the line took.
+fn identity_line(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> (Vec<Intent>, f32) {
     let said = words::identity_said(state.identity.name.as_deref(), state.identity.email.as_deref());
     let mut link = Button::secondary(&said).kind(ButtonKind::Icon);
     if state.is_running {
@@ -169,10 +185,8 @@ fn identity_line(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> 
     let (width, height) = ui.button_size(&link);
     let cell = place(rect, (width.min(rect.width), height), (Align::Start, Align::Center));
     if ui.button("identity", cell, &link).clicked {
-        return vec![Intent::Feature(FeatureIntent::Run(
-            FeatureId("identity.switch"),
-            Target::Head,
-        ))];
+        let switch = Intent::Feature(FeatureIntent::Run(FeatureId("identity.switch"), Target::Head));
+        return (vec![switch], cell.width);
     }
-    Vec::new()
+    (Vec::new(), cell.width)
 }

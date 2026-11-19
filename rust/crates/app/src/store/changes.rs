@@ -2,7 +2,7 @@
 //! each repository between runs, **Amend last commit**, the folds and the layout of the list; the message is given to
 //! the commit when it asks for it, and emptied once the commit is made.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use model::changes::{ChangesInput, ChangesList, FileStatus, UnsavedInput, ignore_candidates, list, unsaved};
@@ -39,6 +39,8 @@ pub struct Changes {
     pub checking: Option<(JobId, Checked)>,
     /// The file shown beside the list, while one is (`changes.beside-file`).
     pub beside: Option<super::changes_beside::Beside>,
+    /// The options of the next commit of each repository changed from where they start (`commit.options`).
+    pub options: BTreeMap<PathBuf, model::commit::CommitOptions>,
 }
 
 /// The files with edits not saved that git was asked whether it ignores.
@@ -92,6 +94,7 @@ pub fn reduce(state: &mut State, intent: ChangesIntent) -> Vec<Effect> {
         ChangesIntent::DraftMessage | ChangesIntent::StopDraft => super::draft::reduce(state, &intent),
         ChangesIntent::OpenBeside(file) => super::changes_beside::open(state, file),
         ChangesIntent::StepFile(step) => super::changes_beside::step(state, step),
+        ChangesIntent::Options(asked) => super::commit_options::reduce(state, asked),
         ChangesIntent::ShowWhole => {
             super::changes_beside::leave(state);
             pages::show_page(state, Page::Changes);
@@ -113,7 +116,8 @@ fn commit(state: &mut State) -> Vec<Effect> {
         "commit.create"
     };
     state.changes.sent = Some(commit.message.to_owned());
-    feature::reduce(state, FeatureIntent::Run(FeatureId(feature), Target::Head))
+    let answers = super::commit_options::answers(state);
+    feature::reduce(state, FeatureIntent::RunWith(FeatureId(feature), Target::Head, answers))
 }
 
 /// The operation running asks a question: the commit asking for its message gets the one of the box at once; any
@@ -131,8 +135,9 @@ pub fn asks(state: &mut State, question: Question) -> Vec<Effect> {
     feature::asks(state, question)
 }
 
-/// An operation ended: once a commit is made, the message box is emptied and **Amend last commit** unticked; the
-/// message git prepared for the next commit fills the box when it is empty.
+/// An operation ended: once a commit is made, the message box is emptied, **Amend last commit** unticked and the
+/// options of the commit are back where they start; the message git prepared for the next commit fills the box when
+/// it is empty.
 pub fn ended(state: &mut State, ended: &Ended) {
     state.changes.sent = None;
     let Ended::Ran {
@@ -152,6 +157,7 @@ pub fn ended(state: &mut State, ended: &Ended) {
         state.changes.is_amend = false;
         if let Some(folder) = state.shown_folder().cloned() {
             keep_message(&mut state.persisted.commit_messages, &folder, "");
+            super::commit_options::made(state, &folder);
         }
     }
 }
@@ -248,6 +254,7 @@ impl ChangesData {
             folded: &state.changes.folded,
             commit: commit_box(state),
             identity: &read.state.identity,
+            options: Box::new(super::commit_options::options_state(state, &read.folder, &read.state)),
             is_running: state.is_operation_running,
             wants_focus: state.changes.wants_focus,
             on_click: state.settings.open_on_click,

@@ -9,6 +9,7 @@ mod changed_files;
 mod changes;
 mod changes_beside;
 mod code_workspace;
+mod commit_options;
 mod commit_page;
 pub mod compare;
 mod conflicts;

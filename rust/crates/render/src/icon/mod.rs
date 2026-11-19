@@ -212,8 +212,6 @@ pub enum Icon {
     Sliders,
     /// A shield: the signature of a commit, and signing one. Lucide's `shield`.
     Shield,
-    /// A line written over a rule: the `Signed-off-by` line of a commit. Lucide's `signature`.
-    Signature,
     /// Two people: the co-authors of a commit. Lucide's `users`.
     Users,
     /// The logo of Gitardo: a branch leaving a line of two commits, as the extension draws it (`window.brand`). Not one
