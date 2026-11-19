@@ -2142,6 +2142,31 @@ unregistered (it ends the schedule of every repository); the notes of the other 
 (asked, Q1210); refspecs of notes added to the configuration of a remote; a mark on the rows of the timeline for the
 commits with a note (asked, Q1211).
 
+## D86 — On two lines, the labels of a commit start the line under its message (proposed)
+
+*Asked by the maintainer on 2026-11-19 for milestone M41; the details proposed while planning.*
+
+With the rows of two lines, the labels of a commit came first on the line of its message
+([D66](#d66--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)), and the two shared it: a commit
+with a few labels kept only three fifths of the line for its message, and a branch or a tag pushed it away. The line
+under the message, with the author and the date, was half empty. Now, while the rows are of two lines, the labels
+start that line, before the author and the date, and the message has its line to itself; with **Compact rows** on
+([D67](#d67--compact-rows-each-commit-on-one-line)) a row has one line, and the labels stay where D66 put them.
+
+- **The first line** is the message alone, from right after the cell of the graph, then the arrow of the fold of a
+  merge, up to the hash at the end of the row.
+- **The second line** starts with the labels, in the order of `graph.labels`, then the author and the date that
+  `graph.columns` asks for. The author and the date keep their width, up to two fifths of the line, and the labels take
+  the rest, by the rules of `graph.label-overflow`: as many as fit whole, then `+N`, and their list under the pointer.
+  A commit with no label starts the line with its author, as before.
+- **Their height.** A label is taller than the text of the second line: the row keeps its height, and the two lines are
+  placed in it so that the labels fit, their text on the line of the author's.
+- **What does not change.** The compact rows, the draft of the uncommitted changes, the rows of stashes and of folds,
+  the separators of days, what a click, a double click, a right click and the pointer resting on a label do, and the
+  list of all the labels, which opens under the label it came from.
+- **The extension** already draws its rows of two lines so, in the side bar: the labels under the message, before the
+  author and the date; its wide Graph view has one line a commit. Nothing changes there.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -5523,3 +5548,16 @@ asked while it is planned; each is built as it says until the maintainer answers
   after in the background?
 - **Q1224** — `upkeep.clean-up`: in the extension it is in the menu of the rows of the **Gitardo Repositories** view.
   Should it be in the Command Palette too, on the repository shown?
+
+### Of the labels under the message, from Q1230
+
+Questions of milestone M41 ([D86](#d86--on-two-lines-the-labels-of-a-commit-start-the-line-under-its-message-proposed)),
+asked while it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1230** — `graph.labels`: the labels start the line under the message, so that they no longer line up with the
+  messages of the rows around. Should the labels keep the start of the first line when the message is short enough to
+  leave them room?
+- **Q1231** — `graph.label-overflow`: the author and the date keep up to two fifths of the second line, and the labels
+  the rest. Should a long name of an author be shortened sooner, to leave the labels more room?
+- **Q1232** — `graph.columns`: with neither the author nor the date shown, a commit with no label has an empty second
+  line. Should such a row be one line, as tall as before?
