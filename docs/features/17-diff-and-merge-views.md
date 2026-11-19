@@ -502,15 +502,18 @@ Selects some lines of a Diff page, on either side, so that only those are staged
   lines** and **Revert lines**, each where its card offers it, and the keys of the page do them: `Alt+S`, `Alt+U` and
   `Alt+R` on Windows and Linux, `Ctrl+Option+S`, `Ctrl+Option+U` and `Ctrl+Option+R` on macOS (Q1071). With no changed
   line among them, the menu has the three items greyed out, and the keys do nothing.
+- The rows of the side that is edited are those of the text selected as the editor of code selects it, `Shift` with
+  the arrows included; a selection that ends at the start of a line does not take that line. `Ctrl+Option` on macOS is
+  read as `Alt` held, and the menu shows the keys of Windows and Linux.
 
 Acceptance:
 
-- [ ] Dragging over the numbers of lines 10 to 14 on the left side selects rows 10 to 14 on both sides, and the
+- [x] Dragging over the numbers of lines 10 to 14 on the left side selects rows 10 to 14 on both sides, and the
       context menu has **Stage lines**.
-- [ ] `Shift+↓` three times from line 20 of the side of `HEAD` selects four rows, and no text.
-- [ ] Selecting the new text of a line changed into another selects the row where the two face each other.
-- [ ] `Escape` clears the selection, and an edit that takes away a selected line clears it too.
-- [ ] Rows selected with no changed line among them give the three items greyed out.
+- [x] `Shift+↓` three times from line 20 of the side of `HEAD` selects four rows, and no text.
+- [x] Selecting the new text of a line changed into another selects the row where the two face each other.
+- [x] `Escape` clears the selection, and an edit that takes away a selected line clears it too.
+- [x] Rows selected with no changed line among them give the three items greyed out.
 
 ### `diff.lines-patch` — The patch of the lines selected
 
@@ -557,7 +560,7 @@ Acceptance:
       first left the index.
 - [x] Of three removed lines, selecting the first and the third gives two hunks, and the second line stays: a selection
       is one run of rows, so the first and the third are two selections, each its own hunk, the second left in place.
-- [ ] Lines added after a last line with no line break take its change too, and `git apply --cached --unidiff-zero`
+- [x] Lines added after a last line with no line break take its change too, and `git apply --cached --unidiff-zero`
       applies the patch.
 - [x] Two of the five lines of an untracked file give a patch that creates the file in the index with those two
       lines.
@@ -592,19 +595,23 @@ Puts into the index only the lines selected of the changes of the working tree
   index and the working tree: *These lines are staged already.*
 - **Settings**: `commandPreview`.
 - **Uses**: `diff.select-lines`, `diff.lines-patch`, `diff.staged-changes`, `diff.read-sides`.
+- As built, the question of `commandPreview` shows the command with the patch under it, as for a change; the detail
+  sentence over the `@@` lines is not shown. A file the index does not have is created there with mode `100644`, which
+  the versions read do not tell from `100755` ([Q1303](../08-decisions.md#open-questions)). A patch that is not UTF-8
+  or touches the first line after a byte order mark is refused with the sentences of `diff.stage-change`.
 
 Acceptance:
 
-- [ ] Of a change of five added lines, staging the second and the third leaves `git diff --cached` with those two
+- [x] Of a change of five added lines, staging the second and the third leaves `git diff --cached` with those two
       lines alone, and the log has the `git apply` line exactly.
-- [ ] Selecting rows across three changes, with the second staged already, stages what is selected of the first and
+- [x] Selecting rows across three changes, with the second staged already, stages what is selected of the first and
       the third.
-- [ ] Of a line changed into another, staging its row puts the new line in the index in place of the old.
-- [ ] Staging two lines of an untracked file adds the file to the index with those two lines; `git status` says it is
+- [x] Of a line changed into another, staging its row puts the new line in the index in place of the old.
+- [x] Staging two lines of an untracked file adds the file to the index with those two lines; `git status` says it is
       added and changed.
-- [ ] In a file with CRLF in the index, the lines staged have CRLF there.
-- [ ] Editing the file in another program between the selection and **Stage lines** refuses, and stages nothing.
-- [ ] With `commandPreview` set to `all`, the question shows the command and the patch before it runs.
+- [x] In a file with CRLF in the index, the lines staged have CRLF there.
+- [x] Editing the file in another program between the selection and **Stage lines** refuses, and stages nothing.
+- [x] With `commandPreview` set to `all`, the question shows the command and the patch before it runs.
 
 ### `diff.unstage-lines` — Unstage the lines selected
 
@@ -633,10 +640,10 @@ Takes only the lines selected back out of the index, the working tree unchanged
 
 Acceptance:
 
-- [ ] Of five lines staged, unstaging the first two leaves the other three staged, and the working tree unchanged.
-- [ ] In the diff of the working tree against `HEAD`, unstaging the rows of a staged change drawn dimmed takes them out
+- [x] Of five lines staged, unstaging the first two leaves the other three staged, and the working tree unchanged.
+- [x] In the diff of the working tree against `HEAD`, unstaging the rows of a staged change drawn dimmed takes them out
       of the index, and they are drawn as not staged.
-- [ ] All the lines of a file added to the index and not in `HEAD` unstage with `git restore --staged -- <file>`.
+- [x] All the lines of a file added to the index and not in `HEAD` unstage with `git restore --staged -- <file>`.
 
 ### `diff.revert-lines` — Revert the lines selected
 
@@ -661,15 +668,18 @@ Puts back in the working tree what the left side has in place of the lines selec
 - **After**: the page is computed again; the lines reverted are no longer changed, and the selection is cleared.
 - **Refuses**: *The file changed since the diff was shown. Try again.*
 - **Uses**: `diff.select-lines`, `diff.align`, `diff.edit`, `file-view.save`, `diff.revert-change`.
+- When no line selected differs between the two sides: *These lines are as the left side has them.* The window does not
+  run the plan: it makes the same text with `features::diff::reverted_lines` as one edit of the side of the working
+  tree and saves it, as **Revert this change** does.
 
 Acceptance:
 
-- [ ] Of a change of three lines changed into three others, reverting the row of the second gives the file its old
+- [x] Of a change of three lines changed into three others, reverting the row of the second gives the file its old
       second line, the other two left as they were.
-- [ ] Reverting rows that cross two changes reverts what is selected of both, in one edit that one `Ctrl+Z` takes
+- [x] Reverting rows that cross two changes reverts what is selected of both, in one edit that one `Ctrl+Z` takes
       back.
-- [ ] Reverting the rows of lines removed puts them back after the line before them.
-- [ ] Against a commit, the lines reverted are those of the commit.
+- [x] Reverting the rows of lines removed puts them back after the line before them.
+- [x] Against a commit, the lines reverted are those of the commit.
 
 ### `diff.edit` — Editing the working tree side
 

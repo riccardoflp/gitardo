@@ -631,11 +631,11 @@ earns it.
 | [`diff.stage-change`](17-diff-and-merge-views.md#diffstage-change--stage-this-change) | Stage this change | Operation | Built | Built |
 | [`diff.unstage-change`](17-diff-and-merge-views.md#diffunstage-change--unstage-this-change) | Unstage this change | Operation | Built | Built |
 | [`diff.revert-change`](17-diff-and-merge-views.md#diffrevert-change--revert-this-change) | Revert this change | Operation | Built | Differs (A5) |
-| [`diff.select-lines`](17-diff-and-merge-views.md#diffselect-lines--select-lines-of-a-diff) | Select lines of a diff | View | Specified | Planned |
+| [`diff.select-lines`](17-diff-and-merge-views.md#diffselect-lines--select-lines-of-a-diff) | Select lines of a diff | View | Built | Planned |
 | [`diff.lines-patch`](17-diff-and-merge-views.md#difflines-patch--the-patch-of-the-lines-selected) | The patch of the lines selected | Derivation | Built | Planned |
-| [`diff.stage-lines`](17-diff-and-merge-views.md#diffstage-lines--stage-the-lines-selected) | Stage the lines selected | Operation | Specified | Planned |
-| [`diff.unstage-lines`](17-diff-and-merge-views.md#diffunstage-lines--unstage-the-lines-selected) | Unstage the lines selected | Operation | Specified | Planned |
-| [`diff.revert-lines`](17-diff-and-merge-views.md#diffrevert-lines--revert-the-lines-selected) | Revert the lines selected | Operation | Specified | Planned |
+| [`diff.stage-lines`](17-diff-and-merge-views.md#diffstage-lines--stage-the-lines-selected) | Stage the lines selected | Operation | Built | Planned |
+| [`diff.unstage-lines`](17-diff-and-merge-views.md#diffunstage-lines--unstage-the-lines-selected) | Unstage the lines selected | Operation | Built | Planned |
+| [`diff.revert-lines`](17-diff-and-merge-views.md#diffrevert-lines--revert-the-lines-selected) | Revert the lines selected | Operation | Built | Planned |
 | [`diff.edit`](17-diff-and-merge-views.md#diffedit--editing-the-working-tree-side) | Editing the working tree side | View | Built | Built |
 | [`diff.open-at-line`](17-diff-and-merge-views.md#diffopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Built | Built |
 | [`diff.open-file`](17-diff-and-merge-views.md#diffopen-file--open-file) | Open file | View | Built | Built |

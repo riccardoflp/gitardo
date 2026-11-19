@@ -10,6 +10,7 @@ mod images;
 mod lines;
 mod navigate;
 mod owner;
+mod select;
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -119,6 +120,8 @@ pub struct DiffPage {
     pub is_in_changes: bool,
     /// Whether its SVG files show their pictures or the diff of their lines (`diff.image`).
     pub images: images::PageImages,
+    /// The rows selected on a side that is not edited (`diff.select-lines`).
+    pub selection: Option<select::PageSelection>,
 }
 
 /// Opens the Diff page of a target in the repository shown, or shows the one it has: there is never a second page for
@@ -184,6 +187,7 @@ pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Eff
         comparison,
         is_in_changes,
         images: images::PageImages::default(),
+        selection: None,
     };
     state.diff_pages.pages.push(page);
     let effects: Vec<Effect> = (0..count)
@@ -466,6 +470,7 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
         edited_at: page.edited_at,
         is_stale: page.is_stale,
         svg_text: images::svg_text(page),
+        selection: page.selection.as_ref().map(|selection| selection.rows),
     })
 }
 

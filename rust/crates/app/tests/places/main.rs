@@ -34,6 +34,7 @@ mod conflicts;
 mod diff;
 mod diff_edit;
 mod diff_image;
+mod diff_lines;
 mod diff_links;
 mod diff_open;
 mod diff_staging;

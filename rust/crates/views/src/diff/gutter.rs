@@ -194,7 +194,7 @@ fn diff_change(state: &DiffPageState<'_>, (file, text, change): (usize, &DiffTex
 }
 
 /// The version of a side as the operations name it.
-fn side_of(version: &DiffVersion) -> DiffSide {
+pub(super) fn side_of(version: &DiffVersion) -> DiffSide {
     match version {
         DiffVersion::Head => DiffSide::Head,
         DiffVersion::Index => DiffSide::Index,

@@ -75,6 +75,18 @@ pub const UNSTAGE_CHANGE: &str = "Unstage this change";
 pub const STAGED_UNSTAGE_CHANGE: &str = "Staged \u{2014} unstage this change";
 /// The **⟲** button of a change in the gutter.
 pub const REVERT_CHANGE: &str = "Revert this change";
+/// The entry of the context menu of a side that stages the lines selected (`diff.select-lines`).
+pub const STAGE_LINES: &str = "Stage lines";
+/// The keys of **Stage lines**; `Ctrl+Option+S` on macOS.
+pub const STAGE_LINES_KEYS: &str = "Alt+S";
+/// The entry that unstages the lines selected.
+pub const UNSTAGE_LINES: &str = "Unstage lines";
+/// The keys of **Unstage lines**; `Ctrl+Option+U` on macOS.
+pub const UNSTAGE_LINES_KEYS: &str = "Alt+U";
+/// The entry that reverts the lines selected.
+pub const REVERT_LINES: &str = "Revert lines";
+/// The keys of **Revert lines**; `Ctrl+Option+R` on macOS.
+pub const REVERT_LINES_KEYS: &str = "Alt+R";
 /// The title button that stages the file.
 pub const STAGE_FILE: &str = "Stage file";
 /// The title button that opens the file in the File page (`diff.open-file`).

@@ -15,6 +15,7 @@ mod gutter;
 mod image;
 mod question;
 mod rows;
+mod select;
 mod targets;
 
 use std::time::Duration;
@@ -36,6 +37,7 @@ pub use edit::{DrawnSides, RECOMPUTE_AFTER, edit_view, open_at_line_view};
 pub(crate) use gutter::revert_change_icon;
 pub use image::{DiffImages, IMAGE_ROWS, ImageBlock, image_view, what_changed};
 pub use question::{LargeDiffQuestion, large_diff_question_view};
+pub use select::{LineSelectionState, LinesAction, RowSelection, lines_of_rows, select_lines_view, selected_rows};
 pub use targets::{
     changes_file, changes_files, commit_file, commit_files, commit_sides, file_sides, listed_file, untracked_file,
 };
@@ -85,6 +87,8 @@ pub struct DiffPageState<'a> {
     /// Whether a file of the page is an SVG, and whether it shows the diff of its lines, **Text**, rather than its
     /// pictures, **Image** (`diff.image`).
     pub svg_text: Option<bool>,
+    /// The rows selected on a side that is not edited (`diff.select-lines`).
+    pub selection: Option<RowSelection>,
 }
 
 /// Something asked of the Diff pages.
@@ -133,6 +137,26 @@ pub enum DiffEditIntent {
     Save,
     /// **Revert this change** (`diff.revert-change`): a file, and a change among its changes.
     Revert(usize, usize),
+    /// `Shift` with a click, an arrow or a drag on a side that is not edited: the rows selected from the line chosen
+    /// to this row (`diff.select-lines`).
+    Select {
+        /// The file.
+        file: usize,
+        /// The side.
+        side: CaretSide,
+        /// The row reached.
+        row: usize,
+    },
+    /// `Escape`, or the lines selected staged or unstaged: the selection cleared.
+    ClearSelection,
+    /// **Revert lines** (`diff.revert-lines`): the rows of a file selected, reverted as one edit of the working tree
+    /// side.
+    RevertLines {
+        /// The file.
+        file: usize,
+        /// The rows.
+        rows: std::ops::Range<usize>,
+    },
 }
 
 /// Something asked of a Diff page.
@@ -172,6 +196,8 @@ pub fn page_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         intents.extend(row_intents);
         let sides = DrawnSides::new(state, (columns, list_rect), drawn);
         intents.extend(ui.clip(list_rect, |ui| edit_view(&sides, ui)));
+        let selection = LineSelectionState { sides: &sides };
+        intents.extend(ui.clip(list_rect, |ui| select_lines_view(&selection, ui)));
         intents.extend(ui.clip(list_rect, |ui| resize_sides_view(state, ui)));
     });
     intents

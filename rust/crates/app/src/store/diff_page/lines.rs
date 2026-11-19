@@ -61,4 +61,5 @@ pub(super) fn rebuild(page: &mut DiffPage) {
     if page.current.is_some_and(|current| current >= page.changes.len()) {
         page.current = None;
     }
+    super::select::keep_if_same(page);
 }

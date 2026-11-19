@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The Diff page selects lines: dragging over the lines or their numbers of a side, `Shift` with a click or with the
+  arrows from the line chosen, or the text selected on the side of the working tree, selects their rows, drawn on both
+  sides and in the gutter; `Escape` or a click elsewhere clears them. **Stage lines**, **Unstage lines** and **Revert
+  lines** in the context menu of either side, or `Alt+S`, `Alt+U` and `Alt+R`, stage, unstage or revert only those
+  lines: a patch of them for `git apply --cached`, or for a revert one edit of the working tree side that `Ctrl+Z`
+  takes back, saved at once. With no changed line among the rows, the three items are greyed out.
 - JPEG, GIF, WebP, BMP and ICO are drawn wherever a PNG is: in the File page, the Diff page, the page of a commit and
   the preview of Markdown. A GIF or an animated WebP shows its first frame, an ICO its largest image.
 - The page of a commit shows, with its changes, the two versions of an image it changed side by side under the header

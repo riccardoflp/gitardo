@@ -5250,6 +5250,9 @@ while it is planned; each is built as it says until the maintainer answers other
 - **Q1302** — `diff.lines-patch`: the rows selected in a diff of the working tree against `HEAD` are placed in the
   index by the lines of `HEAD` that the index has unchanged, and a line of `HEAD` changed in the index by the line it
   faces there. Should a selection that touches a line staged already be refused, rather than placed so?
+- **Q1303** — `diff.stage-lines`: the lines of a file the index does not have create it there with mode `100644`, since
+  the versions an operation reads are bytes without the mode git gives the file; a script staged by lines loses its
+  executable bit until it is staged whole. Should the read give the mode, so that `100755` is used as Q1076 says?
 
 ### Of the signature of a commit and the options of the commit box, from Q1090
 

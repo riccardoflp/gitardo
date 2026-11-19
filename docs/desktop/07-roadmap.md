@@ -1048,7 +1048,7 @@ clone.**; **Load more history** with `3` lists five, and **Load the whole histor
 away; the cards of the milestone are Built in the desktop, and the snapshots of the end of a shallow history match in
 each theme.
 
-## M33 — Stage the lines selected
+## M33 — Stage the lines selected (done)
 
 The Diff page stages, unstages and reverts the lines selected, where it could only take a whole change
 ([D78](../08-decisions.md#d78--stage-unstage-and-revert-the-lines-selected-in-a-diff-proposed)). Asked by the
@@ -1069,7 +1069,14 @@ editor already has **Stage Selected Ranges**.
    where its card says; the patch applied, or the edit made and saved for a revert; the page computed again. Cards:
    `diff.stage-lines`, `diff.unstage-lines`, `diff.revert-lines`, `diff.staged-changes`.
 
-Phase 1 is built: `text::diff::lines_patch` gives the patch of the lines selected, tested as a table.
+All three phases are built. `text::diff::lines_patch` gives the patch of the lines selected and `lines_taken` the
+text it leaves; the Diff page selects rows on a side that is not edited by a drag, by `Shift` with a click or with the
+arrows and the page keys, and on the side that is edited by the text selected, draws them on both sides and in the
+gutter, and clears them with `Escape`, a click elsewhere or an edit; **Stage lines**, **Unstage lines** and **Revert
+lines** are in the context menu of either side, greyed out with no changed row, and `Alt+S`, `Alt+U` and `Alt+R` do
+them. The rows of a side that is not the index are placed in it through the lines that do not change between the two
+(Q1302); a file the index does not have is created with mode `100644` (Q1303). The places tests apply each patch with
+git in a repository of the tests.
 
 Exit: in a file with a change of five added lines, the second and third selected on the right and **Stage lines**
 leave `git diff --cached` with those two lines, drawn as staged; selecting them again and `Alt+U` takes them out of

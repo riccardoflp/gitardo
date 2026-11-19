@@ -1,8 +1,9 @@
 //! The working tree side of a Diff page edited where it is shown (`diff.edit`): its text is that of the File page of
 //! the file, shown or held out of sight; the rows follow each edit at once, the diff is computed again a moment after
 //! typing stops, and `Ctrl+S` runs `file-view.save`. **Revert this change** (`diff.revert-change`) is one more edit of
-//! that text, saved at once, which `Ctrl+Z` takes back.
+//! that text, saved at once, which `Ctrl+Z` takes back, and so is **Revert lines** (`diff.revert-lines`).
 
+use std::ops::Range;
 use std::path::Path;
 use std::time::Duration;
 
@@ -50,12 +51,29 @@ pub fn reduce_edit(state: &mut State, id: DiffPageId, intent: DiffEditIntent) ->
         DiffEditIntent::Line { file, side, row } => {
             if let Some(page) = page_mut(state, id) {
                 page.caret = Some(PageCaret::Line { file, side, row });
+                page.selection = None;
             }
             Vec::new()
         }
         DiffEditIntent::Recompute => recompute(state, id),
         DiffEditIntent::Save => save(state, id),
-        DiffEditIntent::Revert(file, change) => revert(state, (id, file), change),
+        DiffEditIntent::Revert(file, change) => revert(state, (id, file), Reverted::Change(change)),
+        DiffEditIntent::Select { file, side, row } => {
+            super::select::select(state, id, (file, side, row));
+            Vec::new()
+        }
+        DiffEditIntent::ClearSelection => {
+            if let Some(page) = page_mut(state, id) {
+                page.selection = None;
+            }
+            Vec::new()
+        }
+        DiffEditIntent::RevertLines { file, rows } => {
+            if let Some(page) = page_mut(state, id) {
+                page.selection = None;
+            }
+            revert(state, (id, file), Reverted::Rows(rows))
+        }
     }
 }
 
@@ -113,6 +131,7 @@ fn edit(state: &mut State, (id, file): (DiffPageId, usize), commands: &[Command]
             file,
             cursor: edited.cursor,
         });
+        page.selection = None;
     }
     if !edited.changes.is_empty() {
         follow_document(
@@ -279,7 +298,7 @@ fn save(state: &mut State, id: DiffPageId) -> Vec<Effect> {
 /// **Revert this change**: the lines of the change in the text of the file replaced by those the left side has, as one
 /// edit that `Ctrl+Z` takes back, and the file saved with `file-view.save`; refused when the text is not the one the
 /// page shows.
-fn revert(state: &mut State, (id, file): (DiffPageId, usize), change: usize) -> Vec<Effect> {
+fn revert(state: &mut State, (id, file): (DiffPageId, usize), change: Reverted) -> Vec<Effect> {
     let Some(document) = document_for(state, (id, file)) else {
         return Vec::new();
     };
@@ -306,12 +325,21 @@ fn revert(state: &mut State, (id, file): (DiffPageId, usize), change: usize) -> 
     effects
 }
 
-/// The edit that reverts a change: the part of the text that differs once the change is reverted, selected and
-/// replaced; none when the text of the file is not the one the page shows.
+/// What is reverted: a change, by its place among the changes of its file, or the rows selected.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Reverted {
+    /// **Revert this change**.
+    Change(usize),
+    /// **Revert lines**.
+    Rows(Range<usize>),
+}
+
+/// The edit that reverts a change or the rows selected: the part of the text that differs once they are reverted,
+/// selected and replaced; none when the text of the file is not the one the page shows.
 fn revert_commands(
     state: &State,
     (id, file): (DiffPageId, usize),
-    (document, change): (FilePageId, usize),
+    (document, change): (FilePageId, Reverted),
 ) -> Option<Vec<Command>> {
     let page = state.diff_pages.pages.iter().find(|page| page.id == id)?;
     let Some(FileDiff::Text(text)) = page.diffs.get(file) else {
@@ -328,17 +356,26 @@ fn revert_commands(
     if page.is_stale || String::from_utf8_lossy(&bytes) != text.right {
         return None;
     }
-    let lines = text.changes.get(change)?;
+    let (left_lines, right_lines) = match &change {
+        Reverted::Change(change) => {
+            let lines = text.changes.get(*change)?;
+            (lines.left.clone(), lines.right.clone())
+        }
+        Reverted::Rows(rows) => views::diff::lines_of_rows(text, rows),
+    };
     let shown = DiffChange {
         path: String::new(),
         left: DiffSide::Empty,
         right: DiffSide::WorkingTree,
-        left_lines: lines.left.clone(),
-        right_lines: lines.right.clone(),
+        left_lines,
+        right_lines,
         left_text: Vec::new(),
         right_text: Vec::new(),
     };
-    let reverted = features::diff::reverted(&bytes, text.left.as_bytes(), &shown);
+    let reverted = match change {
+        Reverted::Change(_) => features::diff::reverted(&bytes, text.left.as_bytes(), &shown),
+        Reverted::Rows(_) => features::diff::reverted_lines(&bytes, text.left.as_bytes(), &shown)?,
+    };
     let after = ui::editor::Buffer::from_bytes(&reverted).ok()?;
     let (before, after) = (buffer.text(), after.text());
     let prefix = common_prefix(before, after);

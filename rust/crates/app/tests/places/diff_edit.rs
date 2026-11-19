@@ -56,7 +56,7 @@ fn sides(tree: &TreeUpdate) -> (Rect, Rect) {
 }
 
 /// The point at the start of a line of a side, by its number from 0.
-fn on_line(window: &mut Window, state: &State, (is_right, line): (bool, usize)) -> Point {
+pub(super) fn on_line(window: &mut Window, state: &State, (is_right, line): (bool, usize)) -> Point {
     let (_, tree) = window.draw(state, &[]);
     let (left, right) = sides(&tree);
     let page = shown(state);
@@ -94,7 +94,7 @@ fn pressed(named: NamedKey) -> InputEvent {
 
 /// Draws a frame with some input and runs the operation it asks through the operations thread; gives how it ended and
 /// the lines it logged.
-fn run_operation(window: &mut Window, state: &mut State, events: &[InputEvent]) -> (Ended, Vec<String>) {
+pub(super) fn run_operation(window: &mut Window, state: &mut State, events: &[InputEvent]) -> (Ended, Vec<String>) {
     let driver = OperationsDriver::new();
     let (intents, _) = window.draw(state, events);
     for intent in intents {
@@ -111,7 +111,7 @@ fn run_operation(window: &mut Window, state: &mut State, events: &[InputEvent]) 
 }
 
 /// The text of the file the File pages hold for a path, shown or not.
-fn held_text(state: &State, path: &str) -> String {
+pub(super) fn held_text(state: &State, path: &str) -> String {
     let page = state.file_pages.pages.iter().find(|page| page.path == path).unwrap();
     match &page.content {
         FileContent::Text(document) => document.buffer().text().to_owned(),
