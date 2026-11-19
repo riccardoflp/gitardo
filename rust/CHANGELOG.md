@@ -54,6 +54,9 @@
   of the commit, in a block **Note**, its lines as they were written; a note of more than 12 lines is cut with **Show
   more** in the inspector. The notes are those of the reference git uses, `refs/notes/commits` unless `core.notesRef`
   names another.
+- **Add note…** in the menu of a commit writes its note, with `git notes add`; a commit with a note has **Edit note…**,
+  which proposes the note it has, and **Remove note**, also on the pencil and the **…** of the block **Note**. **Undo**
+  takes them back, putting the reference of notes where it was.
 
 ## 1.2.0 - 2026-11-18
 

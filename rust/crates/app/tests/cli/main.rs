@@ -18,6 +18,7 @@ mod ignore;
 mod locked;
 mod merge;
 mod message;
+mod notes;
 mod patch;
 mod picks;
 mod push;

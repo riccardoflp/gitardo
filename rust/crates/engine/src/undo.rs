@@ -107,6 +107,14 @@ enum Recorded {
 fn record_of(plan: &Plan, before: &RepositoryState, after: &RepositoryState) -> Recorded {
     match &plan.undo {
         Undo::ByReflog => Recorded::Entry(UndoRecord::Reflog),
+        Undo::Journal(UndoRecord::NotesMoved { reference, before, .. }) => Recorded::Entry(UndoRecord::NotesMoved {
+            reference: reference.clone(),
+            before: before.clone(),
+            // Where the plan left the reference, so that Undo moves it back only from there.
+            after: (after.notes.reference == *reference)
+                .then(|| after.notes.tip.clone())
+                .flatten(),
+        }),
         Undo::Journal(record) => Recorded::Entry(record.clone()),
         Undo::TakesBack(number) => Recorded::TakesBack(*number),
         Undo::Impossible(reason) if references_changed(before, after) => {

@@ -125,6 +125,9 @@ before it. It always shows what it is about to do first. With nothing in the jou
   - a cherry-pick of several commits or a patch applied as commits, also continued in Gitardo after a conflict:
     `git reset --keep <HEAD before it>`, all of it at once;
   - a squash, or a split of an older commit: `git reset --keep <HEAD before it>`.
+  - a note written, removed, fetched or merged in Gitardo: `git update-ref <reference> <before> <after>`, the reference
+    of notes put back where it was, or `git update-ref -d <reference> <after>` when there was none (`note.edit`,
+    `note.remove`, `note.fetch`, Q1215); notes do not move `HEAD`, so the entry holds until `HEAD` moves.
 
   A branch restored this way does not get its upstream back; the dialog says so.
 - **Danger**: Destructive, because it moves a branch or rewrites files; the dialog says what it takes back in words

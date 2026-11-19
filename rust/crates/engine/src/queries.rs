@@ -77,6 +77,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         }
         Query::IgnoredBy { .. } | Query::ExcludeFile => crate::ignoring::answer(git, query),
         Query::RepositorySize | Query::CommitFolders { .. } => crate::upkeep::answer(git, query),
+        Query::Note { .. } => crate::notes::answer(git, query),
         Query::SetupTakes(requests) => setup_takes(git, requests),
         Query::PathStatuses { paths } => path_statuses(git, paths),
         Query::FileNames { path } => history::file_names(git, path),
@@ -291,10 +292,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::HasFile { revision, path } => git::command_line(&branch::has_file_arguments(revision, path)),
         Query::Overwritten { upstream } => describe_overwritten(upstream),
         Query::Remotes => String::from("git remote, git remote get-url"),
-        Query::Stash { index } => format!(
-            "git diff --name-only -z stash@{{{index}}}^1 stash@{{{index}}}, git merge-tree --write-tree \
-             --merge-base=stash@{{{index}}}^1 HEAD stash@{{{index}}}"
-        ),
+        Query::Stash { index } => describe_stash(*index),
         Query::Identity => String::from(r"git config -z --get-regexp ^user\.(name|email)$"),
         Query::FileVersions { path, commit } => match commit {
             Some(commit) => format!("git show {commit}:{path}, git show :0:{path}, read {path}"),
@@ -331,11 +329,20 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::IgnoredBy { .. } | Query::ExcludeFile | Query::RepositorySize | Query::CommitFolders { .. } => {
             crate::upkeep::describe(query)
         }
+        Query::Note { .. } => crate::notes::describe(query),
         Query::FileNames { path } => history::describe_file_names(path),
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
     }
+}
+
+/// What the read of what a stash changes, and of the conflicts it would meet, runs.
+fn describe_stash(index: usize) -> String {
+    format!(
+        "git diff --name-only -z stash@{{{index}}}^1 stash@{{{index}}}, git merge-tree --write-tree \
+         --merge-base=stash@{{{index}}}^1 HEAD stash@{{{index}}}"
+    )
 }
 
 /// What the read of the commits a push would overwrite runs.

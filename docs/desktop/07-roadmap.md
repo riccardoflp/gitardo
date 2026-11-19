@@ -1382,7 +1382,10 @@ Then the first phase: the reference of notes git uses and the commit it is at ar
 repository, `git notes list` only when it moved, and the text of the note of a commit with its details, by
 `git notes show` (Q1457); the block **Note** is under the message in the inspector, cut at 12 lines with **Show
 more**, and in the page of a commit, which is read again when the reference of notes moves.
-Not built yet: the notes written, fetched and pushed, phases 2 and 3, and the sixth phase, the extension.
+Then the second phase: **Add note…**, or **Edit note…** and **Remove note**, in the menu of a commit and on the
+block **Note**, run `git notes add -f -F -` and `git notes remove`, and **Undo** puts the reference of notes back where
+it was with `git update-ref`, from the journal, which the engine fills with where the plan left it.
+Not built yet: the notes fetched and pushed, phase 3, and the sixth phase, the extension.
 
 Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
 in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save

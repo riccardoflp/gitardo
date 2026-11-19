@@ -713,20 +713,21 @@ Writes the note of a commit, a new one or in place of the one it had.
 - **Undo**: Undo puts the reference of notes back where it was, from its reflog, which git keeps for `refs/notes/` as
   for branches: `git update-ref <reference> <before> <after>`, or `git update-ref -d <reference> <after>` when it was
   the first note (Q1215).
-- **After**: the block **Note** shows the new text.
-- **Refuses**: an empty text: **A note cannot be empty: remove it instead.**; the same text as the note has: nothing
-  runs.
+- **After**: the block **Note** shows the new text, read again once the reference of notes moved.
+- **Refuses**: an empty text: **A note cannot be empty: remove it instead.**, said while it is typed; the same text as
+  the note has: **The note is the same: nothing to change.**, and nothing runs; the draft and a stash: **Only a commit
+  has a note.**
 - **Uses**: `note.read`, `note.show`, `undo.last`.
 - **Extension**: planned: **Add Note…** and **Edit Note…** in the context menu of a commit in the graph, the text asked
   in an input box of VS Code, sending `feature/run` of `note.edit` to the engine.
 
 Acceptance:
 
-- [ ] **Add note…** on `3f2a1c9` with `Reviewed.` runs `git notes add -f -F - <hash>` with `Reviewed.` on its input,
+- [x] **Add note…** on `3f2a1c9` with `Reviewed.` runs `git notes add -f -F - <hash>` with `Reviewed.` on its input,
       and `git notes show <hash>` prints `Reviewed.` after.
-- [ ] **Edit note…** proposes the note it has, and the text changed replaces it.
-- [ ] **Undo** right after it gives the commit its note of before, or none.
-- [ ] An empty text is refused, and nothing runs.
+- [x] **Edit note…** proposes the note it has, and the text changed replaces it.
+- [x] **Undo** right after it gives the commit its note of before, or none.
+- [x] An empty text is refused, and nothing runs.
 
 ### `note.remove` — Remove the note of a commit
 
@@ -736,7 +737,7 @@ Takes the note of a commit away.
 - **Function**: `features::note::remove(context, answers) -> Outcome`
 - **Entry points**: **Remove note** in the **…** of the block **Note** and in the context menu of a commit that has a
   note in the timeline.
-- **Offered when**: the commit has a note.
+- **Offered when**: the commit has a note; otherwise it refuses: **`<short hash>` has no note.**
 - **Plan**: `git notes remove <hash>`.
 - **Danger**: None.
 - **Undo**: as `note.edit`, from the reflog of the reference of notes.
@@ -747,8 +748,8 @@ Takes the note of a commit away.
 
 Acceptance:
 
-- [ ] On a commit with a note it runs `git notes remove <hash>`, and the inspector shows no **Note** after.
-- [ ] **Undo** right after it gives the note back.
+- [x] On a commit with a note it runs `git notes remove <hash>`, and the inspector shows no **Note** after.
+- [x] **Undo** right after it gives the note back.
 
 ### `note.fetch` — Fetch the notes of a remote
 

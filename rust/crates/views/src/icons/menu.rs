@@ -27,13 +27,14 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "submodule.update-to-recorded" => super::CHECK_OUT,
         "branch.create" | "stash.branch" => super::CREATE_BRANCH,
         "tag.create" => super::TAG,
-        "branch.rename" | "worktree.rename" | "message.edit" => super::RENAME,
+        "branch.rename" | "worktree.rename" | "message.edit" | "note.edit" => super::RENAME,
         "branch.delete"
         | "branch.clean-up"
         | "tag.delete"
         | "remote.delete-branch"
         | "stash.drop"
-        | "upkeep.clean-up" => super::DELETE,
+        | "upkeep.clean-up"
+        | "note.remove" => super::DELETE,
         "sync.sync" => super::SYNC,
         "sync.fetch" => super::FETCH,
         "sync.pull" | "sync.pull-with" | "branch.fast-forward" | "submodule.update-to-latest" => super::PULL,

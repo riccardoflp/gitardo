@@ -211,8 +211,8 @@ earns it.
 | [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-timeline) | Show a commit in the timeline | View | Built | Built |
 | [`note.read`](04-details-and-commit-page.md#noteread--read-the-notes-of-commits) | Read the notes of commits | Read | Built | Planned |
 | [`note.show`](04-details-and-commit-page.md#noteshow--the-note-of-a-commit-in-the-inspector-and-in-its-page) | The note of a commit, in the inspector and in its page | View | Built | Planned |
-| [`note.edit`](04-details-and-commit-page.md#noteedit--add-or-edit-the-note-of-a-commit) | Add or edit the note of a commit | Operation | Specified | Planned |
-| [`note.remove`](04-details-and-commit-page.md#noteremove--remove-the-note-of-a-commit) | Remove the note of a commit | Operation | Specified | Planned |
+| [`note.edit`](04-details-and-commit-page.md#noteedit--add-or-edit-the-note-of-a-commit) | Add or edit the note of a commit | Operation | Built | Planned |
+| [`note.remove`](04-details-and-commit-page.md#noteremove--remove-the-note-of-a-commit) | Remove the note of a commit | Operation | Built | Planned |
 | [`note.fetch`](04-details-and-commit-page.md#notefetch--fetch-the-notes-of-a-remote) | Fetch the notes of a remote | Operation | Specified | Planned |
 | [`note.push`](04-details-and-commit-page.md#notepush--push-the-notes-to-a-remote) | Push the notes to a remote | Operation | Specified | Planned |
 

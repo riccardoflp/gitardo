@@ -305,6 +305,12 @@ pub enum Query {
         /// The commit, or the full name of a branch or a tag.
         revision: String,
     },
+    /// The text of the note of a commit as it was written (`git notes show <hash>`), for `note.edit`. The answer is
+    /// [`super::Answer::Text`], empty when the commit has no note.
+    Note {
+        /// The commit.
+        commit: crate::CommitId,
+    },
     /// The exclude file of the repository, in full (`git rev-parse --git-path info/exclude`), for `changes.ignore`.
     /// The answer is [`super::Answer::Path`].
     ExcludeFile,

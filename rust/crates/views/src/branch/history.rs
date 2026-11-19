@@ -13,6 +13,7 @@ use super::ReferenceMenus;
 use super::menu::OperationEntry;
 use crate::text::bisect as words;
 use crate::text::compare as compare_words;
+use crate::text::details as details_words;
 use crate::text::patch as patch_words;
 
 /// **Compare with…** and, when it is not at the commit checked out, **Compare with `<current branch>`** (**Compare with
@@ -38,8 +39,8 @@ pub(crate) fn compare_entries(menus: ReferenceMenus<'_>, target: &Target, commit
 }
 
 /// The entries of a commit of the timeline beyond those of `branch.`: the comparisons, with the commit selected before
-/// when another one is; **Copy as patch** and **Save as patch…** unless it is a merge; **Save as archive…**; and the
-/// bisect, started or marked.
+/// when another one is; **Copy as patch** and **Save as patch…** unless it is a merge; **Save as archive…**; **Add
+/// note…**, or **Edit note…** and **Remove note** for a commit with a note; and the bisect, started or marked.
 pub(crate) fn history_entries(
     menus: ReferenceMenus<'_>,
     commit: &Commit,
@@ -67,8 +68,22 @@ pub(crate) fn history_entries(
         ));
     }
     entries.push(super::menu::archive_entry(target.clone()));
+    entries.extend(note_entries(menus.repository, &commit.id));
     entries.extend(bisect_entries(menus.repository, &target));
     entries
+}
+
+/// **Add note…** on a commit with no note; **Edit note…** and **Remove note** on one with a note (`note.edit`,
+/// `note.remove`).
+fn note_entries(repository: &RepositoryState, commit: &CommitId) -> Vec<OperationEntry> {
+    let target = || Target::Commit(commit.clone());
+    if !repository.notes.has_note(commit) {
+        return vec![OperationEntry::runs(details_words::ADD_NOTE, "note.edit", target())];
+    }
+    vec![
+        OperationEntry::runs(details_words::EDIT_NOTE, "note.edit", target()),
+        OperationEntry::runs(details_words::REMOVE_NOTE, "note.remove", target()),
+    ]
 }
 
 /// **Start bisect: this commit is bad** and **…good** while no bisect nor other operation is under way, **Bisect: mark

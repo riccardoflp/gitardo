@@ -49,6 +49,16 @@ pub enum UndoRecord {
         /// Where `HEAD` was before the series.
         head_before: CommitId,
     },
+    /// The reference of notes moved, a note written, removed, fetched or merged: Undo puts it back where it was, or
+    /// deletes it when there was none, as its reflog has it (`note.edit`, `note.remove`, `note.fetch`, Q1215).
+    NotesMoved {
+        /// The reference: `refs/notes/commits`.
+        reference: String,
+        /// Where it was before; none when it was not there.
+        before: Option<CommitId>,
+        /// Where the plan left it, which the engine fills from the read after it; none when it is gone, or not known.
+        after: Option<CommitId>,
+    },
     /// The last commit was split: Undo resets to it, keeping the files it added, which are untracked now.
     SplitLast {
         /// The commit that was split.

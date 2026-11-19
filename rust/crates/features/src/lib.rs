@@ -28,6 +28,7 @@ pub mod identity;
 pub mod merge;
 pub mod merge_view;
 pub mod message;
+pub mod note;
 pub mod patch;
 pub mod rebase;
 pub mod reflog;
@@ -58,7 +59,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 178] = [
+pub const OPERATIONS: [(FeatureId, Operation); 180] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -139,6 +140,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 178] = [
     (FeatureId("merge.into-current"), merge::into_current),
     (FeatureId("merge.undo-squash"), merge::undo_squash),
     (FeatureId("message.edit"), message::edit),
+    (FeatureId("note.edit"), note::edit),
+    (FeatureId("note.remove"), note::remove),
     (FeatureId("reset.to-commit"), reset::to_commit),
     (FeatureId("revert.commit"), revert::commit),
     (FeatureId("selection.cherry-pick"), selection::cherry_pick),

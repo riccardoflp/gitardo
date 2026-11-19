@@ -19,6 +19,7 @@ mod host;
 mod ignoring;
 pub mod log;
 mod new_repository;
+mod notes;
 mod preview;
 mod queries;
 mod readings;
