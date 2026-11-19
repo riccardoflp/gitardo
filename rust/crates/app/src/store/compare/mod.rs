@@ -320,6 +320,11 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
 #[must_use]
 pub fn page_state(state: &State, id: ComparePageId) -> Option<CompareState<'_>> {
     let page = state.compares.pages.iter().find(|page| page.id == id)?;
+    let is_shown_folder = state
+        .github
+        .folder
+        .as_ref()
+        .is_some_and(|folder| same_folder(folder, &page.folder));
     Some(CompareState {
         id,
         title: &page.title,
@@ -333,11 +338,12 @@ pub fn page_state(state: &State, id: ComparePageId) -> Option<CompareState<'_>> 
         typed_path: &page.typed,
         is_all_commits_shown: page.is_all_commits_shown,
         now: state.timeline.read_at,
-        is_on_github: state.github.repository.is_some()
-            && state
-                .github
-                .folder
-                .as_ref()
-                .is_some_and(|folder| same_folder(folder, &page.folder)),
+        is_on_github: state.github.repository.is_some() && is_shown_folder,
+        service: state
+            .github
+            .hosting
+            .as_ref()
+            .map(|hosting| hosting.service)
+            .filter(|service| *service != model::hosting::HostingService::GitHub && is_shown_folder),
     })
 }

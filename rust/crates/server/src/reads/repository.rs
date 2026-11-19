@@ -142,7 +142,8 @@ pub fn path_statuses(reading: &Reading<'_>, params: &PathsParams) -> Result<Valu
 }
 
 /// The open pull requests of the repository on GitHub of a remote (`github.read-pull-requests`), read with the token
-/// VS Code keeps, which the extension is asked for without asking the user to sign in.
+/// VS Code keeps, which the extension is asked for without asking the user to sign in; on a GitLab, its merge requests
+/// with the token the extension keeps for its host name (`hosting.read-merge-requests`, since 1.11).
 pub fn pull_requests(reading: &Reading<'_>, params: &PullRequestsParams) -> Result<Value, ResponseError> {
     let remotes: Vec<Remote> = read_remotes(&reading.git, &RemotesRequest)
         .map_err(|error| git_failure(&error))?
@@ -154,9 +155,9 @@ pub fn pull_requests(reading: &Reading<'_>, params: &PullRequestsParams) -> Resu
         .filter(|remote| params.remote.as_ref().is_none_or(|asked| *asked == remote.name))
         .collect();
     let Some(repository) = detect_remote(&remotes) else {
-        return json(&PullRequestsJson::NotOnGitHub);
+        return super::hosting::merge_requests(reading, &remotes);
     };
-    let Some(token) = github_token(reading)? else {
+    let Some(token) = token_of(reading, "github.com")? else {
         return json(&PullRequestsJson::NoToken);
     };
     let http = match system_http(reading) {
@@ -184,13 +185,14 @@ pub fn pull_requests(reading: &Reading<'_>, params: &PullRequestsParams) -> Resu
     }
 }
 
-/// The token of GitHub the extension gives, when it said at `initialize` that it answers `host/githubToken`.
-fn github_token(reading: &Reading<'_>) -> Result<Option<Token>, ResponseError> {
+/// The token the extension gives for a host name, github.com or a GitLab, when it said at `initialize` that it answers
+/// `host/githubToken`; it never asks the user.
+pub(super) fn token_of(reading: &Reading<'_>, host: &str) -> Result<Option<Token>, ResponseError> {
     if !reading.session.host().github_token {
         return Ok(None);
     }
     let params = json(&GitHubTokenParams {
-        host: String::from("github.com"),
+        host: host.to_owned(),
         ask: false,
     })?;
     let session = reading.session;
@@ -212,7 +214,7 @@ fn github_token(reading: &Reading<'_>) -> Result<Option<Token>, ResponseError> {
 }
 
 /// The client of the system: the certificates it trusts, and the proxies of the environment, or git's `http.proxy`.
-fn system_http(reading: &Reading<'_>) -> Result<Http, String> {
+pub(super) fn system_http(reading: &Reading<'_>) -> Result<Http, String> {
     let git_proxy = read_http_proxy(&reading.git).ok().flatten();
     let proxies =
         Proxies::from_settings(&ProxySettings::from_environment(git_proxy)).map_err(|error| error.to_string())?;

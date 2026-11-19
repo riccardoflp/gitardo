@@ -15,6 +15,8 @@ mod file_search;
 mod github;
 #[path = "reads/golden.rs"]
 mod golden;
+#[path = "reads/hosting.rs"]
+mod hosting;
 #[path = "reads/remotes_and_stashes.rs"]
 mod remotes_and_stashes;
 #[path = "reads/repositories.rs"]

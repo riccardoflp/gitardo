@@ -18,6 +18,7 @@ import type {
   SetupPreview as EngineSetupPreview,
 } from './messages';
 import type { BranchLog, CompareMode, CompareView, FilePatch, PullRequest, RepoParts, Resolution } from '../shared/protocol';
+import type { HostingService } from '../shared/hosting';
 import { type IgnoredEntry, type SetupPreview, suggest } from '../shared/worktreeSetup';
 
 /** Who last changed a line, as the editors of the extension show it. */
@@ -165,11 +166,11 @@ export function reflogEntry(position: ReflogPosition): ShownReflogEntry {
 }
 
 /** The open pull requests by the name of their branch, as the views show them. */
-export function pullRequests(byBranch: Record<string, EnginePullRequest>): Record<string, PullRequest> {
+export function pullRequests(byBranch: Record<string, EnginePullRequest>, service: HostingService = 'gitHub'): Record<string, PullRequest> {
   return Object.fromEntries(
     Object.entries(byBranch).map(([branch, pull]) => [
       branch,
-      { number: pull.number, title: pull.title, url: pull.url, draft: pull.isDraft, checks: pull.checks ? CHECKS[pull.checks] : null },
+      { number: pull.number, title: pull.title, url: pull.url, draft: pull.isDraft, checks: pull.checks ? CHECKS[pull.checks] : null, service },
     ]),
   );
 }

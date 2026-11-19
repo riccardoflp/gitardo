@@ -54,6 +54,12 @@ in `initialize`, and again with `settings/changed` whenever a `gitardo.*` or `gi
 desktop's names, which are the same without `gitardo.` ([05-stored-data.md](../transition/05-stored-data.md)). The
 engine keeps nothing of them on disk.
 
+### Secrets
+
+The token of a GitLab, given in the input box of **Sign In to GitLab** or of the engine's question, is kept in the
+secret storage of the extension (`ExtensionContext.secrets`) under `hosting.token:<host name in lower case>`
+(`hosting.token`, `src/extension/github.ts`). Nothing else is kept there; GitHub's token is VS Code's own sign-in.
+
 ### Settings Gitardo writes
 
 Gitardo writes VS Code settings only when the user changes the same thing from its interface:

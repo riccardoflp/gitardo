@@ -7,7 +7,6 @@ import { conflictPlans, deletedConflicts } from '../engine/conflictPlans';
 import { graphState, historyOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
 import { Reads, type Repository, repositoryName } from '../engine/reads';
 import { engineSettings } from '../engine/settings';
-import { parseGitHubRemote } from '../shared/github';
 import { samePath } from '../shared/paths';
 import { repositoryRows } from '../shared/repositories';
 import { groupRepositories } from '../shared/repositoryGroups';
@@ -366,13 +365,13 @@ async function main() {
   async function state(): Promise<HostMessage[]> {
     if (!repo) return [{ type: 'state', state: null }];
     const root = repo.root;
-    const github = parseGitHubRemote((await reads.remotes(repo)).find((remote) => remote.name === 'origin')?.url ?? '');
+    const hosting = await reads.hosting(root);
     const asked = { limit, filter, scope, stashes: showStashes, firstParent };
     const read = await graphState(client, root, await reads.parts(repo, true), asked, (wanted) => readCommits(client, root, wanted, PAGE_SIZE));
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false } }];
+    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, hosting, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false } }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */

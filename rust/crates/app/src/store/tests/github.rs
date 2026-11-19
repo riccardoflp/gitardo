@@ -53,11 +53,12 @@ fn answer(state: &mut State, effects: Vec<Effect>, read_at: i64) -> usize {
                 _ => continue,
             },
             Effect::GitHub(job) => Message::GitHub(match job.work {
-                GitHubWork::Detect => GitHubMessage::Detected {
+                GitHubWork::Detect { .. } => GitHubMessage::Detected {
                     job: job.id,
                     repository: Some(on_github()),
+                    hosting: None,
                 },
-                GitHubWork::Read { .. } => {
+                GitHubWork::Read { .. } | GitHubWork::ReadMergeRequests { .. } => {
                     requests += 1;
                     GitHubMessage::Read {
                         job: job.id,

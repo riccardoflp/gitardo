@@ -59,7 +59,11 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         // The engine asks the window for it before asking git anything.
         Query::Clipboard => Ok(Answer::Clipboard(None)),
         // The engine answers it with its credential store before asking git anything.
-        Query::GitHubToken { .. } => Ok(Answer::Token(None)),
+        Query::GitHubToken { .. } | Query::HostingToken { .. } => Ok(Answer::Token(None)),
+        // The engine answers it with the hosting service before asking git anything.
+        Query::PullRequestList { .. } => Ok(Answer::PullList(model::hosting::PullList::Unread(String::from(
+            "The pull requests are listed by the engine.",
+        )))),
         // The engine answers it with the AI provider before asking git anything.
         Query::AiModels { .. } => Ok(Answer::AiModels(model::ai::AiModels::Failed(String::from(
             "The models of the AI provider are listed by the engine.",
@@ -268,7 +272,12 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::ReflogPositions { reference, count } => describe_positions(reference, *count),
         Query::FilesMatch { commit } => format!("git diff --quiet {commit} --"),
         Query::Revision { revision } => format!("git rev-parse --verify --quiet {revision}^{{commit}}"),
-        Query::Journal | Query::Clipboard | Query::GitHubToken { .. } | Query::AiModels { .. } => describe_kept(query),
+        Query::Journal
+        | Query::Clipboard
+        | Query::GitHubToken { .. }
+        | Query::HostingToken { .. }
+        | Query::PullRequestList { .. }
+        | Query::AiModels { .. } => describe_kept(query),
         Query::Counts { left, right } => git::command_line(&branch::counts_arguments(left, right)),
         Query::IsAncestor { ancestor, descendant } => {
             git::command_line(&branch::ancestor_arguments(ancestor, descendant))
@@ -276,19 +285,14 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::MergedBranches { into } => git::command_line(&branch::merged_arguments(into)),
         Query::Containing { commit } => git::command_line(&branch::containing_arguments(commit.as_str())),
         Query::HasFile { revision, path } => git::command_line(&branch::has_file_arguments(revision, path)),
-        Query::Overwritten { upstream } => {
-            format!("git log --max-count=11 --format=%h%x00%s%x00 HEAD..{upstream} --")
-        }
+        Query::Overwritten { upstream } => describe_overwritten(upstream),
         Query::Remotes => String::from("git remote, git remote get-url"),
         Query::Stash { index } => format!(
             "git diff --name-only -z stash@{{{index}}}^1 stash@{{{index}}}, git merge-tree --write-tree \
              --merge-base=stash@{{{index}}}^1 HEAD stash@{{{index}}}"
         ),
         Query::Identity => String::from(r"git config -z --get-regexp ^user\.(name|email)$"),
-        Query::FileVersions { path, commit } => match commit {
-            Some(commit) => format!("git show {commit}:{path}, git show :0:{path}, read {path}"),
-            None => format!("git show :0:{path}, read {path}"),
-        },
+        Query::FileVersions { path, commit } => describe_file_versions(path, commit.as_ref()),
         Query::PredictedConflicts { ours, theirs, base } => git::command_line(
             &git::read::merge::predicted_conflicts_arguments(&conflicts_request(ours.as_ref(), theirs, base.as_ref())),
         ),
@@ -300,9 +304,7 @@ pub(crate) fn describe(query: &Query) -> String {
         ),
         Query::Line { commit } => describe_line(commit),
         Query::Messages { commits } => describe_messages(commits),
-        Query::Pushed { commit } => {
-            git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
-        }
+        Query::Pushed { commit } => describe_pushed(commit),
         Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
         Query::FormatPatch { commits } => describe_format_patch(commits),
         Query::PatchCheck { patch } => describe_patch_check(patch),
@@ -325,12 +327,32 @@ pub(crate) fn describe(query: &Query) -> String {
     }
 }
 
+/// The commands that read a file in a commit, in the index and on disk.
+fn describe_file_versions(path: &str, commit: Option<&model::CommitId>) -> String {
+    match commit {
+        Some(commit) => format!("git show {commit}:{path}, git show :0:{path}, read {path}"),
+        None => format!("git show :0:{path}, read {path}"),
+    }
+}
+
+/// The command that lists what a force push would throw away.
+fn describe_overwritten(upstream: &str) -> String {
+    format!("git log --max-count=11 --format=%h%x00%s%x00 HEAD..{upstream} --")
+}
+
+/// The command that says whether a commit was pushed.
+fn describe_pushed(commit: &model::CommitId) -> String {
+    git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
+}
+
 /// What the reads that do not run git read: the journal, the clipboard, the credential store.
 fn describe_kept(query: &Query) -> String {
     String::from(match query {
         Query::Journal => "the journal of Undo",
         Query::Clipboard => "the text of the clipboard",
         Query::AiModels { .. } => "the models of the AI provider",
+        Query::HostingToken { .. } => "the token of the hosting service",
+        Query::PullRequestList { .. } => "the open pull requests of the hosting service",
         // The token is read from the credential store; when git's helper is asked, the engine logs that itself.
         _ => "the GitHub token",
     })

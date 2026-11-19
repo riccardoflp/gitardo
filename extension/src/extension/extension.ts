@@ -10,7 +10,7 @@ import { BlameAnnotator, BlameSource } from './blame';
 import { GitContentProvider, SCHEME } from './content';
 import { Controller } from './controller';
 import { FileBlame } from './fileBlame';
-import { githubToken } from './github';
+import { hostingTokenKey, tokenOfHost } from './github';
 import { mermaidPreview } from './mermaid';
 import { SourceControlSelection } from './sourceControlSelection';
 import { showSetupInMenus } from './worktreeSettings';
@@ -38,11 +38,12 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   // Gitardo's engine, started at once: it finds the repositories of the workspace, answers every read of the views and
   // runs every operation. Without it, the views and the commands say it is not available (D49). It asks VS Code's
   // sign-in to GitHub and its language models.
-  const engine = new WindowEngine(context, log, { githubToken, languageModel: answerLanguageModel, languageModels });
+  const engine = new WindowEngine(context, log, { githubToken: tokenOfHost(context.secrets), languageModel: answerLanguageModel, languageModels });
   context.subscriptions.push(engine);
   reads.use(() => engine.running);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
   controller.useEngine(engine);
+  controller.useTokenForgetting((host) => Promise.resolve(context.secrets.delete(hostingTokenKey(host))));
   const blameSource = new BlameSource(log);
   const fileBlame = new FileBlame(blameSource, {
     open: (hash, repo) => controller.openCommit(hash, repo),
@@ -201,6 +202,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.reflog', () => controller.command('reflog')),
     command('gitardo.cleanupBranches', () => controller.command('cleanupBranches')),
     command('gitardo.signInGitHub', () => controller.command('signInGitHub')),
+    command('gitardo.signInGitLab', () => controller.command('signInGitLab')),
+    command('gitardo.checkOutPullRequest', () => controller.command('checkOutPullRequest')),
     command('gitardo.toggleBlame', toggleSetting('blame.enabled')),
     // Each of the two has a command for the palette and two for the button of the editors, in its two states.
     ...['gitardo.toggleBlameWhitespace', 'gitardo.blameIgnoreWhitespace', 'gitardo.blameCountWhitespace'].map((id) =>

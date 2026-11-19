@@ -49,6 +49,7 @@ mod files_page;
 mod filter;
 mod folds;
 mod github;
+mod gitlab;
 mod go_to;
 mod going_to;
 mod group_tabs;

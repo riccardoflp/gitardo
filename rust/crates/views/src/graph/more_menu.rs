@@ -39,6 +39,8 @@ pub enum MainRemote {
     Elsewhere,
     /// On github.com.
     OnGitHub,
+    /// On another hosting service Gitardo knows (`hosting.detect-remote`).
+    OnService(model::hosting::HostingService),
 }
 
 /// What **Branch**, **Stash** and **Undo** may do.
@@ -209,14 +211,7 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
             "identity.switch",
             operations,
         ));
-        if state.main_remote == MainRemote::OnGitHub {
-            entries.push(MenuEntry::Separator);
-            entries.push(operation_item(
-                crate::text::github::LOAD_PULL_REQUESTS,
-                "github.load-pull-requests",
-                operations,
-            ));
-        }
+        entries.extend(pull_request_entries(state.main_remote, operations));
     }
     entries.push(MenuEntry::Separator);
     entries.push(MenuEntry::Item(
@@ -238,3 +233,31 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests;
+
+/// The entries of the pull requests of the hosting service of the main remote, after a line: **Load pull requests from
+/// GitHub** (`github.load-pull-requests`), or **Load merge requests from GitLab** (`hosting.load-merge-requests`); then
+/// **Check out a pull request…** (**Check out a merge request…** on GitLab, `hosting.checkout-pull-request`) on a
+/// service that keeps a reference of each.
+fn pull_request_entries(main_remote: MainRemote, operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
+    use model::hosting::HostingService;
+    let words = crate::text::github::LOAD_PULL_REQUESTS;
+    let (load, service) = match main_remote {
+        MainRemote::OnGitHub => (Some((words, "github.load-pull-requests")), HostingService::GitHub),
+        MainRemote::OnService(HostingService::GitLab) => (
+            Some((crate::text::github::LOAD_MERGE_REQUESTS, "hosting.load-merge-requests")),
+            HostingService::GitLab,
+        ),
+        MainRemote::OnService(service) => (None, service),
+        MainRemote::Elsewhere => return Vec::new(),
+    };
+    let mut entries = vec![MenuEntry::Separator];
+    entries.extend(load.map(|(label, feature)| operation_item(label, feature, operations)));
+    if service.pull_request_reference(1).is_some() {
+        let label = crate::text::github::check_out_pull_request(service);
+        entries.push(operation_item(label, "hosting.checkout-pull-request", operations));
+    }
+    if entries.len() == 1 {
+        entries.clear();
+    }
+    entries
+}

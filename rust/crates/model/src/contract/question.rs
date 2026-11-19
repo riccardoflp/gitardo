@@ -143,6 +143,15 @@ pub enum Validation {
     /// Anything but nothing that matches a regular expression, the `pattern` of an input of `branches.inputs`
     /// (`branch.name-from-format`): "It has to match `<pattern>`".
     Pattern(String),
+    /// The number of a pull request: `12`, `#12` or `!12` (`hosting.checkout-pull-request`).
+    PullRequestNumber,
+    /// The name of the local branch a pull request is checked out in (`hosting.checkout-pull-request`): a name git
+    /// takes for a branch; one of the local branches is taken too, and the box says it is brought up to the pull
+    /// request.
+    PullRequestBranch {
+        /// The names of the local branches.
+        branches: Vec<String>,
+    },
 }
 
 impl Validation {
@@ -169,6 +178,10 @@ impl Validation {
             Validation::SubmoduleFolder { submodules } => crate::submodule::folder_problem(text, submodules),
             Validation::WorktreeName(rule) => rule.problem(text),
             Validation::Pattern(pattern) => pattern_problem(text, pattern),
+            Validation::PullRequestNumber => crate::hosting::typed_number(text)
+                .is_none()
+                .then(|| Text::from("Type the number of a pull request")),
+            Validation::PullRequestBranch { .. } => validate_name(text.trim()),
         }
     }
 
@@ -185,7 +198,16 @@ impl Validation {
             | Validation::Required(_)
             | Validation::OptionalReferenceName
             | Validation::SubmoduleFolder { .. }
-            | Validation::Pattern(_) => None,
+            | Validation::Pattern(_)
+            | Validation::PullRequestNumber => None,
+            Validation::PullRequestBranch { branches } => {
+                branches.iter().any(|branch| branch == text.trim()).then(|| {
+                    Text::from(format!(
+                        "{} exists: it is brought up to the pull request if it can be fast-forwarded.",
+                        text.trim()
+                    ))
+                })
+            }
         }
     }
 }

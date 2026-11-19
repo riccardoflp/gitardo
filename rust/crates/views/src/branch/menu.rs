@@ -3,7 +3,7 @@
 
 use model::CommitId;
 use model::branch::{OpenBranchInput, OpenedReference, can_fast_forward, local_name, open, rebase_onto};
-use model::contract::{Answers, FeatureId, OpenIn, Target};
+use model::contract::{Answer, AnswerKey, Answers, FeatureId, OpenIn, Target};
 use model::state::{Branch, RemoteBranch, RepositoryState, Tag};
 use model::worktree::{OtherWorktreeInput, WorktreeBranch, branch_in_another_worktree};
 use ui::MenuEntry;
@@ -169,6 +169,7 @@ pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -
     ));
     entries.extend(merge_entries(state, &remote.commit, target));
     entries.extend(menus.github.link_of_remote_branch(remote).map(OperationEntry::opens));
+    entries.extend(check_out_pull_request(menus, remote, target()));
     entries.push(OperationEntry::runs(
         rail_words::DELETE_FROM_REMOTE,
         "remote.delete-branch",
@@ -275,6 +276,21 @@ fn merge_entries(state: &RepositoryState, tip: &CommitId, target: impl Fn() -> T
 /// What is checked out, as the entries say it: the branch, or `HEAD` when detached.
 fn current(state: &RepositoryState) -> &str {
     state.checked_out_branch().unwrap_or("HEAD")
+}
+
+/// **Check out pull request #12** (`hosting.checkout-pull-request`) on a remote branch whose label shows a pull
+/// request, with its number given, as the feature's answer `number`.
+fn check_out_pull_request(menus: ReferenceMenus<'_>, remote: &RemoteBranch, target: Target) -> Option<OperationEntry> {
+    let pull_request = menus.github.of_remote_branch(menus.repository, remote)?;
+    let service = menus.github.service();
+    let _kept_by_the_service = service.pull_request_reference(pull_request.number)?;
+    let number = Answer::Text(pull_request.number.to_string());
+    Some(OperationEntry::runs_with(
+        crate::text::github::check_out_this_pull_request(service, pull_request.number),
+        "hosting.checkout-pull-request",
+        target,
+        Answers::new().with(AnswerKey("number"), number),
+    ))
 }
 
 /// The items of the entries, each carrying the value of its place among them and the icon of its operation, greyed out

@@ -60,6 +60,7 @@ pub fn reduce(state: &mut State, intent: CompareIntent) -> Vec<Effect> {
         CompareIntent::TakeFile(id, index) => take_file(state, id, index),
         CompareIntent::CopyPatch(id) => run(state, id, "compare.copy-patch", ComparisonPart::Whole),
         CompareIntent::OpenOnGitHub(id) => run(state, id, "compare.open-on-github", ComparisonPart::Whole),
+        CompareIntent::OpenOnService(id) => run(state, id, "compare.open-on-service", ComparisonPart::Whole),
         CompareIntent::CloseInPlace
         | CompareIntent::SwapInPlace
         | CompareIntent::InPlaceAsPage

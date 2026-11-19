@@ -253,6 +253,16 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.signInGitLab",
+        "title": "Sign In to GitLab",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.checkOutPullRequest",
+        "title": "Check Out Pull Request…",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.toggleBlame",
         "title": "Toggle Inline Blame",
         "category": "Gitardo"
@@ -1340,6 +1350,25 @@
             "default": false,
             "markdownDescription": "Whether a commit that Gitardo cherry-picks ends its message with the commit it was picked from: `(cherry picked from commit …)`, as `git cherry-pick -x` writes it. For one commit, for several selected in the graph and for one dropped on what is checked out.",
             "order": 7
+          },
+          "gitardo.hosting.selfHosted": {
+            "type": "object",
+            "default": {},
+            "additionalProperties": {
+              "anyOf": [
+                { "type": "string", "enum": ["gitlab", "gitea", "forgejo"] },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": { "type": "string", "enum": ["gitlab", "gitea", "forgejo"] },
+                    "web": { "type": "string" }
+                  },
+                  "required": ["kind"]
+                }
+              ]
+            },
+            "markdownDescription": "The GitLab, Gitea or Forgejo of one's own, by the host name of its remotes: `{ \"git.example.com\": \"gitlab\" }`, or `{ \"git.example.com\": { \"kind\": \"gitlab\", \"web\": \"https://code.example.com\" } }` when its pages are on another name. Gitardo then knows its pull requests as it knows those of gitlab.com, codeberg.org or GitHub.",
+            "order": 8
           }
         }
       },

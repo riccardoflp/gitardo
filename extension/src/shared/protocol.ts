@@ -1,5 +1,6 @@
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
+import type { Hosting, HostingService } from './hosting';
 import type { RepositoryRow, ShownParts } from './repositories';
 import type { Choice, ConflictRef, ConflictReview } from './resolution';
 import type { CommitDetail, FileChange, RepositoryState } from './state';
@@ -106,6 +107,8 @@ export interface PullRequest {
   draft: boolean;
   /** Combined result of the checks on its last commit, or null when there are none. */
   checks: 'success' | 'failure' | 'pending' | null;
+  /** The hosting service it is on, which says how it is named and numbered: `!12` on GitLab; GitHub when not given. */
+  service?: HostingService;
 }
 
 /**
@@ -154,9 +157,9 @@ export interface RepoState extends RepoParts {
   defaultPull: PullAction;
   /** Every repository found in the workspace, when there is more than this one to choose from. */
   repos: RepoInfo[];
-  /** Set when the main remote is a GitHub repository. */
-  github: { owner: string; repo: string } | null;
-  /** Open pull requests by the name of their branch. Empty until the user signs in to GitHub. */
+  /** The hosting service of the main remote, as Gitardo's engine finds it (`hosting.detect-remote`); null on none known. */
+  hosting: Hosting | null;
+  /** Open pull requests, or the merge requests of a GitLab, by the name of their branch. Empty until the user signs in. */
   pulls: Record<string, PullRequest>;
   /** Whether this VS Code has the Agents window, where a worktree can be opened for agent sessions. */
   agentsWindow: boolean;
@@ -579,6 +582,10 @@ export type UiCommand =
   | 'cleanupBranches'
   | 'activeFileHistory'
   | 'signInGitHub'
+  /** `hosting.load-merge-requests` on the engine. */
+  | 'signInGitLab'
+  /** `hosting.checkout-pull-request` on the engine. */
+  | 'checkOutPullRequest'
   | 'draftMessage'
   | 'switchIdentity'
   | 'selectRepository'
@@ -624,8 +631,8 @@ export type WebviewMessage =
   | { type: 'copyComparePatch' }
   /** Copies these commits as one patch that `git am` takes, oldest first, or with `save` saves it to a file the user chooses. */
   | { type: 'formatPatch'; hashes: string[]; save?: boolean }
-  /** Opens the comparison on GitHub. */
-  | { type: 'openCompareOnGitHub' }
+  /** Opens the comparison on the hosting service of the main remote (`compare.open-on-service`). */
+  | { type: 'openCompareOnService' }
   /** Selects a commit in the views that list commits and are open, without opening one. */
   | { type: 'show'; hash: string }
   /** The pointer came to a branch, with its commit, whose history the views of the graph bring out; or left it, with null. */
@@ -676,6 +683,8 @@ export type WebviewMessage =
   | { type: 'command'; command: UiCommand }
   /** Opens the pull request of a branch, or the page to create one. */
   | { type: 'pullRequest'; branch: string }
+  /** Checks out the pull request of this number that a remote branch has on its label (`hosting.checkout-pull-request`). */
+  | { type: 'checkOutPullRequest'; number: number; remoteBranch: string }
   /** Asks for what the tab of the setup of new worktrees shows, looking again at what git ignores when `rescan`. */
   | { type: 'getWorktreeSetup'; rescan?: boolean }
   | { type: 'previewWorktreeSetup'; patterns: SetupPatterns }

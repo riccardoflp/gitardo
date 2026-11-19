@@ -14,6 +14,12 @@ pub trait Host: Send {
     /// user backed out of signing in.
     fn github_token(&mut self, ask: bool) -> Option<Token>;
 
+    /// The token of a GitLab the host keeps for a host name; `ask` lets it ask the user for one first. None when it has
+    /// none, or the user backed out. A host that does not answer it has none.
+    fn hosting_token(&mut self, _host: &str, _ask: bool) -> Option<Token> {
+        None
+    }
+
     /// The language models of the host, in its order.
     ///
     /// # Errors

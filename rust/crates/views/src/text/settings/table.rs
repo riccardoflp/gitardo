@@ -5,7 +5,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the first half of the table.
-pub(super) const FIRST: [SettingInfo; 28] = [
+pub(super) const FIRST: [SettingInfo; 29] = [
     SettingInfo {
         key: "commandPreview",
         title: "Show commands before they run",
@@ -240,6 +240,16 @@ pub(super) const FIRST: [SettingInfo; 28] = [
         is_repository: false,
         is_experimental: false,
         kind: SettingKind::Choice(&["file", "diff"]),
+    },
+    SettingInfo {
+        key: "hosting.selfHosted",
+        title: "Hosting services of your own",
+        section: Some(SettingsSection::PullAndCommits),
+        description: "The GitLab, Gitea or Forgejo of your own, by the host name of its remotes: \"gitlab\", \"gitea\" or \"forgejo\", or { \"kind\": \"gitlab\", \"web\": \"https://git.example.com\" } when its pages are on another name.",
+        default: "{}",
+        is_repository: false,
+        is_experimental: false,
+        kind: SettingKind::Json,
     },
     SettingInfo {
         key: "worktrees.openIn",

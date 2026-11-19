@@ -334,7 +334,9 @@ fn compare_open_on_github__the_button_of_main_and_feature_tracking_origin_on_git
     let detect = app::store::github::GitHubJob {
         id: state.github.detecting.unwrap(),
         folder: state.github.folder.clone().unwrap(),
-        work: app::store::github::GitHubWork::Detect,
+        work: app::store::github::GitHubWork::Detect {
+            known: model::hosting::KnownHosts::default(),
+        },
     };
     let access = app::work::github::GitHubAccess::system();
     let _ = super::support::run(&mut state, app::work::github::run(&access, &detect));

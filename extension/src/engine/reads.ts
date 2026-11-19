@@ -8,7 +8,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { EngineClient } from './client';
-import type { Bytes, ComparisonSide, DiscoveredRepository, PathStatus, SetupPreview as EngineSetupPreview, TakeRequest } from './messages';
+import type { Bytes, ComparisonSide, DiscoveredRepository, HostingPage, PathStatus, SetupPreview as EngineSetupPreview, TakeRequest } from './messages';
+import type { Hosting, HostingService } from '../shared/hosting';
 import {
   type ComparedSides,
   type ShownBlameLine,
@@ -372,12 +373,28 @@ export class Reads {
     return path.resolve((await this.client().currentState(repo.root)).gitFolder);
   }
 
-  /** The open pull requests of the repository on GitHub of a remote, by their branch; the engine asks VS Code for the token. */
-  async pullRequests(root: string, remote: string | null): Promise<Record<string, PullRequest>> {
+  /**
+   * The open pull requests of the repository on GitHub of a remote, or the merge requests of a GitLab, by their branch;
+   * the engine asks VS Code for the token. A failure says whether the service refused the token.
+   */
+  async pullRequests(root: string, remote: string | null, service: HostingService = 'gitHub'): Promise<Record<string, PullRequest>> {
     const read = await this.client().pullRequests(root, remote);
-    // What GitHub answered is the answer: it is not asked twice.
-    if (read.kind === 'failed') throw new Error(read.message);
-    return read.kind === 'read' ? pullRequests(read.byBranch) : {};
+    // What the service answered is the answer: it is not asked twice.
+    if (read.kind === 'failed') throw Object.assign(new Error(read.message), { isUnauthorized: read.isUnauthorized });
+    return read.kind === 'read' ? pullRequests(read.byBranch, service) : {};
+  }
+
+  /** The hosting service of the main remote, as the engine finds it (`hosting.detect-remote`); null on none it knows. */
+  async hosting(root: string): Promise<Hosting | null> {
+    const found = await this.client().hosting(root);
+    if (found.kind === 'none') return null;
+    const { service, host, remote, canCheckOut, comparesSinceDiverged } = found;
+    return { service, host, remote, canCheckOut, comparesSinceDiverged };
+  }
+
+  /** The address of a page of the project of the main remote (`hosting.web-links`); null on no service known. */
+  async webLink(root: string, page: HostingPage): Promise<string | null> {
+    return (await this.client().webLink(root, page)).url;
   }
 
   /** What git ignores in a checkout, with its size and what is proposed for it, for the page of what new worktrees get. */

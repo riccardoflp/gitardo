@@ -82,6 +82,12 @@ fn actions(state: &CompareState<'_>, view: &CompareView, ui: &mut Ui<'_>, parts:
             .with_tooltip(words::OPEN_ON_GITHUB_TOOLTIP);
         buttons.push(("open on github", github, CompareIntent::OpenOnGitHub(state.id)));
     }
+    let label =
+        service_offered(state).map(|service| (words::open_on(service.name()), words::open_on_tooltip(service.name())));
+    if let Some((label, tooltip)) = &label {
+        let service = Button::secondary(label).kind(ButtonKind::Outline).with_tooltip(tooltip);
+        buttons.push(("open on service", service, CompareIntent::OpenOnService(state.id)));
+    }
     if !view.files.is_empty() {
         let copy = Button::secondary(words::COPY_AS_PATCH)
             .kind(ButtonKind::Outline)
@@ -105,6 +111,19 @@ fn actions(state: &CompareState<'_>, view: &CompareView, ui: &mut Ui<'_>, parts:
 pub(crate) fn is_on_github(state: &CompareState<'_>) -> bool {
     let (first, second) = (&state.target.first.side, &state.target.second.side);
     state.is_on_github && matches!((first, second), (Side::Commit(first), Side::Commit(second)) if first != second)
+}
+
+/// The hosting service **Open on `<service>`** is offered for: the main remote is on one other than GitHub, neither
+/// side is the working tree, the two are not the same commit, and, on a service that compares only since the two
+/// diverged, the page is in **Since they diverged**.
+#[must_use]
+pub(crate) fn service_offered(state: &CompareState<'_>) -> Option<model::hosting::HostingService> {
+    let service = state.service?;
+    let (first, second) = (&state.target.first.side, &state.target.second.side);
+    let is_two_commits = matches!((first, second), (Side::Commit(first), Side::Commit(second)) if first != second);
+    let is_mode_offered =
+        state.target.mode == model::compare::CompareMode::SinceDiverged || !service.compares_only_since_diverged();
+    (is_two_commits && is_mode_offered).then_some(service)
 }
 
 /// How the button of a mode is drawn: pressed in, filled, when it is the mode shown, as an outline otherwise.

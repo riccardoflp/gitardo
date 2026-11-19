@@ -7,6 +7,28 @@
   those that do not fit are counted in `+N`, and the pointer resting on them lists them all, as before. With
   **Compact rows** on, the labels come first on the one line of each commit, as before.
 
+- The setting `hosting.selfHosted`, under **Pull and commits** on the settings page, names the GitLab, Gitea or
+  Forgejo of one's own by the host name of its remotes, with the address of its pages when they are on another name.
+  Gitardo now knows which hosting service the main remote is on, GitHub, GitLab, Bitbucket, Azure DevOps, Gitea or
+  Forgejo (codeberg.org), and the addresses of a pull request, of the page that creates one and of a comparison on
+  each.
+- On GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo, the menu of a pushed branch has **Create merge request…**
+  (GitLab) or **Create pull request…**, which opens the page of the service that creates one for the branch, and the
+  first push of a new branch offers it, as on GitHub. The comparison page has **Open on GitLab**, **Open on Azure
+  DevOps** and the like, which opens the same comparison on the service; on Bitbucket, Gitea and Forgejo, whose pages
+  compare only since the two diverged, only in **Since they diverged**.
+- On GitLab, **Load merge requests from GitLab** in the **…** menu, or **Sign in to GitLab** in Quick search, reads
+  the open merge requests of the project, with a token found in the credential store or given by git's credential
+  helper, or asked for once and kept in the credential store of the system. The label of a branch with an open merge
+  request then ends with `!12` in the color of its pipeline, and they are read again on their own as pull requests
+  are on GitHub; a token GitLab refuses is taken out of the store.
+- **Check out a pull request…** (**Check out a merge request…** on GitLab), in Quick search and in the **…** menu on
+  GitHub, GitLab, Gitea and Forgejo, picks one of the open pull requests, those from forks included, or takes its
+  number typed. One from a branch of the repository is fetched and checked out as its remote branch; one from a fork
+  is fetched by the reference the service keeps it under into a local branch named `<owner>/<branch>`, then checked
+  out, and checking it out again brings that branch up to the new commits. The menu of a remote branch whose label
+  shows a pull request has **Check out pull request #12**.
+
 ## 1.2.0 - 2026-11-18
 
 - **Tasks**, a tab of the bottom panel after **Terminal**, lists what the repository says it runs: the tasks of

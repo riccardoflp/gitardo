@@ -147,8 +147,7 @@ fn worktree_section__a_worktree_whose_branch_has_an_open_pull_request_shows_it_a
     let pull_requests = model::github::PullRequests {
         by_branch: [(String::from("feature/login"), pull_request)].into_iter().collect(),
     };
-    let references = References::default();
-    let (lists, colors) = (RailLists::default(), HashMap::new());
+    let (references, lists, colors) = (References::default(), RailLists::default(), HashMap::new());
     let state = ReferencesState {
         repository: &repository,
         references: &references,
@@ -167,6 +166,7 @@ fn worktree_section__a_worktree_whose_branch_has_an_open_pull_request_shows_it_a
         stashes: super::stashes_tests::nothing_unfolded(),
         github: crate::github::GitHubShown {
             repository: Some(&on_github),
+            hosting: None,
             pull_requests: Some(&pull_requests),
         },
     };

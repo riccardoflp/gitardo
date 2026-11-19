@@ -186,9 +186,9 @@ Opens the pull request of a branch in the browser, or GitHub's page to create on
   that upstream has on its remote is the name looked up. For a remote branch: only when a pull request is known for its
   name without its remote; there is no **Create pull request…** on a remote branch.
 - **Uses**: `github.read-pull-requests`, `github.detect-remote`.
-- **Extension**: the same entries in the graph's menus and its badges; `Controller.openPullRequest` derives the
-  address in TypeScript, from the pull requests the engine read, with `compareUrl` in `src/shared/github.ts`, and opens
-  it with `vscode.env.openExternal`. It changes nothing and runs no git, so it needs no feature of the engine.
+- **Extension**: the same entries in the graph's menus and its badges; `Controller.openPullRequest` opens the address
+  of the pull request the engine read, or asks the engine for the page that creates one (`read/hosting.web-link`,
+  `hosting.web-links`), and opens it with `vscode.env.openExternal`. It changes nothing and runs no git.
 
 Rules:
 
@@ -245,9 +245,9 @@ Forgejo, and the project there, so that its pull requests can be opened, created
 - **Reads**: `remote.read-remotes`, when a repository is opened and after every change made by `remote.manage`.
 - **Settings**: `hosting.selfHosted`.
 - **Uses**: `remote.read-remotes`, `github.detect-remote`.
-- **Extension**: the engine's, sent to the views with the state of the repository, in place of the repository on
-  GitHub the extension works out for itself today (`parseGitHubRemote` in `src/shared/github.ts`,
-  `Controller.detectGitHub`); the setting is `gitardo.hosting.selfHosted`.
+- **Extension**: the engine's, read with `read/hosting.detect-remote` (`Controller.detectHosting`) when a repository is
+  opened, after **Manage Remotes** and when `gitardo.hosting.selfHosted` changes, and sent to the views with the state
+  of the repository (`RepoState.hosting`), for GitHub too.
 
 Rules:
 
@@ -265,11 +265,14 @@ Rules:
     (`https://<org>.visualstudio.com/[DefaultCollection/]<project>/_git/<repo>`): Azure DevOps, the organization,
     the project and the repository, on the web at `https://dev.azure.com/<org>/<project>/_git/<repo>`;
   - `codeberg.org`: Forgejo, `<owner>/<repo>`;
-  - a host name of `hosting.selfHosted`, with the service it is given there, `gitlab` or `gitea` (Gitea and Forgejo
-    alike), and the address of its web pages when it is given, `https://<host>` otherwise (Q1155);
+  - a host name of `hosting.selfHosted`, with the service it is given there, `gitlab`, `gitea` or `forgejo` (whose
+    pages are Gitea's; `forgejo` only names it so in the menus), and the address of its web pages when it is given,
+    otherwise `https://<host>`, with the port of an `https` URL, and `http` for a remote reached by `http` (Q1155);
+    the path of a GitLab has two parts or more, that of a Gitea or a Forgejo two;
   - any other host name: nothing, and none of the entries of this area is offered.
 - The result is the service, the address of the project on the web (`https://gitlab.com/group/sub/app`), its path there,
-  the name of the remote and the URL it is fetched from.
+  the host name of its pages, which its API is asked at and its token kept for, the name of the remote and the URL it
+  is fetched from. The branch `refs/remotes/<remote>/HEAD` names is read beside it, for `hosting.web-links`.
 - When the result changes, the pull requests known are forgotten, as for `github.detect-remote`.
 
 Acceptance:
@@ -291,7 +294,8 @@ a branch, and the comparison of two sides.
 - **Kind**: Derivation
 - **Function**: `model::hosting::web_link(repo: &HostingRepo, page: &HostingPage) -> String`
 - **Uses**: `hosting.detect-remote`; by `hosting.open-pull-request`, `hosting.offer-after-push` and `compare.open-on-service`.
-- **Extension**: the engine's, in the follow-up `openUrl` the extension opens with `vscode.env.openExternal`.
+- **Extension**: the engine's, in the follow-up `openUrl` the extension opens with `vscode.env.openExternal`, and the
+  page that creates a pull request asked with `read/hosting.web-link`.
 
 Rules, `<web>` being the address of the project on the web (`hosting.detect-remote`) and each part of a branch name
 between `/` percent-encoded, the `/` kept, as `github.open-pull-request` does:
@@ -333,9 +337,9 @@ the page of the service that creates a pull request for it.
   `github.open-pull-request`, the branch has an upstream that is not gone on that remote; for a remote branch, only
   **Open merge request** when one is known for its name.
 - **Uses**: `hosting.detect-remote`, `hosting.web-links`, `hosting.read-merge-requests`, `github.open-pull-request`.
-- **Extension**: the same entries in the menus and on the labels of the graph; `Controller.openPullRequest` asks the
-  engine for the address rather than deriving it with `compareUrl` in `src/shared/github.ts`, and opens it with
-  `vscode.env.openExternal`.
+- **Extension**: the same entries in the menus of the branches (`pullEntry` in `src/webview/menus.ts`) and on the labels
+  of the graph; `Controller.openPullRequest` opens the address of the merge request known, or asks the engine for the
+  page that creates one (`read/hosting.web-link`), and opens it with `vscode.env.openExternal`.
 
 Rules:
 
@@ -361,7 +365,9 @@ What `github.offer-after-push` does for GitHub, on the other services.
 - **Function**: `model::hosting::offer_after_push(input: &HostingPushOutcome) -> Option<Notice>`
 - **Entry points**: after `sync.push`, `sync.push-force-with-lease` or `sync.push-force`.
 - **Uses**: `hosting.open-pull-request`, `hosting.detect-remote`, `github.offer-after-push`.
-- **Extension**: `Controller.afterSync` shows the notice the engine derived, as it does for GitHub.
+- **Extension**: `Controller.afterSync` offers **Create Merge Request** on GitLab, **Create Pull Request** elsewhere,
+  after the first push of a branch with none known, on every service the engine found, and opens what
+  `Controller.openPullRequest` opens.
 
 Rules: those of `github.offer-after-push`, the main remote being on GitLab, Bitbucket, Azure DevOps, Gitea or Forgejo:
 "Pushed `<branch>`." with **Create merge request** on GitLab and **Create pull request** on the others, which opens
@@ -388,8 +394,9 @@ anything.
      `password=` is the token; nothing printed, or an exit code other than 0, is no token.
 - **Uses**: `github.token`, whose rules it follows.
 - **Extension**: VS Code has no sign-in to GitLab of its own; the engine asks the extension with the host question of
-  the token, which the extension answers from its secret storage (`ExtensionContext.secrets`), keyed by the host name, and,
-  when it is asked to, with an input box that hides what is typed (Q1159).
+  the token, `host/githubToken` naming the host name (since 1.11, Q1505), which the extension answers from its secret
+  storage (`ExtensionContext.secrets`), under `hosting.token:<host>`, and, when it is asked to, with an input box titled
+  **GitLab token** that hides what is typed, keeping what is typed (Q1159; `tokenOfHost` in `src/extension/github.ts`).
 
 The token never appears in the command log, in a message or in an error, and is not written to any file. A password
 that a credential helper gives in place of a token is refused by GitLab's API, and `hosting.load-merge-requests` then
@@ -412,9 +419,9 @@ keeps that token for the next times.
 - **Function**: `features::hosting::load_merge_requests(context, answers) -> Outcome`
 - **Entry points**: **Load merge requests from GitLab** in the **…** menu of the header; **Sign in to GitLab** in
   Quick search.
-- **Extension**: **Sign in to GitLab** in the **…** menu of the graph and in the Command Palette, run on the engine;
-  the token is asked in VS Code's input box and kept in the secret storage of the extension (`hosting.token`). When the
-  engine's binary is missing, it says so (D49).
+- **Extension**: **Load merge requests from GitLab** in the **…** menu of the graph and **Gitardo: Sign In to GitLab**
+  in the Command Palette, run on the engine; the token is asked in VS Code's input box and kept in the secret storage of
+  the extension (`hosting.token`). When the engine's binary is missing, it says so (D49).
 - **Offered when**: the main remote is on GitLab (`hosting.detect-remote`); in the **…** menu, only then.
 - **Reads**: `hosting.token`, allowed to run `git credential fill`.
 - **Asks**: only when no token was found: the token, in an input box titled **GitLab token** that hides what is
@@ -446,14 +453,17 @@ of its branch: what `github.read-pull-requests` gives for GitHub, for the same l
 - **Kind**: Read
 - **Function**: `engine::hosting::read_merge_requests(http: &Http, request: &MergeRequestsRequest) -> Result<PullRequests, HostingError>`,
   with `engine::hosting::parse_merge_requests(body: &[u8]) -> Result<PullRequests, HostingError>`
-- **Reads**: one `POST https://<host>/api/graphql`, with the headers `Authorization: Bearer <token>`,
+- **Reads**: one `POST https://<host>/api/graphql` (under the address of the pages of a GitLab of one's own when
+  `hosting.selfHosted` gives one with a path: `https://git.example.com/gitlab/api/graphql`), with the headers `Authorization: Bearer <token>`,
   `Content-Type: application/json` and `User-Agent: gitardo-desktop`, and a query that asks of
   `project(fullPath: $path)` for `mergeRequests(state: opened, first: 100, sort: UPDATED_DESC)`, and of each its `iid`,
   `title`, `webUrl`, `draft`, `sourceBranch`, `sourceProjectId`, `targetProjectId` and `headPipeline { status }`.
 - **Uses**: `hosting.token`, `hosting.detect-remote`, `activity.track`, `github.read-pull-requests`, whose rules of when it
   runs it follows.
-- **Extension**: the engine's read, asked by the extension when the repository is read and its main remote is on
-  GitLab, once it has a token for its host name, so that nothing asks the user (`src/engine/reads.ts`).
+- **Extension**: the engine's read, `read/github.read-pull-requests` answering the merge requests when the main remote
+  is on a GitLab, asked by the extension as it asks for the pull requests of GitHub, with the token it keeps for the
+  host name, so that nothing asks the user (`Controller.refreshPulls`, `src/engine/reads.ts`); a token the GitLab
+  refuses is forgotten, and the next sign-in asks for another.
 
 Rules of the result:
 
@@ -488,6 +498,9 @@ the pick of `hosting.checkout-pull-request`.
   - GitLab: the request of `hosting.read-merge-requests`, asking also for `author { username }` and
     `sourceProject { fullPath }`, and leaving none out;
   - Gitea, Forgejo, Bitbucket and Azure DevOps: nothing is read (Q1157).
+
+  The token is the one kept for the service, read without running git's credential helper; with none, nothing is read
+  and the pick says "Sign in to `<service>` to list the open pull requests." (Q1503)
 - **Uses**: `github.token`, `hosting.token`, `github.read-pull-requests`, `hosting.read-merge-requests`.
 - **Extension**: the engine's read, asked by the extension for its quick pick.
 
@@ -521,7 +534,9 @@ Checks out the commits of a pull request in a local branch, also one from a fork
      placeholder **Pick one, or type its number**: the open ones (`hosting.read-pull-request-list`), newest first, each
      `#12 Add the parser` described with its author and its branch, `contributor:fix-parser` for one from a fork. A
      number typed, `12`, `#12` or `!12`, is taken whether or not it is listed; on Gitea and Forgejo, where nothing is
-     listed, it is the only way.
+     listed, it is the only way. In the window, the number not listed is typed after **Type its number…**, the last
+     choice of the pick, in a box with the placeholder `#12` (`!12` on GitLab), which comes at once when nothing is
+     listed and says why (Q1500).
   2. For a pull request from a fork, or one whose branch is not known: the name of the local branch, in an input box
      titled **Check out #`<n>` as**, starting from `<owner of the fork>/<branch>`, or `pull/<n>` (`merge-request/<n>`
      on GitLab) when the branch is not known (Q1151); checked by `branch.validate-name`. A name a local branch has is
@@ -538,14 +553,16 @@ Checks out the commits of a pull request in a local branch, also one from a fork
     (`submodule.update-on-checkout`).
   - When `<name>` is the branch checked out: `git pull --ff-only --no-rebase <remote> refs/pull/<n>/head` (or the
     reference of GitLab), and no checkout.
+  - A pull request from a branch of the repository whose local branch exists already is fetched as one from a fork,
+    into that branch, which keeps its upstream (Q1502).
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
 - **Undo**: By the reflog: Undo checks out again what was checked out before (`undo.last`); the branch stays, and
   `branch.delete` removes it.
 - **After**: the tip of the pull request is selected; for one from a fork, Gitardo says "Checked out #`<n>` as
   `<name>`. It has no upstream: a push would make a branch `<name>` on `<remote>`." (Q1152)
-- **On failure**: when the service has no pull request of that number, git's "couldn't find remote ref" is said as "There
-  is no pull request #`<n>` on `<remote>`."; when the branch would not be fast-forwarded, git's refusal is shown and
-  nothing changed.
+- **On failure**: when the service has no pull request of that number, git's "couldn't find remote ref
+  refs/pull/`<n>`/head" is said under **Check out pull request #`<n>`** (Q1501); when the branch would not be
+  fast-forwarded, git's refusal is shown and nothing changed.
 - **Refuses**: *Finish or abort the `<operation>` first.*; *End the bisect first.*; "`<name>` is checked out in
   another worktree: check out the pull request there." when it is. What is typed in the pick and is neither a pull
   request listed nor a number is refused while it is typed: "Type the number of a pull request".

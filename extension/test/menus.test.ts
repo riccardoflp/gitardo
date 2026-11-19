@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Branch, RepoState, Row, Submodule, Worktree } from '../src/shared/protocol';
 import type { ShownParts } from '../src/shared/repositories';
-import { changesText, upstreamHint, worktreeOf, worktreeStatus } from '../src/shared/refs';
+import type { Hosting, HostingService } from '../src/shared/hosting';
+import { changesText, pullTitle, upstreamHint, worktreeOf, worktreeStatus } from '../src/shared/refs';
 import { branchAt, headAt, remoteAt, upstreamOf, workingTreeOf } from './states';
 
 // The menus post what is chosen to the extension; here they are only read.
@@ -44,7 +45,7 @@ const state = (worktrees: Worktree[], branches: Branch[], agentsWindow = true, o
     remotes: [],
     favorites: [],
     pulls: {},
-    github: null,
+    hosting: null,
     scope: null,
     operation: null,
     agentsWindow,
@@ -213,7 +214,8 @@ describe('the status of a worktree', () => {
   });
 
   it('finds its branch and the pull request of the branch', () => {
-    const repo = { ...state([worktree({}), there], [login]), remotes: ['origin'], github: { owner: 'me', repo: 'app' }, pulls: { 'feature/login': pull } } as RepoState;
+    const hosting = { service: 'gitHub', host: 'github.com', remote: 'origin', canCheckOut: true, comparesSinceDiverged: false } as const;
+    const repo = { ...state([worktree({}), there], [login]), remotes: ['origin'], hosting, pulls: { 'feature/login': pull } } as RepoState;
     expect(worktreeStatus(there, repo)).toEqual({ branch: login, ahead: '↑2 ↓1', pull });
     expect(worktreeStatus({ ...there, branch: null }, repo)).toEqual({});
   });
@@ -392,5 +394,44 @@ describe('the menu of a row of the Repositories view', () => {
     expect(run(menu, 'Deinitialize…')).toEqual([{ type: 'action', action: { kind: 'submoduleDeinit', path: 'lib/core' } }]);
     // A submodule of another repository is a folder like another.
     expect(labels(repositoryRowMenu({ folder: 'C:/prj/web/lib/core', isShown: false }, shown))).toHaveLength(4);
+  });
+});
+
+describe('the pull requests of the hosting services in the menus of branches (hosting.open-pull-request, hosting.checkout-pull-request)', () => {
+  const on = (service: HostingService): Hosting => {
+    const canCheckOut = service !== 'bitbucket' && service !== 'azureDevOps';
+    return { service, host: 'example.test', remote: 'origin', canCheckOut, comparesSinceDiverged: false };
+  };
+  const feature: Branch = branchAt('feature', 'bbb', { isCheckedOut: false, upstream: upstreamOf('origin/feature') });
+  const ref = remoteAt('origin/feature', 'bbb');
+  const merge = { number: 12, title: 'Login', url: 'https://gitlab.com/group/app/-/merge_requests/12', draft: false, checks: null, service: 'gitLab' as const };
+  const repo = (hosting: Hosting | null, pulls: RepoState['pulls'] = {}) =>
+    ({ ...state([worktree({})], [feature]), remoteBranches: [ref], remotes: ['origin'], hosting, pulls }) as RepoState;
+
+  it('opens the merge request of a branch on GitLab by its number, or creates one', () => {
+    expect(labels(branchMenu(feature, repo(on('gitLab'), { feature: merge }), () => {}))).toContain('Open merge request !12');
+    expect(labels(branchMenu(feature, repo(on('gitLab')), () => {}))).toContain('Create merge request…');
+    expect(pullTitle(merge)).toBe('Merge request !12: Login');
+  });
+
+  it('creates a pull request on Bitbucket, opening none, and has neither entry for a branch never pushed or on no service', () => {
+    const menu = labels(branchMenu(feature, repo(on('bitbucket')), () => {}));
+    expect(menu).toContain('Create pull request…');
+    expect(menu.some((label) => label.startsWith('Open pull request'))).toBe(false);
+    const unpushed = { ...feature, upstream: null };
+    expect(labels(branchMenu(unpushed, repo(on('gitLab')), () => {})).some((label) => /request/.test(label))).toBe(false);
+    expect(labels(branchMenu(feature, repo(null), () => {})).some((label) => /request/.test(label))).toBe(false);
+  });
+
+  it('checks out the pull request a remote branch has on its label, where the service keeps a reference of each', () => {
+    posted.length = 0;
+    const entries = remoteBranchMenu(ref, repo(on('gitLab'), { feature: merge }), () => {});
+    const entry = entries.find((each) => each && each !== 'separator' && each.label === 'Check out merge request !12');
+    if (!entry || entry === 'separator') throw new Error('no entry');
+    entry.run();
+    expect(posted).toEqual([{ type: 'checkOutPullRequest', number: 12, remoteBranch: 'origin/feature' }]);
+    const pull = { ...merge, service: 'gitHub' as const };
+    expect(labels(remoteBranchMenu(ref, repo(on('gitHub'), { feature: pull }), () => {}))).toContain('Check out pull request #12');
+    expect(labels(remoteBranchMenu(ref, repo(on('gitHub')), () => {})).some((label) => label.startsWith('Check out pull'))).toBe(false);
   });
 });

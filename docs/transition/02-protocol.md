@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.10** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.11** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -80,6 +80,13 @@ of the extension's Repositories view; `repository/folderChanged`, the extension 
 one of them; and `repository/summaries`, the engine saying what it read again
 ([What the repositories are on](#what-the-repositories-are-on)).
 
+Version 1.11 adds what milestone M37 needed: the kinds `pullRequestNumber` of the validation of a question, the number
+of a pull request typed as `12`, `#12` or `!12`, and `pullRequestBranch`, the name of the local branch it is checked out
+in, one of `branches` taken too (`hosting.checkout-pull-request`); the host question of the token of a GitLab
+(`hosting.token`); the reads `read/hosting.detect-remote`, the hosting service of the main remote, and
+`read/hosting.web-link`, the address of a page of it; and the merge requests of a GitLab in
+`read/github.read-pull-requests` (`hosting.read-merge-requests`).
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -138,7 +145,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.10",
+  protocol: "1.11",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -340,7 +347,9 @@ change the repository and run at the same time as each other and as an operation
 | `read/worktree-setup.read-what-patterns-take` | `{ requests: TakeRequest[] }` | `SetupPreview[]` | `worktree-setup.read-what-patterns-take` |
 | `read/worktree-setup.propose-commands` | — | `{ commands: { command, file }[] }` | `worktree-setup.propose-commands` |
 | `read/worktree-setup.explain-change` | `{ paths: string[] }` | `PathStatus[]` | `worktree-setup.explain-change` |
-| `read/github.read-pull-requests` | `{ remote: string \| null }` | `PullRequests` | `github.read-pull-requests` |
+| `read/github.read-pull-requests` | `{ remote: string \| null }` | `PullRequests` | `github.read-pull-requests`, and `hosting.read-merge-requests` on a GitLab (1.11) |
+| `read/hosting.detect-remote` | — | `{ kind: "none" } \| { kind: "found", service, web, host, path, remote, defaultBranch, canCheckOut, comparesSinceDiverged }` | `hosting.detect-remote` (1.11) |
+| `read/hosting.web-link` | `{ page: { kind: "create", branch } \| { kind: "pullRequest", number } }` | `{ url: string \| null }` | `hosting.web-links` (1.11) |
 | `read/branch.read-log` | `{ count: number }` | `{ commits: Commit[], hasMore, unpushed: CommitId[] \| null, upstream: string \| null }` | `branch.read-log` |
 | `read/repo.common-folder` | — | `{ folder: string }` | `repo.common-folder` |
 | `read/commit.prepared-message` | — | `{ message: string \| null }` | `commit.prepared-message` |
@@ -361,7 +370,8 @@ at the same time as each other and as an operation. Each gets the token that `$/
 runs, and is logged as `LogKind::Read` with how long it took, as `Read <method> in <repository>`. A read whose
 parameters name a commit by anything but its full id answers `-32602`; one whose git fails answers `gitFailed`.
 `read/github.read-pull-requests` asks the extension `host/githubToken` with `{ host: "github.com", ask: false }` when
-it said `host.githubToken` at `initialize`, and reads nothing without a token.
+it said `host.githubToken` at `initialize`, and reads nothing without a token; when the main remote is on a GitLab, it
+asks with the host name of that GitLab and answers its merge requests, in the same `PullRequests` (1.11).
 
 The two reads of 1.6 ask a language model of VS Code. `read/commit.draft-message` reads the working tree, the diff
 of `commit.read-draft-diff` and, when nothing is staged, the untracked files, writes the request of

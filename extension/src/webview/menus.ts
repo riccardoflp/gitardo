@@ -18,6 +18,7 @@ import {
 import { samePath } from '../shared/paths';
 import type { RepositoryRow, ShownParts } from '../shared/repositories';
 import { checkedOutBranch, stashName, upstreamBranch, upstreamName } from '../shared/state';
+import { pullNumber, pullWords } from '../shared/hosting';
 import { canFastForward, isHome, nameOnRemote, pullOf, pushedName, refArg, worktreeOf } from '../shared/refs';
 import { submoduleFolder, submoduleStatus } from '../shared/submodules';
 
@@ -289,12 +290,28 @@ export function selectionMenu(rows: Row[], state: RepoState, onCompare: (compari
   ];
 }
 
+/**
+ * **Open pull request #12**, **Open merge request !12** on GitLab, or **Create pull request…** for a branch with none
+ * known (`github.open-pull-request`, `hosting.open-pull-request`).
+ */
 function pullEntry(name: string | null, state: RepoState, offerNew: boolean): MenuEntry {
   const pull = pullOf(name, state);
-  if (name === null || (!pull && !offerNew)) return null;
+  if (name === null || !state.hosting || (!pull && !offerNew)) return null;
+  const service = state.hosting.service;
   return {
-    label: pull ? `Open pull request #${pull.number}` : 'Create pull request…',
+    label: pull ? `Open ${pullWords(service)} ${pullNumber(pull.number, service)}` : `Create ${pullWords(service)}…`,
     run: () => post({ type: 'pullRequest', branch: name }),
+  };
+}
+
+/** **Check out pull request #12** on a remote branch whose label shows one (`hosting.checkout-pull-request`). */
+function checkOutPullEntry(remoteBranch: string, state: RepoState): MenuEntry {
+  const service = state.hosting?.service;
+  const pull = state.hosting?.canCheckOut ? pullOf(nameOnRemote(remoteBranch, state), state) : undefined;
+  if (!pull) return null;
+  return {
+    label: `Check out ${pullWords(service)} ${pullNumber(pull.number, service)}`,
+    run: () => post({ type: 'checkOutPullRequest', number: pull.number, remoteBranch }),
   };
 }
 
@@ -421,7 +438,8 @@ export function remoteBranchMenu(ref: RemoteBranch, state: RepoState, onCompare:
     compareWith(name, ref.commit),
     revealEntry(ref.commit, onReveal),
     ...scopeEntries(`refs/remotes/${name}`, state),
-    pullEntry(state.github ? nameOnRemote(name, state) : null, state, false),
+    pullEntry(nameOnRemote(name, state), state, false),
+    checkOutPullEntry(name, state),
     favoriteEntry(`refs/remotes/${name}`, state),
     'separator',
     { label: 'Delete from remote', danger: true, run: () => act({ kind: 'deleteRemoteBranch', name }) },

@@ -1,6 +1,18 @@
 import { memo, useMemo, useState, type ReactNode } from 'react';
 import type { PullRequest, RepoState, Submodule } from '../shared/protocol';
-import { byMatch, changesText, pullOf, pullTitle, pushedName, recentBranches, upstreamHint, worktreeLabel, worktreeOf, worktreeStatus } from '../shared/refs';
+import {
+  byMatch,
+  changesText,
+  pullBadgeText,
+  pullOf,
+  pullTitle,
+  pushedName,
+  recentBranches,
+  upstreamHint,
+  worktreeLabel,
+  worktreeOf,
+  worktreeStatus,
+} from '../shared/refs';
 import { stashName, upstreamName, worktreeBranch } from '../shared/state';
 import { listedRefs, scopeLabel, scopeRefs, toggleScopeRef } from '../shared/scope';
 import { submoduleDepth, submoduleStatus, submoduleStatusText } from '../shared/submodules';
@@ -68,7 +80,7 @@ interface Item {
   open?(): void;
   /** Set for items that can be dragged onto the graph. */
   drag?: DragSource;
-  /** The branch's open pull request on GitHub. */
+  /** The branch's open pull request on its hosting service. */
   pull?: PullRequest;
   /** The folder of the other worktree that has the branch checked out. */
   worktree?: string;
@@ -221,7 +233,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
                 {item.pull && (
                   <span className={`pull ${item.pull.checks ?? ''}`}>
                     <Icon name={item.pull.draft ? 'git-pull-request-draft' : 'git-pull-request'} />
-                    {item.pull.number}
+                    {pullBadgeText(item.pull)}
                   </span>
                 )}
                 {outside && (

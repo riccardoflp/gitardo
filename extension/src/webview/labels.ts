@@ -35,7 +35,7 @@ export function buildLabels(state: RepoState): Map<string, Label[]> {
   const tracked = new Set(state.branches.map((branch) => branch.upstream && upstreamName(branch.upstream)));
   for (const remote of state.remoteBranches) {
     if (merged.has(remote.name)) continue;
-    const pull = state.github && !tracked.has(remote.name) ? pullFor(nameOnRemote(remote.name, state)) : undefined;
+    const pull = state.hosting && !tracked.has(remote.name) ? pullFor(nameOnRemote(remote.name, state)) : undefined;
     add(remote.commit, { kind: 'remote', name: remote.name, pull });
   }
   for (const tag of state.tags) add(tag.commit, { kind: 'tag', name: tag.name });

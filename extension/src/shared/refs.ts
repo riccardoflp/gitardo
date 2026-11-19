@@ -1,4 +1,5 @@
 import type { Branch, BranchSort, PullRequest, RepoState, RepositoryState, Worktree } from './protocol';
+import { pullNumber, pullWords } from './hosting';
 import { checkedOutBranch, upstreamName, worktreeBranch } from './state';
 
 /** Whether a value is the hash of a commit, whole or the start of it, as git writes it. */
@@ -90,23 +91,30 @@ export function nameOnRemote(ref: string, state: RepoState): string | null {
   return remote ? ref.slice(remote.length + 1) : null;
 }
 
-/** The name a local branch was pushed under, when it has been pushed to a repository on GitHub. */
+/** The name a local branch was pushed under, when it has been pushed to a hosting service Gitardo knows. */
 export function pushedName(branch: Branch, state: RepoState): string | null {
   const upstream = branch.upstream;
-  return state.github && upstream && !upstream.isGone ? nameOnRemote(upstreamName(upstream), state) : null;
+  return state.hosting && upstream && !upstream.isGone ? nameOnRemote(upstreamName(upstream), state) : null;
 }
 
-/** The open pull request of a branch on GitHub, by the name the branch has there. */
+/** The open pull request of a branch on its hosting service, by the name the branch has there. */
 export function pullOf(name: string | null, state: RepoState): PullRequest | undefined {
   return name !== null && Object.hasOwn(state.pulls, name) ? state.pulls[name] : undefined;
 }
 
 const CHECKS = { success: 'checks passed', failure: 'checks failed', pending: 'checks running' };
 
-/** A pull request in a line: `Pull request #12: Add the parser · checks passed`. */
+/** A pull request in a line: `Pull request #12: Add the parser · checks passed`, `Merge request !12: …` on GitLab. */
 export function pullTitle(pull: PullRequest): string {
   const checks = pull.checks ? ` · ${CHECKS[pull.checks]}` : '';
-  return `${pull.draft ? 'Draft pull' : 'Pull'} request #${pull.number}: ${pull.title}${checks}`;
+  const words = pullWords(pull.service);
+  const named = pull.draft ? `Draft ${words}` : words.charAt(0).toUpperCase() + words.slice(1);
+  return `${named} ${pullNumber(pull.number, pull.service)}: ${pull.title}${checks}`;
+}
+
+/** The number of a pull request on a label: `12` on GitHub, as it always was; `!12` on GitLab, as GitLab writes it. */
+export function pullBadgeText(pull: PullRequest): string {
+  return pull.service === 'gitLab' ? pullNumber(pull.number, pull.service) : String(pull.number);
 }
 
 /** `↑1 ↓2` for the commits a branch and its upstream have that the other has not, or `gone` when the upstream was deleted. */

@@ -10,10 +10,12 @@ use std::thread;
 use engine::{Activities, GITHUB_TOKEN, SecretStore, SystemSecrets};
 use git::Git;
 use git::read::github::read_http_proxy;
+use git::read::hosting::read_default_branch;
 use git::read::remote::{RemotesRequest, read_remotes};
 use http::{Cancel, Http, Proxies, ProxySettings, Trust};
 use model::contract::Text;
-use model::github::{GitHubRepo, Token, detect_remote};
+use model::github::{GitHubRepo, PullRequests, Token, detect_remote};
+use model::hosting::{HostingRepo, KnownHosts};
 use model::remote::Remote;
 use views::text::github as words;
 
@@ -98,10 +100,13 @@ impl GitHubReader {
         let deliver = Arc::clone(&self.deliver);
         let _started = thread::Builder::new().name(String::from("github")).spawn(move || {
             let message = {
-                let _activity = matches!(job.work, GitHubWork::Read { .. }).then(|| {
-                    let description = Text::from(words::READING_PULL_REQUESTS);
-                    activities.track_read(description, Text::from(""), super::now())
-                });
+                let reading = match job.work {
+                    GitHubWork::Read { .. } => Some(words::READING_PULL_REQUESTS),
+                    GitHubWork::ReadMergeRequests { .. } => Some(words::READING_MERGE_REQUESTS),
+                    GitHubWork::Detect { .. } => None,
+                };
+                let _activity = reading
+                    .map(|description| activities.track_read(Text::from(description), Text::from(""), super::now()));
                 run(&access, &job)
             };
             deliver(message);
@@ -113,21 +118,32 @@ impl GitHubReader {
 #[must_use]
 pub fn run(access: &GitHubAccess, job: &GitHubJob) -> Message {
     let message = match &job.work {
-        GitHubWork::Detect => GitHubMessage::Detected {
-            job: job.id,
-            repository: detect(&access.git(&job.folder)),
-        },
+        GitHubWork::Detect { known } => {
+            let (repository, hosting) = detect(&access.git(&job.folder), known);
+            GitHubMessage::Detected {
+                job: job.id,
+                repository,
+                hosting,
+            }
+        }
         GitHubWork::Read { repository, token } => GitHubMessage::Read {
             job: job.id,
             result: read(access, job, (repository, token.clone())),
+        },
+        GitHubWork::ReadMergeRequests { repository, token } => GitHubMessage::Read {
+            job: job.id,
+            result: read_merge_requests(access, job, (repository, token.clone())),
         },
     };
     Message::GitHub(message)
 }
 
-/// The repository on GitHub of the main remote; none when the remotes cannot be read.
-fn detect(git: &Git) -> Option<GitHubRepo> {
-    let remotes = read_remotes(git, &RemotesRequest).ok()?;
+/// The repository on GitHub of the main remote, and its project on its hosting service with the default branch of the
+/// remote; none when the remotes cannot be read.
+fn detect(git: &Git, known: &KnownHosts) -> (Option<GitHubRepo>, Option<HostingRepo>) {
+    let Ok(remotes) = read_remotes(git, &RemotesRequest) else {
+        return (None, None);
+    };
     let remotes: Vec<Remote> = remotes
         .into_iter()
         .map(|remote| Remote {
@@ -135,14 +151,56 @@ fn detect(git: &Git) -> Option<GitHubRepo> {
             url: remote.url,
         })
         .collect();
-    detect_remote(&remotes)
+    let hosting = model::hosting::detect_remote(&remotes, known).map(|mut repo| {
+        // Without the remote's `HEAD`, a new pull request on Gitea and Forgejo goes into `main`.
+        repo.default_branch = read_default_branch(git, &repo.remote).ok().flatten();
+        repo
+    });
+    (detect_remote(&remotes), hosting)
 }
 
-/// Reads the pull requests with the token given, or the one kept; a 401 takes the kept token out of the store.
+/// Reads the pull requests of GitHub with the token given, or the one kept; a 401 takes the kept token out of the
+/// store.
 fn read(access: &GitHubAccess, job: &GitHubJob, (repository, given): (&GitHubRepo, Option<Token>)) -> PullsRead {
+    read_with(access, job, (GITHUB_TOKEN, given), |http, token| {
+        let request = engine::github::PullsRequest {
+            repository: repository.clone(),
+            token,
+            cancel: Cancel::new(),
+        };
+        engine::github::read_pull_requests(http, &request).map_err(|error| (error.to_string(), error.is_unauthorized()))
+    })
+}
+
+/// Reads the merge requests of a GitLab with the token given, or the one kept for its host name; a 401 takes the kept
+/// token out of the store.
+fn read_merge_requests(
+    access: &GitHubAccess,
+    job: &GitHubJob,
+    (repository, given): (&HostingRepo, Option<Token>),
+) -> PullsRead {
+    read_with(access, job, (&repository.host, given), |http, token| {
+        let request = engine::hosting::MergeRequestsRequest {
+            repository: repository.clone(),
+            token,
+            cancel: Cancel::new(),
+        };
+        engine::hosting::read_merge_requests(http, &request)
+            .map_err(|error| (error.to_string(), error.is_unauthorized()))
+    })
+}
+
+/// Reads with the token given, or the one kept under a name in the credential store, what `send` asks; what it says
+/// went wrong, and whether the service refused the token, which is then taken out of the store.
+fn read_with(
+    access: &GitHubAccess,
+    job: &GitHubJob,
+    (name, given): (&str, Option<Token>),
+    send: impl FnOnce(&Http, Token) -> Result<PullRequests, (String, bool)>,
+) -> PullsRead {
     let secrets = (access.secrets)();
     // A store that cannot be read keeps no token Gitardo can use.
-    let token = given.or_else(|| secrets.read(GITHUB_TOKEN).ok().flatten().map(Token));
+    let token = given.or_else(|| secrets.read(name).ok().flatten().map(Token));
     let Some(token) = token else {
         return PullsRead::NoToken;
     };
@@ -158,23 +216,14 @@ fn read(access: &GitHubAccess, job: &GitHubJob, (repository, given): (&GitHubRep
             }
         },
     };
-    let request = engine::github::PullsRequest {
-        repository: repository.clone(),
-        token,
-        cancel: Cancel::new(),
-    };
-    match engine::github::read_pull_requests(&http, &request) {
+    match send(&http, token) {
         Ok(pull_requests) => PullsRead::Read(pull_requests),
-        Err(error) => {
-            let is_unauthorized = error.is_unauthorized();
+        Err((said, is_unauthorized)) => {
             if is_unauthorized {
-                // A store that refuses keeps the token, which GitHub will refuse again: nothing else can be done.
-                let _taken_out = secrets.delete(GITHUB_TOKEN);
+                // A store that refuses keeps the token, which the service will refuse again: nothing else can be done.
+                let _taken_out = secrets.delete(name);
             }
-            PullsRead::Failed {
-                said: error.to_string(),
-                is_unauthorized,
-            }
+            PullsRead::Failed { said, is_unauthorized }
         }
     }
 }

@@ -6,10 +6,12 @@ use std::time::{Duration, Instant};
 
 use git::GitError;
 use git::read::github::{TokenRequest, read_token, token_arguments};
+use git::read::hosting::HostingTokenRequest;
 use http::{Cancel, Http, Proxies, ProxySettings, Trust};
 use model::ai::{AiModels, AiSettings, Key};
 use model::contract::FollowUp;
 use model::github::{HelperAsked, Token};
+use model::hosting::{HostingRepo, HostingService, PullList};
 
 use super::Engine;
 use crate::secrets::{GITHUB_TOKEN, SecretStore};
@@ -65,6 +67,41 @@ impl Engine {
         Ok(TokenFound::Found(token))
     }
 
+    /// The token of a GitLab for a host name: the one kept in the credential store for it, or the one git's credential
+    /// helper gives when `helper` allows it (`hosting.token`). Under a host, the host's, which may ask the user for one
+    /// when `helper` allows it: then none is the user backing out.
+    pub(super) fn hosting_token(&mut self, host: &str, helper: HelperAsked) -> Result<TokenFound, GitError> {
+        if let Some(host_of_engine) = &mut self.host {
+            let ask = helper == HelperAsked::Allowed;
+            return Ok(match host_of_engine.hosting_token(host, ask) {
+                None if ask => TokenFound::BackedOut,
+                token => TokenFound::Found(token),
+            });
+        }
+        let kept = match self.secrets.read(host) {
+            Ok(kept) => kept.map(Token),
+            Err(error) => {
+                // A store that cannot be read keeps no token Gitardo can use; git's helper may still know one.
+                let line = format!("the credential store of the system could not be read: {error}");
+                self.log.record_read(self.clock.now(), line, Duration::ZERO);
+                None
+            }
+        };
+        let asks_git = kept.is_none() && helper == HelperAsked::Allowed;
+        let started = Instant::now();
+        let request = HostingTokenRequest {
+            host: host.to_owned(),
+            kept,
+            helper,
+        };
+        let token = git::read::hosting::read_token(&self.git, &request)?;
+        if asks_git {
+            let line = git::command_line(&token_arguments());
+            self.log.record_read(self.clock.now(), line, started.elapsed());
+        }
+        Ok(TokenFound::Found(token))
+    }
+
     /// Keeps the tokens a plan that ran says to keep, in the credential store. One that cannot be kept is said in the
     /// log: the pull requests are still read with it this time, and it is asked for again the next.
     pub(super) fn keep_tokens(&mut self, after: &[FollowUp]) {
@@ -72,10 +109,13 @@ impl Engine {
             return; // The host keeps the token it gave.
         }
         for follow_up in after {
-            if let FollowUp::KeepGitHubToken(token) = follow_up
-                && let Err(error) = self.secrets.write(GITHUB_TOKEN, &token.0)
-            {
-                let line = format!("The GitHub token could not be kept in the credential store: {error}");
+            let (name, token) = match follow_up {
+                FollowUp::KeepGitHubToken(token) => (GITHUB_TOKEN, token),
+                FollowUp::KeepHostingToken(host, token) => (host.as_str(), token),
+                _ => continue,
+            };
+            if let Err(error) = self.secrets.write(name, &token.0) {
+                let line = format!("The token of {name} could not be kept in the credential store: {error}");
                 self.log.record_warning(self.clock.now(), line);
             }
         }
@@ -83,6 +123,40 @@ impl Engine {
 }
 
 impl Engine {
+    /// The open pull requests of the main remote, read with the token kept for its service, asking nothing and running
+    /// no credential helper (`hosting.read-pull-request-list`); why they were not, when they were not.
+    pub(super) fn pull_request_list(&mut self, repository: HostingRepo) -> PullList {
+        let found = match repository.service {
+            HostingService::GitHub => self.github_token(HelperAsked::NotAllowed),
+            HostingService::GitLab => self.hosting_token(&repository.host, HelperAsked::NotAllowed),
+            _ => return PullList::Listed(Vec::new()),
+        };
+        let Ok(TokenFound::Found(Some(token))) = found else {
+            let service = repository.service.name();
+            return PullList::Unread(format!("Sign in to {service} to list the open pull requests."));
+        };
+        let http = match self.client() {
+            Ok(http) => http,
+            Err(error) => return PullList::Unread(error.to_string()),
+        };
+        let cancelled = self.cancel.clone();
+        let cancel = Cancel::following(move || cancelled.is_cancelled());
+        let service = repository.service.name();
+        let request = crate::hosting::PullListRequest {
+            repository,
+            token,
+            cancel,
+        };
+        let started = Instant::now();
+        let listed = crate::hosting::read_pull_request_list(&http, &request);
+        let line = format!("list the open pull requests of {service}");
+        self.log.record_read(self.clock.now(), line, started.elapsed());
+        match listed {
+            Ok(entries) => PullList::Listed(entries),
+            Err(error) => PullList::Unread(error.to_string()),
+        }
+    }
+
     /// The models the AI provider lists, asked with the key typed, else with the one kept in the credential store;
     /// under a host, the host's models, which need no key.
     pub(super) fn ai_models(&mut self, settings: AiSettings, typed: Option<Key>) -> AiModels {

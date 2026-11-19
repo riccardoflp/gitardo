@@ -446,7 +446,7 @@ earns it.
 | [`compare.take-file`](10-compare.md#comparetake-file--take-the-version-of-the-second-side) | Take the version of the second side | Operation | Built | Built |
 | [`compare.copy-patch`](10-compare.md#comparecopy-patch--copy-a-comparison-as-a-patch) | Copy a comparison as a patch | Operation | Built | Built |
 | [`compare.open-on-github`](10-compare.md#compareopen-on-github--open-the-comparison-on-github) | Open the comparison on GitHub | Operation | Built | Differs (G5) |
-| [`compare.open-on-service`](10-compare.md#compareopen-on-service--open-the-comparison-on-another-hosting-service) | Open the comparison on another hosting service | Operation | Specified | Planned |
+| [`compare.open-on-service`](10-compare.md#compareopen-on-service--open-the-comparison-on-another-hosting-service) | Open the comparison on another hosting service | Operation | Built | Built |
 | [`compare.path-with`](10-compare.md#comparepath-with--compare-a-file-or-a-folder-with-a-branch-tag-or-commit) | Compare a file or a folder with a branch, tag or commit | Operation | Built | Built |
 | [`compare.with`](10-compare.md#comparewith--compare-with) | Compare with… | Operation | Built | Built |
 | [`compare.with-current`](10-compare.md#comparewith-current--compare-with-the-current-branch) | Compare with the current branch | Operation | Built | Built |
@@ -590,15 +590,15 @@ earns it.
 | [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Built | Built |
 | [`github.open-pull-request`](15-github.md#githubopen-pull-request--open-or-create-the-pull-request-of-a-branch) | Open or create the pull request of a branch | Derivation | Built | Built |
 | [`github.offer-after-push`](15-github.md#githuboffer-after-push--offer-to-create-a-pull-request-after-the-first-push) | Offer to create a pull request after the first push | Derivation | Built | Built |
-| [`hosting.detect-remote`](15-github.md#hostingdetect-remote--the-hosting-service-of-the-main-remote) | The hosting service of the main remote | Derivation | Specified | Planned |
-| [`hosting.web-links`](15-github.md#hostingweb-links--the-pages-of-a-hosting-service) | The pages of a hosting service | Derivation | Specified | Planned |
-| [`hosting.open-pull-request`](15-github.md#hostingopen-pull-request--open-or-create-the-pull-request-of-a-branch-on-another-hosting-service) | Open or create the pull request of a branch, on another hosting service | Derivation | Specified | Planned |
-| [`hosting.offer-after-push`](15-github.md#hostingoffer-after-push--offer-to-create-a-pull-request-after-the-first-push-on-another-hosting-service) | Offer to create a pull request after the first push, on another hosting service | Derivation | Specified | Planned |
-| [`hosting.token`](15-github.md#hostingtoken--read-the-token-of-a-gitlab) | Read the token of a GitLab | Read | Specified | Planned |
-| [`hosting.load-merge-requests`](15-github.md#hostingload-merge-requests--load-merge-requests-from-gitlab) | Load merge requests from GitLab | Operation | Specified | Planned |
-| [`hosting.read-merge-requests`](15-github.md#hostingread-merge-requests--read-the-open-merge-requests-of-gitlab) | Read the open merge requests of GitLab | Read | Specified | Planned |
-| [`hosting.read-pull-request-list`](15-github.md#hostingread-pull-request-list--read-the-open-pull-requests-to-pick-from) | Read the open pull requests to pick from | Read | Specified | Planned |
-| [`hosting.checkout-pull-request`](15-github.md#hostingcheckout-pull-request--check-out-a-pull-request) | Check out a pull request | Operation | Specified | Planned |
+| [`hosting.detect-remote`](15-github.md#hostingdetect-remote--the-hosting-service-of-the-main-remote) | The hosting service of the main remote | Derivation | Built | Built |
+| [`hosting.web-links`](15-github.md#hostingweb-links--the-pages-of-a-hosting-service) | The pages of a hosting service | Derivation | Built | Built |
+| [`hosting.open-pull-request`](15-github.md#hostingopen-pull-request--open-or-create-the-pull-request-of-a-branch-on-another-hosting-service) | Open or create the pull request of a branch, on another hosting service | Derivation | Built | Built |
+| [`hosting.offer-after-push`](15-github.md#hostingoffer-after-push--offer-to-create-a-pull-request-after-the-first-push-on-another-hosting-service) | Offer to create a pull request after the first push, on another hosting service | Derivation | Built | Built |
+| [`hosting.token`](15-github.md#hostingtoken--read-the-token-of-a-gitlab) | Read the token of a GitLab | Read | Built | Built |
+| [`hosting.load-merge-requests`](15-github.md#hostingload-merge-requests--load-merge-requests-from-gitlab) | Load merge requests from GitLab | Operation | Built | Built |
+| [`hosting.read-merge-requests`](15-github.md#hostingread-merge-requests--read-the-open-merge-requests-of-gitlab) | Read the open merge requests of GitLab | Read | Built | Built |
+| [`hosting.read-pull-request-list`](15-github.md#hostingread-pull-request-list--read-the-open-pull-requests-to-pick-from) | Read the open pull requests to pick from | Read | Built | Built |
+| [`hosting.checkout-pull-request`](15-github.md#hostingcheckout-pull-request--check-out-a-pull-request) | Check out a pull request | Operation | Built | Built |
 
 ## Undo, command preview and the log
 

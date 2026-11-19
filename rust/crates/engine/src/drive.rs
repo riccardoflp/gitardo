@@ -230,6 +230,17 @@ impl Engine {
                     };
                     answers.insert(key, Answer::Token(token));
                 }
+                Outcome::Read(key, Query::HostingToken { host, helper }) => {
+                    let tokens::TokenFound::Found(token) =
+                        self.hosting_token(&host, helper).map_err(EngineError::Query)?
+                    else {
+                        return Ok(Finished::BackedOut);
+                    };
+                    answers.insert(key, Answer::Token(token));
+                }
+                Outcome::Read(key, Query::PullRequestList { repository }) => {
+                    answers.insert(key, Answer::PullList(self.pull_request_list(*repository)));
+                }
                 Outcome::Read(key, Query::AiModels { settings, key: typed }) => {
                     answers.insert(key, Answer::AiModels(self.ai_models(settings, typed)));
                 }

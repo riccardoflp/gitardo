@@ -52,6 +52,16 @@ pub const COPY_AS_PATCH_TOOLTIP: &str = "Copy the changes as a patch that git ap
 pub const OPEN_ON_GITHUB: &str = "Open on GitHub";
 /// Its tooltip.
 pub const OPEN_ON_GITHUB_TOOLTIP: &str = "Compare the two on GitHub, once they are pushed";
+/// **Open on GitLab**, on the hosting service named (`compare.open-on-service`).
+#[must_use]
+pub fn open_on(service: &str) -> String {
+    format!("Open on {service}")
+}
+/// Its tooltip.
+#[must_use]
+pub fn open_on_tooltip(service: &str) -> String {
+    format!("Compare the two on {service}, once they are pushed")
+}
 /// **Commits** (`compare.commits`).
 pub const COMMITS: &str = "Commits";
 /// The heading of the commits when they were too many to be matched.

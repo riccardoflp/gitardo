@@ -5,6 +5,7 @@
  * which the views take as they are (stage 6).
  */
 
+import type { HostingService } from '../shared/hosting';
 import type { FolderSummary } from '../shared/summaries';
 import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shared/state';
 
@@ -15,9 +16,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15); 1.9 has `read/file-view.mermaid`, a diagram of
  * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17); 1.10 has `read/repo.worktree-summary`, what the
  * folders of the rows of the Repositories view are on, with `repository/summaries` and `repository/folderChanged`
- * (milestone M22).
+ * (milestone M22); 1.11 has the validation of the number of a pull request and the host question of the token of a
+ * GitLab (milestone M37).
  */
-export const PROTOCOL = '1.10';
+export const PROTOCOL = '1.11';
 
 /** The names of the methods. */
 export const Method = {
@@ -262,6 +264,8 @@ export const ReadMethod = {
   setupCommands: 'read/worktree-setup.propose-commands',
   pathStatuses: 'read/worktree-setup.explain-change',
   pullRequests: 'read/github.read-pull-requests',
+  hosting: 'read/hosting.detect-remote',
+  webLink: 'read/hosting.web-link',
   branchLog: 'read/branch.read-log',
   commonFolder: 'read/repo.common-folder',
   preparedMessage: 'read/commit.prepared-message',
@@ -480,6 +484,24 @@ export interface PullRequest {
   branch: string;
   checks: 'passed' | 'failed' | 'running' | null;
 }
+
+/** The hosting service and the project of the main remote (`read/hosting.detect-remote`, 1.11). */
+export type HostingFound =
+  | { kind: 'none' }
+  | {
+      kind: 'found';
+      service: HostingService;
+      web: string;
+      host: string;
+      path: string;
+      remote: string;
+      defaultBranch: string | null;
+      canCheckOut: boolean;
+      comparesSinceDiverged: boolean;
+    };
+
+/** A page of the project of the main remote whose address `read/hosting.web-link` gives (1.11). */
+export type HostingPage = { kind: 'create'; branch: string } | { kind: 'pullRequest'; number: number };
 
 /** The open pull requests by the name of their branch, or why they were not read. */
 export type PullRequests =

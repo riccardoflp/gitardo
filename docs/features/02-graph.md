@@ -650,7 +650,9 @@ In this order, separated in groups:
    **Manage remotes…** (`remote.manage`), **Add submodule…** (`submodule.add`) while the repository has no submodule
    (the Submodules list has it otherwise), **Select repository…** (`repo.select`) when it is offered.
 3. **Switch identity…** (`identity.switch`).
-4. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub.
+4. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub, or **Load merge
+   requests from GitLab** (`hosting.load-merge-requests`) on a GitLab; then **Check out a pull request…** (**Check out
+   a merge request…** on GitLab, `hosting.checkout-pull-request`) on GitHub, GitLab, Gitea and Forgejo.
 5. **Settings** (`settings.edit`), **Theme…** (`settings.theme`).
 
 **Theme…** stays here, though it changes how the window looks: it opens a picker rather than switching something on
@@ -1213,8 +1215,8 @@ Acceptance:
 
 ### `graph.pull-request-badge` — Pull request on a label
 
-Once the pull requests are loaded from GitHub, the label of a branch that has an open one ends with its number, in the
-color of its checks.
+Once the pull requests are loaded from GitHub, or the merge requests from GitLab (`hosting.load-merge-requests`), the
+label of a branch that has an open one ends with its number, in the color of its checks.
 
 - **Kind**: View
 - **Function**: `views::graph::pull_request_badge_view(state: &PullRequestBadge, ui) -> Vec<Intent>`
@@ -1224,7 +1226,9 @@ color of its checks.
 - The badge has the icon of a pull request, a draft one for a draft, and its number, in the color of its checks:
   passed, failed or running; with no checks, in the color of the label.
 - Its tooltip is `Pull request #12: Add the parser · checks passed` (`Draft pull request…`, `checks failed`, `checks
-  running`), then **Click to open it on GitHub**.
+  running`), then **Click to open it on GitHub**. On GitLab the number is `!12` and the tooltip `Merge request !12: Add
+  the parser · pipeline passed` (`Draft merge request…`, `pipeline failed`, `pipeline running`), then **Click to open
+  it on GitLab**.
 - A click opens the pull request in the browser, and does not select the commit; a double click on it does nothing
   more.
 - A local branch has the pull request of the name it was pushed under (its upstream on a remote on GitHub, not gone). A
@@ -1236,6 +1240,8 @@ Acceptance:
 - [ ] Clicking the badge opens the pull request and leaves the selection as it was.
 - [ ] `origin/feature` with a pull request, tracked by `feature`, has no badge of its own; untracked, it has one.
 - [ ] Before the pull requests are loaded, no label has a badge.
+- [ ] On GitLab, merge request !12 with its pipeline passed is `!12`, with the tooltip `Merge request !12: Add the
+      parser · pipeline passed` and **Click to open it on GitLab**.
 
 ### `graph.unpushed` — Commits not pushed yet
 

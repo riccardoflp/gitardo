@@ -15,7 +15,7 @@ const state = (overrides: Partial<RepoState>) =>
     worktrees: [],
     remotes: ['origin'],
     pulls: {},
-    github: { owner: 'o', repo: 'r' },
+    hosting: { service: 'gitHub', host: 'github.com', remote: 'origin', canCheckOut: true, comparesSinceDiverged: false },
     bisect: null,
     combineUpstream: true,
     ...overrides,
@@ -46,7 +46,7 @@ describe('the labels of the commits in the graph', () => {
     const pulls = { feature: pull(7) };
     const remoteBranches = [remoteAt('origin/feature', 'ccc')];
     expect(buildLabels(state({ branches: [{ ...feature, upstream: null }], pulls })).get('bbb')?.[0].pull).toBeUndefined();
-    expect(buildLabels(state({ remoteBranches, pulls, github: null })).get('ccc')?.[0].pull).toBeUndefined();
+    expect(buildLabels(state({ remoteBranches, pulls, hosting: null })).get('ccc')?.[0].pull).toBeUndefined();
   });
 
   it('gives a branch and its upstream one label at the same commit, and one each once they part', () => {

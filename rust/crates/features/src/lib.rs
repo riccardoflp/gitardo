@@ -23,6 +23,7 @@ pub mod file_view;
 pub mod fixup;
 pub mod github;
 mod history;
+pub mod hosting;
 pub mod identity;
 pub mod merge;
 pub mod merge_view;
@@ -55,7 +56,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 164] = [
+pub const OPERATIONS: [(FeatureId, Operation); 167] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -154,6 +155,12 @@ pub const OPERATIONS: [(FeatureId, Operation); 164] = [
     (FeatureId("compare.choose"), compare::choose),
     (FeatureId("compare.copy-patch"), compare::copy_patch),
     (FeatureId("compare.open-on-github"), compare::open_on_github),
+    (FeatureId("compare.open-on-service"), compare::open_on_service),
+    (FeatureId("hosting.load-merge-requests"), hosting::load_merge_requests),
+    (
+        FeatureId("hosting.checkout-pull-request"),
+        hosting::checkout_pull_request,
+    ),
     (FeatureId("compare.path-with"), compare::path_with),
     (FeatureId("compare.selected-before"), compare::selected_before),
     (FeatureId("compare.take-file"), compare::take_file),
