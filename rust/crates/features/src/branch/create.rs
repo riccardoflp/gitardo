@@ -223,7 +223,8 @@ fn start(context: &Context) -> (String, String) {
         | Target::ListedFile(_)
         | Target::TaskGroups(_)
         | Target::Task(_)
-        | Target::LfsFiles(_) => (String::from("HEAD"), String::from("HEAD")),
+        | Target::LfsFiles(_)
+        | Target::LfsLock(_) => (String::from("HEAD"), String::from("HEAD")),
         Target::Commit(commit) => (commit.to_string(), commit.short().to_owned()),
         Target::Branch(name) => (ref_argument(RefKind::Branch, name, &names), name.clone()),
         Target::RemoteBranch(name) => (ref_argument(RefKind::RemoteBranch, name, &names), name.clone()),

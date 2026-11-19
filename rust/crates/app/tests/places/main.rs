@@ -67,6 +67,7 @@ mod label_overflow;
 mod lanes;
 mod large_diffs;
 mod large_files;
+mod large_files_locks;
 mod lfs;
 mod load_more;
 mod log_secrets;

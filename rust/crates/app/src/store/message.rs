@@ -467,8 +467,9 @@ pub enum JobKind {
         /// What is read.
         job: crate::work::file_search::SearchJob,
     },
-    /// Reads Git LFS and the files it stores, in the top folder of a working tree, for the Large files page.
-    ReadLargeFiles(PathBuf),
+    /// Reads Git LFS and the files it stores, in the top folder of a working tree, for the Large files page, and the
+    /// locks of the server when asked (`lfs.read-locks`).
+    ReadLargeFiles(PathBuf, bool),
     /// Reads the settings of new worktrees, and what git ignores when the page looks, for their page
     /// (`worktree-setup.page`).
     ReadNewWorktrees {

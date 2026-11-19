@@ -268,3 +268,47 @@ fn lfs_store_committed__the_files_to_store_are_those_committed_before_the_patter
 fn lfs_read_files__a_repository_with_no_file_prints_files_null_and_none_is_listed() {
     assert_eq!(parse_files_json("{\n \"files\": null\n}\n"), []);
 }
+
+#[test]
+fn lfs_read_locks__parsing_one_lock_of_ours_gives_one_lock_of_this_user_on_a_psd() {
+    let printed = r#"{"ours":[{"id":"1","path":"a.psd","owner":{"name":"reviewer"},"locked_at":"2026-11-19T10:00:00Z"}],"theirs":[]}"#;
+    let model::lfs::LfsLocks::Read(locks) = super::parse_verified(printed) else {
+        panic!("the locks are read");
+    };
+    assert_eq!(
+        locks,
+        [model::lfs::LfsLock {
+            id: String::from("1"),
+            path: String::from("a.psd"),
+            owner: String::from("reviewer"),
+            locked_at: String::from("2026-11-19T10:00:00Z"),
+            is_ours: Some(true),
+        }]
+    );
+    // Without --verify the locks are an array, with no word on whose they are.
+    let plain = r#"[{"id":"7","path":"art/logo \"final\".psd","owner":{"name":"designer"},"locked_at":"x"}]"#;
+    let model::lfs::LfsLocks::Read(locks) = super::parse_plain(plain) else {
+        panic!("the locks are read");
+    };
+    assert_eq!(locks[0].path, "art/logo \"final\".psd");
+    assert_eq!(locks[0].is_ours, None);
+}
+
+#[test]
+fn lfs_read_locks__a_server_that_answers_that_it_does_not_support_locks_gives_no_lock_and_that_fact() {
+    let said = "Remote \"origin\" does not support the Git LFS locking API. Consider disabling it with:";
+    assert_eq!(
+        super::unsupported(said),
+        Some(model::lfs::LfsLocks::Unsupported(said.to_owned()))
+    );
+    assert_eq!(super::unsupported("fatal: unable to access the server"), None);
+    // A server Git LFS cannot reach, or that answers 404, is a server with no lock to Git LFS 3.7.1.
+    let repository = stored(&[]);
+    let _ = repository.git(&["config", "lfs.url", "http://127.0.0.1:9/no-server"]);
+    let git = git_of(&repository).with_variable("GIT_TERMINAL_PROMPT", "0");
+    let read = super::read_locks(&git, &model::lfs::LfsLocksRequest::default());
+    assert!(
+        matches!(&read, Ok(model::lfs::LfsLocks::Read(locks)) if locks.is_empty()),
+        "{read:?}"
+    );
+}

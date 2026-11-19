@@ -235,16 +235,21 @@ Acceptance:
 - [x] In a repository with `*.psd` tracked and two files, one not downloaded, the page lists the pattern, both files
       with their sizes, and **Download all (1, 2.0 MB)**.
 - [x] Without Git LFS, the head says it is not installed, and the patterns are listed all the same.
-- [ ] A file locked by someone else shows their name, and its menu has **Unlock** with the warning of `lfs.unlock`.
+- [x] A file locked by someone else shows their name, and its menu has **Unlock** with the warning of `lfs.unlock`.
 - [x] The page matches its snapshots in each theme, with files and with none.
 
 - As built (phase 3), the page reads on its worker (`app::work::large_files::read_large_files`) the status with the
   version of Git LFS and the files of the commit checked out, again once the repository was read since, on
   **Refresh**, and for another repository; the menu of the row of a repository not shown shows it first. A file is
   said **Downloaded** when its content is in the store and in the working tree, so that **Download all** counts the
-  files left as pointers. The locks, the name of whoever locked a file and **Lock** or **Unlock** come with phase 4,
-  and the card is built once they are. `git lfs ls-files --json` prints `"files": null` in a repository with no file,
-  which lists none.
+  files left as pointers. `git lfs ls-files --json` prints `"files": null` in a repository with no file, which lists
+  none.
+- As built (phase 4), the locks are read on the same worker, only when the page opens, on **Refresh** and once **Lock**
+  or **Unlock** ended; a read of the files after a read of the repository keeps the locks read before. The name of
+  whoever locked a file is in a column between the path and the size, **You** for a lock of this user when the server
+  verifies. **Lock** and **Unlock** have no icon, as no icon says a lock. A note under **Files** says **Reading the
+  locks…**, **The server of `<remote>` does not support locks.**, or what git said when the locks could not be read;
+  the remote is the one `remote.default` chooses, as Git LFS asks it.
 
 ### `lfs.set-up` — Set up Git LFS for a repository
 
@@ -387,10 +392,16 @@ holds each lock.
 
 Acceptance:
 
-- [ ] Parsing `{"ours":[{"id":"1","path":"a.psd","owner":{"name":"reviewer"},"locked_at":"…"}],"theirs":[]}` gives
+- [x] Parsing `{"ours":[{"id":"1","path":"a.psd","owner":{"name":"reviewer"},"locked_at":"…"}],"theirs":[]}` gives
       one lock of this user on `a.psd`.
-- [ ] A server that answers that it does not support locks gives no lock and that fact.
-- [ ] Opening the **Large files** page runs it once; a read of the repository never does.
+- [x] A server that answers that it does not support locks gives no lock and that fact.
+- [x] Opening the **Large files** page runs it once; a read of the repository never does.
+
+- As built, Git LFS 3.7.1 answers `git lfs locks` with no lock and success when the server answers `404`, cannot be
+  reached, or the remote is a folder: only a failure whose message says that locking is not supported is taken for a
+  server without locks, and another failure is said as git said it. The JSON is read by a small reader of the crate
+  `git`, which may not depend on `crates/json` (rule R1.3). The tests ask a server of the tests on 127.0.0.1, set as
+  `lfs.url` of a clone.
 
 ### `lfs.lock` — Lock a file stored with Git LFS
 
@@ -410,7 +421,7 @@ Locks a file on the server, so that others know not to change it.
 
 Acceptance:
 
-- [ ] **Lock** on `art/logo.psd` runs `git lfs lock --json art/logo.psd`, and the page then shows the lock as this
+- [x] **Lock** on `art/logo.psd` runs `git lfs lock --json art/logo.psd`, and the page then shows the lock as this
       user's.
 
 ### `lfs.unlock` — Unlock a file stored with Git LFS
@@ -433,6 +444,9 @@ Takes a lock away: one's own, or, after a warning, someone else's.
 
 Acceptance:
 
-- [ ] **Unlock** on a lock of this user runs `git lfs unlock art/logo.psd`.
-- [ ] **Unlock** on a lock of someone else asks with the warning, then runs `git lfs unlock --force --id=<id>`.
-- [ ] With the file changed and not committed, Git LFS's refusal is followed by **Unlock anyway**.
+- [x] **Unlock** on a lock of this user runs `git lfs unlock art/logo.psd`.
+- [x] **Unlock** on a lock of someone else asks with the warning, then runs `git lfs unlock --force --id=<id>`.
+- [x] With the file changed and not committed, Git LFS's refusal is followed by **Unlock anyway**.
+
+- As built, a lock whose owner the server did not say (it does not verify) is unlocked as one of this user's, and
+  **Unlock anyway** is offered when what Git LFS said names uncommitted changes.

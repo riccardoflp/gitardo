@@ -39,7 +39,7 @@ fn content(size: usize, letter: char) -> String {
 
 /// A repository storing `art/logo.psd` of 2.0 MB and `art/cover.psd` of 1.1 KB with Git LFS, pushed to a remote, and a
 /// clone of it made without the contents in which only `art/cover.psd` was pulled.
-fn one_not_downloaded() -> (Repository, PathBuf) {
+pub(super) fn one_not_downloaded() -> (Repository, PathBuf) {
     let repository = stored(&[
         ("art/logo.psd", &content(LOGO_SIZE, 'a')),
         ("art/cover.psd", &content(1200, 'c')),
@@ -65,7 +65,7 @@ fn one_not_downloaded() -> (Repository, PathBuf) {
 }
 
 /// A window showing a folder with the Large files page opened, drawn once.
-fn page(folder: &Path, theme: ThemeName) -> (State, Window) {
+pub(super) fn page(folder: &Path, theme: ThemeName) -> (State, Window) {
     let mut state = showing(folder.to_path_buf());
     let _ = run(&mut state, Message::Intent(Intent::LargeFiles(LargeFilesIntent::Open)));
     let mut window = Window::new(theme, SIZE);
@@ -86,7 +86,7 @@ fn point_of(tree: &TreeUpdate, text: &str) -> Point {
 }
 
 /// The items of the menu of the row of a pattern or a file, opened by the button of context menus.
-fn menu_of(window: &mut Window, state: &State, text: &str) -> Vec<String> {
+pub(super) fn menu_of(window: &mut Window, state: &State, text: &str) -> Vec<String> {
     let (_, tree) = window.draw(state, &[]);
     menu_items(&right_click(window, state, point_of(&tree, text)))
 }
@@ -161,6 +161,7 @@ fn lfs_page__without_git_lfs_the_head_says_it_is_not_installed_and_the_patterns_
             }],
         },
         files: Vec::new(),
+        locks: None,
     }));
     let tree = drawn(&mut window, &state);
     assert!(says(&tree, words::NOT_INSTALLED));

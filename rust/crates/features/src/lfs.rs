@@ -2,15 +2,19 @@
 //! Git LFS, storing a pattern with it and no longer, the files committed before a pattern, and the locks.
 
 mod download;
+mod lock;
 mod set_up;
 mod store_committed;
 mod track;
+mod unlock;
 mod untrack;
 
 pub use download::download;
+pub use lock::lock;
 pub use set_up::set_up;
 pub use store_committed::store_committed;
 pub use track::track;
+pub use unlock::{UNCOMMITTED, unlock, warning as unlock_warning};
 pub use untrack::untrack;
 
 use model::contract::Refusal;

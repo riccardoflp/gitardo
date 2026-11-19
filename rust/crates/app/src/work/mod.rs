@@ -200,7 +200,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadFiles { folder } => (folder, activity::LISTING_FILES),
         JobKind::FileSearch { folder, .. } => (folder, activity::SEARCHING_FILES),
         JobKind::ReadNewWorktrees { folder, .. } => (folder, activity::LOOKING_AT_IGNORED),
-        JobKind::ReadLargeFiles(folder) => (folder, activity::READING_LARGE_FILES),
+        JobKind::ReadLargeFiles(folder, _) => (folder, activity::READING_LARGE_FILES),
         JobKind::ReadIgnored { folder, .. } => (folder, activity::CHECKING_IGNORED),
         JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),
     };

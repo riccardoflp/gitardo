@@ -9,6 +9,10 @@
   sizes and whether they are downloaded, with **Download all** and **Refresh**. **Store with Git LFS…** in the menu
   of a file of the Files page stores its extension, the file alone, its folder or a pattern typed with Git LFS, and
   says how many files committed before the pattern takes, offering to store them in the next commit.
+- The **Large files** page shows the locks of the server: the name of whoever locked a file, read when the page opens
+  and on **Refresh**, never with the reads of the repository, and **The server of `<remote>` does not support locks.**
+  when it has none. **Lock** in the menu of a file runs `git lfs lock`; **Unlock** runs `git lfs unlock`, with
+  **Unlock anyway** when the file has changes not committed, and asks first for someone else's lock, who is not told.
 - A file stored with Git LFS is never shown as the text of its pointer. Left as a pointer, as after a clone without
   Git LFS, the File page says **Stored with Git LFS, not downloaded** with its size and **Download**, which pulls it
   with `git lfs pull --include=<path>`; at a revision, its content is read from the store of the repository when it is

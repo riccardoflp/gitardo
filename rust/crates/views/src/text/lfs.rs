@@ -77,6 +77,30 @@ pub const READING: &str = "Reading the files stored with Git LFS\u{2026}";
 /// What the page says of a repository that stores nothing with Git LFS.
 pub const NOTHING_STORED: &str = "This repository stores no file with Git LFS.";
 
+/// The entry of the menu of a file that locks it.
+pub const LOCK: &str = "Lock";
+/// The entry of the menu of a locked file that unlocks it.
+pub const UNLOCK: &str = "Unlock";
+/// What the page says while it asks the server for the locks.
+pub const READING_LOCKS: &str = "Reading the locks\u{2026}";
+/// The owner of a lock of this user, when the server verifies.
+pub const YOU: &str = "You";
+
+/// What the page says of a server without locks: **The server of `origin` does not support locks.**
+#[must_use]
+pub fn no_locks(remote: Option<&str>) -> String {
+    format!(
+        "The server of {} does not support locks.",
+        remote.unwrap_or("this repository")
+    )
+}
+
+/// What the page says when the locks could not be read.
+#[must_use]
+pub fn locks_failed(said: &str) -> String {
+    format!("The locks could not be read: {said}")
+}
+
 /// The head of the page: **Git LFS 3.7.1**.
 #[must_use]
 pub fn version(version: &str) -> String {

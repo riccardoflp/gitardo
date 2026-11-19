@@ -10,10 +10,13 @@ use crate::read::fields::arguments;
 use crate::{Git, GitError};
 
 mod committed;
+mod json;
+mod locks;
 #[cfg(test)]
 mod tests;
 
 pub use committed::{parse_stored, parse_tracked, read_pointers, read_to_store, tracked_arguments};
+pub use locks::{locks_arguments, parse_plain, parse_verified, read_locks, unsupported};
 
 /// Whether Git LFS is installed and its version, whether the repository is set up for it, and the patterns its files of
 /// attributes store with it: those git tracks and the exclude file of attributes of the repository.

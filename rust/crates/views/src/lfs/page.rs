@@ -1,9 +1,9 @@
-//! The Large files page (`lfs.page`): whether Git LFS is there and set up, the patterns, and the files with their sizes
-//! and whether they are downloaded, each with its menu; rows one under the other in a scroll area, those in sight
-//! drawn.
+//! The Large files page (`lfs.page`): whether Git LFS is there and set up, the patterns, and the files with their sizes,
+//! whether they are downloaded and who locked them, each with its menu; rows one under the other in a scroll area,
+//! those in sight drawn.
 
 use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
-use model::lfs::{LfsDownload, LfsFile, LfsPath, LfsStatus};
+use model::lfs::{LfsDownload, LfsFile, LfsLock, LfsLocks, LfsPath, LfsStatus};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Button, ButtonKind, Label, MenuEntry, Rect, Sense, TextKind, Tone, Ui};
 
@@ -19,6 +19,8 @@ const PAGE_WIDTH: f32 = 960.0;
 const SIZE_WIDTH: f32 = 120.0;
 /// The width of the column of whether a file is downloaded.
 const STATE_WIDTH: f32 = 160.0;
+/// The width of the column of who locked a file.
+const OWNER_WIDTH: f32 = 140.0;
 /// The answer of `lfs.untrack` that names the pattern.
 const PATTERN: AnswerKey = AnswerKey("pattern");
 
@@ -33,6 +35,14 @@ pub struct LfsPageState<'a> {
     pub is_reading: bool,
     /// What git said when the read failed.
     pub failed: Option<&'a str>,
+    /// The locks of the server, or that it has none; none before they are read.
+    pub locks: Option<&'a LfsLocks>,
+    /// Whether the server is being asked for the locks.
+    pub is_reading_locks: bool,
+    /// What git said when the locks could not be read.
+    pub locks_failed: Option<&'a str>,
+    /// The remote Git LFS asks for the locks.
+    pub remote: Option<&'a str>,
 }
 
 /// Something asked of the page.
@@ -42,8 +52,10 @@ pub enum LargeFilesIntent {
     Open,
     /// **Large files…** of the menu of the row of a repository: show it, then open the page.
     OpenForTab(usize),
-    /// **Refresh**: read the files again.
+    /// **Refresh**: read the files and the locks again.
     Refresh,
+    /// **Lock** or **Unlock** was chosen: read the locks again once the operation ended.
+    ReadLocksAfterOperation,
 }
 
 /// A row of the page.
@@ -65,6 +77,8 @@ enum Row {
     FilesTitle,
     /// What the page says of the read: reading, or what git said.
     Note,
+    /// What the page says of the locks: reading them, a server without them, or what git said.
+    LocksNote,
     /// A file, by its place.
     File(usize),
 }
@@ -85,6 +99,10 @@ enum PatternChoice {
 enum FileChoice {
     /// **Download**.
     Download,
+    /// **Lock**.
+    Lock,
+    /// **Unlock**.
+    Unlock,
     /// **Open file**.
     Open,
     /// **Show in the Files page**.
@@ -150,6 +168,9 @@ fn rows(state: &LfsPageState<'_>) -> Vec<Row> {
     if state.failed.is_some() || (state.is_reading && state.files.is_empty()) {
         rows.push(Row::Note);
     }
+    if locks_note(state).is_some() {
+        rows.push(Row::LocksNote);
+    }
     rows.extend((0..state.files.len()).map(Row::File));
     rows
 }
@@ -176,12 +197,17 @@ fn draw_row(state: &LfsPageState<'_>, row: Row, ui: &mut Ui<'_>, rect: Rect) -> 
             let _ = ui.label(rect, &Label::new(said).tone(tone));
             Vec::new()
         }
+        Row::LocksNote => {
+            if let Some((said, tone)) = locks_note(state) {
+                let _ = ui.label(rect, &Label::new(&said).tone(tone));
+            }
+            Vec::new()
+        }
         Row::File(index) => state
             .files
             .get(index)
-            .and_then(|file| file_row(ui, rect, (index, file)))
-            .into_iter()
-            .collect(),
+            .map(|file| file_row(state, ui, rect, (index, file)))
+            .unwrap_or_default(),
         Row::Gap => Vec::new(),
     }
 }
@@ -272,6 +298,32 @@ fn files_title(state: &LfsPageState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Int
     intents
 }
 
+/// What the page says of the locks: **Reading the locks…** while none were read yet, that the server has none, or
+/// what git said; none once they are read.
+fn locks_note(state: &LfsPageState<'_>) -> Option<(String, Tone)> {
+    if let Some(failed) = state.locks_failed {
+        return Some((words::locks_failed(failed), Tone::Error));
+    }
+    match state.locks {
+        Some(LfsLocks::Unsupported(_)) => Some((words::no_locks(state.remote), Tone::Muted)),
+        None if state.is_reading_locks => Some((String::from(words::READING_LOCKS), Tone::Muted)),
+        _ => None,
+    }
+}
+
+/// The lock of a file, when the server has one.
+fn lock_of<'a>(state: &LfsPageState<'a>, file: &LfsFile) -> Option<&'a LfsLock> {
+    match state.locks? {
+        LfsLocks::Read(locks) => locks.iter().find(|lock| lock.path == file.path),
+        LfsLocks::Unsupported(_) => None,
+    }
+}
+
+/// Whether a file not locked can be locked: Git LFS is there and the server answered with its locks.
+fn can_lock(state: &LfsPageState<'_>) -> bool {
+    state.status.is_some_and(|status| status.version.is_some()) && matches!(state.locks, Some(LfsLocks::Read(_)))
+}
+
 /// Whether the content of a file is on this computer and in the working tree.
 fn is_downloaded(file: &LfsFile) -> bool {
     file.is_downloaded && file.is_checked_out
@@ -323,22 +375,41 @@ fn open_file(path: &str) -> Intent {
     Intent::FileView(FileViewIntent::Open(FileTarget::working_tree(path)))
 }
 
-/// A file, with its size and whether it is downloaded, and its menu.
-fn file_row(ui: &mut Ui<'_>, rect: Rect, (index, file): (usize, &LfsFile)) -> Option<Intent> {
+/// A file, with whether it is downloaded, its size and who locked it, and its menu.
+fn file_row(state: &LfsPageState<'_>, ui: &mut Ui<'_>, rect: Rect, (index, file): (usize, &LfsFile)) -> Vec<Intent> {
     let response = ui.interact(ui.id(("file", index)), rect, Sense::CLICK | Sense::HOVER);
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.large);
-    let (state, tone) = if is_downloaded(file) {
+    let (downloaded, tone) = if is_downloaded(file) {
         (words::DOWNLOADED, Tone::Muted)
     } else {
         (words::NOT_DOWNLOADED, Tone::Warning)
     };
-    let _ = ui.label(parts.right(STATE_WIDTH), &Label::new(state).tone(tone));
+    let _ = ui.label(parts.right(STATE_WIDTH), &Label::new(downloaded).tone(tone));
     let size = crate::text::worktree_setup::bytes(file.size);
     let _ = ui.label(parts.right(SIZE_WIDTH), &Label::new(&size).tone(Tone::Muted));
+    let lock = lock_of(state, file);
+    let owner_cell = parts.right(OWNER_WIDTH);
+    if let Some(lock) = lock {
+        let owner = if lock.is_ours == Some(true) {
+            words::YOU
+        } else {
+            lock.owner.as_str()
+        };
+        let _ = ui.label(owner_cell, &Label::new(owner).tone(Tone::Muted));
+    }
     let theme = *ui.theme();
     let last = file.path.rsplit('/').next().unwrap_or_default();
     ui.file_icon_in(parts.left(theme.sizes.icon), ui::FileOrFolder::File(last), Tone::Muted);
     let _ = ui.label(parts.rest(), &Label::new(&file.path));
+    let entries = file_entries(file, lock.is_some(), can_lock(state));
+    let Some(choice) = ui.context_menu(("file menu", index), &response, &entries) else {
+        return Vec::new();
+    };
+    file_choice(choice, file, lock)
+}
+
+/// The menu of a file: **Download** when it is not, **Lock** or **Unlock**, **Open file**, **Show in the Files page**.
+fn file_entries(file: &LfsFile, is_locked: bool, can_lock: bool) -> Vec<MenuEntry<'static, FileChoice>> {
     let mut entries = Vec::new();
     if !is_downloaded(file) {
         entries.push(MenuEntry::Item(icons::action(
@@ -346,6 +417,13 @@ fn file_row(ui: &mut Ui<'_>, rect: Rect, (index, file): (usize, &LfsFile)) -> Op
             words::DOWNLOAD,
             FileChoice::Download,
         )));
+    }
+    if is_locked {
+        entries.push(MenuEntry::Item(icons::without_icon(words::UNLOCK, FileChoice::Unlock)));
+    } else if can_lock {
+        entries.push(MenuEntry::Item(icons::without_icon(words::LOCK, FileChoice::Lock)));
+    }
+    if !entries.is_empty() {
         entries.push(MenuEntry::Separator);
     }
     entries.push(MenuEntry::Item(icons::action(
@@ -358,7 +436,18 @@ fn file_row(ui: &mut Ui<'_>, rect: Rect, (index, file): (usize, &LfsFile)) -> Op
         words::SHOW_IN_FILES,
         FileChoice::ShowInFiles,
     )));
-    match ui.context_menu(("file menu", index), &response, &entries)? {
+    entries
+}
+
+/// What a choice of the menu of a file asks; **Lock** and **Unlock** read the locks again once they ended.
+fn file_choice(choice: FileChoice, file: &LfsFile, lock: Option<&LfsLock>) -> Vec<Intent> {
+    let operation = |feature: &'static str, target: Target| {
+        vec![
+            Intent::Feature(FeatureIntent::Run(FeatureId(feature), target)),
+            Intent::LargeFiles(LargeFilesIntent::ReadLocksAfterOperation),
+        ]
+    };
+    match choice {
         FileChoice::Download => {
             let download = LfsDownload {
                 paths: vec![LfsPath {
@@ -368,11 +457,15 @@ fn file_row(ui: &mut Ui<'_>, rect: Rect, (index, file): (usize, &LfsFile)) -> Op
                 commit: None,
             };
             let target = Target::LfsFiles(Box::new(download));
-            Some(Intent::Feature(FeatureIntent::Run(FeatureId("lfs.download"), target)))
+            vec![Intent::Feature(FeatureIntent::Run(FeatureId("lfs.download"), target))]
         }
-        FileChoice::Open => Some(open_file(&file.path)),
-        FileChoice::ShowInFiles => Some(Intent::Files(crate::files::FilesPageIntent::OpenFile(
+        FileChoice::Lock => operation("lfs.lock", Target::File(file.path.clone())),
+        FileChoice::Unlock => lock
+            .map(|lock| operation("lfs.unlock", Target::LfsLock(Box::new(lock.clone()))))
+            .unwrap_or_default(),
+        FileChoice::Open => vec![open_file(&file.path)],
+        FileChoice::ShowInFiles => vec![Intent::Files(crate::files::FilesPageIntent::OpenFile(
             file.path.clone(),
-        ))),
+        ))],
     }
 }

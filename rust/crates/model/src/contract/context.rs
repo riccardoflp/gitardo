@@ -85,6 +85,8 @@ pub enum Target {
     Task(Box<crate::tasks::TaskTarget>),
     /// Files stored with Git LFS to download, of the commit checked out or of another (`lfs.download`).
     LfsFiles(Box<crate::lfs::LfsDownload>),
+    /// A lock of a file stored with Git LFS (`lfs.unlock`).
+    LfsLock(Box<crate::lfs::LfsLock>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.

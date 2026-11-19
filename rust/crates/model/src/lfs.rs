@@ -1,10 +1,12 @@
 //! Files a repository stores with Git LFS (D84): whether Git LFS is there and what the repository stores with it, the
 //! files with their sizes, a pointer told apart from a file, and the content a pointer stands for.
 
+mod locks;
 mod pages;
 #[cfg(test)]
 mod tests;
 
+pub use locks::{LfsLock, LfsLocks, LfsLocksRequest};
 pub use pages::{LfsDownload, LfsPath, PointerChange, SideOfPage, StoredSide, StoredWithLfs, pointer_change};
 
 /// The most bytes a pointer has.

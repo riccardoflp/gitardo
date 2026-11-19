@@ -81,7 +81,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadFiles { .. }
             | JobKind::FileSearch { .. }
             | JobKind::ReadNewWorktrees { .. }
-            | JobKind::ReadLargeFiles(_)
+            | JobKind::ReadLargeFiles(..)
             | JobKind::ReadIgnored { .. }
             | JobKind::ReadBlame { .. }
             | JobKind::CountConflicts { .. } => None,
@@ -206,7 +206,7 @@ fn not_listed(job: JobId, kind: &JobKind) -> Message {
             }),
         };
     }
-    if let JobKind::ReadLargeFiles(_) = kind {
+    if let JobKind::ReadLargeFiles(..) = kind {
         return Message::LargeFilesRead(job, Box::new(Ok(crate::work::large_files::LargeFilesRead::default())));
     }
     if let JobKind::ReadIgnored { .. } = kind {
