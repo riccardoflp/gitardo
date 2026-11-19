@@ -14,6 +14,10 @@ use super::menu::OperationEntry;
 use crate::text::bisect as words;
 use crate::text::compare as compare_words;
 use crate::text::patch as patch_words;
+use crate::text::range_diff as range_diff_words;
+
+/// The key under which `range-diff.compare` takes what a branch is compared with: `upstream` for its upstream.
+const RANGE_DIFF_WITH: AnswerKey = AnswerKey("range-diff.with");
 
 /// **Compare with…** and, when it is not at the commit checked out, **Compare with `<current branch>`** (**Compare with
 /// HEAD** when no branch is checked out), for a commit, a branch, a remote branch or a tag at a commit.
@@ -34,7 +38,52 @@ pub(crate) fn compare_entries(menus: ReferenceMenus<'_>, target: &Target, commit
             target.clone(),
         ));
     }
+    entries.extend(range_diff_entries(repository, target));
     entries
+}
+
+/// **What its last rewrite changed** for a local branch, with **Compare with `<upstream>` commit by commit** when it
+/// and its upstream each have commits the other has not, as of the last fetch; **What the force push changed** for a
+/// remote branch (`range-diff.compare`).
+pub(crate) fn range_diff_entries(repository: &RepositoryState, target: &Target) -> Vec<OperationEntry> {
+    match target {
+        Target::Branch(name) => {
+            let mut entries = vec![OperationEntry::runs(
+                range_diff_words::LAST_REWRITE,
+                "range-diff.compare",
+                target.clone(),
+            )];
+            entries.extend(compare_with_upstream(repository, name));
+            entries
+        }
+        Target::RemoteBranch(_) => vec![OperationEntry::runs(
+            range_diff_words::FORCE_PUSH,
+            "range-diff.compare",
+            target.clone(),
+        )],
+        _ => Vec::new(),
+    }
+}
+
+/// **Compare with `<upstream>` commit by commit** for a local branch that has commits its upstream has not and the
+/// other way round, as of the last fetch: what a force push would replace.
+pub(crate) fn compare_with_upstream(repository: &RepositoryState, name: &str) -> Option<OperationEntry> {
+    let branch = repository.branches.iter().find(|branch| branch.name == name)?;
+    let upstream = branch
+        .upstream
+        .as_ref()
+        .filter(|upstream| !upstream.is_gone && upstream.ahead > 0 && upstream.behind > 0)?;
+    let shown = upstream
+        .reference
+        .strip_prefix("refs/remotes/")
+        .unwrap_or(&upstream.reference);
+    let answers = Answers::new().with(RANGE_DIFF_WITH, Answer::Choice(String::from("upstream")));
+    Some(OperationEntry::runs_with(
+        range_diff_words::compare_with_upstream(shown),
+        "range-diff.compare",
+        Target::Branch(name.to_owned()),
+        answers,
+    ))
 }
 
 /// The entries of a commit of the timeline beyond those of `branch.`: the comparisons, with the commit selected before

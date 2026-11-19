@@ -128,6 +128,7 @@ fn github_offer_after_push__the_first_push_of_a_branch_says_pushed_with_create_p
         title: None,
         feature: model::contract::FeatureId("sync.push"),
         asking: None,
+        then: None,
     });
     let pushed = Ended::Ran {
         title: Text::from("Push main"),

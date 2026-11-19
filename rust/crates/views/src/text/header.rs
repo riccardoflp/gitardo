@@ -53,6 +53,11 @@ pub const PUSH_FORCE_WITH_LEASE_TOOLTIP: &str = "git push --force-with-lease";
 pub const PUSH_FORCE: &str = "Push (force)";
 /// What **Push (force)** runs.
 pub const PUSH_FORCE_TOOLTIP: &str = "git push --force";
+/// **Compare with the upstream commit by commit** among the other ways to push, while the branch checked out and its
+/// upstream have diverged (`range-diff.compare`).
+pub const COMPARE_WITH_UPSTREAM: &str = "Compare with the upstream commit by commit";
+/// Its tooltip.
+pub const COMPARE_WITH_UPSTREAM_TOOLTIP: &str = "git range-diff, before a force push";
 /// The button of what runs, as the screen reader and its tooltip say it.
 pub const ACTIVITY: &str = "Activity";
 /// The **…** button at the end of the header, as the screen reader and its tooltip say it.

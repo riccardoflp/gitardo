@@ -37,12 +37,14 @@ pub fn amend(context: &Context, answers: &Answers) -> Outcome {
         format!("Amend the last commit as \"{title_line}\"")
     };
     let step = Step::git(folder, arguments);
+    let mut after = vec![FollowUp::EmptyCommitMessage];
+    after.extend(crate::range_diff::see_what_changed_here(context));
     Outcome::Run(Plan {
         title: Text::from(title),
         steps: vec![step],
         danger: Danger::None,
         undo: Undo::ByReflog,
-        after: vec![FollowUp::EmptyCommitMessage],
+        after,
         on_failure: Vec::new(),
     })
 }
@@ -77,7 +79,13 @@ mod tests {
     fn commit_amend__with_a_message_and_nothing_staged_replaces_the_message() {
         let plan = plan(amend(&context(state(), Target::Head), &with_message("Better words")));
         assert_eq!(lines(&plan), ["git commit --amend -m \"Better words\""]);
-        assert_eq!(plan.after, [FollowUp::EmptyCommitMessage]);
+        assert_eq!(
+            plan.after,
+            [
+                FollowUp::EmptyCommitMessage,
+                crate::range_diff::see_what_changed("main")
+            ]
+        );
     }
 
     #[test]

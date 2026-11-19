@@ -258,6 +258,7 @@ fn repo_close_tab__the_tab_where_an_operation_runs_is_refused_and_another_tab_is
         feature: FeatureId("branch.create"),
         asking: None,
         title: Some(String::from("Create branch feature")),
+        then: None,
     });
     crate::store::tabs::operation_started(&mut state);
     assert_eq!(intent(&mut state, Intent::CloseTab(0)), []);

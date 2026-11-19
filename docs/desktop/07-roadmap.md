@@ -1222,7 +1222,11 @@ continued goes back by the reflog alone (Q1425).
 Phase 4 is built: rule R9.3 names `git range-diff`, the last rewrite of a branch or a remote branch from its reflog
 (`Query::LastRewrite`), the ranges compared (`model::range_diff::ranges`), and the pairs read with the count of each
 line and the subjects now (`git::read::range_diff::read_pairs`), tested on output recorded in
-`crates/git/tests/golden/range-diff`. Phases 5 and 6 are not built yet.
+`crates/git/tests/golden/range-diff`.
+Phase 5 is built: the page of what a rewrite changed (`range-diff.page`), opened by `range-diff.compare` from **See
+what changed** after a rewrite, the menus of a branch and of a remote branch, the menu of **Sync**, **Compare first** in
+the warning of a force push, and what is said after a fetch that found an upstream force pushed; not after a pull, nor
+with `Ctrl+F` on the page. Phase 6 is not built yet.
 
 Nothing is built yet.
 

@@ -168,6 +168,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         FollowUp::OpenComparison(target) => {
             writeln!(out, "Compare {} with {}", target.first.name, target.second.name)?;
         }
+        FollowUp::OpenRangeDiff(target) => writeln!(out, "{}: {}", target.title, target.ranges.arguments.join(" "))?,
+        FollowUp::OfferBeforeRun(offered) => writeln!(out, "Before: {} ({})", offered.label, offered.feature.0)?,
         FollowUp::CloseMergePage(path) => writeln!(out, "Close the Merge page of {path}")?,
         FollowUp::CompareInPlace(sides) => {
             writeln!(out, "Compare {} with {}", sides.from.name, sides.to.name)?;
@@ -196,15 +198,13 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
             Some(value) => writeln!(out, "Set {} to {value}", written.key)?,
             None => writeln!(out, "Remove {}", written.key)?,
         },
-        FollowUp::ForgetTrustedFolders(folders) => {
-            let mut folders = folders.iter();
-            folders.try_for_each(|folder| writeln!(out, "Stop trusting {}", folder.display()))?;
-        }
+        FollowUp::ForgetTrustedFolders(folders) => stop_trusting(out, folders)?,
         FollowUp::SelectHead
         | FollowUp::DeleteWhenRebaseEnded(_)
         | FollowUp::EmptyCommitMessage
         | FollowUp::ReadPullRequests
         | FollowUp::CheckAutostash
+        | FollowUp::CheckForcePushed
         | FollowUp::Recover(_)
         | FollowUp::PreparedMessage
         | FollowUp::Cleanup(_)
@@ -216,6 +216,13 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         | FollowUp::StopTasks(_) => {}
     }
     Ok(())
+}
+
+/// The lines `gitardo-cli` prints for the folders the window would stop trusting.
+fn stop_trusting(out: &mut dyn Write, folders: &[std::path::PathBuf]) -> io::Result<()> {
+    folders
+        .iter()
+        .try_for_each(|folder| writeln!(out, "Stop trusting {}", folder.display()))
 }
 
 fn report(

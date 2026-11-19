@@ -48,7 +48,8 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "compare.selected-before"
         | "compare.choose"
         | "compare.path-with"
-        | "details.compare-file-with" => super::COMPARE,
+        | "details.compare-file-with"
+        | "range-diff.compare" => super::COMPARE,
         "bisect.start" | "bisect.mark" => super::BISECT,
         "changes.stage" | "changes.stage-all" | "conflicts.mark-resolved" => super::ADD,
         "changes.unstage" | "changes.unstage-all" => super::UNSTAGE,

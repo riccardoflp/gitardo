@@ -23,6 +23,9 @@ pub enum FeatureIntent {
     /// Run an operation with some of its questions answered already, as an entry of a menu that names the answer does:
     /// **Pull (rebase)** among the ways to pull.
     RunWith(FeatureId, Target, Answers),
+    /// Close the plan shown without running it, then run this operation once the one shown ended: **Compare first** in
+    /// the warning of a force push (`preview.confirm`, Q1140).
+    RunInstead(FeatureId, Target, Answers),
     /// The text of the question shown was typed.
     Typed(String),
     /// A choice of the question shown was picked, or ticked or unticked when it takes many.
@@ -124,11 +127,12 @@ fn confirm_question(question: &Question, accept: &str, ui: &mut Ui<'_>) -> Vec<I
         message: question.detail.as_ref().map_or("", |detail| detail.as_str()),
         commands: &[],
         confirm: accept,
+        other: None,
         style: ConfirmStyle::Normal,
     };
     match ui.confirm(("question", question.key.0), &confirmation) {
         Some(ConfirmAnswer::Confirmed) => vec![answered(Some(Answer::Confirmed))],
-        Some(ConfirmAnswer::Cancelled) => vec![answered(None)],
+        Some(ConfirmAnswer::Cancelled | ConfirmAnswer::Other) => vec![answered(None)],
         None => Vec::new(),
     }
 }
@@ -406,16 +410,29 @@ pub fn confirm_view(state: &ConfirmState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         Some(reason) => words::warning(reason),
         None => words::THESE_COMMANDS_RUN.to_owned(),
     };
+    // An operation offered in place of the plan: **Compare first** in the warning of a force push (Q1140).
+    let instead = state.plan.after.iter().find_map(|follow_up| match follow_up {
+        model::contract::FollowUp::OfferBeforeRun(offered) => Some(offered),
+        _ => None, // The others are for once the plan ran.
+    });
     let confirmation = Confirmation {
         title,
         message: &message,
         commands: &commands,
         confirm: words::RUN,
+        other: instead.map(|offered| offered.label.as_str()),
         style,
     };
     match ui.confirm("plan", &confirmation) {
         Some(ConfirmAnswer::Confirmed) => vec![Intent::Feature(FeatureIntent::Confirm(true))],
         Some(ConfirmAnswer::Cancelled) => vec![Intent::Feature(FeatureIntent::Confirm(false))],
+        Some(ConfirmAnswer::Other) => instead.map_or_else(Vec::new, |offered| {
+            vec![Intent::Feature(FeatureIntent::RunInstead(
+                offered.feature,
+                offered.target.clone(),
+                offered.answers.clone(),
+            ))]
+        }),
         None => Vec::new(),
     }
 }

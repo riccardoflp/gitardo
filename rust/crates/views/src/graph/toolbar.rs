@@ -69,6 +69,9 @@ pub struct SyncMenu {
     pub built: [bool; 7],
     /// The place among `PULL_WAYS` of the way **Pull** takes, as the settings `pull.rebase` and `pull.autostash` say.
     pub pull_way: usize,
+    /// Whether the branch checked out and its upstream each have commits the other has not, as of the last fetch: the
+    /// menu then offers to compare them commit by commit among the other ways to push (`range-diff.compare`).
+    pub has_diverged: bool,
 }
 
 /// The commits Sync would bring and send.

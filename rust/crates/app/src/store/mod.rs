@@ -23,6 +23,7 @@ pub mod file_search;
 pub mod files_page;
 pub mod github;
 mod inspector;
+mod job;
 mod log_lines;
 mod merge_page;
 mod message;
@@ -30,6 +31,7 @@ pub mod new_worktrees;
 mod pages;
 pub mod panel;
 mod rail;
+pub mod range_diff;
 mod reads;
 mod rebase;
 pub mod review;
@@ -168,6 +170,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         message @ (Message::FilesRead { .. } | Message::NewWorktreesRead { .. }) => files_page::read(state, message),
+        Message::RangeDiffRead { job, result } => range_diff::pairs_read(state, job, result),
         Message::IgnoredRead { job, result } => reads::ignored_read(state, job, result),
         Message::FileSearch { job, answer } => file_search::answered(state, job, answer),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
@@ -175,16 +178,9 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::TabChanged { folder, changes, at } => tabs::tab_changed(state, &folder, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
-        Message::SummariesRead(reads) => {
-            tabs::summaries_read(state, reads);
-            Vec::new()
-        }
+        message @ (Message::SummariesRead(_) | Message::ReadTook { .. }) => reads::noted(state, message),
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
         Message::Caption(caption) => workspace::caption_changed(state, caption),
-        Message::ReadTook { line, took, time } => {
-            reads::read_took(state, (line, took, time));
-            Vec::new()
-        }
         message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
         Message::GitHub(message) => github::reduce(state, message),
         Message::Commands(message) => tasks_tab::reduce_commands(state, message),
@@ -429,6 +425,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),
         Intent::Rebase(intent) => rebase::reduce(state, intent),
+        Intent::RangeDiff(intent) => range_diff::reduce(state, intent),
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
         Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
         Intent::TasksTab(intent) => tasks_tab::reduce(state, intent),

@@ -69,7 +69,7 @@ pub fn commit(context: &Context, answers: &Answers) -> Outcome {
              conflicts."
         ))),
         undo: Undo::ByReflog,
-        after: Vec::new(),
+        after: crate::range_diff::see_what_changed_here(context).into_iter().collect(),
         on_failure: Vec::new(),
     };
     Outcome::Run(stack::with_todo_stack(plan, answers, &decided))

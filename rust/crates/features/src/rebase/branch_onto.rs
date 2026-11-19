@@ -72,7 +72,7 @@ pub fn branch_onto(context: &Context, answers: &Answers) -> Outcome {
         steps: vec![Step::git(state.folder.clone(), arguments)],
         danger: Danger::None,
         undo: Undo::ByReflog,
-        after: Vec::new(),
+        after: vec![crate::range_diff::see_what_changed(name)],
         on_failure: Vec::new(),
     };
     Outcome::Run(stack::with_stack(plan, answers, &decided, (name, onto.short())))

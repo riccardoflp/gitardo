@@ -23,7 +23,7 @@ pub fn fetch(context: &Context, _answers: &Answers) -> Outcome {
         undo: Undo::Impossible(Text::from(
             "A fetch only moves the remote-tracking branches, which Undo does not take back.",
         )),
-        after: vec![FollowUp::ReadPullRequests],
+        after: vec![FollowUp::ReadPullRequests, FollowUp::CheckForcePushed],
         on_failure: Vec::new(),
     })
 }

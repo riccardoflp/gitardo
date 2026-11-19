@@ -22,6 +22,11 @@ pub(crate) fn forced_push(context: &Context, answers: &Answers, option: &str) ->
         (Some(_), Some(overwritten)) => Some(overwritten),
         (None, _) => None,
     };
+    let mut after = vec![FollowUp::ReadPullRequests];
+    // Commits the remote branch would lose: the warning offers to compare the two first, commit by commit.
+    if overwritten.is_some_and(|overwritten| !overwritten.commits.is_empty()) {
+        after.push(crate::range_diff::compare_first(&target.branch));
+    }
     Outcome::Run(Plan {
         title: Text::from(format!(
             "Push {} to {} with {option}",
@@ -31,7 +36,7 @@ pub(crate) fn forced_push(context: &Context, answers: &Answers, option: &str) ->
         steps: vec![target.step(context, Some(option))],
         danger: Danger::Destructive(Text::from(warning(&target, overwritten))),
         undo: Undo::Impossible(Text::from(PUSH_UNDO)),
-        after: vec![FollowUp::ReadPullRequests],
+        after,
         on_failure: Vec::new(),
     })
 }

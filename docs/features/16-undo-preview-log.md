@@ -15,7 +15,9 @@ user's answer.
 - **Asks**: one dialog with the plan's title, its steps exactly as they will be logged, the data passed on standard
   input or through a file beside the step that takes it (the patch of `git apply --cached`, the todo list of an
   interactive rebase, a patch from the clipboard), the reason when the plan is destructive, and **Run** and **Cancel**.
-  **Run** is the default only when the plan is not destructive.
+  **Run** is the default only when the plan is not destructive. A plan that offers another operation instead
+  (`FollowUp::OfferBeforeRun`) has a third button with its words, **Compare first** before a force push
+  (`range-diff.compare`): it runs nothing of the plan and runs that operation once the dialog has closed.
 - **Plan**: none of its own: on **Run**, the plan it was given runs unchanged.
 - **Danger**: None
 - **Undo**: Nothing to undo: **Cancel** runs nothing.

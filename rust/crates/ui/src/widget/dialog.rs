@@ -255,6 +255,9 @@ pub struct Confirmation<'text> {
     pub commands: &'text [&'text str],
     /// The words of the button that runs them, such as **Run**.
     pub confirm: &'text str,
+    /// The words of a third button, between the two, which closes it and does something else in its place, such as
+    /// **Compare first**; none for the two buttons alone.
+    pub other: Option<&'text str>,
     /// How it looks.
     pub style: ConfirmStyle,
 }
@@ -266,6 +269,8 @@ pub enum ConfirmAnswer {
     Confirmed,
     /// Do nothing.
     Cancelled,
+    /// Do what the third button says in its place.
+    Other,
 }
 
 /// The most lines of commands a confirmation shows before it scrolls them.
@@ -290,16 +295,25 @@ impl Ui<'_> {
             ConfirmStyle::Normal => DialogRole::Primary,
             ConfirmStyle::Danger => DialogRole::Danger,
         };
-        let buttons = [
-            DialogButton {
-                label: "Cancel",
-                role: DialogRole::Cancel,
-            },
-            DialogButton {
-                label: confirmation.confirm,
-                role,
-            },
-        ];
+        let cancel = DialogButton {
+            label: "Cancel",
+            role: DialogRole::Cancel,
+        };
+        let confirm = DialogButton {
+            label: confirmation.confirm,
+            role,
+        };
+        let buttons: Vec<DialogButton<'_>> = match confirmation.other {
+            Some(other) => vec![
+                cancel,
+                DialogButton {
+                    label: other,
+                    role: DialogRole::Secondary,
+                },
+                confirm,
+            ],
+            None => vec![cancel, confirm],
+        };
         let dialog = Dialog {
             title: confirmation.title,
             body_height: message_height + spacing.large + commands_height,
@@ -317,6 +331,7 @@ impl Ui<'_> {
         });
         match (response.pressed, response.is_cancelled) {
             (_, true) => Some(ConfirmAnswer::Cancelled),
+            (Some(1), false) if confirmation.other.is_some() => Some(ConfirmAnswer::Other),
             (Some(_), false) => Some(ConfirmAnswer::Confirmed),
             (None, false) => None,
         }

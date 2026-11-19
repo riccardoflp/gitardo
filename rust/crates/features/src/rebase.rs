@@ -132,6 +132,7 @@ pub(crate) fn rewrite_plan(context: &Context, answers: &Answers, rewrite: Rewrit
     steps.push(Step::git(context.repository.folder.clone(), arguments));
     let mut after = rewrite.after;
     after.push(FollowUp::DeleteWhenRebaseEnded(folder.clone()));
+    after.extend(crate::range_diff::see_what_changed_here(context));
     let plan = Plan {
         title: Text::from(rewrite.title),
         steps,

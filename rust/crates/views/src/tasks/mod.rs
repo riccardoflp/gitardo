@@ -303,6 +303,7 @@ fn closing_question(list: &TaskList, ui: &mut Ui<'_>) -> Option<Intent> {
         message: words::CLOSING_DETAIL,
         commands: &[],
         confirm: words::STOP_AND_CLOSE,
+        other: None,
         style: ConfirmStyle::Normal,
     };
     let answer = ui.confirm("tasks are running", &confirmation)?;

@@ -1429,6 +1429,18 @@ someone else's force push replaced.
   `sync.push-force`, `sync.read-overwritten`, `sync.fetch`, `sync.pull`, `rebase.onto`, `rebase.interactive`,
   `commit.amend`.
 
+As built, **See what changed** is offered after `rebase.onto`, `rebase.branch-onto`, the interactive rebase and the
+operations built on it, `fixup.commit` and `commit.amend` (`FollowUp::OfferRun`), but not after a pull: its plan
+cannot know whether git rebased or merged, nor whether it made a commit again. **Compare first** is a third button of
+the warning (`FollowUp::OfferBeforeRun`, `ConfirmAnswer::Other`): the warning answers no, and `range-diff.compare` runs
+once the push has ended without a step. The menu of **Sync** says **Compare with the upstream commit by commit**, not
+the name of the upstream, which the menu does not carry. A fetch finds a force push when a local branch has more
+commits its upstream has not than before the fetch (`FollowUp::CheckForcePushed`), which only an upstream that lost
+commits gives; it says it of the first such upstream. A force push of a remote branch that no local branch follows is
+found only by **What the force push changed** in its menu. It also refuses "`<branch>` has not been force pushed
+lately." for a remote branch whose reflog has no forced update, "`<branch>` follows no remote branch." when asked
+against an upstream it has not, and the amend of a root commit, which has no commit to compare from.
+
 Acceptance:
 
 - [ ] Right after **Rebase feature onto main**, what is said has **See what changed**, which opens the page with the
@@ -1453,6 +1465,9 @@ changed in each, the ones added and the ones dropped.
 - **Uses**: `range-diff.read-pairs`, `range-diff.compare`, `commit-page.open`, `file-view.find`.
 - **Extension**: a tab of the editor area of its own, as the comparison is (`CompareApp`), with the same rows; a click
   on a hash opens the tab of that commit.
+
+As built, there is one page of what a rewrite changed in a window (`Page::RangeDiff`): opening another replaces it.
+`Ctrl+F` does not find in it yet. The activity says **Comparing the commits of a rewrite**, without the branch.
 
 What it shows, from the top:
 

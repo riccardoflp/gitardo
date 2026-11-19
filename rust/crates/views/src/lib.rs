@@ -43,6 +43,7 @@ mod number;
 pub mod page;
 pub mod panel;
 pub mod patch;
+pub mod range_diff;
 pub mod rebase;
 pub mod refs;
 pub mod repo;

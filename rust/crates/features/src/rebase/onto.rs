@@ -61,6 +61,8 @@ pub fn onto(context: &Context, answers: &Answers) -> Outcome {
         after: Vec::new(),
         on_failure: Vec::new(),
     };
+    let mut plan = plan;
+    plan.after.extend(crate::range_diff::see_what_changed_here(context));
     Outcome::Run(stack::with_stack(
         plan,
         answers,

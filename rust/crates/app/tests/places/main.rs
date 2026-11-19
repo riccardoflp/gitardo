@@ -86,6 +86,7 @@ mod patches;
 mod pointer;
 mod rail;
 mod rail_filter;
+mod range_diff;
 mod rebase;
 mod review;
 mod review_cards;

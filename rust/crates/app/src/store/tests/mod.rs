@@ -81,6 +81,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadFiles { .. }
             | JobKind::FileSearch { .. }
             | JobKind::ReadNewWorktrees { .. }
+            | JobKind::ReadRangeDiff { .. }
             | JobKind::ReadIgnored { .. }
             | JobKind::ReadBlame { .. }
             | JobKind::CountConflicts { .. } => None,
@@ -279,6 +280,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
         | JobKind::ReadFiles { .. }
         | JobKind::FileSearch { .. }
         | JobKind::ReadNewWorktrees { .. }
+        | JobKind::ReadRangeDiff { .. }
         | JobKind::ReadIgnored { .. }
         | JobKind::ReadImage { .. }
         | JobKind::ReadBlame { .. }

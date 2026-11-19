@@ -134,6 +134,11 @@ fn files_read(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: count_conflicts(folder, cancel).map_err(|error| error.to_string()),
         },
+        JobKind::ReadRangeDiff { folder, request } => Message::RangeDiffRead {
+            job: job.id,
+            result: git::read::range_diff::read_pairs(&Git::new(folder).with_cancel(cancel.clone()), request)
+                .map_err(|error| error.to_string()),
+        },
         JobKind::ReadNewWorktrees { folder, request } => Message::NewWorktreesRead {
             job: job.id,
             result: Box::new(super::new_worktrees::read_setup(folder, request, cancel)),

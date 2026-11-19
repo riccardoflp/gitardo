@@ -55,6 +55,8 @@ pub const CHECKING_IGNORED: &str = "Asking git which files it ignores";
 pub const READING_BLAME: &str = "Reading the blame";
 /// Why a comparison is read: its page, or the inspector, shows it.
 pub const COMPARING: &str = "Comparing two sides";
+/// What the read of the pairs of the page of what a rewrite changed does (`range-diff.read-pairs`).
+pub const COMPARING_COMMITS: &str = "Comparing the commits of a rewrite";
 /// Why the files in conflict are read: to count the conflicts the rules resolve (`conflicts.banner`).
 pub const COUNTING_CONFLICTS: &str = "Counting the conflicts";
 /// Why the files in conflict are read for their review (`review.page`).

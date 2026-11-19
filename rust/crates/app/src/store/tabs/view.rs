@@ -106,6 +106,7 @@ impl Answered {
             | Message::FileSearch { job, .. }
             | Message::NewWorktreesRead { job, .. }
             | Message::BlameRead { job, .. }
+            | Message::RangeDiffRead { job, .. }
             | Message::GitHub(
                 super::super::github::GitHubMessage::Detected { job, .. }
                 | super::super::github::GitHubMessage::Read { job, .. },

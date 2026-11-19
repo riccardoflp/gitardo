@@ -59,6 +59,7 @@ impl ViewData {
                 state,
                 self.panes.search_results,
             )))),
+            Page::RangeDiff => crate::store::range_diff::page_state(state).map(PageState::RangeDiff),
             Page::NewWorktrees => Some(PageState::NewWorktrees(
                 crate::store::new_worktrees::page_state(state),
                 &state.new_worktrees.title,

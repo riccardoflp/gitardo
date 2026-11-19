@@ -28,6 +28,7 @@ pub mod merge;
 pub mod merge_view;
 pub mod message;
 pub mod patch;
+pub mod range_diff;
 pub mod rebase;
 pub mod reflog;
 pub mod remote;
@@ -55,7 +56,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 168] = [
+pub const OPERATIONS: [(FeatureId, Operation); 169] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -144,6 +145,7 @@ pub const OPERATIONS: [(FeatureId, Operation); 168] = [
     (FeatureId("split.commit"), split::commit),
     (FeatureId("split.continue"), split::continue_split),
     (FeatureId("fixup.commit"), fixup::commit),
+    (FeatureId("range-diff.compare"), range_diff::compare),
     // Bisect.
     (FeatureId("bisect.answer"), bisect::answer),
     (FeatureId("bisect.end"), bisect::end),

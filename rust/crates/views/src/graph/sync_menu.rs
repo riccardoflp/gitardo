@@ -45,6 +45,8 @@ pub(super) enum SyncCommand {
     Run(&'static str),
     /// `sync.pull-with` in the way of this choice.
     Pull(&'static str),
+    /// `range-diff.compare` of the branch checked out with its upstream.
+    CompareWithUpstream,
 }
 
 /// The words of the menu that depend on the repository: the counts beside **Pull** and **Push**, and what **Pull** runs.
@@ -79,6 +81,7 @@ pub(super) fn sync_entries<'t>(menu: &SyncMenu, said: &'t SyncWords) -> Vec<Menu
         let feature = match command {
             SyncCommand::Run(feature) => feature,
             SyncCommand::Pull(_) => "sync.pull-with",
+            SyncCommand::CompareWithUpstream => "range-diff.compare",
         };
         let item = icons::operation_item(label, feature, command).with_tooltip(tooltip);
         if can_run { item } else { item.disabled() }
@@ -127,7 +130,21 @@ pub(super) fn sync_entries<'t>(menu: &SyncMenu, said: &'t SyncWords) -> Vec<Menu
             force,
         )),
     ]);
+    entries.extend(compare_with_upstream(menu, force));
     entries
+}
+
+/// **Compare with the upstream commit by commit** among the other ways to push, while the branch checked out and its
+/// upstream have diverged: what a force push would replace (`range-diff.compare`).
+fn compare_with_upstream<'t>(menu: &SyncMenu, can_run: bool) -> Option<MenuEntry<'t, SyncCommand>> {
+    let item = icons::operation_item(
+        words::COMPARE_WITH_UPSTREAM,
+        "range-diff.compare",
+        SyncCommand::CompareWithUpstream,
+    )
+    .with_tooltip(words::COMPARE_WITH_UPSTREAM_TOOLTIP);
+    menu.has_diverged
+        .then(|| MenuEntry::Item(if can_run { item } else { item.disabled() }))
 }
 
 /// The intent of an entry chosen.
@@ -138,6 +155,11 @@ pub(super) fn sync_intent(command: SyncCommand) -> Intent {
             FeatureId("sync.pull-with"),
             Target::Head,
             Answers::new().with(WAY, Answer::Choice(String::from(way))),
+        ),
+        SyncCommand::CompareWithUpstream => FeatureIntent::RunWith(
+            FeatureId("range-diff.compare"),
+            Target::Head,
+            Answers::new().with(AnswerKey("range-diff.with"), Answer::Choice(String::from("upstream"))),
         ),
     };
     Intent::Feature(intent)
@@ -173,6 +195,7 @@ mod tests {
             is_running: false,
             built: [true; 7],
             pull_way,
+            has_diverged: false,
         }
     }
 

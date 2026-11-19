@@ -348,8 +348,8 @@ earns it.
 | [`range-diff.read-last-rewrite`](07-history-rewriting.md#range-diffread-last-rewrite--read-what-a-branch-was-before-it-was-rewritten) | Read what a branch was before it was rewritten | Read | Built | Planned |
 | [`range-diff.ranges`](07-history-rewriting.md#range-diffranges--the-two-lines-of-commits-compared) | The two lines of commits compared | Derivation | Built | Planned |
 | [`range-diff.read-pairs`](07-history-rewriting.md#range-diffread-pairs--read-what-a-rewrite-changed-commit-by-commit) | Read what a rewrite changed, commit by commit | Read | Built | Planned |
-| [`range-diff.compare`](07-history-rewriting.md#range-diffcompare--see-what-a-rewrite-changed) | See what a rewrite changed | Operation | Specified | Planned |
-| [`range-diff.page`](07-history-rewriting.md#range-diffpage--what-a-rewrite-changed-commit-by-commit) | What a rewrite changed, commit by commit | View | Specified | Planned |
+| [`range-diff.compare`](07-history-rewriting.md#range-diffcompare--see-what-a-rewrite-changed) | See what a rewrite changed | Operation | Built | Planned |
+| [`range-diff.page`](07-history-rewriting.md#range-diffpage--what-a-rewrite-changed-commit-by-commit) | What a rewrite changed, commit by commit | View | Built | Planned |
 
 ## Stashes
 

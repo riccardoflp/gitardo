@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- A page shows what a rewrite changed, commit by commit, as `git range-diff` pairs them: the commits made again the
+  same, dimmed, the ones changed, with **message** or **changes**, the ones added and the ones dropped, the counts of
+  each, and under a changed row opened by a click or `Enter` its diff of diffs; a click on a short hash opens that
+  commit. What is said after a rebase, an interactive rebase, a fixup or an amend has **See what changed**; the menu of
+  a branch has **What its last rewrite changed**, and **Compare with `<upstream>` commit by commit** when the two have
+  diverged, as **Sync** does for the branch checked out; the menu of a remote branch has **What the force push
+  changed**. The warning of a force push has **Compare first**, which pushes nothing and opens the page, and a fetch
+  that found the upstream of a branch force pushed says so, with **See what changed**.
 - One **Undo** after a rewrite that moved the other branches of a stack puts them back too: the branch rewritten by
   its reflog, then the others in one `git update-ref --stdin`, which git makes whole or not at all. A branch moved since
   the rewrite stays where it is, and the dialog of Undo says so.

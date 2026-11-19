@@ -223,7 +223,7 @@ fn three_way_control(row: &SettingRow, ui: &mut Ui<'_>, rect: Rect, labels: [&'s
     };
     let items: Vec<MenuEntry<'_, &'static str>> = labels
         .iter()
-        .map(|label| MenuEntry::Item(icons::without_icon(label, *label)))
+        .map(|choice| MenuEntry::Item(icons::without_icon(choice, *choice)))
         .collect();
     let button = Button::secondary(current)
         .kind(ButtonKind::Outline)
