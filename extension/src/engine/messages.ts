@@ -15,9 +15,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15); 1.9 has `read/file-view.mermaid`, a diagram of
  * Mermaid as an SVG for VS Code's preview of Markdown (milestone M17); 1.10 has `read/repo.worktree-summary`, what the
  * folders of the rows of the Repositories view are on, with `repository/summaries` and `repository/folderChanged`
- * (milestone M22).
+ * (milestone M22); 1.11 has the question of a folder, the validations of a clone, where a shallow clone ends, the files
+ * hidden from git, whether git's maintenance looks after the repository, and the notes of commits (milestones M32 to M40).
  */
-export const PROTOCOL = '1.10';
+export const PROTOCOL = '1.11';
 
 /** The names of the methods. */
 export const Method = {

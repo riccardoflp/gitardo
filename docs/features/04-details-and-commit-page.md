@@ -82,7 +82,7 @@ diff.
 - **Reads**: `details.read-commit`.
 - **Uses**: `details.message-title`, `details.message-unwrap`, `details.show-more`, `details.file-tree`,
   `details.show-all-files`, `details.compare-file-with`, `details.stash`, `commit-page.open`, `message.edit`,
-  `file-history.file`, the Diff page (`diff.page`), `compare.in-place` (which takes the place of the commit in the
+  `note.show`, `file-history.file`, the Diff page (`diff.page`), `compare.in-place` (which takes the place of the commit in the
   inspector).
 
 What it shows, from the top:
@@ -91,6 +91,7 @@ What it shows, from the top:
   changes**; not on the draft), and the pencil of `message.edit` where that is offered;
 - the title of the message in bold and the rest under it, as `details.message-title` and `details.message-unwrap` make
   them, cut by `details.show-more`;
+- the note of the commit, when it has one, in the block **Note** (`note.show`);
 - **Author** (the email in the tooltip), **Date**, **Committer** with its date only when the committer or the date
   differs from the author's, **Commit** with the short hash, which a click copies whole (**Copy full hash**), and
   **Parent** or **Parents**, each short hash going to that commit in the timeline;
@@ -490,12 +491,13 @@ with the lines each gained and lost, and, on demand, what changed in each, in th
 - **Reads**: `details.read-commit`, `commit-page.read-patch`.
 - **Uses**: `details.message-title`, `details.message-unwrap`, `details.file-tree`, `details.show-all-files`,
   `details.compare-file-with`, `details.stash`, `commit-page.diff-lines`, `commit-page.initial-folds`,
-  `commit-page.show-in-graph`, the Diff page (`diff.page`), the colors of code of the Diff page.
+  `commit-page.show-in-graph`, `note.show`, the Diff page (`diff.page`), the colors of code of the Diff page.
 
 What it shows, from the top:
 
 - the title of the message, the labels of the commit (its branches, remote branches and tags, as the timeline draws
   them, while the window shows its repository), and the rest of the message;
+- the note of the commit, when it has one, whole, in the block **Note** (`note.show`);
 - **Author** with name and `<email>`, **Date**, **Committer** with name, `<email>` and date only when it differs from the
   author, **Commit** with the full hash, which a click copies (**Copy the hash**), **Parent** or **Parents**, each of
   which opens its own page;
@@ -648,19 +650,23 @@ Which commits have a note, and the text of the note of one commit.
 
 - **Kind**: Read
 - **Function**: `git::read::note::read(git: &Git, request: &NoteRequest) -> Result<Notes, GitError>`
-- **Reads**: `git notes list`, a line `<id of the note> <id of the commit>` for each commit with a note, in the
-  reference of notes git uses (Q1210); then, for the commit shown in the inspector or in a page,
-  `git cat-file blob <id of its note>`, its text as it was written. With no reference of notes, there are none.
+- **Reads**: `git notes get-ref`, the reference of notes git uses (Q1210), and
+  `git rev-parse --verify --quiet <reference>^{commit}`, the commit it is at; then, when it moved since the read
+  before, `git notes --ref=<reference> list`, a line `<id of the note> <id of the commit>` for each commit with a note.
+  The text of the note of the commit shown in the inspector or in a page is read with its details
+  (`details.read-commit`), `git notes show <hash>`, as it was written, rather than `git cat-file blob` of the id the
+  list gives, since the details are read without the list in hand, in the window and for the extension alike (Q1457).
+  With no reference of notes, there are none.
 - **Uses**: `repo.read-state`, with which the list is read, again only when the reference of notes moved
   (`repo.watch-changes`); by `note.show`.
 - **Extension**: read by the engine with the details of a commit: planned.
 
 Acceptance:
 
-- [ ] With a note on `3f2a1c9`, the list has `3f2a1c9`, and the text read is the note as written, lines and all.
-- [ ] A repository with no `refs/notes/commits` reads no note and no error.
-- [ ] With `core.notesRef` set to `refs/notes/review`, the notes of that reference are read.
-- [ ] A read after a change to a file of the working tree only does not run `git notes list` again.
+- [x] With a note on `3f2a1c9`, the list has `3f2a1c9`, and the text read is the note as written, lines and all.
+- [x] A repository with no `refs/notes/commits` reads no note and no error.
+- [x] With `core.notesRef` set to `refs/notes/review`, the notes of that reference are read.
+- [x] A read after a change to a file of the working tree only does not run `git notes list` again.
 
 ### `note.show` — The note of a commit, in the inspector and in its page
 
@@ -684,11 +690,11 @@ The note of a commit under its message, wherever the commit is read.
 
 Acceptance:
 
-- [ ] Selecting a commit with the note `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector,
+- [x] Selecting a commit with the note `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector,
       and in its page.
-- [ ] A commit with no note shows no **Note**.
-- [ ] A note of three lines keeps its three lines.
-- [ ] The block matches its snapshots in each theme.
+- [x] A commit with no note shows no **Note**.
+- [x] A note of three lines keeps its three lines.
+- [x] The block matches its snapshots in each theme.
 
 ### `note.edit` — Add or edit the note of a commit
 

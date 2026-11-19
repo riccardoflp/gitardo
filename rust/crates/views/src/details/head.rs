@@ -26,6 +26,8 @@ pub(crate) struct Head<'a> {
     pub(crate) title: &'a str,
     /// The text under it.
     pub(crate) message: MessageState<'a>,
+    /// The note of the commit, under the message, when it has one (`note.show`).
+    pub(crate) note: Option<super::note::NoteState<'a>>,
     /// The commit, none for the draft.
     pub(crate) detail: Option<&'a CommitDetail>,
     /// What was read of the commit or the draft, whose files open in the Diff page.
@@ -43,6 +45,7 @@ pub(crate) struct Head<'a> {
 struct Heights {
     title: f32,
     text: f32,
+    note: f32,
     meta: f32,
     files: f32,
 }
@@ -60,12 +63,17 @@ impl Heights {
             .max(1);
         let title = (crate::number::float_of_count(title_lines) * ui.line_height(heading)).max(side);
         let text = text_height(ui, &head.message, width);
+        let note = head
+            .note
+            .as_ref()
+            .map_or(0.0, |note| super::note::note_height(ui, note, width));
         let meta = head.detail.map_or(0.0, |detail| {
             crate::number::float_of_count(meta_lines(detail, head.is_shallow_end)) * theme.sizes.row_height
         });
         Heights {
             title,
             text,
+            note,
             meta,
             files: side,
         }
@@ -73,8 +81,11 @@ impl Heights {
 
     /// The height of the whole head, with the gaps between its parts.
     fn total(&self, gap: f32) -> f32 {
-        let gaps = [self.text, self.meta].iter().filter(|part| **part > 0.0).count();
-        self.title + self.text + self.meta + self.files + crate::number::float_of_count(gaps + 1) * gap
+        let gaps = [self.text, self.note, self.meta]
+            .iter()
+            .filter(|part| **part > 0.0)
+            .count();
+        self.title + self.text + self.note + self.meta + self.files + crate::number::float_of_count(gaps + 1) * gap
     }
 }
 
@@ -111,6 +122,9 @@ pub(crate) fn draw_head(ui: &mut Ui<'_>, head: &Head<'_>, rect: Rect) -> Vec<Int
     title_line(ui, area.top(heights.title), head, &mut intents);
     if heights.text > 0.0 {
         intents.extend(ui.clip(area.top(heights.text), |ui| show_more(&head.message, ui)));
+    }
+    if let Some(note) = head.note.as_ref().filter(|_| heights.note > 0.0) {
+        intents.extend(ui.clip(area.top(heights.note), |ui| super::note::note_view(note, ui)));
     }
     if let Some(detail) = head.detail.filter(|_| heights.meta > 0.0) {
         meta(

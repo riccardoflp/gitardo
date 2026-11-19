@@ -91,6 +91,7 @@ fn the_details_of_a_commit_have_the_fields_of_model_in_camel_case() {
             kind: ChangeKind::Renamed,
         }],
         untracked_files: Vec::new(),
+        note: None,
     };
     let json = serde_json::to_value(CommitDetailJson::from(&detail)).unwrap();
     assert_eq!(json["author"]["date"], json!(1_700_000_000));

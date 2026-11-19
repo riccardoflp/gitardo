@@ -13,8 +13,9 @@ use model::submodule::{Checkout, Distance, Submodule};
 
 use super::{
     BisectJson, BranchJson, ChangeKindJson, CheckoutJson, ConflictKindJson, ConflictedFileJson, DistanceJson,
-    FileChangeJson, HeadJson, IdentityJson, OperationJson, RebaseStopJson, RemoteBranchJson, SkippedFileJson,
-    StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson, UpstreamJson, WorkingTreeJson, WorktreeJson,
+    FileChangeJson, HeadJson, IdentityJson, NotesJson, OperationJson, RebaseStopJson, RemoteBranchJson,
+    SkippedFileJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson, UpstreamJson, WorkingTreeJson,
+    WorktreeJson,
 };
 
 /// A path as the system gives it, as a string.
@@ -69,6 +70,11 @@ impl From<&RepositoryState> for StateJson {
                 })
                 .collect(),
             is_looked_after: state.is_looked_after,
+            notes: NotesJson {
+                reference: state.notes.reference.clone(),
+                tip: state.notes.tip.as_ref().map(id),
+                commits: state.notes.noted.keys().map(id).collect(),
+            },
         }
     }
 }

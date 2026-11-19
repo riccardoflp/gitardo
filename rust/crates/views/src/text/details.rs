@@ -148,3 +148,14 @@ pub fn page_title(short_hash: &str, subject: &str) -> String {
         format!("{short_hash} {subject}")
     }
 }
+
+/// The title of the block of the note of a commit, under its message (`note.show`).
+pub const NOTE: &str = "Note";
+/// **Add note…** in the menu of a commit with no note (`note.edit`).
+pub const ADD_NOTE: &str = "Add note\u{2026}";
+/// **Edit note…** in the menu of a commit with a note, and the tooltip of the pencil of its block (`note.edit`).
+pub const EDIT_NOTE: &str = "Edit note\u{2026}";
+/// **Remove note** in the menu of a commit with a note and in the **…** of its block (`note.remove`).
+pub const REMOVE_NOTE: &str = "Remove note";
+/// The tooltip of the **…** of the block of a note.
+pub const MORE_FOR_NOTE: &str = "More for the note";

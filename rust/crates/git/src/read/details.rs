@@ -119,7 +119,7 @@ pub fn parse_third_parent(output: &[u8]) -> bool {
 }
 
 /// Everything the details, the Stashes pane and the page of a commit show of one commit: its message,
-/// author, committer, dates and parents, the files it changed against its first parent (every file it added when it has
+/// author, committer, dates and parents, its note (`note.read`), the files it changed against its first parent (every file it added when it has
 /// none), and for a stash with three parents the untracked files it took. The uncommitted changes asked for as a commit
 /// have the subject **Uncommitted changes**, no author, and the files of the index and the working tree together. A
 /// hash that is not a commit of the repository has no detail.
@@ -153,6 +153,7 @@ fn read_one_commit(git: &Git, commit: &CommitId) -> Result<Option<CommitDetail>,
         }
         _ => Vec::new(),
     };
+    let note = crate::read::note::read_text(git, &header.id)?;
     Ok(Some(CommitDetail {
         id: Some(header.id),
         parents: header.parents,
@@ -161,6 +162,7 @@ fn read_one_commit(git: &Git, commit: &CommitId) -> Result<Option<CommitDetail>,
         message: header.message,
         files,
         untracked_files,
+        note,
     }))
 }
 
@@ -221,5 +223,6 @@ fn uncommitted_detail(working_tree: &WorkingTree) -> CommitDetail {
         message: UNCOMMITTED_SUBJECT.to_owned(),
         files: files.into_values().collect(),
         untracked_files: Vec::new(),
+        note: None,
     }
 }

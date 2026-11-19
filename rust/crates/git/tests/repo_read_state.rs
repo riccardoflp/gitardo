@@ -7,6 +7,8 @@
 
 #[path = "repo_read_state/golden.rs"]
 mod golden;
+#[path = "repo_read_state/notes.rs"]
+mod notes;
 #[path = "repo_read_state/shallow.rs"]
 mod shallow;
 #[path = "repo_read_state/skipped.rs"]

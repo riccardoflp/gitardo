@@ -53,6 +53,21 @@ pub struct StateJson {
     /// Whether git's scheduled maintenance looks after the repository (since 1.11).
     #[serde(default)]
     pub is_looked_after: bool,
+    /// The commits with a note, in the reference of notes git uses (since 1.11).
+    #[serde(default)]
+    pub notes: NotesJson,
+}
+
+/// The commits with a note, in the reference of notes git uses (since 1.11).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotesJson {
+    /// The reference of notes: `refs/notes/commits` unless `core.notesRef` names another.
+    pub reference: String,
+    /// The commit the reference is at; none while no note was ever written.
+    pub tip: Option<String>,
+    /// The full ids of the commits with a note, in the order of their ids.
+    pub commits: Vec<String>,
 }
 
 /// What is checked out.

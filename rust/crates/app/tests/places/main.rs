@@ -75,6 +75,7 @@ mod merge_actions;
 mod merge_at_line;
 mod mermaid;
 mod new_worktrees;
+mod notes;
 mod one_lane;
 mod open_tabs;
 mod operations;

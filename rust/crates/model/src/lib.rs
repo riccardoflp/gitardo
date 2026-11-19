@@ -26,6 +26,7 @@ pub mod graph;
 mod identifier;
 pub mod markdown;
 pub mod merge_view;
+pub mod note;
 pub mod patch;
 pub mod rebase;
 pub mod reflog;

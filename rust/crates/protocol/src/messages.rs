@@ -66,7 +66,8 @@ pub mod methods {
 /// workspace, each of its worktrees and each of its submodules is on, with `repository/summaries` for those read again
 /// and `repository/folderChanged` for what the extension's watchers saw ([`crate::summaries`]); 1.11 what milestone
 /// M32 needs: the question `openFolder`, a folder chosen in the system's dialog, the validations `cloneFolder` and
-/// `count` ([`crate::feature`]), and `shallow` in the state, where the history of a shallow clone ends.
+/// `count` ([`crate::feature`]), and `shallow` in the state, where the history of a shallow clone ends; and what
+/// milestone M40 needs: `notes` in the state, the commits with a note, and `note` in the details of a commit.
 pub const VERSION: &str = "1.11";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.

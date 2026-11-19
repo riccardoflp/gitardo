@@ -24,6 +24,7 @@ pub mod ignored;
 pub mod log_records;
 pub mod merge;
 pub mod merge_view;
+pub mod note;
 pub mod patch;
 pub mod rebase;
 pub mod reflog;

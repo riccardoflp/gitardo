@@ -90,7 +90,8 @@ version adds what milestone M38 needs
 ([D83](../08-decisions.md#d83--ignoring-files-files-git-does-not-look-at-and-locked-worktrees-from-the-window-proposed)):
 `skipped` in `RepositoryState`, the tracked files git is told not to look at, and `locked` in `Worktree`, the reason
 a worktree is locked; and, for milestone M40, `isLookedAfter` in `RepositoryState`, whether git's scheduled
-maintenance looks after the repository.
+maintenance looks after the repository, `notes` in `RepositoryState`, the commits with a note, and `note` in
+`CommitDetail`, the text of the note of the commit.
 
 ## Transport
 
@@ -700,7 +701,9 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `submodules: Submodule[]`, `shallow: CommitId[]` (1.11), the commits whose parents were not fetched, empty when the
   repository is not shallow (`repo.read-shallow`), `skipped: { path, skipWorktree, assumeUnchanged }[]` (1.11), the
   tracked files git is told not to look at by hand, not those a sparse checkout leaves out (`changes.read-skipped`),
-  `isLookedAfter: boolean` (1.11), whether git's scheduled maintenance looks after it (`upkeep.read-background`).
+  `isLookedAfter: boolean` (1.11), whether git's scheduled maintenance looks after it (`upkeep.read-background`),
+  `notes: { reference, tip: CommitId | null, commits: CommitId[] }` (1.11), the reference of notes git uses, the
+  commit it is at and the commits with a note (`note.read`).
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,
@@ -710,7 +713,8 @@ The fields are those of `model`; this section says only what the JSON adds or le
   ConflictedFile[]`. **`FileChange`**: `path`, `originalPath: string | null`, `kind: "added" | "modified" | "deleted" |
   "renamed" | "copied" | …`.
 - **`CommitDetail`** (`model/src/details.rs`): `id: CommitId | null`, `parents`, `author`, `committer` (each
-  `{ name, email, date }` or `null`), `message`, `files: FileChange[]`, `untrackedFiles: FileChange[]`.
+  `{ name, email, date }` or `null`), `message`, `files: FileChange[]`, `untrackedFiles: FileChange[]`,
+  `note: string | null` (1.11), the text of its note as it was written.
 - **`Target`** (`model/src/contract/context.rs`): `{ kind: "head" }`, `{ kind: "commit", commit }`, `{ kind:
   "branch", name }`, `{ kind: "remoteBranch", name }`, `{ kind: "tag", name }`, `{ kind: "stash", index }`, `{ kind:
   "remote", name }`, `{ kind: "files", paths }`, `{ kind: "file", path }`, `{ kind: "changes" }`, `{ kind: "commits",

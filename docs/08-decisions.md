@@ -5483,6 +5483,10 @@ asked while it is planned; each is built as it says until the maintainer answers
 - **Q1451** — `changes.skipped-list`: a click on a file hidden from git opens its diff between the last commit and the
   disk even when the two are the same, since the list knows only how the file is hidden, not whether it differs. Should
   the read of the hidden files compare each with the last commit, so that one as committed opens its File page?
+- **Q1457** — `note.read`: the text of a note is read with the details of its commit, `git notes show <hash>`, rather
+  than `git cat-file blob` of the id that `git notes list` gives, since the details are read, in the window and for the
+  extension, without the list in hand; a commit with no note costs one run of git more when it is selected. Should the
+  read of the details be given the id of the note instead, read with the state?
 
 ### Of large files and remembered resolutions, from Q1190
 

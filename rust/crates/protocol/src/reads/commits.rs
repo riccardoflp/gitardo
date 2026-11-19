@@ -90,6 +90,9 @@ pub struct CommitDetailJson {
     pub files: Vec<FileChangeJson>,
     /// For a stash made with its untracked files, those files.
     pub untracked_files: Vec<FileChangeJson>,
+    /// The text of its note as it was written; none when it has none (since 1.11).
+    #[serde(default)]
+    pub note: Option<String>,
 }
 
 impl From<&Signature> for SignatureJson {
@@ -112,6 +115,7 @@ impl From<&CommitDetail> for CommitDetailJson {
             message: detail.message.clone(),
             files: detail.files.iter().map(FileChangeJson::from).collect(),
             untracked_files: detail.untracked_files.iter().map(FileChangeJson::from).collect(),
+            note: detail.note.clone(),
         }
     }
 }

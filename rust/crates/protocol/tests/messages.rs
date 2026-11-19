@@ -103,6 +103,7 @@ fn repository() -> RepositoryState {
         shallow: model::state::Shallow::default(),
         skipped: Vec::new(),
         is_looked_after: false,
+        notes: model::note::Notes::default(),
     }
 }
 

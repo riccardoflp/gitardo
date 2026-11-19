@@ -1,6 +1,7 @@
 //! The inspector, beside the timeline or over it: the card of the selected commit (`details.show`), its message cut
 //! by **Show more** (`details.show-more`), its files as a list or a tree (`details.file-tree`), the first 300 of them
-//! (`details.show-all-files`), and for a stash the untracked files it took (`details.stash`).
+//! (`details.show-all-files`), for a stash the untracked files it took (`details.stash`), and the note of the commit
+//! under its message (`note.show`).
 //!
 //! The card is a list of rows of one height, so that only the rows in sight are drawn: its head (the message, who made
 //! the commit, its hash and parents, and the count of its files) is a block of several rows, then a row for each file.
@@ -8,6 +9,7 @@
 mod files;
 mod head;
 mod message;
+mod note;
 mod rows;
 
 use std::collections::BTreeSet;
@@ -29,6 +31,7 @@ pub(crate) use files::{
 };
 pub(crate) use head::{outdent, shown_parents};
 pub use message::{MessageState, SHOWN_LINES, show_more};
+pub use note::{NOTE_SHOWN_LINES, NoteLength, NoteState, note_height, note_view};
 pub(crate) use rows::{commit_list, compare_file};
 
 /// What the inspector shows.
@@ -42,6 +45,8 @@ pub struct DetailsState<'a> {
     pub layout: FileLayout,
     /// Whether **Show more** was clicked.
     pub is_message_expanded: bool,
+    /// Whether **Show more** of the note was clicked (`note.show`).
+    pub is_note_expanded: bool,
     /// Whether **Show all** was clicked.
     pub is_all_files_shown: bool,
     /// The tree of the files shown.
@@ -114,6 +119,8 @@ pub enum DetailsIntent {
     OpenPage(CommitId),
     /// **Show more** or **Show less**.
     ShowMore(bool),
+    /// **Show more** or **Show less** under the note (`note.show`).
+    ShowMoreNote(bool),
     /// Something asked of its files.
     Files(FilesIntent),
 }

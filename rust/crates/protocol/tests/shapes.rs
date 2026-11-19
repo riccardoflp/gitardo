@@ -105,6 +105,16 @@ fn repository() -> RepositoryState {
             how: model::state::Skipped::Worktree,
         }],
         is_looked_after: true,
+        notes: notes(),
+    }
+}
+
+/// One commit with a note.
+fn notes() -> model::note::Notes {
+    model::note::Notes {
+        reference: String::from("refs/notes/commits"),
+        tip: Some(commit('7')),
+        noted: std::iter::once((commit('a'), commit('8'))).collect(),
     }
 }
 
@@ -187,6 +197,10 @@ fn detail() -> CommitDetail {
         message: String::from("On main: half a fix\n\nThe rest tomorrow."),
         files: vec![renamed("src/new.rs", "src/old.rs")],
         untracked_files: vec![renamed("notes.txt", "notes.old")],
+        note: Some(String::from(
+            "Reviewed.
+Shipped in 2.1.",
+        )),
     }
 }
 

@@ -138,5 +138,12 @@
       "assumeUnchanged": false
     }
   ],
-  "isLookedAfter": true
+  "isLookedAfter": true,
+  "notes": {
+    "reference": "refs/notes/commits",
+    "tip": "7777777777777777777777777777777777777777",
+    "commits": [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ]
+  }
 }

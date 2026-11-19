@@ -1378,9 +1378,11 @@ configuration changed, and sent to the extension as `isLookedAfter` (protocol 1.
 archive…** in the menu of a commit, a branch, a remote branch and a tag runs `git archive` with every file or one
 folder read with `git ls-tree -d`, zip or tar.gz, the folder inside the archive and the save dialog; Quick search has
 no entry for it yet, and its message no **Reveal in the file manager** (Q1456).
-Not built yet: the notes, phases 1 to 3, whose read joins the reads of the repository, the inspector and the page of
-a commit, and the sixth phase, the extension; the lane that built the fifth and the fourth phases stopped there, and
-the cards of the notes stay Specified.
+Then the first phase: the reference of notes git uses and the commit it is at are read with the reads of the
+repository, `git notes list` only when it moved, and the text of the note of a commit with its details, by
+`git notes show` (Q1457); the block **Note** is under the message in the inspector, cut at 12 lines with **Show
+more**, and in the page of a commit, which is read again when the reference of notes moves.
+Not built yet: the notes written, fetched and pushed, phases 2 and 3, and the sixth phase, the extension.
 
 Exit: **Add note…** on a commit with `Reviewed.` shows **Note** and `Reviewed.` under its message in the inspector and
 in its page, **Undo** takes it away, and **Push notes** then **Fetch notes** in another clone bring it there; **Save

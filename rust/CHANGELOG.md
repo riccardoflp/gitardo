@@ -50,6 +50,10 @@
   `git gc`. **Look after it in the background…** in the same menu registers the repository for git's scheduled
   maintenance with `git maintenance start`, after saying that git is then scheduled on the computer; it is ticked while
   git looks after the repository, and ticked it runs `git maintenance unregister`, leaving the others registered.
+- The note of a commit, the text `git notes` keeps beside it, is shown under its message in the inspector and in the page
+  of the commit, in a block **Note**, its lines as they were written; a note of more than 12 lines is cut with **Show
+  more** in the inspector. The notes are those of the reference git uses, `refs/notes/commits` unless `core.notesRef`
+  names another.
 
 ## 1.2.0 - 2026-11-18
 

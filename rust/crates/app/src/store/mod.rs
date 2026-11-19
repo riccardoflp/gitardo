@@ -93,6 +93,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(inspector::follow(state));
     effects.extend(commit_page::prune(state));
     effects.extend(commit_page::follow(state));
+    effects.extend(commit_page::follow_notes(state));
     effects.extend(changes_beside::follow(state));
     effects.extend(diff_page::prune(state));
     effects.extend(diff_page::follow(state));

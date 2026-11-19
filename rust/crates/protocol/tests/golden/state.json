@@ -108,5 +108,10 @@
   "submodules": [],
   "shallow": [],
   "skipped": [],
-  "isLookedAfter": false
+  "isLookedAfter": false,
+  "notes": {
+    "reference": "refs/notes/commits",
+    "tip": null,
+    "commits": []
+  }
 }

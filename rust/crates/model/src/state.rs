@@ -61,6 +61,8 @@ pub struct RepositoryState {
     pub skipped: Vec<SkippedFile>,
     /// Whether git's scheduled maintenance looks after the repository (`upkeep.read-background`).
     pub is_looked_after: bool,
+    /// The commits with a note, in the reference of notes git uses (`note.read`).
+    pub notes: crate::note::Notes,
 }
 
 impl RepositoryState {
