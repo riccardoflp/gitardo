@@ -1657,3 +1657,47 @@ Acceptance:
       `gitardo.conflicts.aiEffort` to `high`.
 - [ ] Extension: it changes nothing in the repository: nothing is written to the log, and it does not change what
       **Undo** does.
+
+### `ai.copilot` — GitHub Copilot as the AI provider
+
+Asks GitHub Copilot, with the user's own sign-in and subscription, the questions Gitardo asks a language model: the
+conflicts the rules leave, and the draft of a commit message
+([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)).
+
+- **Kind**: Read
+- **Function**: `engine::ai::CopilotModel`, the `LanguageModel` that `ai.ask-conflict`, `commit.draft-message` and
+  `ai.choose-model` are given when `ai.provider` is `copilot`, in place of `engine::ai::ProviderModel`.
+- **Reads**: the GitHub Copilot CLI, the program `copilot` found on the `PATH`
+  ([Q862](../08-decisions.md#open-questions)), started once for the window in its server mode and spoken to over its
+  standard input and output in JSON-RPC, as the Copilot SDK speaks to it: the models the subscription offers, for
+  `ai.choose-model`; one session for each question, with the model of `ai.model` (or the one Copilot picks when it is
+  empty) and the effort of `ai.effort` when the model takes one, its answer streamed and each piece passed on as it
+  comes.
+- **Sign-in**: the CLI's own: what `copilot login` stored, or `COPILOT_GITHUB_TOKEN`, `GH_TOKEN` or `GITHUB_TOKEN`.
+  Gitardo keeps no key for it and sends none.
+- **Tools**: none. Every permission the CLI asks (to read a file, run a command, fetch an address) is refused, so it
+  reads nothing of the repository but what the question carries, and runs nothing.
+- **Settings**: `ai.provider` (`copilot`), `ai.model`, `ai.effort`; `ai.endpoint` is not used.
+- **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`, as the other providers.
+- **Refuses**: without `copilot` on the `PATH`: *The GitHub Copilot CLI is not installed. Install it, then try again.*
+  with **How to install**, which opens GitHub's page on installing it; when it is not signed in: *GitHub Copilot is not
+  signed in.* with **Sign in**, which runs `copilot login` in a terminal of the bottom panel; when Copilot refuses the
+  question (no subscription, no requests left, a model not offered): *GitHub Copilot refused: \<its words\>*.
+- **Extension**: Host only: the language models of VS Code are those of GitHub Copilot when its extension is
+  installed, and `ai.ask-conflict`, `commit.draft-message` and `ai.choose-model` ask them already through
+  `host/languageModel` and `host/languageModels`.
+
+Acceptance:
+
+- [ ] With `ai.provider` set to `copilot` and the CLI signed in, **Resolve with AI** proposes resolutions, and the
+      review names the Copilot model it asked.
+- [ ] **Draft the commit message** writes a draft from GitHub Copilot.
+- [ ] **Choose the model that resolves conflicts** lists the models of the subscription, and the one chosen is the one
+      asked next.
+- [ ] When the CLI asks to read a file or to run a command, it is refused, and the answer still comes.
+- [ ] Without `copilot` on the `PATH`, asking refuses with *The GitHub Copilot CLI is not installed. Install it, then
+      try again.*
+- [ ] Signed out, **Sign in** opens a terminal of the bottom panel running `copilot login`; once it ends, asking again
+      is answered.
+- [ ] Cancelling a question ends its session and not the CLI; closing the window ends the CLI.
+- [ ] The tests speak to a fake `copilot` of `testkit` that answers the protocol, so that no account is needed.

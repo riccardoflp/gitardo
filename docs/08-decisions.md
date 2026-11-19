@@ -1587,6 +1587,39 @@ on each machine, and the fonts of the system would be read for it); showing an i
 URI of the webview's resources (it serves files of the disk, and the versions of a commit are not on it); a custom
 editor of Gitardo in VS Code for images (VS Code has one, which the user knows).
 
+## D75 — Gitardo by its name, Wayland of its own, GitHub Copilot as a provider
+
+*The maintainer's answers to Q1 to Q5, 2026-11-19; the details proposed by the agent. Built in milestones M28, M29 and
+M30.*
+
+- **The name (Q1).** The application is **Gitardo**, and its program is `gitardo`. *Gitardo Desktop* was a working name:
+  the title of the window, the taskbar, the archives of a release and the notes of a release say **Gitardo** from
+  milestone M28. The documents and the comments of the code still write *Gitardo Desktop* where they must tell the
+  window from the extension (Q860). What Gitardo keeps on disk keeps its name: the folder of the settings and the names
+  of the secrets in the credential store of each system (Q861).
+- **Linux, X11 and Wayland (Q2).** Both, in the first Linux release. `winit` already opens the window on either, so
+  what milestone M29 adds is what runs on Wayland through XWayland or not at all: the clipboard of Wayland itself, the
+  menu of the window asked of the compositor (Q570), and a check of the window under a compositor of Wayland in the
+  pipeline and by hand before a release. Where Wayland does not let a program do a thing, Gitardo does not try: the
+  place of the window is not kept there (Q569).
+- **The AI providers (Q3).** `anthropic`, `openai-compatible` and **GitHub Copilot**, the one the maintainer uses most.
+  The extension has Copilot already, among the language models of VS Code. Gitardo Desktop asks it through the GitHub
+  Copilot CLI, the program GitHub gives other applications to reach Copilot with: `ai.provider` set to `copilot` starts
+  the `copilot` program in its server mode and speaks to it as the Copilot SDK does, with the user's own sign-in and
+  subscription (`ai.copilot`). No tool is allowed to it: everything it asks to read or run is refused, so it answers
+  with text alone, as the other providers do. The CLI is installed by the user, not by Gitardo (Q862).
+- **The journal of Undo (Q4)** is kept in memory only, as in the extension. After a restart the repository may have
+  changed outside Gitardo, and undoing an operation of before is then a guess; the reflog is there for what is older.
+- **Screen readers (Q5)** are answered by [D16](#d16--libraries-for-the-window-the-text-and-the-pixels): `accesskit` tells the system what is on
+  screen, on all three systems, and the views give it their tree already. Hearing it with a real screen reader is a
+  question of its own (Q863).
+
+Rejected: asking Copilot over the HTTP interface VS Code's Copilot uses, with a token taken from it (not offered to
+other programs, and against the terms of Copilot); GitHub Models as the way to Copilot (another product, with its own
+limits, which `openai-compatible` with a token reaches already); keeping the journal of Undo in `.git` (an undo that
+outlives what it knew of the repository); renaming the folder of the settings with the name (every user's settings and
+secrets left behind, or a move of them to write and test, for a name only Gitardo reads).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -1594,12 +1627,7 @@ editor of Gitardo in VS Code for images (VS Code has one, which the user knows).
 Questions from the implementation side go here, with the card they are about, until the specification side answers
 them in the card.
 
-- **Q1** — The name of the application and of its binary: *Gitardo Desktop* and `gitardo` are working names.
-- **Q2** — Linux: X11 only for the first Linux release, or Wayland as well?
-- **Q3** — Which AI providers must be supported at first: `anthropic` and `openai-compatible`, or others?
-- **Q4** — Should the undo journal survive a restart of the application? The extension keeps it in memory only.
-- **Q5** — Accessibility: exposing the views to screen readers needs the system's accessibility APIs (UI Automation,
-  AT-SPI over D-Bus, NSAccessibility). In which milestone?
+Q1 to Q5 are answered by [D75](#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider).
 
 From milestone M1 (each was built with the reading given, until the card says otherwise):
 
@@ -4530,3 +4558,26 @@ built; each is built as it says until the maintainer answers otherwise.
   images** on its header. Should its pictures show instead, or above its lines?
 - **Q847** — `diff.image`: in the extension a diff of an image opens VS Code's diff editor with its preview of images,
   also when the Flow Diff is on, since the Flow Diff draws lines. Should the Flow Diff draw the two images itself?
+
+### Of the name, Wayland and GitHub Copilot, from Q860
+
+Questions of milestones M28, M29 and M30
+([D75](#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)), asked while they are planned and
+built; each is built as it says until the maintainer answers otherwise.
+
+- **Q860** — The name: the window, the taskbar and a release say **Gitardo**, while the documents, the comments of the
+  code and the CHANGELOG of the desktop keep *Gitardo Desktop* where they tell the window from the extension, as
+  AGENTS.md does. Should the documents say *Gitardo* too, and name the window another way, such as *the desktop app*?
+- **Q861** — The folder of the settings stays `Gitardo Desktop` (in `%APPDATA%`, `~/.config` and
+  `~/Library/Application Support`), and so do the names of the secrets (`Gitardo Desktop/…` on Windows, the service
+  `Gitardo Desktop` on macOS, the header of the file on Linux), since they are stored data. Should they move to
+  `Gitardo`, with Gitardo moving what it finds under the old name once?
+- **Q862** — `ai.copilot`: Gitardo finds the `copilot` program on the `PATH` and does not install it; without it, the
+  refusal links to GitHub's page on installing the CLI. Should Gitardo download the CLI itself, as the Copilot SDK can,
+  or should a setting give the path of the program?
+- **Q863** — Screen readers: `accesskit` is built in, but no one has heard Gitardo with Narrator, Orca or VoiceOver.
+  Should a pass with each go into **Before a release**, or into a milestone with what it finds?
+- **Q864** — `ai.copilot`: each question to Copilot counts against the requests of the user's subscription, as in
+  VS Code. Should the settings page or the review say so before the first question?
+- **Q865** — The archives of a release are named `gitardo-<version>-windows-x64.zip`, `gitardo-<version>-linux-x64.tar.gz`
+  and `gitardo-<version>-macos-arm64.tar.gz`, no longer `gitardo-desktop-…`. Is that the name?

@@ -874,6 +874,84 @@ in VS Code, the diff of the PNG opened from the Gitardo Changes view shows the t
 commit shows its two versions; every card of the milestone is Built in both apps, or Host only in the extension, and
 the snapshots of the File page and the Diff page with an image match in the dark and in the light theme.
 
+## M28 — Gitardo, by its name
+
+The window, the taskbar and a release say **Gitardo**, no longer *Gitardo Desktop*
+([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider), Q1). One phase,
+one commit:
+
+1. **The name on screen and in a release.** `views::text::PROGRAM` is **Gitardo**, so the title of the window the
+   taskbar shows is *\<repository\> — Gitardo*; the window of the widgets of `gitardo-demo` is *Gitardo widgets*; the
+   description of `worktrees.openIn` on the settings page says *a new window of Gitardo*. The pipeline of a release
+   names its archives `gitardo-<version>-<system>` and the part of the notes of a release about the window
+   **Gitardo** (Q865). The README of the desktop is titled **Gitardo** and says, once, that it is the desktop app
+   beside the extension. The folder of the settings and the names of the secrets keep their names (Q861); the
+   documents keep *Gitardo Desktop* where they tell the two apps apart (Q860). Cards: `window.title-bar`,
+   `worktree.open-in-new-window`, whose texts say the name.
+
+Exit: the title of the window in the taskbar of Windows is *\<repository\> — Gitardo*; a test of `views` reads
+**Gitardo** in the title; no text of the window says *Gitardo Desktop* (a search of `crates/views/src/text` and of
+the texts of `features` finds none); the settings and the secrets of a window of before are read as they were; a
+release made by the pipeline on a test tag holds three archives named `gitardo-<version>-…`.
+
+## M29 — Wayland of its own
+
+Gitardo on Wayland as much as on X11, with nothing it needs taken through XWayland
+([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider), Q2). Built in
+three phases, each one commit or more, each ending with its tests passing on Linux:
+
+1. **The clipboard of Wayland.** Copy and paste speak to the compositor's clipboard on Wayland (the protocol
+   `wlr-data-control` or `ext-data-control`, through the Wayland part of `arboard` or a library weighed as
+   [D22](../08-decisions.md#d22--libraries-with-judgment) says), and to X11 as before when `winit` opened the window on
+   X11; Gitardo started without XWayland copies and pastes with another Wayland program. `05-platform.md` says so in
+   its row of the clipboard, and Q355 is answered in it.
+2. **The menu of the window.** A right click on the caption opens the compositor's menu of the window: on Wayland
+   `xdg_toplevel.show_window_menu`, on X11 the message `_GTK_SHOW_WINDOW_MENU` to the window manager, through `winit`
+   if a version of it does so, otherwise in `crates/platform/src/linux/`; Q570 is answered. Card: `window.title-bar`,
+   its line of the menu on Linux.
+3. **Checked on Wayland.** The tests of `platform` that open real windows, use the clipboard or watch folders run in
+   the pipeline on Linux under a compositor of Wayland started without a screen (Weston with its headless backend), as
+   well as under X11; **Before a release** gains a pass by hand on GNOME and on KDE Plasma, both on Wayland: the
+   title bar moved, maximized and resized, the menu of the window, a text typed with an input method, copy and paste
+   with another program, the dialogs of files through the portal, a scale of 125% and of 200%, the terminal. The
+   README of the desktop says that Linux runs on X11 and on Wayland.
+
+Exit: on a Linux without XWayland (`WAYLAND_DISPLAY` set, `DISPLAY` not), Gitardo opens, is moved, maximized and
+resized from its title bar, opens the compositor's menu of the window with a right click on the caption, copies a
+hash that a terminal of the system pastes and pastes a text copied there; on X11 the same holds; the pipeline runs the
+tests of `platform` under Weston and passes; every card of the milestone passes its tests.
+
+## M30 — GitHub Copilot, an AI provider
+
+`ai.provider` set to `copilot` asks GitHub Copilot, with the user's sign-in and subscription, what the other providers
+are asked: the conflicts and the draft of a commit message
+([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider), Q3). The
+extension asks Copilot already, among the language models of VS Code, and changes nothing. Built in three phases, each
+one commit or more, each ending with the cards it names built and their tests passing:
+
+1. **Speaking to the CLI.** `engine::ai::CopilotModel` starts `copilot` in its server mode, once for the window, and
+   speaks JSON-RPC to it over its standard input and output as the Copilot SDK does: the models of the subscription, a
+   session for each question with its model and its effort, the answer streamed, every permission it asks refused,
+   the session ended on cancel and the program when the window closes. A fake `copilot` in `testkit` answers the
+   protocol for the tests. The parts of the protocol used are written down in the card, with the version of the CLI
+   they were read from. Card: `ai.copilot`.
+2. **Choosing it.** `ai.provider` takes `copilot` (**GitHub Copilot** on the settings page), and `ai.endpoint` is not
+   shown then; `ai.choose-model` lists the models of Copilot; `ai.ask-conflict` and `commit.draft-message` ask
+   through it. The refusals: no CLI on the `PATH`, with **How to install**; not signed in, with **Sign in**, which runs
+   `copilot login` in a terminal of the bottom panel; Copilot's own refusal in its words. Cards: `ai.copilot`,
+   `ai.choose-model`, `ai.ask-conflict`, `commit.draft-message`, and the row of `ai.provider` in
+   `18-settings.md`.
+3. **Said.** The README of the desktop, its CHANGELOG under **Unreleased**, the stored data (`ai.provider` gains a
+   value, `docs/transition/05-stored-data.md`), and **Before a release** gains: resolve a conflict and draft a
+   message with GitHub Copilot signed in. Card: `ai.copilot` Built.
+
+Exit: with the GitHub Copilot CLI installed and signed in, choosing **GitHub Copilot** in the settings, then **Choose
+the model that resolves conflicts**, lists the models of the subscription; **Resolve with AI** on a merge in conflict
+proposes resolutions named after the model chosen; **Draft the commit message** writes a draft; a question cancelled
+leaves the CLI running and the next one is answered; with the CLI signed out, **Sign in** opens a terminal running
+`copilot login`, and once it ends the question is answered; without the CLI, the refusal offers **How to install**;
+every card of the milestone passes its tests, against the fake CLI.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

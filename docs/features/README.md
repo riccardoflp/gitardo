@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 485 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 486 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -25,7 +25,7 @@ earns it.
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 37 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
-| [09-conflicts.md](09-conflicts.md) | Conflicts | 38 |
+| [09-conflicts.md](09-conflicts.md) | Conflicts | 39 |
 | [10-compare.md](10-compare.md) | Compare | 26 |
 | [11-history-and-blame.md](11-history-and-blame.md) | History and blame | 30 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 45 |
@@ -362,6 +362,7 @@ earns it.
 | [`ai.read-answer`](09-conflicts.md#airead-answer--the-answer-read) | The answer, read | Derivation | Built | Built |
 | [`ai.trim-answer`](09-conflicts.md#aitrim-answer--the-lines-around-the-conflict-written-again) | The lines around the conflict, written again | Derivation | Built | Built |
 | [`ai.choose-model`](09-conflicts.md#aichoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Built | Differs (G2, G6) |
+| [`ai.copilot`](09-conflicts.md#aicopilot--github-copilot-as-the-ai-provider) | GitHub Copilot as the AI provider | Read | Specified | Host only |
 
 ## Compare
 
