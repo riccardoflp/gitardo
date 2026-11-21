@@ -1615,6 +1615,46 @@ Exit: in the extension, **Stage** then **Unstage** on a change of the Flow Diff,
 ends, says "Gitardo: diff.stage-change is running in app. Try again once it ends." and unstages nothing; **Unstage**
 asked once it ended unstages the change.
 
+## M43 — GitHub Copilot through its SDK, Claude asked as Anthropic's SDKs ask
+
+`ai.copilot` speaks to the GitHub Copilot CLI through GitHub's own SDK for Rust, `copilot-sdk`, in place of the
+JSON-RPC client written here from a crate now deprecated; Claude, which has no SDK for Rust, stays on the Messages API
+over HTTP, and asks it as Anthropic's SDKs do: a request that failed for a reason that passes is sent again, and an
+answer cut at its length is said
+([D87](../08-decisions.md#d87--github-copilot-through-its-sdk-claude-through-its-api-as-anthropics-sdks-ask-it-proposed),
+Q1510–Q1514). Gitardo Desktop alone: the extension asks the language models of VS Code and changes nothing. Built in
+three phases, each one commit or more, each ending with the cards it names built and their tests passing:
+
+1. **Copilot through the SDK.** R1.4 and R1.7 of the code rules say first, in their own commit, that the CLI is
+   spoken to through the SDK and that a library may bring `serde` for itself. `engine` depends on `copilot-sdk`,
+   pinned exactly, with its default features off. `CopilotCli` keeps a `tokio` runtime of one thread and the SDK's
+   `Client`, started on the program `find_copilot` finds, over its standard input and output, the first time a question
+   needs it, and ended with the window; `copilot_model` asks through it: the sign-in (`get_auth_status`), the models
+   (`list_models`), a session for each question with the model and the effort, no tool available and
+   `DenyAllHandler` for every permission, each piece of the answer passed on as it comes, the session aborted on
+   cancel and ended once answered. `connection.rs` and the requests written by hand go. A CLI whose protocol the SDK
+   does not speak is refused with *too old* or *too new*. The fake `copilot` of `testkit` answers what the SDK sends,
+   its start and its version of the protocol included. Cards: `ai.copilot`, `ai.choose-model`.
+2. **Claude as the SDKs ask.** The requests of `anthropic` and `openai-compatible` are sent again up to twice, before
+   the first piece of the answer, on a failed connection, 408, 409, 429 or 500 and more, unless `x-should-retry` is
+   `false`, after `retry-after-ms` or `retry-after` up to a minute or half a second doubled up to 8 with a quarter at
+   random; the status bar says *Waiting for \<provider\>, then trying again…*, and **Cancel** ends the wait. An answer
+   that stops at `max_tokens` (`length`) is refused with *The answer of the model was cut at its length. Ask again with
+   a lower effort.* The server of the tests answers 529 then 200, `retry-after: 2`, `x-should-retry: false` and a cut
+   answer. Cards: `ai.ask-conflict`, `commit.draft-message`, `ai.choose-model`.
+3. **Said.** The card `ai.copilot` names the version of the SDK and the version of the CLI it was tried with, in place
+   of the requests of the protocol; the CHANGELOG of the desktop under **Unreleased**; **Before a release** names the
+   version of the SDK in its check of GitHub Copilot, and gains: a provider over HTTP that answers 429 is asked again.
+   Cards: `ai.copilot`, `ai.ask-conflict`.
+
+Exit: with the GitHub Copilot CLI installed and signed in, **Choose the model that resolves conflicts** lists the
+models of the subscription, **Resolve with AI** proposes resolutions named after the model chosen, and **Draft the
+commit message** writes a draft, all through the SDK; a question cancelled leaves the CLI running and the next one is
+answered; signed out, **Sign in** still opens `copilot login`; without the CLI, **How to install** is still offered;
+`cargo tree -p engine` shows no OpenSSL and no second TLS; with `anthropic`, an answer 529 then 200 gives the answer
+after one wait, and an answer cut at `max_tokens` says so; every card of the milestone passes its tests, against the
+fake CLI and the server of the tests.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

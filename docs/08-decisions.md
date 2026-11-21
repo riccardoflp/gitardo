@@ -2166,6 +2166,74 @@ start that line, before the author and the date, and the message has its line to
 - **The extension** already draws its rows of two lines so, in the side bar: the labels under the message, before the
   author and the date; its wide Graph view has one line a commit. Nothing changes there.
 
+## D87 — GitHub Copilot through its SDK, Claude through its API as Anthropic's SDKs ask it (proposed)
+
+*Asked by the maintainer on 2026-11-21, for both GitHub Copilot and Claude; the details proposed while planning. Built
+in milestone M43. It changes how [D75](#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)
+reaches the providers it chose (Q3), not which they are.*
+
+`ai.copilot` speaks to the GitHub Copilot CLI with a JSON-RPC client written here, from what the Copilot SDK's client
+for Rust of its time sent (`github-copilot-sdk` 0.1.0, protocol version 2). That crate is now deprecated, and the CLI
+changes its protocol with the SDK: what was read then may already differ from the CLI a user has (Q1350), and nothing
+here would know. The `anthropic` provider speaks to the Messages API over HTTP, which is the way Anthropic gives a
+language without an SDK of its own.
+
+- **GitHub Copilot, through `copilot-sdk`.** GitHub's own SDK for Rust (`github/copilot-sdk`, the crate
+  `copilot-sdk`, which replaced `github-copilot-sdk`) speaks to the CLI in place of the client written here: its
+  `Client` started on the `copilot` program found on the `PATH`, as a process spoken to over its standard input and
+  output (`RuntimeConnection::SpawnedStdio`), its models, its sessions and its events. Its version is pinned exactly in
+  `Cargo.toml`, and moving it is a change of its own, with the fake CLI of the tests and the check by hand of **Before a
+  release**. The protocol is the SDK's to keep: the card names the version of the SDK and the version of the CLI it was
+  tried with, no longer each request.
+- **Only the client.** The crate's default features are off: no CLI bundled or downloaded (Q862 stays as it is), no
+  runtime loaded into Gitardo's own process, no forwarding of the network. Without them the SDK needs no OpenSSL and no
+  HTTP client of its own, and [D13](#d13--one-library-for-tls) holds: `rustls` is still the one library for TLS.
+- **No tools, as before.** Every permission the CLI asks is refused with the SDK's `DenyAllHandler`, and the sessions
+  are made with no tool available: Copilot answers with text alone, as the other providers do.
+- **One runtime, inside `ai.copilot`.** The SDK is asynchronous, on `tokio`; the engine is not. `CopilotCli` keeps a
+  `tokio` runtime of one thread for the window, started with the CLI and ended with it; a question is sent to it and
+  its pieces come back on a channel, as the reading thread of the client written here sends them now, and the `Cancel`
+  of the job aborts the session. Nothing outside `engine::ai::copilot` sees a future, `tokio` or a type of the SDK
+  ([R1.6](desktop/03-code-rules.md#1-dependencies)).
+- **`serde` comes with it.** The SDK reads and writes its messages with `serde` and `serde_json`, which
+  [R1.7](desktop/03-code-rules.md#1-dependencies) keeps to `protocol` and `server`. The engine's own code still does
+  not use them: it fills the SDK's options and reads its events, and R1.7 says so, that a library may bring them for
+  itself. R1.4 says the CLI is spoken to through the SDK.
+- **What does not change** for the user: the settings, the sign-in of the CLI, **How to install**, **Sign in**, the
+  sentences of the refusals, the models listed, what is sent and what is shown. One refusal is added: a CLI whose
+  protocol the SDK does not speak says *The GitHub Copilot CLI is too old for Gitardo. Update it, then try again.*
+  (or *too new … Update Gitardo.*), in place of an answer that cannot be read (Q1511).
+- **Claude, through its API.** Anthropic has no SDK for Rust: its SDKs are for Python, TypeScript, Java, Go, Ruby, C#
+  and PHP, and for the others it gives the Messages API over HTTP, which `wire.rs` already speaks (`anthropic-version`
+  `2026-10-21`, `output_config.effort`, the answer streamed, the refusal said). The crates of others on crates.io are
+  not Anthropic's, and they bring an HTTP client and a TLS of their own. So `anthropic` stays on HTTP, with the key in
+  the credential store of the system, and what changes is that it asks as Anthropic's SDKs do: a request that failed
+  for a reason that passes is sent again, and an answer cut at its length is said, not read as an answer.
+- **Sent again, as the SDKs do.** A request is sent again up to twice when its connection failed, or when it answered
+  408, 409, 429 or a status of 500 or more, unless the answer's `x-should-retry` says `false`; the wait is that of
+  `retry-after-ms` or `retry-after` when the answer gives one up to a minute, and otherwise half a second, then one
+  second, up to 8, less up to a quarter at random. Only before the first piece of the answer came: once text is shown,
+  a failure is said, not hidden behind a second answer. The status bar says *Waiting for \<provider\>, then trying
+  again…* while it waits, and **Cancel** ends the wait. The same for `openai-compatible`, whose wire is the same code
+  and whose SDKs do the same (Q1512).
+- **Cut at its length.** An answer that ends with `stop_reason` `max_tokens` (`finish_reason` `length` for
+  `openai-compatible`) is refused with *The answer of the model was cut at its length. Ask again with a lower effort.*,
+  not read: a resolution cut in half would be read as one, or refused as no resolution, which says the wrong thing.
+- **Claude with a subscription.** The Claude Agent SDK, for Python and TypeScript, runs Claude Code, and would reach
+  Claude with the sign-in of a Claude subscription as `ai.copilot` reaches Copilot. Anthropic does not allow programs
+  of others to offer the sign-in of claude.ai, or its limits, unless it approved them first, so Gitardo does not: Claude
+  is asked with a key of the Claude API (Q1513).
+- **The extension** changes nothing: it asks the language models of VS Code, GitHub Copilot's among them, through
+  `host/languageModel`, and a key of Anthropic is not asked there ([D37](#d37--one-engine-the-rust-one-for-both-apps)).
+
+Rejected: keeping the client written here and following the CLI by hand (each change of the protocol found by a user
+first); the SDK with its default features (a CLI downloaded by Gitardo, OpenSSL beside `rustls`, and the runtime of
+Copilot loaded into Gitardo's process, with no isolation if it fails); a crate of others for the Messages API (not
+Anthropic's, and a second HTTP client and TLS beside `crates/http` and `crates/tls`); the Claude Agent SDK, through a
+process of Node or Python, or Claude Code run as a program (the sign-in of a subscription Anthropic does not allow to
+other programs, and a harness of tools that `ai.copilot` refuses in Copilot); `@anthropic-ai/sdk` in the extension
+(the AI of the extension goes through the engine and VS Code, D37).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -5704,3 +5772,26 @@ asked while it is planned; each is built as it says until the maintainer answers
   the rest. Should a long name of an author be shortened sooner, to leave the labels more room?
 - **Q1232** — `graph.columns`: with neither the author nor the date shown, a commit with no label has an empty second
   line. Should such a row be one line, as tall as before?
+
+### Of the SDKs of GitHub Copilot and Claude, from Q1510
+
+Questions of milestone M43
+([D87](#d87--github-copilot-through-its-sdk-claude-through-its-api-as-anthropics-sdks-ask-it-proposed)), asked while
+it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1510** — `ai.copilot`: on 2026-11-21 the version of `copilot-sdk` is `2.0.2-preview.3`, a preview, and the
+  versions of before are those of the deprecated `github-copilot-sdk`. M43 pins the preview of the day it is built. Should
+  it wait for a version that is not a preview?
+- **Q1511** — `ai.copilot`: a CLI whose protocol the SDK does not speak is refused with *too old* or *too new*, and the
+  version of the CLI the SDK was published with is the one named in the card. Should **How to install** be offered
+  with *too old*, since installing again updates it?
+- **Q1512** — `ai.ask-conflict`, `commit.draft-message`: a request is sent again up to twice, as Anthropic's and
+  OpenAI's SDKs do, for both providers over HTTP. Should a setting give the number of tries, or none for a provider
+  that bills a request that failed?
+- **Q1513** — Claude with the sign-in of a Claude subscription is left out, since Anthropic does not allow it to the
+  programs of others unless it approved them. Should the maintainer ask Anthropic for that approval, and plan a
+  provider of its own if it is given?
+- **Q1514** — `ai.copilot`: the SDK keeps the protocol, but the CLI a user has may still be older or newer than the one
+  the SDK was published with. Should **Before a release** keep its check by hand with the CLI of the day (Q1350), or
+  should the pipeline install the CLI and run one question against it, with a token of the maintainer kept as a
+  secret?
