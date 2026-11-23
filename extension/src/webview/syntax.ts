@@ -6,9 +6,6 @@ import { onMessage, post } from './vscode';
 type Api = typeof Highlight;
 export type { Colors, Token } from './highlight';
 
-/** Where the script of the page is: the one that colors code is next to it, read when the address is resolved. */
-const base = (document.currentScript as HTMLScriptElement | null)?.src ?? location.href;
-
 let loading: Promise<Api> | undefined;
 /** Counts the themes taken since the first: the lines are colored again with each. */
 let themes = 0;
@@ -19,7 +16,8 @@ const dark = () => !['vscode-light', 'vscode-high-contrast-light'].some((name) =
 /** The script that colors code, once it has the colors of the theme, which the host sends now and when they change. */
 function load(): Promise<Api> {
   loading ??= new Promise<Api>((resolve, reject) => {
-    const api: Promise<Api> = import(new URL('highlight/index.js', base).href);
+    // Every module of the page is in dist/webview/, and the script that colors code in dist/highlight/ beside it.
+    const api: Promise<Api> = import(new URL('../highlight/index.js', import.meta.url).href);
     api.catch(reject);
     let first = true;
     onMessage((message) => {

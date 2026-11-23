@@ -54,7 +54,7 @@ flowchart TB
     worker[dist/flowWorker.js<br/>worker thread: computes the diffs of the Flow Diff]
   end
   subgraph webviews [Webviews: one browser page each]
-    ui[dist/webview.js + webview.css<br/>React: every view and tab]
+    ui[dist/webview/<br/>React: every view and tab, each loading its own page]
     hl[dist/highlight/<br/>shiki, loaded only when changes are shown]
     flow[dist/flow/<br/>Monaco: the Flow Diff and the Flow Merge]
   end
@@ -75,7 +75,7 @@ flowchart TB
 | --- | --- | --- |
 | Extension host | `dist/extension.js`, CommonJS for Node 20, started at `onStartupFinished` | VS Code's API |
 | Flow Diff worker | `dist/flowWorker.js`, a `worker_threads` Worker of the host | messages (`src/flow/diff/protocol.ts`) |
-| Webviews | `dist/webview.js` (classic script), one page per view or tab, picked by `data-view` | `postMessage`, typed in `src/shared/protocol.ts` |
+| Webviews | `dist/webview/index.js` (ES modules, split in chunks), one page per view or tab, picked by `data-view`, which imports only that page | `postMessage`, typed in `src/shared/protocol.ts` |
 | Flow pages | `dist/flow/main.js`, `dist/flow/merge.js` (ES modules, split in chunks) | `postMessage` (`src/flow/diff/protocol.ts`, `mergeProtocol.ts`) |
 | git | a child process of the engine per command, `GIT_TERMINAL_PROMPT=0`, no shell | arguments, standard input, output |
 | Gitardo's engine | `gitardo-engine --stdio`, one process per window, from `bin/<platform>-<arch>/` of the package or the development setting `gitardo.engine.path`; started the first time a repository is found, and started again after an exit as [transition/01-engine.md](../transition/01-engine.md#when-something-goes-wrong) says | JSON-RPC 2.0 on its standard input and output, framed with `Content-Length` ([transition/02-protocol.md](../transition/02-protocol.md)) |

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { BranchLog, Commit, CommitDetail, DiffSource, RepoState } from '../shared/protocol';
 import { checkedOutBranch, upstreamName } from '../shared/state';
 import { useMenu } from './ContextMenu';
+import { OVERSCAN } from './CommitList';
 import { ActionButtons, FileRow } from './FileRow';
 import { Icon } from './Icon';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
@@ -12,6 +13,8 @@ import { onMessage, post } from './vscode';
 
 /** How many commits are asked for at first, and how many more each time. */
 const PAGE = 100;
+/** How high the row of a commit is, as `.file` sets it; one unfolded is as high as it was measured. */
+const ROW = 22;
 
 /** What the unfolded commits changed, by the hash of each. Null while it is being read. */
 type Open = Record<string, CommitDetail | null>;
@@ -60,6 +63,44 @@ export function CommitsApp() {
   openRef.current = open;
   const rootRef = useRef<string | null>(null);
   const openMenu = useMenu();
+  // Only the commits in sight are drawn, as in the graph: with thousands loaded, scrolling would otherwise draw them all.
+  const scroller = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const [sight, setSight] = useState({ from: 0, to: 0 });
+  /** How high each unfolded commit was, with its files, the last time it was drawn. */
+  const measured = useRef(new Map<string, number>());
+  const [, setMeasuredAgain] = useState(0);
+  const look = () => {
+    const element = scroller.current;
+    if (!element || !list.current) return;
+    // Where the list starts in what scrolls: under the line that says what is left to push.
+    const offset = list.current.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop;
+    const from = element.scrollTop - offset;
+    setSight((current) => (current.from === from && current.to === from + element.clientHeight ? current : { from, to: from + element.clientHeight }));
+  };
+  const shown = state !== null && log !== null;
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    if (!shown || !element) return;
+    const observer = new ResizeObserver(look);
+    observer.observe(element);
+    look();
+    return () => observer.disconnect();
+  }, [shown]);
+  // An unfolded commit is as high as its files, which come later: it is measured each time it is drawn.
+  useLayoutEffect(() => {
+    let changed = false;
+    for (const section of list.current?.children ?? []) {
+      const hash = (section as HTMLElement).dataset.hash;
+      if (!hash || !(hash in open)) continue;
+      const height = (section as HTMLElement).offsetHeight;
+      if (measured.current.get(hash) !== height) {
+        measured.current.set(hash, height);
+        changed = true;
+      }
+    }
+    if (changed) setMeasuredAgain((count) => count + 1);
+  });
 
   useEffect(() => {
     const stop = onMessage((message) => {
@@ -131,45 +172,67 @@ export function CommitsApp() {
     );
   };
 
+  // The commits from `start` to `end` are drawn; the room of those above and below is kept empty.
+  const heightOf = (commit: Commit) => (commit.hash in open ? (measured.current.get(commit.hash) ?? ROW * 2) : ROW);
+  const top = sight.from - OVERSCAN * ROW;
+  const bottom = sight.to + OVERSCAN * ROW;
+  let start = 0;
+  let end = 0;
+  let above = 0;
+  let below = 0;
+  let at = 0;
+  for (const commit of log.commits) {
+    const height = heightOf(commit);
+    if (at + height <= top) {
+      start++;
+      end++;
+      above += height;
+    } else if (at < bottom) end++;
+    else below += height;
+    at += height;
+  }
+
   return (
-    <div className="side log">
+    <div className="side log" ref={scroller} onScroll={look}>
       {log.commits.length ? <p className="log-summary muted">{summary(state, log)}</p> : <p className="none muted">No commits yet.</p>}
-      {log.commits.map((commit) => {
-        const unfolded = commit.hash in open;
-        const detail = open[commit.hash];
-        const pushed = pushState(commit);
-        const about = `${commit.subject}\n${shortHash(commit.hash)} · ${commit.author} · ${fullDate(commit.date)}`;
-        return (
-          <section key={commit.hash}>
-            <div className={`file commit ${pushed.kind}`} onContextMenu={(event) => openMenu(event, logMenu(commit, state))}>
-              <button
-                className="twist"
-                onClick={() => toggle(commit)}
-                aria-expanded={unfolded}
-                aria-label={`${unfolded ? 'Hide' : 'Show'} the files of ${shortHash(commit.hash)}`}
-              >
-                <Icon name={unfolded ? 'chevron-down' : 'chevron-right'} />
-              </button>
-              <button className="file-open" title={pushed.title ? `${about}\n${pushed.title}` : about} onClick={() => toggle(commit)}>
-                <span className="push-state" aria-label={pushed.title || undefined}>
-                  <Icon name={pushed.name} />
-                </span>
-                <span className="name">{commit.subject}</span>
-                <span className="meta">
-                  {commit.author}, {relativeTime(commit.date)}
-                </span>
-              </button>
-              <ActionButtons
-                actions={[
-                  { icon: 'link-external', title: 'Open in an editor tab, with its changes', run: () => post({ type: 'openCommit', hash: commit.hash }) },
-                  { icon: 'git-commit', title: 'Show in the graph', run: () => post({ type: 'reveal', hash: commit.hash }) },
-                ]}
-              />
-            </div>
-            {unfolded && (detail ? files(commit, detail) : <p className="none muted">Loading…</p>)}
-          </section>
-        );
-      })}
+      <div ref={list} style={{ paddingTop: above, paddingBottom: below }}>
+        {log.commits.slice(start, end).map((commit) => {
+          const unfolded = commit.hash in open;
+          const detail = open[commit.hash];
+          const pushed = pushState(commit);
+          const about = `${commit.subject}\n${shortHash(commit.hash)} · ${commit.author} · ${fullDate(commit.date)}`;
+          return (
+            <section key={commit.hash} data-hash={commit.hash}>
+              <div className={`file commit ${pushed.kind}`} onContextMenu={(event) => openMenu(event, logMenu(commit, state))}>
+                <button
+                  className="twist"
+                  onClick={() => toggle(commit)}
+                  aria-expanded={unfolded}
+                  aria-label={`${unfolded ? 'Hide' : 'Show'} the files of ${shortHash(commit.hash)}`}
+                >
+                  <Icon name={unfolded ? 'chevron-down' : 'chevron-right'} />
+                </button>
+                <button className="file-open" title={pushed.title ? `${about}\n${pushed.title}` : about} onClick={() => toggle(commit)}>
+                  <span className="push-state" aria-label={pushed.title || undefined}>
+                    <Icon name={pushed.name} />
+                  </span>
+                  <span className="name">{commit.subject}</span>
+                  <span className="meta">
+                    {commit.author}, {relativeTime(commit.date)}
+                  </span>
+                </button>
+                <ActionButtons
+                  actions={[
+                    { icon: 'link-external', title: 'Open in an editor tab, with its changes', run: () => post({ type: 'openCommit', hash: commit.hash }) },
+                    { icon: 'git-commit', title: 'Show in the graph', run: () => post({ type: 'reveal', hash: commit.hash }) },
+                  ]}
+                />
+              </div>
+              {unfolded && (detail ? files(commit, detail) : <p className="none muted">Loading…</p>)}
+            </section>
+          );
+        })}
+      </div>
       {/* Fewer than were asked for, and more to come: they are on their way. */}
       {log.hasMore && log.commits.length < limit ? (
         <button className="file more" disabled>

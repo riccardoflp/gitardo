@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, type ReactNode } from 'react';
+import { memo, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PullRequest, RepoState, Submodule } from '../shared/protocol';
 import {
   byMatch,
@@ -159,6 +159,133 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
   const listed = useMemo(() => listedRefs(state.listed, refs), [state.listed, refs]);
   const listedHere = (ref: string) => !listed || listed.has(ref);
 
+  // The rows of each section, made again only with a new state: the pointer resting on a row, or a commit selected,
+  // draws the tree again. Their menus call what the tree was last given.
+  const latest = useRef({ onCompare, onReveal });
+  latest.current = { onCompare, onReveal };
+  const { compare, reveal } = useMemo(
+    () => ({ compare: (comparing: Comparing) => latest.current.onCompare(comparing), reveal: (hash: string) => latest.current.onReveal(hash) }),
+    [],
+  );
+  const { branches, remotes, favoriteItems, recentItems, tags, stashes, worktrees, submodules } = useMemo(() => {
+    const favorites = new Set(state.favorites);
+    const branches = state.branches
+      .filter((branch) => listedHere(`refs/heads/${branch.name}`))
+      .map((branch): Item => {
+        const upstream = branch.upstream;
+        const pull = pullOf(pushedName(branch, state), state);
+        const tracking = upstream ? `${branch.name} → ${upstreamName(upstream)}` : `${branch.name} (no upstream)`;
+        const worktree = worktreeOf(branch.name, state);
+        const about = [tracking, worktree && `In the worktree ${worktree.folder}`, worktree && changesText(worktree.uncommitted), pull && pullTitle(pull)]
+          .filter(Boolean)
+          .join('\n');
+        return {
+          key: branch.name,
+          hash: branch.commit,
+          ref: `refs/heads/${branch.name}`,
+          label: branch.name,
+          hint: upstreamHint(branch),
+          pull,
+          title: about,
+          worktree: worktree?.folder,
+          changes: worktree?.uncommitted || undefined,
+          current: branch.isCheckedOut,
+          favorite: favorites.has(`refs/heads/${branch.name}`),
+          menu: () => branchMenu(branch, state, compare, reveal),
+          open: openBranch(branch, state),
+          drag: { kind: 'branch', name: branch.name, hash: branch.commit, local: true, current: branch.isCheckedOut },
+        };
+      });
+    const remotes = state.remoteBranches
+      .filter((ref) => listedHere(`refs/remotes/${ref.name}`))
+      .map(
+        (ref): Item => ({
+          key: ref.name,
+          hash: ref.commit,
+          ref: `refs/remotes/${ref.name}`,
+          label: ref.name,
+          favorite: favorites.has(`refs/remotes/${ref.name}`),
+          menu: () => remoteBranchMenu(ref, state, compare, reveal),
+          open: openRemoteBranch(ref, state),
+          drag: { kind: 'branch', name: ref.name, hash: ref.commit, local: false, current: false },
+        }),
+      );
+    // The same lines the branches have where they are listed with the others, under a key of their own.
+    const again = (prefix: string, item: Item | undefined): Item[] => (item ? [{ ...item, key: `${prefix}:${item.key}` }] : []);
+    const byRef = new Map([...branches, ...remotes].map((item) => [item.ref!, item]));
+    const favoriteItems = state.favorites.flatMap((ref) => again(ref.startsWith('refs/heads/') ? 'favorite' : 'favorite:remote', byRef.get(ref)));
+    const recentItems = recentBranches(state).flatMap((name) => again('recent', byRef.get(`refs/heads/${name}`)));
+    const tags = state.tags
+      .filter((ref) => listedHere(`refs/tags/${ref.name}`))
+      .map((ref) => {
+        const mark = remoteMark(state.tagMarks, ref);
+        return {
+          key: ref.name,
+          hash: ref.commit,
+          ref: `refs/tags/${ref.name}`,
+          label: ref.name,
+          title: mark ? `${ref.name}\n${mark.title}` : undefined,
+          badge: mark ? { icon: mark.icon, tone: 'moved' as const, text: mark.title } : undefined,
+          menu: () => tagMenu(ref, state, compare, reveal),
+        };
+      });
+    const stashes = state.stashes.map((stash) => ({
+      key: stashName(stash),
+      hash: stash.commit,
+      label: stash.message,
+      title: `${stashName(stash)}: ${stash.message}`,
+      menu: () => stashMenu(stash),
+    }));
+    const worktrees = state.worktrees.map((worktree): Item => {
+      // Its branch as it stands against its upstream, what is not committed in it and its pull request.
+      const { branch, ahead, pull } = worktreeStatus(worktree, state);
+      const tracking = branch?.upstream && `${branch.name} → ${upstreamName(branch.upstream)}`;
+      return {
+        key: worktree.folder,
+        hash: worktree.commit ?? undefined,
+        label: worktreeLabel(worktree.folder, state.worktreesRoot),
+        hint: worktree.isMissing
+          ? isLocked(worktree)
+            ? 'missing, locked'
+            : 'missing'
+          : [worktreeBranch(worktree) ?? 'detached', ahead].filter(Boolean).join(' '),
+        title: [worktree.folder, lockTitle(worktree), tracking, changesText(worktree.uncommitted), pull && pullTitle(pull)].filter(Boolean).join('\n'),
+        locked: isLocked(worktree),
+        changes: worktree.uncommitted || undefined,
+        pull,
+        current: worktree.isCurrent,
+        menu: () => worktreeMenu(worktree, state, reveal),
+        open: worktree.isCurrent || worktree.isMissing ? undefined : () => act({ kind: 'worktreeOpen', path: worktree.folder }),
+      };
+    });
+    const submodules = state.submodules.map((submodule): Item => {
+      const badge = submoduleBadge(submodule);
+      const head = submodule.checkout?.commit ?? null;
+      const where = submodule.checkout?.branch ?? (head ? 'detached' : undefined);
+      return {
+        key: submodule.folder,
+        label: submodule.parent ? submodule.folder.slice(submodule.parent.length + 1) : submodule.folder,
+        hint: where,
+        title: [
+          submodule.folder,
+          submodule.url,
+          badge.text,
+          head && `Checked out: ${where} at ${head.slice(0, 7)}`,
+          submodule.staged && `Staged as the recorded commit: ${submodule.staged.slice(0, 7)}`,
+          changesText(submodule.checkout?.uncommitted ?? null),
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        changes: submodule.checkout?.uncommitted || undefined,
+        depth: submoduleDepth(submodule, state.submodules),
+        badge,
+        menu: () => submoduleMenu(submodule, state),
+        open: head ? () => act({ kind: 'submoduleOpen', path: submodule.folder }) : undefined,
+      };
+    });
+    return { branches, remotes, favoriteItems, recentItems, tags, stashes, worktrees, submodules };
+  }, [state, listed, compare, reveal]);
+
   const toggle = (id: string) => {
     // From what is open now, not from the last render: two sections opened before it are both kept.
     setOpened((now) => {
@@ -286,67 +413,6 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
     );
   };
 
-  const favorites = new Set(state.favorites);
-  const branches = state.branches
-    .filter((branch) => listedHere(`refs/heads/${branch.name}`))
-    .map((branch): Item => {
-      const upstream = branch.upstream;
-      const pull = pullOf(pushedName(branch, state), state);
-      const tracking = upstream ? `${branch.name} → ${upstreamName(upstream)}` : `${branch.name} (no upstream)`;
-      const worktree = worktreeOf(branch.name, state);
-      const about = [tracking, worktree && `In the worktree ${worktree.folder}`, worktree && changesText(worktree.uncommitted), pull && pullTitle(pull)]
-        .filter(Boolean)
-        .join('\n');
-      return {
-        key: branch.name,
-        hash: branch.commit,
-        ref: `refs/heads/${branch.name}`,
-        label: branch.name,
-        hint: upstreamHint(branch),
-        pull,
-        title: about,
-        worktree: worktree?.folder,
-        changes: worktree?.uncommitted || undefined,
-        current: branch.isCheckedOut,
-        favorite: favorites.has(`refs/heads/${branch.name}`),
-        menu: () => branchMenu(branch, state, onCompare, onReveal),
-        open: openBranch(branch, state),
-        drag: { kind: 'branch', name: branch.name, hash: branch.commit, local: true, current: branch.isCheckedOut },
-      };
-    });
-  const remotes = state.remoteBranches
-    .filter((ref) => listedHere(`refs/remotes/${ref.name}`))
-    .map(
-      (ref): Item => ({
-        key: ref.name,
-        hash: ref.commit,
-        ref: `refs/remotes/${ref.name}`,
-        label: ref.name,
-        favorite: favorites.has(`refs/remotes/${ref.name}`),
-        menu: () => remoteBranchMenu(ref, state, onCompare, onReveal),
-        open: openRemoteBranch(ref, state),
-        drag: { kind: 'branch', name: ref.name, hash: ref.commit, local: false, current: false },
-      }),
-    );
-  // The same lines the branches have where they are listed with the others, under a key of their own.
-  const again = (prefix: string, item: Item | undefined): Item[] => (item ? [{ ...item, key: `${prefix}:${item.key}` }] : []);
-  const favoriteItems = state.favorites.flatMap((ref) =>
-    ref.startsWith('refs/heads/')
-      ? again(
-          'favorite',
-          branches.find((item) => `refs/heads/${item.key}` === ref),
-        )
-      : again(
-          'favorite:remote',
-          remotes.find((item) => `refs/remotes/${item.key}` === ref),
-        ),
-  );
-  const recentItems = recentBranches(state).flatMap((name) =>
-    again(
-      'recent',
-      branches.find((item) => item.key === name),
-    ),
-  );
   // Branches and tags are listed in the same order, which the menu of each of their sections chooses; the menu of the
   // remotes fetches and pushes their notes too, as no row stands for each remote.
   const sorting = (what: string, more: MenuEntry[] = []): SectionAction[] => [
@@ -411,20 +477,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
         'tags',
         'Tags',
         'tag',
-        state.tags
-          .filter((ref) => listedHere(`refs/tags/${ref.name}`))
-          .map((ref) => {
-            const mark = remoteMark(state.tagMarks, ref);
-            return {
-              key: ref.name,
-              hash: ref.commit,
-              ref: `refs/tags/${ref.name}`,
-              label: ref.name,
-              title: mark ? `${ref.name}\n${mark.title}` : undefined,
-              badge: mark ? { icon: mark.icon, tone: 'moved' as const, text: mark.title } : undefined,
-              menu: () => tagMenu(ref, state, onCompare, onReveal),
-            };
-          }),
+        tags,
         !!state.listed,
         tagsActions(),
         notPushedWords(state.tagMarks, state.tags),
@@ -433,40 +486,13 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
         'stashes',
         'Stashes',
         'git-stash',
-        state.stashes.map((stash) => ({
-          key: stashName(stash),
-          hash: stash.commit,
-          label: stash.message,
-          title: `${stashName(stash)}: ${stash.message}`,
-          menu: () => stashMenu(stash),
-        })),
+        stashes,
       )}
       {section(
         'worktrees',
         'Worktrees',
         'worktree',
-        state.worktrees.map((worktree): Item => {
-          // Its branch as it stands against its upstream, what is not committed in it and its pull request.
-          const { branch, ahead, pull } = worktreeStatus(worktree, state);
-          const tracking = branch?.upstream && `${branch.name} → ${upstreamName(branch.upstream)}`;
-          return {
-            key: worktree.folder,
-            hash: worktree.commit ?? undefined,
-            label: worktreeLabel(worktree.folder, state.worktreesRoot),
-            hint: worktree.isMissing
-              ? isLocked(worktree)
-                ? 'missing, locked'
-                : 'missing'
-              : [worktreeBranch(worktree) ?? 'detached', ahead].filter(Boolean).join(' '),
-            title: [worktree.folder, lockTitle(worktree), tracking, changesText(worktree.uncommitted), pull && pullTitle(pull)].filter(Boolean).join('\n'),
-            locked: isLocked(worktree),
-            changes: worktree.uncommitted || undefined,
-            pull,
-            current: worktree.isCurrent,
-            menu: () => worktreeMenu(worktree, state, onReveal),
-            open: worktree.isCurrent || worktree.isMissing ? undefined : () => act({ kind: 'worktreeOpen', path: worktree.folder }),
-          };
-        }),
+        worktrees,
         false,
         [
           { icon: 'add', title: 'Create worktree…', run: () => act({ kind: 'worktreeAdd' }) },
@@ -477,31 +503,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
         'submodules',
         'Submodules',
         'file-submodule',
-        state.submodules.map((submodule): Item => {
-          const badge = submoduleBadge(submodule);
-          const head = submodule.checkout?.commit ?? null;
-          const where = submodule.checkout?.branch ?? (head ? 'detached' : undefined);
-          return {
-            key: submodule.folder,
-            label: submodule.parent ? submodule.folder.slice(submodule.parent.length + 1) : submodule.folder,
-            hint: where,
-            title: [
-              submodule.folder,
-              submodule.url,
-              badge.text,
-              head && `Checked out: ${where} at ${head.slice(0, 7)}`,
-              submodule.staged && `Staged as the recorded commit: ${submodule.staged.slice(0, 7)}`,
-              changesText(submodule.checkout?.uncommitted ?? null),
-            ]
-              .filter(Boolean)
-              .join('\n'),
-            changes: submodule.checkout?.uncommitted || undefined,
-            depth: submoduleDepth(submodule, state.submodules),
-            badge,
-            menu: () => submoduleMenu(submodule, state),
-            open: head ? () => act({ kind: 'submoduleOpen', path: submodule.folder }) : undefined,
-          };
-        }),
+        submodules,
         true,
         [{ icon: 'add', title: 'Add submodule…', run: () => act({ kind: 'submoduleAdd' }) }],
       )}

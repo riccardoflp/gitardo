@@ -3325,9 +3325,10 @@ export class Controller implements vscode.Disposable {
     const escape = (text: string) => text.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
     const attributes = Object.entries(data).map(([name, value]) => `data-${name}="${escape(value)}"`).join(' ');
     const nonce = Array.from({ length: 32 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
-    const script = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.js'));
-    const style = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview.css'));
-    // The scripts of the extension itself, besides the page's own: those that color code are imported once it shows some.
+    const script = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview', 'index.js'));
+    const style = webview.asWebviewUri(vscode.Uri.joinPath(dist, 'webview', 'index.css'));
+    // The scripts of the extension itself, besides the page's own: the page of the view is imported by kind, and those
+    // that color code once it shows some.
     // Images and fonts also for the icons of the file icon theme; `data:` for the images of a commit, in which nothing
     // of an SVG runs and nothing is fetched (`commit-page.images`).
     const csp = `default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; img-src ${webview.cspSource} data:; script-src 'nonce-${nonce}' ${webview.cspSource};`;
@@ -3341,7 +3342,7 @@ export class Controller implements vscode.Disposable {
 </head>
 <body ${attributes}>
   <div id="root"></div>
-  <script nonce="${nonce}" src="${script}"></script>
+  <script type="module" nonce="${nonce}" src="${script}"></script>
 </body>
 </html>`;
   }
