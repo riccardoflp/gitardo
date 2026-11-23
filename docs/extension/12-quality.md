@@ -46,5 +46,10 @@ page; they are targets to keep, not limits a test enforces.
 | QA13 | Every view in each of the five default themes | Buttons have a shape against the panel; labels in the color of their line | screenshots | `npm run test:ui` |
 | QA14 | Any operation that can lose work, with `gitardo.commandPreview` `off` | It asks first | 100% of the list in the README's Command preview | the cards' Danger lines; `test/e2e/suite.ts` for some |
 
+Measured again on 2026-11-24, after milestone M44, with VS Code in Xvfb on Linux: QA1 2.8 s; QA2 900 ms until the
+view has a new state, since a refresh that finds the same history now sends nothing until the whole history is read
+again, and 6 ms to draw it (48 before); QA4 no key waits. The details are in the
+[roadmap](../desktop/07-roadmap.md#m44--reads-that-cost-less-in-the-extension-most-of-all-done).
+
 No scenario fails a build today: the performance scripts print numbers to read. Making QA1 to QA4 fail above a
 threshold is in the [roadmap](07-roadmap.md).
