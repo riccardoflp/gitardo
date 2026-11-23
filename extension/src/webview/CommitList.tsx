@@ -316,8 +316,255 @@ function PullBadge({ request, branch }: { request: PullRequest; branch: string }
   );
 }
 
+/**
+ * What a row of the list can do, the same object for the whole life of the list, so that a row draws again only when
+ * what it shows changed. Each calls what the list was last given.
+ */
+interface RowActions {
+  select(hash: string, mode: SelectMode): void;
+  open(hash: string): void;
+  rowMenu(event: MouseEvent, row: Row): void;
+  labelMenu(event: MouseEvent, label: Label, row: Row): void;
+  labelOpen(label: Label): (() => void) | undefined;
+  /** Answers from the label and the row alone, since a row asks it only when it draws again. */
+  dragSource(label: Label | null, row: Row): DragSource | null;
+  canDrop(row: Row): boolean;
+  drop(event: MouseEvent, row: Row): void;
+  trace(hash: string | null): void;
+  fold(merge: string): void;
+  unfold(merge: string): void;
+  /** The row a drag is over, which shows where it would be dropped. */
+  setDropTarget(update: (current: string | null) => string | null): void;
+}
+
+/** What makes a row or one of its labels draggable, and what it carries. */
+function dragProps(actions: RowActions, label: Label | null, row: Row) {
+  const source = actions.dragSource(label, row);
+  return {
+    draggable: source !== null,
+    onDragStart: (event: DragEvent) => source && startDrag(event, source),
+    onDragEnd: () => {
+      endDrag();
+      actions.setDropTarget(() => null);
+    },
+  };
+}
+
+/** What the row of a commit shows; each is the same from one drawing of the list to the next while it is unchanged. */
+interface CommitRowProps {
+  row: Row;
+  index: number;
+  height: number;
+  graphWidth: number;
+  lane: number;
+  tall: boolean;
+  selected: boolean;
+  /** A search is shown and did not find this commit. */
+  dimmed: boolean;
+  /** While a history stands out, which parts of this row's cell of the graph are in it. */
+  trace: GraphTrace | undefined;
+  dropTarget: boolean;
+  labels: Label[] | undefined;
+  /** The upstream the commit would be pushed to, when it is not pushed yet. */
+  unpushed: string | undefined;
+  /** The name of the time further back that starts at this commit. */
+  period: string | undefined;
+  /** Whether the commits of this merge are folded, or could be. */
+  fold: 'folded' | 'foldable' | null;
+  showAuthor: boolean;
+  showDate: boolean;
+  showHash: boolean;
+  oneLane: boolean;
+  actions: RowActions;
+}
+
+/** The button of a merge that folds the commits it brought in into one row, or shows them again. */
+function FoldButton({ hash, folded, actions }: { hash: string; folded: boolean; actions: RowActions }) {
+  return (
+    <button
+      className={folded ? 'fold folded' : 'fold'}
+      title={folded ? 'Show the commits it merged again' : 'Fold the commits it merged into one row'}
+      aria-label={folded ? 'Show the commits it merged again' : 'Fold the commits it merged into one row'}
+      onClick={(event) => {
+        // Not the selection of the commit as well.
+        event.stopPropagation();
+        if (folded) actions.unfold(hash);
+        else actions.fold(hash);
+      }}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
+      <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
+    </button>
+  );
+}
+
+/** The row of one commit, or of the uncommitted changes, drawn again only when what it shows changed. */
+const CommitRow = memo(function CommitRow(props: CommitRowProps) {
+  const { row, index, height, tall, actions, trace, fold } = props;
+  const worktree = row.hash === WORKTREE;
+  const classes = tall ? ['row', 'tall'] : ['row'];
+  if (props.selected) classes.push('selected');
+  if (worktree) classes.push('worktree');
+  if (row.stash) classes.push('stash');
+  if (props.dimmed) classes.push('dimmed');
+  if (trace && !trace.node) classes.push('unreached');
+  if (props.dropTarget) classes.push('drop-target');
+  const all = props.labels ?? [];
+  // Squeezed side by side, many labels would be left with a letter each: a few keep their names, what is
+  // checked out before the others, and the rest are counted.
+  const named = tall && all.length > TALL_LABELS ? [...all].sort((one, other) => Number(!!other.current) - Number(!!one.current)).slice(0, TALL_LABELS - 1) : all;
+  const counted = all.filter((label) => !named.includes(label));
+  const chips = named.map((label) => (
+    <span
+      key={`${label.kind}:${label.name}`}
+      className={`label ${label.kind}${label.current ? ' current' : ''}`}
+      title={labelTitle(label)}
+      onContextMenu={(event) => actions.labelMenu(event, label, row)}
+      onMouseEnter={() => actions.trace(row.hash)}
+      onMouseLeave={() => actions.trace(null)}
+      onDoubleClick={(event) => {
+        const open = actions.labelOpen(label);
+        if (!open) return;
+        // Not the commit's own double click as well.
+        event.stopPropagation();
+        open();
+      }}
+      {...dragProps(actions, label, row)}
+    >
+      <LabelIcons label={label} />
+      <span className="text">{label.name}</span>
+      {label.pull && <PullBadge {...label.pull} />}
+    </span>
+  ));
+  if (counted.length) {
+    chips.push(
+      <span key="more" className="label more" title={counted.map((label) => label.name).join(', ')}>
+        +{counted.length}
+      </span>,
+    );
+  }
+  const foldButton = fold && <FoldButton hash={row.hash} folded={fold === 'folded'} actions={actions} />;
+  return (
+    <div
+      className={classes.join(' ')}
+      style={{ top: index * height, height }}
+      role="option"
+      aria-selected={props.selected}
+      onClick={(event) => actions.select(row.hash, event.shiftKey ? 'range' : event.ctrlKey || event.metaKey ? 'toggle' : 'single')}
+      onDoubleClick={worktree ? undefined : () => actions.open(row.hash)}
+      onContextMenu={(event) => actions.rowMenu(event, row)}
+      {...dragProps(actions, null, row)}
+      onDragOver={(event) => {
+        if (!actions.canDrop(row)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        actions.setDropTarget(() => row.hash);
+      }}
+      onDragLeave={() => actions.setDropTarget((current) => (current === row.hash ? null : current))}
+      onDrop={(event) => {
+        actions.setDropTarget(() => null);
+        actions.drop(event, row);
+        endDrag();
+      }}
+    >
+      {props.period !== undefined && (
+        <span className="period" style={{ left: props.graphWidth }}>
+          <span>{props.period}</span>
+        </span>
+      )}
+      <Graph
+        graph={row.graph}
+        width={props.graphWidth}
+        height={height}
+        lane={props.lane}
+        node={worktree ? 'worktree' : row.stash ? 'stash' : props.oneLane && row.parents.length > 1 ? 'merge' : 'commit'}
+        trace={trace}
+        unpushed={props.unpushed}
+      />
+      {tall ? (
+        <div className="lines">
+          <span className="subject">{row.subject}</span>
+          {/* Under the message the labels have the room to keep their names. */}
+          <div className="message" style={{ '--lane': laneColor(row.graph.color) } as CSSProperties}>
+            {chips}
+            {foldButton}
+            {worktree ? (
+              <span className="who">Not committed yet</span>
+            ) : (
+              <>
+                {props.showAuthor && <span className="who">{row.author}</span>}
+                {props.showDate && (
+                  <span className="when" title={fullDate(row.date)}>
+                    {relativeTime(row.date)}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="message" style={{ '--lane': laneColor(row.graph.color) } as CSSProperties}>
+          {chips}
+          <span className="subject">{row.subject}</span>
+          {foldButton}
+        </div>
+      )}
+      {!worktree && !tall && (
+        <>
+          {props.showAuthor && <div className="author">{row.author}</div>}
+          {props.showDate && (
+            <div className="date" title={fullDate(row.date)}>
+              {relativeTime(row.date)}
+            </div>
+          )}
+          {props.showHash && <div className="hash">{shortHash(row.hash)}</div>}
+        </>
+      )}
+    </div>
+  );
+});
+
+interface FoldedRowProps {
+  row: ShownRow;
+  /** The merge whose commits it stands for. */
+  merge: string;
+  index: number;
+  height: number;
+  graphWidth: number;
+  lane: number;
+  tall: boolean;
+  /** How many commits it stands for, and of which branch. */
+  what: string;
+  trace: GraphTrace | undefined;
+  actions: RowActions;
+}
+
+/** The one row of the commits a folded merge brought in; a click shows them again. */
+const FoldedRow = memo(function FoldedRow({ row, merge, index, height, graphWidth, lane, tall, what, trace, actions }: FoldedRowProps) {
+  const classes = ['row', 'folded'];
+  if (tall) classes.push('tall');
+  if (trace && !trace.node) classes.push('unreached');
+  return (
+    <div
+      className={classes.join(' ')}
+      style={{ top: index * height, height }}
+      role="option"
+      aria-selected={false}
+      title="Click to show them again"
+      onClick={() => actions.unfold(merge)}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <Graph graph={row.graph} width={graphWidth} height={height} lane={lane} node="folded" trace={trace} />
+      <div className="message">
+        <Icon name="unfold" />
+        <span className="subject">{what}</span>
+      </div>
+    </div>
+  );
+});
+
 export function CommitList(props: Props) {
-  const { empty, hasMore, loading, labels, matches, selected, marked, reveal, onSelect, onRowMenu, onLabelMenu, onUnfold } = props;
+  const { empty, hasMore, loading, labels, matches, selected, marked, reveal, onSelect, onUnfold } = props;
   // The commits a folded merge brought in have one row for them all.
   const { rows: folded, hiddenBy } = useMemo(() => foldMerges(props.rows, props.folded), [props.rows, props.folded]);
   const rows = useMemo(() => (props.oneLane ? oneLane(folded) : folded), [folded, props.oneLane]);
@@ -330,42 +577,34 @@ export function CommitList(props: Props) {
     if (known === undefined) foldable.set(row.hash, (known = mergedCommits(props.rows, row.hash).size > 0));
     return known;
   };
-  const foldButton = (row: Row) => {
-    const folded = foldedNow.has(row.hash);
-    if (!folded && !canFold(row)) return null;
-    return (
-      <button
-        className={folded ? 'fold folded' : 'fold'}
-        title={folded ? 'Show the commits it merged again' : 'Fold the commits it merged into one row'}
-        aria-label={folded ? 'Show the commits it merged again' : 'Fold the commits it merged into one row'}
-        onClick={(event) => {
-          // Not the selection of the commit as well.
-          event.stopPropagation();
-          if (folded) onUnfold(row.hash);
-          else props.onFold!(row.hash);
-        }}
-        onDoubleClick={(event) => event.stopPropagation()}
-      >
-        <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
-      </button>
-    );
-  };
-  const { dragSource, canDrop, onDrop, onOpen, labelOpen, tall, traced, onTrace, unpushed, traceSelected, columns } = props;
+  const { onOpen, tall, traced, onTrace, unpushed, traceSelected, columns } = props;
   const shows = (column: GraphColumn) => columns.includes(column);
+  const [showAuthor, showDate, showHash] = [shows('author'), shows('date'), shows('hash')];
   const rowHeight = tall ? TALL_ROW_HEIGHT : ROW_HEIGHT;
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-
-  const drag = (label: Label | null, row: Row) => {
-    const source = dragSource(label, row);
-    return {
-      draggable: source !== null,
-      onDragStart: (event: DragEvent) => source && startDrag(event, source),
-      onDragEnd: () => {
-        endDrag();
-        setDropTarget(null);
-      },
-    };
-  };
+  // The rows are given actions that stay the same, and call what the list was last given.
+  const latest = useRef(props);
+  latest.current = props;
+  const actions = useMemo<RowActions>(
+    () => ({
+      select: (hash, mode) => latest.current.onSelect(hash, mode),
+      open: (hash) => latest.current.onOpen(hash),
+      rowMenu: (event, row) => latest.current.onRowMenu(event, row),
+      labelMenu: (event, label, row) => latest.current.onLabelMenu(event, label, row),
+      labelOpen: (label) => latest.current.labelOpen(label),
+      dragSource: (label, row) => latest.current.dragSource(label, row),
+      canDrop: (row) => latest.current.canDrop(row),
+      drop: (event, row) => latest.current.onDrop(event, row),
+      trace: (hash) => latest.current.onTrace(hash),
+      fold: (merge) => latest.current.onFold?.(merge),
+      unfold: (merge) => latest.current.onUnfold(merge),
+      setDropTarget,
+    }),
+    [],
+  );
+  // Where each commit shown is in the list, and each commit loaded, so that none is looked for row by row.
+  const shownAt = useMemo(() => new Map(rows.map((row, index) => [row.hash, index])), [rows]);
+  const loadedByHash = useMemo(() => new Map(props.rows.map((row) => [row.hash, row])), [props.rows]);
   const scroller = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
@@ -407,14 +646,14 @@ export function CommitList(props: Props) {
   const tips = useMemo(() => laneTips(rows, (index) => laneName(rows[index]) !== null), [rows, labels]);
   // What the history of the commit traced does not reach fades. Without one, what the selected commit comes from and
   // what was made on top of it stand out, less: it stays while the commits are read.
-  const hovered = traced !== null && rows.some((row) => row.hash === traced);
+  const hovered = traced !== null && shownAt.has(traced);
   // With Shift held, only what it would bring to what is checked out.
   const shift = useShiftKey();
   const own = useMemo(() => (hovered && shift ? ownCommits(rows, traced, props.head) : null), [rows, traced, hovered, shift, props.head]);
   const chosen = traceSelected && !hovered && marked.size < 2 && selected !== null && selected !== WORKTREE ? selected : null;
   const trace = useMemo(() => {
     if (hovered) return traceGraph(rows, own?.size ? own : reachedFrom(rows, traced));
-    if (!chosen || !rows.some((row) => row.hash === chosen)) return null;
+    if (!chosen || !shownAt.has(chosen)) return null;
     return traceGraph(rows, new Set([...reachedFrom(rows, chosen), ...reaching(rows, chosen)]));
   }, [rows, traced, hovered, chosen, own]);
 
@@ -454,11 +693,11 @@ export function CommitList(props: Props) {
     if (merge) {
       revealing.current = reveal.hash;
       onUnfold(merge);
-    } else scrollTo(rows.findIndex((row) => row.hash === reveal.hash), true);
+    } else scrollTo(shownAt.get(reveal.hash) ?? -1, true);
     // Only a new reveal request should move the scroll position, not every refresh of the rows.
   }, [reveal]);
   useEffect(() => {
-    const index = revealing.current ? rows.findIndex((row) => row.hash === revealing.current) : -1;
+    const index = revealing.current ? (shownAt.get(revealing.current) ?? -1) : -1;
     if (index < 0) return;
     revealing.current = null;
     scrollTo(index, true);
@@ -483,7 +722,7 @@ export function CommitList(props: Props) {
     // Enter does what a double click does.
     if (event.key === 'Enter' && selected && selected !== WORKTREE) return onOpen(selected);
     if (!rows.length) return;
-    const current = rows.findIndex((row) => row.hash === selected);
+    const current = selected === null ? -1 : (shownAt.get(selected) ?? -1);
     // On a merge, the arrow to the left folds what it brought in and the one to the right shows it again.
     if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && current >= 0 && !event.altKey) {
       const row = rows[current];
@@ -494,7 +733,7 @@ export function CommitList(props: Props) {
     }
     if (event.key === 'Home' && !event.ctrlKey && !event.metaKey) {
       event.preventDefault();
-      return go(rows.findIndex((row) => row.hash === props.head));
+      return go(props.head === null ? -1 : (shownAt.get(props.head) ?? -1));
     }
     const step = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0;
     if (!step) return;
@@ -504,7 +743,7 @@ export function CommitList(props: Props) {
       // on its line when there is one, or else the merge that took it.
       const row = rows[current];
       if (event.shiftKey) return go(nearest(rows, current, step, (other) => other.parents.length > 1));
-      if (step > 0) return go(rows.findIndex((other) => other.hash === row.parents[0]));
+      if (step > 0) return go(row.parents.length ? (shownAt.get(row.parents[0]) ?? -1) : -1);
       const child = nearest(rows, current, -1, (other) => other.parents[0] === row.hash);
       return go(child >= 0 ? child : nearest(rows, current, -1, (other) => other.parents.includes(row.hash)));
     }
@@ -578,146 +817,49 @@ export function CommitList(props: Props) {
           const index = start + offset;
           if (row.folded) {
             const { merge, count } = row.folded;
-            const mergeRow = props.rows.find((other) => other.hash === merge);
+            const mergeRow = loadedByHash.get(merge);
             const tip = mergeRow && labels.get(mergeRow.parents[1])?.find((label) => label.kind === 'branch' || label.kind === 'remote');
             const name = tip?.name ?? (mergeRow && mergedBranch(mergeRow.subject));
             const what = `${count} ${count === 1 ? 'commit' : 'commits'}${name ? ` of ${name}` : ' merged'}`;
-            const rowClasses = ['row', 'folded'];
-            if (tall) rowClasses.push('tall');
-            if (trace && !trace[index].node) rowClasses.push('unreached');
             return (
-              <div
+              <FoldedRow
                 key={row.hash}
-                className={rowClasses.join(' ')}
-                style={{ top: index * rowHeight, height: rowHeight }}
-                role="option"
-                aria-selected={false}
-                title="Click to show them again"
-                onClick={() => onUnfold(merge)}
-                onContextMenu={(event) => event.preventDefault()}
-              >
-                <Graph graph={row.graph} width={fit.width} height={rowHeight} lane={fit.lane} node="folded" trace={trace?.[index]} />
-                <div className="message">
-                  <Icon name="unfold" />
-                  <span className="subject">{what}</span>
-                </div>
-              </div>
-            );
-          }
-          const worktree = row.hash === WORKTREE;
-          const classes = tall ? ['row', 'tall'] : ['row'];
-          const isSelected = row.hash === selected || marked.has(row.hash);
-          if (isSelected) classes.push('selected');
-          if (worktree) classes.push('worktree');
-          if (row.stash) classes.push('stash');
-          if (matchSet && !matchSet.has(row.hash)) classes.push('dimmed');
-          if (trace && !trace[index].node) classes.push('unreached');
-          if (row.hash === dropTarget) classes.push('drop-target');
-          const all = labels.get(row.hash) ?? [];
-          // Squeezed side by side, many labels would be left with a letter each: a few keep their names, what is
-          // checked out before the others, and the rest are counted.
-          const named = tall && all.length > TALL_LABELS ? [...all].sort((one, other) => Number(!!other.current) - Number(!!one.current)).slice(0, TALL_LABELS - 1) : all;
-          const counted = all.filter((label) => !named.includes(label));
-          const chips = named.map((label) => (
-            <span
-              key={`${label.kind}:${label.name}`}
-              className={`label ${label.kind}${label.current ? ' current' : ''}`}
-              title={labelTitle(label)}
-              onContextMenu={(event) => onLabelMenu(event, label, row)}
-              onMouseEnter={() => onTrace(row.hash)}
-              onMouseLeave={() => onTrace(null)}
-              onDoubleClick={(event) => {
-                const open = labelOpen(label);
-                if (!open) return;
-                // Not the commit's own double click as well.
-                event.stopPropagation();
-                open();
-              }}
-              {...drag(label, row)}
-            >
-              <LabelIcons label={label} />
-              <span className="text">{label.name}</span>
-              {label.pull && <PullBadge {...label.pull} />}
-            </span>
-          ));
-          const pushTo = unpushed.get(row.hash);
-          if (counted.length) {
-            chips.push(
-              <span key="more" className="label more" title={counted.map((label) => label.name).join(', ')}>
-                +{counted.length}
-              </span>,
+                row={row}
+                merge={merge}
+                index={index}
+                height={rowHeight}
+                graphWidth={fit.width}
+                lane={fit.lane}
+                tall={!!tall}
+                what={what}
+                trace={trace?.[index]}
+                actions={actions}
+              />
             );
           }
           return (
-            <div
+            <CommitRow
               key={row.hash}
-              className={classes.join(' ')}
-              style={{ top: index * rowHeight, height: rowHeight }}
-              role="option"
-              aria-selected={isSelected}
-              onClick={(event) => onSelect(row.hash, event.shiftKey ? 'range' : event.ctrlKey || event.metaKey ? 'toggle' : 'single')}
-              onDoubleClick={worktree ? undefined : () => onOpen(row.hash)}
-              onContextMenu={(event) => onRowMenu(event, row)}
-              {...drag(null, row)}
-              onDragOver={(event) => {
-                if (!canDrop(row)) return;
-                event.preventDefault();
-                event.dataTransfer.dropEffect = 'copy';
-                setDropTarget(row.hash);
-              }}
-              onDragLeave={() => setDropTarget((current) => (current === row.hash ? null : current))}
-              onDrop={(event) => {
-                setDropTarget(null);
-                onDrop(event, row);
-                endDrag();
-              }}
-            >
-              {periods?.has(index) && (
-                <span className="period" style={{ left: fit.width }}>
-                  <span>{periods.get(index)}</span>
-                </span>
-              )}
-              <Graph graph={row.graph} width={fit.width} height={rowHeight} lane={fit.lane} node={worktree ? 'worktree' : row.stash ? 'stash' : props.oneLane && row.parents.length > 1 ? 'merge' : 'commit'} trace={trace?.[index]} unpushed={pushTo} />
-              {tall ? (
-                <div className="lines">
-                  <span className="subject">{row.subject}</span>
-                  {/* Under the message the labels have the room to keep their names. */}
-                  <div className="message" style={{ '--lane': laneColor(row.graph.color) } as CSSProperties}>
-                    {chips}
-                    {foldButton(row)}
-                    {worktree ? (
-                      <span className="who">Not committed yet</span>
-                    ) : (
-                      <>
-                        {shows('author') && <span className="who">{row.author}</span>}
-                        {shows('date') && (
-                          <span className="when" title={fullDate(row.date)}>
-                            {relativeTime(row.date)}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="message" style={{ '--lane': laneColor(row.graph.color) } as CSSProperties}>
-                  {chips}
-                  <span className="subject">{row.subject}</span>
-                  {foldButton(row)}
-                </div>
-              )}
-              {!worktree && !tall && (
-                <>
-                  {shows('author') && <div className="author">{row.author}</div>}
-                  {shows('date') && (
-                    <div className="date" title={fullDate(row.date)}>
-                      {relativeTime(row.date)}
-                    </div>
-                  )}
-                  {shows('hash') && <div className="hash">{shortHash(row.hash)}</div>}
-                </>
-              )}
-            </div>
+              row={row}
+              index={index}
+              height={rowHeight}
+              graphWidth={fit.width}
+              lane={fit.lane}
+              tall={!!tall}
+              selected={row.hash === selected || marked.has(row.hash)}
+              dimmed={matchSet !== null && !matchSet.has(row.hash)}
+              trace={trace?.[index]}
+              dropTarget={row.hash === dropTarget}
+              labels={labels.get(row.hash)}
+              unpushed={unpushed.get(row.hash)}
+              period={periods?.get(index)}
+              fold={foldedNow.has(row.hash) ? 'folded' : canFold(row) ? 'foldable' : null}
+              showAuthor={showAuthor}
+              showDate={showDate}
+              showHash={showHash}
+              oneLane={props.oneLane}
+              actions={actions}
+            />
           );
         })}
         {awaitedRows.map((row, offset) => (
