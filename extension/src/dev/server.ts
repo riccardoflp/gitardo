@@ -194,7 +194,7 @@ function page(theme: keyof typeof THEMES, data: Record<string, string>): string 
 }
 body { background: ${t.background}; }
 </style>
-<link href="/webview.css" rel="stylesheet">
+<link href="/webview/index.css" rel="stylesheet">
 </head>
 <body class="vscode-${theme}" ${attributes}>
 <div id="root"></div>
@@ -209,7 +209,7 @@ window.acquireVsCodeApi = () => ({
   setState: (state) => (sessionStorage.setItem('gitardo', JSON.stringify(state)), state),
 });
 </script>
-<script src="/webview.js"></script>
+<script type="module" src="/webview/index.js"></script>
 </body>
 </html>`;
 }

@@ -8,9 +8,8 @@
 !media/screenshots/graph-dark.png
 !media/screenshots/commit-tab.png
 !dist/extension.js
-!dist/webview.js
-!dist/webview.css
-!dist/codicon.ttf
+!dist/webview/**
+dist/webview/**/*.map
 !dist/flow/**
 dist/flow/**/*.map
 !dist/highlight/**

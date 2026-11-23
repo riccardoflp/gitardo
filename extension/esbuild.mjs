@@ -15,12 +15,16 @@ const node = { ...common, platform: 'node', format: 'cjs', target: 'node20' };
 
 const builds = [
   { ...node, entryPoints: ['src/extension/extension.ts'], outfile: 'dist/extension.js', external: ['vscode'] },
+  // The views and tabs: ES modules split in chunks, each kind of view loading only its own page and what it shares with
+  // others. Every file is in dist/webview/, so that each finds the script that colors code at the same place.
   {
     ...common,
-    entryPoints: ['src/webview/main.tsx'],
-    outfile: 'dist/webview.js',
+    entryPoints: { index: 'src/webview/main.tsx' },
+    outdir: 'dist/webview',
     platform: 'browser',
-    format: 'iife',
+    format: 'esm',
+    splitting: true,
+    chunkNames: '[name]-[hash]',
     target: 'es2022',
     jsx: 'automatic',
     loader: { '.ttf': 'file' },
@@ -73,7 +77,7 @@ const builds = [
 ];
 
 // The chunks are named by their hash: those of an earlier build would stay, and be packaged.
-for (const folder of ['dist/flow', 'dist/highlight']) fs.rmSync(folder, { recursive: true, force: true });
+for (const folder of ['dist/webview', 'dist/flow', 'dist/highlight']) fs.rmSync(folder, { recursive: true, force: true });
 
 if (watch) {
   for (const options of builds) await (await esbuild.context(options)).watch();
