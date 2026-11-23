@@ -111,7 +111,8 @@ const LANE_NAMES = new Set<Label['kind']>(['head', 'branch', 'remote', 'tag', 's
 
 /** How many labels a commit shows there, the last of which counts the others when there are more. */
 const TALL_LABELS = 3;
-const OVERSCAN = 8;
+/** How many rows are drawn above and below those in sight, so that scrolling a little shows no empty space. */
+export const OVERSCAN = 8;
 /**
  * How many commits are kept loaded below the last one on screen. Scrolling fast covers a few hundred commits in a
  * second or two, about as long as reading the next ones takes in a large repository: it should never catch up.
