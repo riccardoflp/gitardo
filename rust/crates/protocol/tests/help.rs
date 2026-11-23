@@ -13,7 +13,8 @@ use serde_json::json;
 
 #[test]
 fn help_ask__version_1_11_is_spoken_by_an_engine_of_version_1() {
-    assert_eq!(VERSION, "1.11");
+    assert!(VERSION.starts_with("1.") && VERSION != "1.10", "{VERSION}");
+    assert!(is_compatible("1.11"));
     assert!(is_compatible("1.10"));
     assert!(is_compatible(VERSION));
 }

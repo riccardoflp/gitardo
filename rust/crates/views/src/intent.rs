@@ -96,6 +96,12 @@ pub enum Intent {
     Filter(FilterIntent),
     /// Put the notice shown away.
     DismissNotice,
+    /// Put the notice of the commit-graph file away, until the repository is opened again
+    /// (`upkeep.offer-commit-graph`).
+    DismissCommitGraph,
+    /// **Not for this repository**: the notice of the commit-graph file is said no more for the repository shown
+    /// (`upkeep.offer-commit-graph`).
+    DeclineCommitGraph,
     /// Open an address in the browser of the system: a pull request on GitHub (`github.open-pull-request`).
     OpenUrl(String),
     /// Something asked of the timeline.

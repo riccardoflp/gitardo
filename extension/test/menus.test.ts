@@ -510,6 +510,17 @@ describe('the menu of a row of the Repositories view', () => {
     expect(labels(repositoryRowMenu({ folder: 'C:/prj/app-login', isShown: false, kind: 'worktree' }, shown))).not.toContain('Clean up…');
     expect(labels(repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown))).not.toContain('Clean up…');
   });
+
+  it('upkeep.write-commit-graph: Speed up reading the history comes after Clean up… while git keeps no commit-graph file and would read one', () => {
+    const row = { folder: 'C:/prj/app', isShown: true, kind: 'repository' } as const;
+    const missing = repositoryRowMenu(row, { ...shown, commitGraph: { hasFile: false, isIgnored: false } });
+    const at = labels(missing).indexOf('Clean up…');
+    expect(labels(missing)[at + 1]).toBe('Speed up reading the history');
+    expect(run(missing, 'Speed up reading the history')).toEqual([{ type: 'action', action: { kind: 'writeCommitGraph' } }]);
+    expect(labels(repositoryRowMenu(row, { ...shown, commitGraph: { hasFile: true, isIgnored: false } }))).not.toContain('Speed up reading the history');
+    expect(labels(repositoryRowMenu(row, { ...shown, commitGraph: { hasFile: false, isIgnored: true } }))).not.toContain('Speed up reading the history');
+    expect(labels(repositoryRowMenu(row, shown))).not.toContain('Speed up reading the history');
+  });
 });
 
 describe('the pull requests of the hosting services in the menus of branches (hosting.open-pull-request, hosting.checkout-pull-request)', () => {

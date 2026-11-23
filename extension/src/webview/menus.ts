@@ -778,6 +778,11 @@ export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' 
       ? [
           'separator',
           { label: 'Clean up…', run: () => act({ kind: 'cleanUp' }) },
+          // While git keeps no commit-graph file of it and would read one (`upkeep.write-commit-graph`).
+          !!shown.commitGraph && !shown.commitGraph.hasFile && !shown.commitGraph.isIgnored && {
+            label: 'Speed up reading the history',
+            run: () => act({ kind: 'writeCommitGraph' }),
+          },
           {
             label: 'Look after it in the background…',
             checked: !!shown.isLookedAfter,

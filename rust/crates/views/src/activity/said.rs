@@ -133,7 +133,7 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// A link at the right of what is said; says whether it was clicked.
-fn link(ui: &mut Ui<'_>, parts: &mut Area, (key, button): (&str, &Button<'_>)) -> bool {
+pub(super) fn link(ui: &mut Ui<'_>, parts: &mut Area, (key, button): (&str, &Button<'_>)) -> bool {
     let (width, height) = ui.button_size(button);
     let rect: Rect = parts.right(width);
     let cell = place(rect, (width, height.min(rect.height)), (Align::Start, Align::Center));

@@ -7,6 +7,8 @@
 
 #[path = "reads/branch_log.rs"]
 mod branch_log;
+#[path = "reads/commit_graph.rs"]
+mod commit_graph;
 #[path = "reads/conflicts.rs"]
 mod conflicts;
 #[path = "reads/file_search.rs"]

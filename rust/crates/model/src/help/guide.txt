@@ -266,6 +266,25 @@ show: show where
 Takes the repository out of those git's scheduled maintenance looks after; the others stay as they are.
 Entry points: **Look after it in the background**, ticked, in the context menu of the row of a repository in **Repositories**.
 Offered when: the repository is registered.
+@card desktop upkeep.read-commit-graph
+title: Whether git keeps a commit-graph file
+place: Repositories, in the side column
+show: none
+Whether the repository has git's commit-graph file, the cache of its commits and their parents that lets git list the history without walking all of it first, and whether git reads it.
+@card desktop upkeep.write-commit-graph
+title: Speed up reading the history
+place: Repositories, in the side column
+show: show where
+Writes git's commit-graph file for the repository, with the paths each commit changed, so that the history, a search and the history of a file are read about twice as fast.
+Entry points: **Write it** in the notice of `upkeep.offer-commit-graph`; **Speed up reading the history** in the context menu of the row of the repository shown in **Repositories**, after **Clean up…**.
+Offered when: the repository has no commit-graph file and git reads one (`upkeep.read-commit-graph`), and no operation of Gitardo runs in it.
+Refuses: git's message, as when another git writes the file at the same time.
+@card desktop upkeep.offer-commit-graph
+title: Offer the commit-graph file
+place: Repositories, in the side column
+show: none
+A notice, once, for a repository with a long history and no commit-graph file, that git can read it about twice as fast with one.
+Entry points: the notices of the status bar (`activity.status-bar`), when the read of the whole history of the repository shown ends.
 @card desktop graph.read-commits
 title: Read the commits of the graph
 place: the timeline
@@ -3821,6 +3840,24 @@ place: Repositories, in the side column
 show: show where
 Takes the repository out of those git's scheduled maintenance looks after; the others stay as they are.
 In VS Code: built, with `upkeep.start-background`: the same entry, ticked.
+@card extension upkeep.read-commit-graph
+title: Whether git keeps a commit-graph file
+place: Repositories, in the side column
+show: none
+Whether the repository has git's commit-graph file, the cache of its commits and their parents that lets git list the history without walking all of it first, and whether git reads it.
+In VS Code: built: read by the engine for the notice and the menu of the row, sent with the state as `commitGraph` (protocol 1.12).
+@card extension upkeep.write-commit-graph
+title: Speed up reading the history
+place: Repositories, in the side column
+show: show where
+Writes git's commit-graph file for the repository, with the paths each commit changed, so that the history, a search and the history of a file are read about twice as fast.
+In VS Code: built: the same entry in the context menu of the row of the repository shown in the **Gitardo Repositories** view (`repositoryRowMenu`), and **Write it** in the notice, sending `feature/run` of `upkeep.write-commit-graph` through.
+@card extension upkeep.offer-commit-graph
+title: Offer the commit-graph file
+place: Repositories, in the side column
+show: none
+A notice, once, for a repository with a long history and no commit-graph file, that git can read it about twice as fast with one.
+Entry points: the notices of the status bar (`activity.status-bar`), when the read of the whole history of the repository shown ends.
 @card extension graph.read-commits
 title: Read the commits of the graph
 place: the timeline

@@ -54,6 +54,10 @@ pub struct TabEntry {
     /// Whether git's scheduled maintenance looks after its repository, as its last read says
     /// (`upkeep.read-background`); none on a row not shown, whose repository is not read here.
     pub looked_after: Option<bool>,
+    /// Whether git keeps a commit-graph file of its repository and reads it, as its last read says
+    /// (`upkeep.read-commit-graph`): **Speed up reading the history** is in its menu while it is missing; none on a row
+    /// not shown.
+    pub commit_graph: Option<model::upkeep::CommitGraph>,
     /// Whether git remembers how conflicts are resolved in what it shows, known for the row shown
     /// (`rerere.read-state`).
     pub remembers_resolutions: Option<bool>,
@@ -118,6 +122,8 @@ enum TabCommand {
     CopyPath,
     /// **Clean up…** (`upkeep.clean-up`).
     CleanUp,
+    /// **Speed up reading the history** (`upkeep.write-commit-graph`).
+    SpeedUp,
     /// **Look after it in the background…**, unticked (`upkeep.start-background`), or ticked
     /// (`upkeep.stop-background`).
     LookAfter,
@@ -178,8 +184,9 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// The entries of the menu of a row that act on its repository: on the row shown, **Remember how conflicts are
-/// resolved…**, ticked while git does, and, while nothing runs in it, **Clean up…** and **Look after it in the
-/// background…**, ticked while git's maintenance looks after it.
+/// resolved…**, ticked while git does, and, while nothing runs in it, **Clean up…**, **Speed up reading the history**
+/// while git keeps no commit-graph file of it, and **Look after it in the background…**, ticked while git's
+/// maintenance looks after it.
 fn repository_entries(tab: &TabEntry) -> Vec<MenuEntry<'static, TabCommand>> {
     let mut entries = Vec::new();
     if let Some(is_on) = tab.remembers_resolutions {
@@ -202,6 +209,13 @@ fn repository_entries(tab: &TabEntry) -> Vec<MenuEntry<'static, TabCommand>> {
             words::CLEAN_UP,
             TabCommand::CleanUp,
         )));
+        if tab.commit_graph.is_some_and(model::upkeep::CommitGraph::is_missing) {
+            entries.push(MenuEntry::Item(icons::action(
+                icons::HISTORY,
+                words::SPEED_UP_HISTORY,
+                TabCommand::SpeedUp,
+            )));
+        }
         entries.push(MenuEntry::Item(icons::choice(
             words::LOOK_AFTER,
             TabCommand::LookAfter,
@@ -258,6 +272,7 @@ pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, respon
             None
         }
         TabCommand::CleanUp => run("upkeep.clean-up"),
+        TabCommand::SpeedUp => run("upkeep.write-commit-graph"),
         TabCommand::LookAfter if tab.looked_after == Some(true) => run("upkeep.stop-background"),
         TabCommand::LookAfter => run("upkeep.start-background"),
         TabCommand::LargeFiles => Some(Intent::LargeFiles(crate::lfs::LargeFilesIntent::OpenForTab(index))),

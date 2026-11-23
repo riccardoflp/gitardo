@@ -82,7 +82,11 @@ fn history_icon(feature: &str) -> Option<Icon> {
         | "github.load-pull-requests"
         | "hosting.load-merge-requests"
         | "hosting.checkout-pull-request" => super::PULL_REQUEST,
-        "reflog.browse" | "file-history.file" | "file-history.folder" | "file-history.lines" => super::HISTORY,
+        "reflog.browse"
+        | "file-history.file"
+        | "file-history.folder"
+        | "file-history.lines"
+        | "upkeep.write-commit-graph" => super::HISTORY,
         "remote.manage" | "branch.set-upstream" => super::REMOTE,
         "blame.toggle-file" | "blame.previous" => super::BLAME,
         "blame.open-line-commit" => super::OPEN_AS_PAGE,

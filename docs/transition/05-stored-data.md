@@ -55,6 +55,7 @@ under the extension (`host` `"vscode"`).
 | `gitardo.favorites` | The extension; it sends them where a read needs them (none of the reads does today). The desktop's `favorites` in `state.json`. |
 | `gitardo.commitFiles` | The extension's webviews. The desktop's `fileLayouts`. |
 | `gitardo.recentComparisons` | The extension. The engine's `compare.choose` takes them as an answer given before it asks (`answers.recent_comparisons(RECENT)`, `features/src/compare/choose.rs:18`), as the desktop gives them from `state.json`: the extension puts them in `answers` of `feature/run`. |
+| `gitardo.commitGraphDeclined` | The extension, since milestone M44: the roots of the repositories answered **Not for this repository** in the notice of git's commit-graph file (`upkeep.offer-commit-graph`). The desktop's `commitGraphDeclined` in `state.json`, by the folders of the main worktrees. |
 | `worktreeSetupOffered` | The extension, from `Settings` as `worktrees.setupOffered` (the desktop's `FeatureSettings::worktrees.setup_offered`), written on the follow-up the feature gives. |
 | `worktreeInputs` | The extension, carried out from `RememberInputs`. The desktop's `branchInputs` in `state.json`. |
 
@@ -72,7 +73,9 @@ it starts; and since milestone M26 a key of its own, `fileSearches`, for each re
 searches (`file-search.remember`): what is typed, the switches, the mode, the scope with the path **Search here** named,
 **Include** and **Exclude**, only what differs from a first search, for the 20 repositories searched last; nothing is
 kept for a repository whose search is as a first one is, and an entry in a shape the version does not know is left
-out. The extension's
+out. Since milestone M44 it keeps `commitGraphDeclined`, the folders of the main worktrees of the repositories whose
+notice of git's commit-graph file was answered **Not for this repository** (`upkeep.offer-commit-graph`), in the order
+they were, none cut, left out while it is empty; the extension keeps the same under `gitardo.commitGraphDeclined`. The extension's
 references have their own filter since phase 3 of M13, kept under `gitardo.branchesListed` in the workspace state, in
 the shape of `gitardo.scope`; the engine reads neither, since what the references list is drawn by the webviews alone.
 

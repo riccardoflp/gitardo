@@ -74,8 +74,10 @@ pub mod methods {
 /// that offers an operation in the warning of a plan in its place ([`crate::range_diff`]); the validation of the number
 /// of a pull request, and the host question of the token of a GitLab; `skipped` in the state and `locked` in a
 /// worktree, the files hidden from git and the reason a worktree is locked; whether git's maintenance looks after the
-/// repository, `notes` in the state, the commits with a note, and `note` in the details of a commit.
-pub const VERSION: &str = "1.11";
+/// repository, `notes` in the state, the commits with a note, and `note` in the details of a commit; 1.12 what
+/// milestone M44 needs: `commitGraph` in the state, whether git keeps its commit-graph file of the repository and reads
+/// it.
+pub const VERSION: &str = "1.12";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

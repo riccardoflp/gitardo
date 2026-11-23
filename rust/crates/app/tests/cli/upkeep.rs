@@ -1,4 +1,5 @@
-//! The upkeep of a repository: **Clean up…** with `git gc`, and git's scheduled maintenance stopped. Every command runs
+//! The upkeep of a repository: **Clean up…** with `git gc`, git's commit-graph file written, and git's scheduled
+//! maintenance stopped. Every command runs
 //! with the test's own configuration of git (`GIT_CONFIG_GLOBAL` and `HOME` in a throwaway folder), and
 //! `git maintenance start`, which would schedule git in the system's scheduler, is never run: a repository is
 //! registered with `git maintenance register`, which only writes that configuration.
@@ -95,4 +96,26 @@ fn upkeep_read_background__a_registered_repository_reads_as_looked_after_and_onc
     // Without --yes it stops at its question, which it asks only of a repository not looked after.
     let asked = cli(&repository, &["upkeep.start-background"]);
     assert_eq!(asked.code, Some(2), "not looked after: {}", asked.errors);
+}
+
+#[test]
+fn upkeep_write_commit_graph__it_writes_the_file_with_the_changed_paths_and_is_then_no_longer_offered() {
+    let repository = with_loose_objects();
+    let file = repository.path().join(".git/objects/info/commit-graph");
+    assert!(!file.exists());
+    let ended = cli_done(&repository, &["upkeep.write-commit-graph"]);
+    assert!(
+        ended.out.contains("git commit-graph write --reachable --changed-paths"),
+        "{}",
+        ended.out
+    );
+    assert!(file.is_file(), "git wrote its commit-graph file");
+    let request = git::read::upkeep::CommitGraphRequest {
+        folder: repository.path().to_path_buf(),
+        before: None,
+    };
+    let read = git::read::upkeep::read_commit_graph(&git::Git::new(repository.path()), &request).unwrap();
+    assert!(read.has_file && !read.is_missing(), "{read:?}");
+    let refused = cli(&repository, &["upkeep.write-commit-graph"]);
+    assert_eq!(refused.code, Some(1), "no longer offered: {}", refused.errors);
 }

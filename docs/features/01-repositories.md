@@ -1605,9 +1605,10 @@ history without walking all of it first, and whether git reads it.
 - **Reads**: `git rev-parse --git-path objects/info/commit-graph --git-path objects/info/commit-graphs/commit-graph-chain`,
   the two places git keeps the file, alone or as a chain, and whether either is there; `git config --type=bool --get
   core.commitGraph`, where `false` means git does not read the file. It runs with `repo.read-state`, again only when
-  the object folder of the repository changed.
+  one of those places, the folder that holds it, or the configuration of the repository or of the user changed.
 - **Uses**: by `upkeep.offer-commit-graph` and `upkeep.write-commit-graph`.
-- **Extension**: Planned: read by the engine for the notice and the menu of the row, sent with the state.
+- **Extension**: built: read by the engine for the notice and the menu of the row, sent with the state as
+  `commitGraph` (protocol 1.12).
 
 Acceptance:
 
@@ -1638,8 +1639,9 @@ and the history of a file are read about twice as fast
   for 56,000 commits.
 - **Refuses**: git's message, as when another git writes the file at the same time.
 - **Uses**: `upkeep.read-commit-graph`, `upkeep.offer-commit-graph`, `repo.tabs`, `activity.status-bar`.
-- **Extension**: Planned: the same entry in the context menu of the row of the repository shown in the **Gitardo
-  Repositories** view, and **Write it** in the notice, sending `feature/run` of `upkeep.write-commit-graph`.
+- **Extension**: built: the same entry in the context menu of the row of the repository shown in the **Gitardo
+  Repositories** view (`repositoryRowMenu`), and **Write it** in the notice, sending `feature/run` of
+  `upkeep.write-commit-graph` through `Controller.runOnEngine`.
 
 Acceptance:
 
@@ -1655,7 +1657,7 @@ A notice, once, for a repository with a long history and no commit-graph file, t
 fast with one.
 
 - **Kind**: View
-- **Function**: `views::status::commit_graph_notice(state: &CommitGraphNotice, ui) -> Vec<Intent>`
+- **Function**: `views::activity::commit_graph_notice(state: &CommitGraphNotice, ui) -> Vec<Intent>`
 - **Entry points**: the notices of the status bar (`activity.status-bar`), when the read of the whole history of the
   repository shown ends.
 
@@ -1667,8 +1669,10 @@ the window, and says it no more (Q1517). Closed without either, it comes again t
 It is said once each time the repository is opened, not at every read.
 
 - **Uses**: `upkeep.read-commit-graph`, `upkeep.write-commit-graph`, `graph.read-commits`, `activity.status-bar`.
-- **Extension**: Planned: a notification of VS Code with the same sentence and the same two buttons; **Not for this
-  repository** is kept in the workspace state under `gitardo.commitGraphDeclined`, the roots of the repositories.
+- **Extension**: built: a notification of VS Code with the same sentence and the same two buttons, once the read of
+  the whole history of the repository shown ends (`src/extension/commitGraphOffer.ts`); **Not for this repository** is
+  kept in the workspace state under `gitardo.commitGraphDeclined`, the roots of the repositories. It is said once for
+  each repository each time the extension starts.
 
 Acceptance:
 

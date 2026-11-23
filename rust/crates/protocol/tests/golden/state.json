@@ -118,5 +118,9 @@
     "reference": "refs/notes/commits",
     "tip": null,
     "commits": []
+  },
+  "commitGraph": {
+    "hasFile": false,
+    "isIgnored": false
   }
 }

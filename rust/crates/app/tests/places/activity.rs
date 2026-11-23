@@ -50,6 +50,7 @@ fn status_bar(window: &mut Window, running: &[RunningTask]) -> TreeUpdate {
         identity: None,
         is_running: false,
         said: None,
+        commit_graph: None,
     };
     window
         .frame(&[], |ui| {

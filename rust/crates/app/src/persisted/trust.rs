@@ -20,7 +20,7 @@ pub fn forget(list: &mut Vec<PathBuf>, folders: &[PathBuf]) {
 }
 
 /// The folders trusted, as written.
-pub(super) fn folders_value(list: &[PathBuf]) -> Value {
+fn folders_value(list: &[PathBuf]) -> Value {
     Value::Array(
         list.iter()
             .map(|folder| Value::String(folder.to_string_lossy().into_owned()))
@@ -28,10 +28,24 @@ pub(super) fn folders_value(list: &[PathBuf]) -> Value {
     )
 }
 
+/// A list of folders under a name, as [`folders_value`] writes it; none while it is empty.
+pub(super) fn member(name: &str, list: &[PathBuf]) -> Option<json::Member> {
+    (!list.is_empty()).then(|| json::Member {
+        name: name.to_owned(),
+        value: folders_value(list),
+    })
+}
+
 /// The folders trusted, read back: the strings of the list, none when it is not there.
 pub(super) fn trusted_folders(document: &Value) -> Vec<PathBuf> {
+    folders(document, "trustedFolders")
+}
+
+/// A list of folders of the document read back, as [`folders_value`] writes it: the strings of the list, none when it
+/// is not there.
+pub(super) fn folders(document: &Value, name: &str) -> Vec<PathBuf> {
     document
-        .get("trustedFolders")
+        .get(name)
         .and_then(Value::as_array)
         .unwrap_or_default()
         .iter()

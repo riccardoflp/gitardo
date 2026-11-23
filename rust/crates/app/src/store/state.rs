@@ -111,6 +111,8 @@ pub struct State {
     pub caption: views::window::CaptionState,
     /// The conversation of the Ask Gitardo page, of the window rather than of a tab (`help.page`).
     pub help: super::help::Help,
+    /// The notice of git's commit-graph file, and the repositories it was said for (`upkeep.offer-commit-graph`).
+    pub commit_graph: super::commit_graph::CommitGraphOffer,
 }
 
 /// The folders of a window and the repositories found in them.

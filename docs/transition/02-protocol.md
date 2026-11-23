@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.11** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.12** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -122,6 +122,12 @@ of that milestone with `feature/run` and the targets it had, `file` and `changes
 M40: `isLookedAfter` in `RepositoryState`, whether git's scheduled maintenance looks after the repository, `notes` in
 `RepositoryState`, the commits with a note, and `note` in `CommitDetail`, the text of the note of the commit.
 
+Version 1.12 adds what milestone M44
+([D88](../08-decisions.md#d88--gits-commit-graph-file-offered-and-the-extensions-views-sent-only-what-changed-proposed))
+needed: `commitGraph` in `RepositoryState`, whether git keeps its commit-graph file of the repository and reads it
+(`upkeep.read-commit-graph`), for the notice and the entry of the row menu that run `upkeep.write-commit-graph` with
+`feature/run`. An older extension leaves the field aside.
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -180,7 +186,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.11",
+  protocol: "1.12",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -796,7 +802,9 @@ The fields are those of `model`; this section says only what the JSON adds or le
   tracked files git is told not to look at by hand, not those a sparse checkout leaves out (`changes.read-skipped`),
   `isLookedAfter: boolean` (1.11), whether git's scheduled maintenance looks after it (`upkeep.read-background`),
   `notes: { reference, tip: CommitId | null, commits: CommitId[] }` (1.11), the reference of notes git uses, the
-  commit it is at and the commits with a note (`note.read`).
+  commit it is at and the commits with a note (`note.read`), `commitGraph: { hasFile, isIgnored }` (1.12), whether git
+  keeps its commit-graph file, alone or as a chain, and whether `core.commitGraph` is `false`
+  (`upkeep.read-commit-graph`).
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,

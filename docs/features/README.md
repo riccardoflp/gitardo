@@ -83,9 +83,9 @@ earns it.
 | [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Built | Built |
 | [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Built | Built |
 | [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Built | Built |
-| [`upkeep.read-commit-graph`](01-repositories.md#upkeepread-commit-graph--whether-git-keeps-a-commit-graph-file) | Whether git keeps a commit-graph file | Read | Specified | Planned |
-| [`upkeep.write-commit-graph`](01-repositories.md#upkeepwrite-commit-graph--speed-up-reading-the-history) | Speed up reading the history | Operation | Specified | Planned |
-| [`upkeep.offer-commit-graph`](01-repositories.md#upkeepoffer-commit-graph--offer-the-commit-graph-file) | Offer the commit-graph file | View | Specified | Planned |
+| [`upkeep.read-commit-graph`](01-repositories.md#upkeepread-commit-graph--whether-git-keeps-a-commit-graph-file) | Whether git keeps a commit-graph file | Read | Built | Built |
+| [`upkeep.write-commit-graph`](01-repositories.md#upkeepwrite-commit-graph--speed-up-reading-the-history) | Speed up reading the history | Operation | Built | Built |
+| [`upkeep.offer-commit-graph`](01-repositories.md#upkeepoffer-commit-graph--offer-the-commit-graph-file) | Offer the commit-graph file | View | Built | Built |
 
 ## Graph
 

@@ -6,6 +6,7 @@ import { CONFLICT_SIDES } from '../shared/conflicts';
 import { pullWords, readsPullRequests, type Hosting } from '../shared/hosting';
 import { openingOf } from '../shared/markdown';
 import { samePath } from '../shared/paths';
+import { offerCommitGraph } from './commitGraphOffer';
 import { GRAPH_COLUMNS, WORKTREE, showsGraph } from '../shared/protocol';
 import { isHash, sortRefs, worktreeLabel, worktreeStatus } from '../shared/refs';
 import {
@@ -801,7 +802,12 @@ export class Controller implements vscode.Disposable {
    */
   private pageRead(repository: string): void {
     if (!this.state || !samePath(this.state.root, repository)) return;
-    if (!this.engineGraph.isReading(repository)) return this.showPages();
+    if (!this.engineGraph.isReading(repository)) {
+      this.showPages();
+      // The read of the whole history ended: the commit-graph file is offered when it would make it quicker (M44).
+      const ask = (message: string, ...buttons: string[]) => vscode.window.showInformationMessage(message, ...buttons);
+      return void offerCommitGraph(this.state, { memento: this.memento, ask, write: () => this.action({ kind: 'writeCommitGraph' }) });
+    }
     this.pagesTimer ??= setTimeout(() => this.showPages(), PAGES_DELAY);
   }
 

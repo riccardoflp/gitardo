@@ -63,6 +63,8 @@ pub struct RepositoryState {
     pub skipped: Vec<SkippedFile>,
     /// Whether git's scheduled maintenance looks after the repository (`upkeep.read-background`).
     pub is_looked_after: bool,
+    /// Whether git keeps its commit-graph file of the repository, and reads it (`upkeep.read-commit-graph`).
+    pub commit_graph: crate::upkeep::CommitGraph,
     /// The commits with a note, in the reference of notes git uses (`note.read`).
     pub notes: crate::note::Notes,
     /// Whether Git LFS is set up for the repository and the patterns it stores with it, with the version of Git LFS

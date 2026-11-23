@@ -25,9 +25,10 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * tab of what a rewrite changed, and `offerBeforeRun`, an operation offered in the warning of a plan in its place
  * (milestone M36), the validation of the number of a pull request and the host question of the token of a GitLab
  * (milestone M37), the files hidden from git and the locks of worktrees (milestone M38), whether git's maintenance
- * looks after the repository and the notes of commits (milestone M40).
+ * looks after the repository and the notes of commits (milestone M40); 1.12 has `commitGraph` in the state, whether
+ * git keeps its commit-graph file of the repository (milestone M44).
  */
-export const PROTOCOL = '1.11';
+export const PROTOCOL = '1.12';
 
 /** The names of the methods. */
 export const Method = {

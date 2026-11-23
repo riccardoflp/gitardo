@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Once the history of a repository of 10,000 commits or more is read, and git keeps no commit-graph file of it, the
+  status bar says that git can read its history about twice as fast with one, with **Write it**, which runs
+  `git commit-graph write --reachable --changed-paths`, and **Not for this repository**, which is remembered. The
+  menu of the row of the repository shown in **Repositories** has **Speed up reading the history**, after **Clean
+  up…**, while there is no such file. Git's configuration is not changed.
 - While the rows of the timeline are of two lines, the labels of a commit start the line under its message, before its
   author and its date, and the message has its line to itself. The labels take what the author and the date leave,
   those that do not fit are counted in `+N`, and the pointer resting on them lists them all, as before. With

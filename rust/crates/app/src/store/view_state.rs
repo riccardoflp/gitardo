@@ -156,6 +156,10 @@ impl ViewData {
                 identity: state.shown_read().map(|read| &read.state.identity),
                 is_running: state.is_operation_running,
                 said: None,
+                commit_graph: super::commit_graph::is_said(state)
+                    .then_some(self.name.as_deref())
+                    .flatten()
+                    .map(|repository| views::activity::CommitGraphNotice { repository }),
             },
             content: self.content(state),
             panel: self.panel(state),

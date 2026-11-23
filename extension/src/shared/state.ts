@@ -283,6 +283,15 @@ export interface RepositoryState {
   isLookedAfter?: boolean;
   /** The commits with a note, in the reference of notes git uses (protocol 1.11, `note.read`). */
   notes?: Notes;
+  /** Whether git keeps its commit-graph file of the repository and reads it (protocol 1.12, `upkeep.read-commit-graph`). */
+  commitGraph?: CommitGraph;
+}
+
+/** Whether git keeps its commit-graph file of a repository, alone or as a chain, and whether git reads it. */
+export interface CommitGraph {
+  hasFile: boolean;
+  /** `core.commitGraph` is `false`: git does not read the file. */
+  isIgnored: boolean;
 }
 
 /** The commits with a note, in the reference of notes git uses: `refs/notes/commits` unless `core.notesRef` names another. */

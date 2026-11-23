@@ -152,6 +152,35 @@ fn opening_a_repository_of_56000_commits_and_loading_its_next_pages() {
     );
 }
 
+/// How long the first page of the timeline takes to read, the fastest of three, from the start of `git log` to its
+/// rows: the state is read before.
+fn first_page_read(folder: &std::path::Path) -> Duration {
+    let git = git::Git::new(folder);
+    let (repository, _) = read_repository_at_once(folder, &first_page(), &CancelToken::new()).unwrap();
+    let request = app::store::commits_request(&repository, &first_page());
+    (0..3)
+        .map(|_| {
+            let started = Instant::now();
+            let _end = git::read::graph::read_commits(&git, &request, &mut |_page| {}).unwrap();
+            started.elapsed()
+        })
+        .min()
+        .unwrap_or_default()
+}
+
+#[test]
+#[ignore = "makes a repository of 56,000 commits; run by hand, in release, to measure"]
+fn upkeep_write_commit_graph__the_first_page_of_56000_commits_is_read_in_less_than_half_the_time_once_written() {
+    let repository = Repository::new();
+    import(&repository, &history());
+    let folder = repository.path().to_path_buf();
+    let before = first_page_read(&folder);
+    let _ = repository.git(&["commit-graph", "write", "--reachable", "--changed-paths"]);
+    let after = first_page_read(&folder);
+    println!("the first page: {before:?} with no commit-graph file, {after:?} with one");
+    assert!(after * 2 < before, "{after:?} is not less than half of {before:?}");
+}
+
 /// Opens the repository of a folder, narrows its timeline to a branch, to two, to the local branches and back to
 /// everything, and gives how long each took, from the intent to the rows laid out, with the rows read. Narrowing reads
 /// the first page of the history alone: never the repository again.
