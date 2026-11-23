@@ -20,7 +20,8 @@ first, in its own commit, with the reason.
 - **R1.4** External programs: `git`, only through `crates/git`; the commands of the user (the steps `run`, the tasks
   and the terminals), only through `crates/engine` and `crates/terminal`; and the GitHub Copilot CLI, only through
   `engine::ai` ([D75](../08-decisions.md#d75--gitardo-by-its-name-wayland-of-its-own-github-copilot-as-a-provider)),
-  which asks GitHub Copilot as the user's own sign-in lets it.
+  which asks GitHub Copilot as the user's own sign-in lets it, and speaks to it through GitHub's SDK, `copilot-sdk`
+  ([D87](../08-decisions.md#d87--github-copilot-through-its-sdk-claude-through-its-api-as-anthropics-sdks-ask-it-proposed)).
 - **R1.5** TLS ([D13](../08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
   `rustls-native-certs`, used by `crates/tls` only, with only the features named there. No type of theirs appears in
   the interface of `crates/tls`, and no other library does TLS or cryptography.
@@ -29,7 +30,9 @@ first, in its own commit, with the reason.
   in `crates/render` ([D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)). Where a type has
   to cross, as the tree of `accesskit` does between `ui` and `platform`, the code says why.
 - **R1.7** `serde` and `serde_json` are used by `crates/protocol` and `crates/server` only; `model` and the crates below
-  it stay without them ([D42](../08-decisions.md#d42--the-messages-types-in-a-crate-protocol-with-serde)). A change to a
+  it stay without them ([D42](../08-decisions.md#d42--the-messages-types-in-a-crate-protocol-with-serde)). A library
+  may bring them for itself, as `copilot-sdk` does in `crates/engine` (D87): the code written here does not name them,
+  and reads what such a library gives through its own types. A change to a
   type of `protocol` raises the protocol's minor version when it adds a field or a message, its major version when it
   changes or removes one ([transition/02-protocol.md](../transition/02-protocol.md)).
 
