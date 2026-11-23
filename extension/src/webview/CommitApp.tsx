@@ -11,6 +11,7 @@ import { NoteBlock } from './NoteBlock';
 import { fileMenu } from './menus';
 import { fullDate, shortHash } from './util';
 import { SignatureLine, useSignature } from './Signature';
+import { receive } from './received';
 import { onMessage, post } from './vscode';
 
 interface Props {
@@ -37,9 +38,10 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
   useEffect(() => {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
-        setState(message.state);
+        const next = receive(message);
+        setState(next);
         // The note of the commit is read again when the reference of notes moved, as after Edit note….
-        const tip = message.state?.root === root ? (message.state.notes?.tip ?? null) : undefined;
+        const tip = next?.root === root ? (next.notes?.tip ?? null) : undefined;
         if (tip !== undefined && notesTip.current !== undefined && tip !== notesTip.current) post({ type: 'getDetail', hash });
         if (tip !== undefined) notesTip.current = tip;
       } else if (message.type === 'detail' && message.hash === hash) setDetail(message.detail);

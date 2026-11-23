@@ -22,11 +22,13 @@ import {
   type CompareMode,
   type Filter,
   type HostMessage,
+  type RepoState,
   type Scope,
   type ViewKind,
   type WebviewMessage,
 } from '../shared/protocol';
 import { sortRefs } from '../shared/refs';
+import { ALL_PARTS, partsIn } from '../shared/stateParts';
 import type { Asking, Choice } from '../shared/resolution';
 import { cleanCommands, cleanPatterns, type SetupLayer, type SetupSource } from '../shared/worktreeSetup';
 
@@ -371,7 +373,9 @@ async function main() {
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, hosting, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false, signOff: false, tagMarks: null } }];
+    // Every part, each time: the preview keeps nothing of what each page was sent.
+    const shown: RepoState = { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, hosting, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false, signOff: false, tagMarks: null };
+    return [{ type: 'state', state: partsIn(shown, ALL_PARTS), parts: [...ALL_PARTS] }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */

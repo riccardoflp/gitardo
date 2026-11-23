@@ -9,6 +9,7 @@ import { Icon } from './Icon';
 import { fileMenu } from './menus';
 import { Progress } from './Progress';
 import { shortHash } from './util';
+import { receive } from './received';
 import { onMessage, post } from './vscode';
 
 interface Props {
@@ -232,7 +233,10 @@ export function CompareApp({ root, layout: remembered }: Props) {
   useEffect(() => {
     const stop = onMessage((message) => {
       // The branches are those of the repository the other views show, which may be another.
-      if (message.type === 'state') setState(message.state?.root === root ? message.state : null);
+      if (message.type === 'state') {
+        const next = receive(message);
+        setState(next?.root === root ? next : null);
+      }
       else if (message.type === 'compareView') {
         // The working tree is compared again as it changes: the lines shown stay until the new ones come, as long as
         // they are of the same files.

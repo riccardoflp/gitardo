@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { mergedCommits } from '../shared/graph';
-import { WORKTREE, type CommitDetail, type Comparison, type Loading, type RepoState, type Row, type Search } from '../shared/protocol';
+import { WORKTREE, type CommitDetail, type Comparison, type Loading, type Row, type Search } from '../shared/protocol';
 import { checkedOutBranch, stashName } from '../shared/state';
+import type { ShownState } from '../shared/stateParts';
 import { BisectBanner } from './BisectBanner';
 import { CommitList, useTrace, type Label, type SelectMode } from './CommitList';
-import { buildLabels, unpushedOf } from './labels';
+import { buildLabels, labelParts, unpushedOf } from './labels';
 import { Compare } from './Compare';
 import { useMenu } from './ContextMenu';
 import { Detail } from './Detail';
@@ -42,6 +43,7 @@ import { ALL_FOLDED, foldedAmong, foldMerge, NO_FOLDS, recallFolds, rememberFold
 import { keptViews } from './kept';
 import { addedUnder, listingOf } from './pages';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
+import { receive } from './received';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 const NONE: ReadonlySet<string> = new Set();
@@ -55,19 +57,6 @@ const WIDTHS: { refsWidth: number; detailWidth: number; graphWidth: number | nul
   graphWidth: null,
   detailHeight: null,
 };
-
-/** A state that came without the commits this view already has, given those of the state before. */
-function withRowsOf(previous: RepoState | null, next: RepoState, kept: number): RepoState {
-  const rows = previous?.rows ?? [];
-  // The row of the uncommitted changes comes again, for the number of changes in its text, before the commits that are new.
-  const again = rows[0]?.hash === WORKTREE && next.rows[0]?.hash === WORKTREE ? next.rows[0] : null;
-  const after = again ? next.rows.slice(1) : next.rows;
-  // The same commits stay the same list, for what is worked out from them.
-  if (kept === rows.length && !after.length && (!again || again.subject === rows[0].subject)) return { ...next, rows };
-  const merged = rows.slice(0, kept).concat(after);
-  if (again) merged[0] = again;
-  return { ...next, rows: merged };
-}
 
 /** A search of the whole history, and the commits git found for it: null while it is looking. */
 interface Find {
@@ -92,7 +81,7 @@ interface Shown {
 
 /** `compact` is the graph as it fits in the side bar: the commits and their details, with the references left to the view beside it. */
 export function App({ compact = false }: { compact?: boolean }) {
-  const [state, setState] = useState<RepoState | null>(null);
+  const [state, setState] = useState<ShownState | null>(null);
   const [loaded, setLoaded] = useState<Loaded>(false);
   const [selected, setSelected] = useState<string | null>(null);
   // The commits selected together with Ctrl or Shift. Empty when only `selected` is.
@@ -174,11 +163,10 @@ export function App({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
-        const next = message.state;
-        const kept = message.kept;
-        setState(next && kept !== undefined ? (previous) => withRowsOf(previous, next, kept) : next);
+        const next = receive(message);
+        setState(next);
         setLoaded(loadedOf(message));
-        const root = message.state?.root ?? null;
+        const root = next?.root ?? null;
         if (root !== rootRef.current) {
           // Another repository: what was selected or being edited belongs to the previous one, which keeps it while
           // the setting says so, and the one shown gets back what it kept.
@@ -196,9 +184,9 @@ export function App({ compact = false }: { compact?: boolean }) {
           setFolds(root ? recallFolds(loadUiState({ foldedMerges: null as unknown }).foldedMerges, root) : NO_FOLDS);
           setRebase(null);
         } else if (selectedRef.current === WORKTREE) {
-          // The list of uncommitted files is the only detail that goes stale.
-          if (message.state?.changes) post({ type: 'getDetail', hash: WORKTREE });
-          else select(null);
+          // The list of uncommitted files is the only detail that goes stale, when what is not committed changed.
+          if (!next?.changes) select(null);
+          else if (message.parts?.includes('workingTree') ?? true) post({ type: 'getDetail', hash: WORKTREE });
         } else if (selectedRef.current && (next?.notes?.tip ?? null) !== notesTipRef.current) {
           // And the note of a commit, when the reference of notes moved, as after Edit note….
           post({ type: 'getDetail', hash: selectedRef.current });
@@ -240,14 +228,18 @@ export function App({ compact = false }: { compact?: boolean }) {
   }, [folds]);
 
   // A merge that is no longer in the history, after a rebase or a reset, is forgotten once the whole history is loaded.
-  useEffect(() => {
-    if (state && !state.hasMore && !state.filter && !state.scope && !state.firstParent) setFolds((previous) => withoutGone(previous, state.rows));
-  }, [state]);
-
-  const labels = useMemo(() => (state ? buildLabels(state) : new Map<string, Label[]>()), [state]);
-  const unpushed = useMemo(() => (state ? unpushedOf(state) : new Map<string, string>()), [state]);
-  // The merges folded, those loaded later too while all of them are, and whether some of them are among the commits loaded.
   const stateRows = state?.rows;
+  const whole = !!state && !state.hasMore && !state.filter && !state.scope && !state.firstParent;
+  useEffect(() => {
+    if (whole && stateRows) setFolds((previous) => withoutGone(previous, stateRows));
+  }, [whole, stateRows]);
+
+  // Worked out again only when a part they are made of was sent again, not at each state.
+  const labels = useMemo(() => (state ? buildLabels(state) : new Map<string, Label[]>()), labelParts(state));
+  const branches = state?.branches;
+  const remoteBranches = state?.remoteBranches;
+  const unpushed = useMemo(() => (state ? unpushedOf(state) : new Map<string, string>()), [branches, remoteBranches, stateRows]);
+  // The merges folded, those loaded later too while all of them are, and whether some of them are among the commits loaded.
   const folded = useMemo(() => foldedAmong(folds, stateRows ?? []), [folds, stateRows]);
   const someFolded = useMemo(() => !!stateRows?.some((row) => folded.has(row.hash)), [folded, stateRows]);
 
@@ -258,14 +250,13 @@ export function App({ compact = false }: { compact?: boolean }) {
     // A hash is matched from its start, and by four characters at least: "add" and "bed" are words before they are
     // hexadecimal digits, and somewhere in forty of those they are bound to turn up.
     const hash = /^[0-9a-f]{4,}$/.test(needle);
-    for (const row of state.rows) {
-      // The uncommitted changes are a row of the list, not a commit to find.
-      if (row.hash === WORKTREE) continue;
+    // The uncommitted changes are a row of the list, not a commit to find.
+    for (const row of state.commits) {
       const haystack = `${row.subject}\n${row.author}`.toLowerCase();
       if (haystack.includes(needle) || (hash && row.hash.startsWith(needle))) found.push(row.hash);
     }
     return found;
-  }, [state, query]);
+  }, [state?.commits, query]);
   // What git found in the whole history, or what the loaded commits have of the text being typed.
   const matches = find ? find.hashes : highlighted;
 

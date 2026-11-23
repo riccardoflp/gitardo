@@ -555,14 +555,33 @@ export type Action =
 /** What every view and every command says when there is no engine to read or to run anything (D49). */
 export const NO_ENGINE = "Gitardo's engine is not available on this system.";
 
+/**
+ * The parts the state of a repository is sent to the views in, each sent to a view again only when it changed since
+ * that view was last sent it (D88): `repository` is where it is and what is checked out, with what the labels of a
+ * commit need beside the references; `refs` the branches, remote branches and tags and how they are listed;
+ * `workingTree` what is not committed; `pulls` the pull requests and the hosting service; `rows` the commits of the
+ * graph; `draft` the row of the uncommitted changes above them; `rest` everything else, small: the settings the views
+ * follow, the filter, the operation under way, the repositories of the workspace.
+ */
+export type StatePart = 'repository' | 'refs' | 'stashes' | 'worktrees' | 'workingTree' | 'submodules' | 'pulls' | 'rows' | 'draft' | 'rest';
+
+/**
+ * What a `state` message carries: the fields of the parts it names, each part whole. `rows` are the commits without the
+ * row of the uncommitted changes, which is `draft`, null when there is none.
+ */
+export type SentState = Partial<Omit<RepoState, 'rows'>> & { rows?: Row[]; draft?: Row | null };
+
+/** What the extension gives the views: a message, or the state whole, which each view is sent the parts of it shows. */
+export type ToViews = Exclude<HostMessage, { type: 'state' }> | { type: 'state'; state: RepoState | null };
+
 export type HostMessage =
   /**
-   * With `kept` the first `kept` rows are the ones sent before, and are not sent again: `state.rows` only has the rows
-   * after them, which are none when the commits are the same, and before those the row of the uncommitted changes, if
-   * there is one, because the number of changes it tells may be another. Without a state, `engineMissing` says that
-   * there is no engine to read one with (D49).
+   * The parts of the state named in `parts`, which take the place of those the view has; the others are as they were.
+   * With `kept` the first `kept` commits are the ones sent before, and are not sent again: `state.rows` only has the
+   * commits after them. Without a state, `engineMissing` says that there is no engine to read one with (D49), and the
+   * next state sends every part again.
    */
-  | { type: 'state'; state: RepoState | null; kept?: number; engineMissing?: boolean }
+  | { type: 'state'; state: SentState | null; parts?: StatePart[]; kept?: number; engineMissing?: boolean }
   /** The commits of what is checked out, for the view that asked. */
   | { type: 'log'; log: BranchLog }
   | { type: 'detail'; hash: string; detail: CommitDetail | null }

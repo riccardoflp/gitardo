@@ -12,7 +12,7 @@ import type { GitardoApi } from '../../src/extension/extension';
 import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
 import { git } from '../git';
 import { samePath } from '../../src/shared/paths';
-import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
+import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type SentState, type ToViews, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
 import type { Hosting } from '../../src/shared/hosting';
 import type { ConflictReview } from '../../src/shared/resolution';
 import { subjectAndBody } from '../../src/shared/message';
@@ -29,8 +29,10 @@ interface Internals {
   compareTabs: Map<unknown, CompareTab>;
   hosting: Hosting | null;
   onMessage(webview: unknown, message: WebviewMessage): Promise<void>;
-  post(message: HostMessage, to?: unknown): void;
+  post(message: ToViews, to?: unknown): void;
   scheduleRefresh(cause: string, delay?: number): void;
+  /** The read of the repository under way, while there is one. */
+  loading?: Promise<void>;
   /** Gitardo's engine, when the extension has it running. */
   engine?: { running?: unknown };
   /** The repositories left that keep what they showed. */
@@ -119,7 +121,7 @@ export async function run(): Promise<void> {
 
   // Everything the webviews say to the extension, and the extension to them.
   const received: WebviewMessage[] = [];
-  const posted: HostMessage[] = [];
+  const posted: ToViews[] = [];
   /** The view each of them was for, or nothing when it was for all. */
   const addressed: unknown[] = [];
   /** What the views ask that a step wants left unanswered for a while. */
@@ -1460,7 +1462,7 @@ export async function run(): Promise<void> {
         return postMessage(outgoing);
       };
       try {
-        // What a view says when it has just loaded, and has nothing.
+        // What a view says when it has just loaded, and has nothing: it is sent every part it shows.
         await internals.onMessage(webview, { type: 'ready' });
         return (await until(`the state for the ${kind} view`, () => sent.find((outgoing) => outgoing.state))).state!;
       } finally {
@@ -1469,15 +1471,54 @@ export async function run(): Promise<void> {
     };
     const commits = state().rows.length;
     assert.ok(commits >= 5);
-    assert.equal((await told('sideGraph')).rows.length, commits);
+    const graph = await told('sideGraph');
+    assert.equal((graph.rows?.length ?? 0) + (graph.draft ? 1 : 0), commits);
     // The view of the commits asks for its own, which are not the ones of the graph.
     for (const kind of ['commits', 'branches', 'stashes', 'changes'] as const) {
       const seen = await told(kind);
-      assert.deepEqual(seen.rows, [], `no commits for the ${kind} view`);
+      assert.equal(seen.rows, undefined, `no commits for the ${kind} view`);
+      assert.equal(seen.draft, undefined, `no row of the uncommitted changes for the ${kind} view`);
+      if (kind === 'stashes') assert.equal(seen.branches, undefined, 'no branches for the stashes view');
+      else
+        assert.deepEqual(
+          seen.branches?.map((branch) => branch.name),
+          ['feature', 'main', 'merged', 'topic'],
+        );
+    }
+  });
+
+  await step('sends the Branches view nothing when a file is saved', async () => {
+    const branches = view('branches');
+    const sent: HostMessage[] = [];
+    const postMessage = branches.postMessage.bind(branches);
+    branches.postMessage = (outgoing: HostMessage) => {
+      sent.push(outgoing);
+      return postMessage(outgoing);
+    };
+    const file = path.join(app, 'saved.txt');
+    try {
+      // A file changed already, changed again and saved: what git says of the working tree is the same.
+      write('saved.txt', 'one\n');
+      await until('the new file in the state', () => internals.state?.workingTree.untracked.includes('saved.txt'));
+      await until('no read under way', () => !internals.loading);
+      const document = await vscode.workspace.openTextDocument(file);
+      const editor = await vscode.window.showTextDocument(document);
+      await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), 'two\n'));
+      const before = internals.state;
+      const from = sent.length;
+      await document.save();
+      // The file is not one git ignores: it is read again, and the state is a new one.
+      await until('the read after the save', () => internals.state !== before && !internals.loading);
+      await sleep(500);
       assert.deepEqual(
-        seen.branches.map((branch) => branch.name),
-        ['feature', 'main', 'merged', 'topic'],
+        sent.slice(from).filter((outgoing) => outgoing.type === 'state'),
+        [],
       );
+    } finally {
+      branches.postMessage = postMessage;
+      await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+      fs.rmSync(file, { force: true });
+      await until('the file gone from the state', () => !internals.state?.workingTree.untracked.includes('saved.txt'));
     }
   });
 
@@ -3750,23 +3791,23 @@ export async function run(): Promise<void> {
       if (outgoing.type === 'state') sent.push(outgoing);
       return postMessage(outgoing);
     };
-    const latest = (what: string, wanted: (sent: RepoState) => boolean) =>
+    const latest = (what: string, wanted: (sent: SentState) => boolean) =>
       until(what, () => [...sent].reverse().find((outgoing) => outgoing.state && wanted(outgoing.state)));
     try {
       const commits = state().rows.length;
       write('first.txt', '1\n');
       let outgoing = await latest('the state with one change', (told) => told.changes === 1);
-      // The row of the uncommitted changes is new, and moves the lines of the graph: everything is sent.
+      // The row of the uncommitted changes is new, and moves the lines of the graph: every commit is sent.
       assert.equal(outgoing.kept, undefined);
-      assert.equal(outgoing.state!.rows.length, commits + 1);
+      assert.equal(outgoing.state!.rows?.length, commits);
+      assert.equal(outgoing.state!.draft?.subject, 'Uncommitted changes (1)');
 
       write('second.txt', '2\n');
       outgoing = await latest('the state with two changes', (told) => told.changes === 2);
-      assert.equal(outgoing.kept, commits + 1);
-      assert.deepEqual(
-        outgoing.state!.rows.map((row) => row.subject),
-        ['Uncommitted changes (2)'],
-      );
+      // Only the row of the uncommitted changes says another count: the commits are not sent, nor laid out again.
+      assert.ok(!outgoing.parts?.includes('rows'));
+      assert.ok(outgoing.state!.rows === undefined, 'no commits sent');
+      assert.equal(outgoing.state!.draft?.subject, 'Uncommitted changes (2)');
       // What the controller itself knows is whole.
       assert.equal(state().rows.length, commits + 1);
 
@@ -3774,22 +3815,22 @@ export async function run(): Promise<void> {
       await git(app, ['commit', '-m', 'Two files']);
       outgoing = await latest('the state with the new commit', (told) => told.changes === 0);
       assert.equal(outgoing.kept, undefined);
-      assert.equal(outgoing.state!.rows[0].subject, 'Two files');
-      assert.equal(outgoing.state!.rows.length, commits + 1);
+      const committed = outgoing.state!;
+      assert.equal(committed.rows?.[0].subject, 'Two files');
+      assert.equal(committed.rows?.length, commits + 1);
+      assert.ok(committed.draft === null, 'no row of the uncommitted changes');
 
-      // Refresh reads every commit again as git prints them (D54); once the read ended, asking for more sends no row.
+      // Refresh reads every commit again as git prints them (D54): the same commits are not sent again.
       const all = state().rows.map((row) => row.hash);
+      const from = sent.length;
       await vscode.commands.executeCommand('gitardo.refresh');
+      await until('the read of Refresh', () => !internals.loading);
       assert.deepEqual(
         state().rows.map((row) => row.hash),
         all,
       );
       assert.equal(state().hasMore, false);
-      const from = sent.length;
-      await internals.onMessage(graph, { type: 'loadMore' });
-      outgoing = await until('the state after asking for more', () => sent.slice(from).find((told) => told.state));
-      assert.equal(outgoing.kept, all.length);
-      assert.deepEqual(outgoing.state!.rows, []);
+      assert.ok(!sent.slice(from).some((told) => told.parts?.includes('rows')), 'no commits sent again');
     } finally {
       graph.postMessage = postMessage;
     }

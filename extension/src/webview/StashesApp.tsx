@@ -7,6 +7,7 @@ import { Icon } from './Icon';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { act, stashMenu } from './menus';
 import { fullDate, relativeTime } from './util';
+import { receive } from './received';
 import { onMessage, post } from './vscode';
 
 /** What the unfolded stashes hold, by the hash of each. Null while it is being read. */
@@ -25,10 +26,11 @@ export function StashesApp() {
   useEffect(() => {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
-        setState(message.state);
+        const next = receive(message);
+        setState(next);
         setLoaded(loadedOf(message));
         // A stash never changes, so what was read of the ones still there holds; the others are gone.
-        const hashes = new Set(message.state?.stashes.map((stash) => stash.commit));
+        const hashes = new Set(next?.stashes.map((stash) => stash.commit));
         setOpen((current) => Object.fromEntries(Object.entries(current).filter(([hash]) => hashes.has(hash))));
       } else if (message.type === 'detail') {
         if (message.hash in openRef.current) setOpen((current) => ({ ...current, [message.hash]: message.detail }));

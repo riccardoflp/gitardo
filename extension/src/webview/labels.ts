@@ -50,6 +50,29 @@ export function buildLabels(state: RepoState): Map<string, Label[]> {
   return labels;
 }
 
+/**
+ * What the labels are made of, as the dependencies of what works them out: a view's state keeps each part it was not
+ * sent again, so that the labels are not made again at each state, only when one of these was sent.
+ */
+export function labelParts(state: RepoState | null): unknown[] {
+  // As many each time, with a state or without one.
+  return [
+    state === null,
+    state?.head,
+    state?.branches,
+    state?.remoteBranches,
+    state?.tags,
+    state?.stashes,
+    state?.worktrees,
+    state?.pulls,
+    state?.hosting,
+    state?.combineUpstream,
+    state?.tagMarks,
+    state?.bisect,
+    state?.remotes,
+  ];
+}
+
 /** The commits of each local branch that its upstream has not yet, by hash, with the upstream they would be pushed to. */
 export function unpushedOf(state: RepoState): Map<string, string> {
   const ahead: Ahead[] = [];

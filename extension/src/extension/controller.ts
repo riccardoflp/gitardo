@@ -38,7 +38,7 @@ import type {
   BranchSort,
   Filter,
   GraphColumn,
-  HostMessage,
+  ToViews,
   Loading,
   PullAction,
   PullRequest,
@@ -82,6 +82,8 @@ import type { EngineClient } from '../engine/client';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
 import { extensionKey } from '../engine/settings';
 import { RangeDiffTab } from './rangeDiffTab';
+import { type Sent, stateFor } from './sentParts';
+import { partsOf } from '../shared/stateParts';
 import { COMPARE_REWRITE, SEE_WHAT_CHANGED, buttonWords, forcePushed, type RangeDiffTarget } from '../shared/rangeDiff';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
@@ -359,8 +361,8 @@ export class Controller implements vscode.Disposable {
   private reviewTab?: ConflictReviewTab;
   /** The views with a search box that have the keyboard: one at most, but each says so on its own. */
   private readonly focused = new Set<vscode.Webview>();
-  /** What identifies the commits each view that lists them was last sent, and how many they were. */
-  private readonly sentRows = new WeakMap<vscode.Webview, { key: string; count: number }>();
+  /** What each view was last sent of the state: the key of each part, and how many commits (D88). */
+  private readonly sent = new WeakMap<vscode.Webview, Sent>();
   /** The files of the repository shown that have edits not saved in an editor, by their paths from its root. */
   private unsaved: string[] = [];
   /** What `unsaved` was last worked out from: the state, and the files of the editors with edits not saved. */
@@ -651,7 +653,7 @@ export class Controller implements vscode.Disposable {
       this.reviewTab?.dispose();
       const host = {
         attach: (webview: vscode.Webview, kind: ViewKind, data: Record<string, string>) => this.attach(webview, kind, data),
-        post: (message: HostMessage, webview: vscode.Webview) => this.post(message, webview),
+        post: (message: ToViews, webview: vscode.Webview) => this.post(message, webview),
         write: (on: Repository, resolutions: FileResolutions[]) => this.writeResolutions(on, resolutions),
         settings: () => ({ rules: this.autoResolve(), ai: this.resolveWithAI() }),
       };
@@ -2781,36 +2783,32 @@ export class Controller implements vscode.Disposable {
     }, delay);
   }
 
-  private post(message: HostMessage, to?: vscode.Webview): void {
+  private post(message: ToViews, to?: vscode.Webview): void {
     // The Repositories view is sent its rows alone, by `repositoriesView`.
     const targets = to ? [to] : [...this.views].filter(([, kind]) => kind !== 'repositories').map(([view]) => view);
-    if (message.type !== 'state' || !message.state) {
-      // Without a state, the views say whether it is for want of the engine.
-      const said = message.type === 'state' && !reads.available ? { ...message, engineMissing: true } : message;
-      for (const view of targets) void view.postMessage(said);
+    if (message.type !== 'state') {
+      for (const view of targets) void view.postMessage(message);
       return;
     }
     const { state } = message;
-    const { rows } = state;
-    const keys = new Map([[rows.length, rowsKey(state, this.filter)]]);
-    const keyOf = (count: number) => keys.get(count) ?? keys.set(count, rowsKey(state, this.filter, count)).get(count)!;
     for (const view of targets) {
-      // The views that never show the graph are spared the rows.
-      if (!showsGraph(this.views.get(view) ?? 'graph')) {
-        void view.postMessage({ type: 'state', state: { ...state, rows: [] } } satisfies HostMessage);
+      const kind = this.views.get(view) ?? 'graph';
+      // The tabs that read what they show themselves are sent no state.
+      if (!partsOf(kind).length) continue;
+      if (!state) {
+        // Without a state, the views say whether it is for want of the engine; the next state is sent them whole.
+        this.sent.delete(view);
+        void view.postMessage(reads.available ? { type: 'state', state: null } : { type: 'state', state: null, engineMissing: true });
         continue;
       }
-      // Most refreshes follow a change to the files, which leaves the history as it was, and loading more of it only
-      // adds commits after the others: the thousands a view already has are not sent to it again.
-      const before = this.sentRows.get(view);
-      const kept = before && before.count <= rows.length && keyOf(before.count) === before.key ? before.count : 0;
-      const sent = { key: keyOf(rows.length), count: rows.length };
-      this.sentRows.set(view, sent);
-      const worktree = rows[0]?.hash === WORKTREE ? [rows[0]] : [];
-      const posted: HostMessage = kept ? { type: 'state', state: { ...state, rows: [...worktree, ...rows.slice(kept)] }, kept } : message;
+      const keys = new Map<number, string>();
+      const keyOf = (count: number) => keys.get(count) ?? keys.set(count, rowsKey(state, this.filter, count)).get(count)!;
+      const { message: posted, sent } = stateFor(kind, state, this.sent.get(view), keyOf);
+      this.sent.set(view, sent);
+      if (!posted) continue;
       void view.postMessage(posted).then((delivered) => {
         // A view that is not there to receive it asks again when it comes back, and gets everything.
-        if (!delivered && this.sentRows.get(view) === sent) this.sentRows.delete(view);
+        if (!delivered && this.sent.get(view) === sent) this.sent.delete(view);
       });
     }
   }
@@ -2828,6 +2826,8 @@ export class Controller implements vscode.Disposable {
       case 'focus':
         return this.setFocused(webview, message.focused === true);
       case 'ready':
+        // A view that has just loaded has nothing yet: it is sent every part it shows.
+        this.sent.delete(webview);
         // The tab of a commit reads its commit by itself, and nothing in it goes stale: the repository is not read for it.
         if (this.views.get(webview) === 'commit') return this.post({ type: 'state', state: this.state }, webview);
         // The tab of a comparison is sent its comparison, and the state for what each side is.
@@ -2840,8 +2840,6 @@ export class Controller implements vscode.Disposable {
           this.repositoriesView.ready(webview);
           return this.locating ?? this.refresh();
         }
-        // A view that has just loaded has nothing yet.
-        this.sentRows.delete(webview);
         // What was read before it opened, as at the start of VS Code, is shown at once while it is read again.
         if (this.located && !this.locating && !this.loading) this.post({ type: 'state', state: this.state }, webview);
         if (this.waiting) this.post({ type: 'loading', what: this.waiting.what }, webview);

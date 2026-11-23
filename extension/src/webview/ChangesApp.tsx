@@ -16,6 +16,7 @@ import { RepoSelect } from './RepoSelect';
 import { WorktreeBanner } from './WorktreeBanner';
 import { act, changedFileMenu, hiddenFileMenu, hiddenGroupMenu, pathsOf } from './menus';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
+import { receive } from './received';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 /** A diff as VS Code's list of changes opens it: what is not staged yet, or what is, when all of the file is. */
@@ -263,7 +264,7 @@ export function ChangesApp() {
   useEffect(() => {
     const stop = onMessage((incoming) => {
       if (incoming.type === 'state') {
-        setState(incoming.state);
+        setState(receive(incoming));
         setLoaded(loadedOf(incoming));
       } else if (incoming.type === 'busy') {
         setBusy(incoming.title !== null);

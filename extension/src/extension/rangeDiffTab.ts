@@ -6,7 +6,7 @@
  */
 import * as vscode from 'vscode';
 import { type Repository, reads } from '../engine/reads';
-import type { HostMessage, RangeDiffRead, ViewKind } from '../shared/protocol';
+import type { RangeDiffRead, ToViews, ViewKind } from '../shared/protocol';
 import { type RangeDiffTarget, rangeDiffTabTitle } from '../shared/rangeDiff';
 
 /** What the tab asks of the controller: its page, the repository its messages are about, the activity, and its posts. */
@@ -14,7 +14,7 @@ export interface RangeDiffHost {
   attach(webview: vscode.Webview, kind: ViewKind, data?: Record<string, string>): vscode.Disposable;
   pin(webview: vscode.Webview, repo: Repository | null): void;
   track<T>(title: string, work: () => Promise<T>): Promise<T>;
-  post(message: HostMessage, to: vscode.Webview): void;
+  post(message: ToViews, to: vscode.Webview): void;
 }
 
 /** What git or the engine said of a read that failed. */

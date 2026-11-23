@@ -3,6 +3,7 @@ import type { Comparing, Comparison, RepoState } from '../shared/protocol';
 import { Compare } from './Compare';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { RefsTree, type SectionId } from './RefsTree';
+import { receive } from './received';
 import { onMessage, post } from './vscode';
 import { WorktreeBanner } from './WorktreeBanner';
 
@@ -44,9 +45,10 @@ export function BranchesApp() {
   useEffect(() => {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
-        setState(message.state);
+        const next = receive(message);
+        setState(next);
         setLoaded(loadedOf(message));
-        const root = message.state?.root ?? null;
+        const root = next?.root ?? null;
         if (root !== rootRef.current) {
           // Another repository: what was selected or compared belongs to the previous one.
           rootRef.current = root;

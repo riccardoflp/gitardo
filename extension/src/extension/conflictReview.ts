@@ -9,7 +9,7 @@ import { conflictPlans, deletedConflicts } from '../engine/conflictPlans';
 import type { FileResolutions } from '../engine/messages';
 import { reads, type Repository } from '../engine/reads';
 import { engineResolutions } from '../engine/resolutions';
-import type { HostMessage, Operation, ViewKind } from '../shared/protocol';
+import type { Operation, ToViews, ViewKind } from '../shared/protocol';
 import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
 import { conflictModelName } from './ai';
 import { proposalUri } from './content';
@@ -23,7 +23,7 @@ const SEND_EVERY = 120;
 /** What the tab of the review needs of the controller. */
 export interface ReviewHost {
   attach(webview: vscode.Webview, kind: ViewKind, data: Record<string, string>): vscode.Disposable;
-  post(message: HostMessage, webview: vscode.Webview): void;
+  post(message: ToViews, webview: vscode.Webview): void;
   /** Writes resolutions, with Undo to put back the conflicts: `review.write` of the engine; true once they are written. */
   write(repo: Repository, resolutions: FileResolutions[]): Promise<boolean>;
   /** Whether the rules propose resolutions, and whether the language model can be asked. */

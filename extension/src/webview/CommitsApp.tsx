@@ -7,6 +7,7 @@ import { Icon } from './Icon';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { logMenu } from './menus';
 import { fullDate, relativeTime, shortHash } from './util';
+import { receive } from './received';
 import { onMessage, post } from './vscode';
 
 /** How many commits are asked for at first, and how many more each time. */
@@ -63,9 +64,10 @@ export function CommitsApp() {
   useEffect(() => {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
-        setState(message.state);
+        const next = receive(message);
+        setState(next);
         setLoaded(loadedOf(message));
-        const root = message.state?.root ?? null;
+        const root = next?.root ?? null;
         if (root !== rootRef.current) {
           // Another repository: its commits are others, and are asked for from the start.
           rootRef.current = root;

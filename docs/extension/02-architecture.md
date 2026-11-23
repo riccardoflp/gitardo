@@ -145,8 +145,16 @@ flowchart TB
    the pull requests read again after a fetch, a pull or a push. An operation offered with the failure of a step, such
    as **Delete anyway**, is a button on the error, which sends `feature/run` with the feature, target and answers the
    engine gave (`offerRun`).
-5. The repository is read again and a `HostMessage` of type `state` goes to the views. Only the views that show the
-   graph are sent its commits (`showsGraph`), and only the commits they do not have yet.
+5. The repository is read again and a `HostMessage` of type `state` goes to the views, in parts (`StatePart`: where
+   the repository is and what is checked out, the references, the stashes, the worktrees, the working tree, the
+   submodules, the pull requests, the commits, the row of the uncommitted changes, and the rest). Each kind of view is
+   sent the parts it shows (`partsOf` of `src/shared/stateParts.ts`), and of those only the ones whose key changed
+   since it was last sent them (`stateFor` of `src/extension/sentParts.ts`); of the commits, only those it does not
+   have yet, and the row of the uncommitted changes apart from them, so that a new count of files sends no commit. A
+   view that was sent nothing new is sent no message. The tabs of a commit and of a comparison are sent what the
+   labels of their commits need; the tabs that read what they show themselves, no state. The page puts the parts it is
+   sent in place of the ones it had (`receive` of `src/webview/received.ts`, D88), so that what did not change keeps
+   its identity and is not worked out again.
 
 **Undo** is the engine's too: `feature/run` of `undo.last`, which takes back the newest entry of the engine's journal,
 where every feature the engine ran is. The tooltip of **Undo** names the newest entry, from `journal/last`
@@ -215,8 +223,8 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
 
 - **The state of the repository** is one `RepoState`, the engine's `RepositoryState` with what the extension adds,
   kept by the `Controller` (`setState`). `Controller.readState` reads its parts with `reads.parts` (`repo.read-state`
-  of the engine), then the commits of the graph with `graphState`. The webviews get it in `state` messages and change
-  nothing of it themselves.
+  of the engine), then the commits of the graph with `graphState`. The webviews get it in `state` messages, each view
+  the parts it shows as they change, and change nothing of it themselves.
 - **One repository at a time**: the `Controller` shows one repository of the workspace, chosen in the toolbar's list or
   remembered from the last time. A tab of a commit or a comparison stays with the repository it was opened for.
 - **One operation at a time**: while `Controller.runOnEngine` runs one (`operation`), another is refused, with
@@ -259,6 +267,7 @@ is. Nothing a user starts can be cancelled once its commands run; a question can
 | The questions of the engine in VS Code, and the log | `VscodeAsker` in `src/engine/vscode.ts`, `Controller.runOnEngine` in `src/extension/controller.ts` |
 | What a view reads, and the engine's answer in the view's shape | `src/engine/reads.ts`, `src/engine/shapes.ts` |
 | The engine's state and details of a commit, as the views read them, and what is worked out from them | `src/shared/state.ts` |
+| Which parts of the state each kind of view is sent, and when | `partsOf` in `src/shared/stateParts.ts`, `stateFor` in `src/extension/sentParts.ts`, `src/webview/received.ts` |
 | The lanes of the graph | `src/shared/graph.ts` |
 | The rules for conflicts, and the review | `src/shared/conflicts.ts`, `src/shared/review.ts`, `src/engine/conflictPlans.ts` |
 | A command of the Command Palette, a setting | `package.json` (`contributes`) and `src/extension/extension.ts` |
