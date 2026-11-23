@@ -157,6 +157,8 @@ pub enum CopilotNeed {
     Install,
     /// Sign in to it, with `copilot login`.
     SignIn,
+    /// Update it: it speaks a protocol older than the SDK of this Gitardo, and installing it again updates it.
+    Update,
 }
 
 impl CopilotNeed {
@@ -166,6 +168,7 @@ impl CopilotNeed {
         match self {
             CopilotNeed::Install => "The GitHub Copilot CLI is not installed. Install it, then try again.",
             CopilotNeed::SignIn => "GitHub Copilot is not signed in.",
+            CopilotNeed::Update => "The GitHub Copilot CLI is too old for Gitardo. Update it, then try again.",
         }
     }
 
@@ -173,7 +176,7 @@ impl CopilotNeed {
     #[must_use]
     pub fn button(self) -> &'static str {
         match self {
-            CopilotNeed::Install => "How to install",
+            CopilotNeed::Install | CopilotNeed::Update => "How to install",
             CopilotNeed::SignIn => "Sign in",
         }
     }

@@ -10,6 +10,12 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+# GitHub's own SDK for the GitHub Copilot CLI (`ai.copilot`, D87): it keeps the protocol the CLI speaks, which changes
+# with it. Pinned exactly, since it is a preview; without its default features it is the client alone, spoken to over
+# the streams of the CLI Gitardo starts: no CLI downloaded, no runtime loaded into Gitardo, no OpenSSL, no HTTP.
+copilot-sdk = { version = "=2.0.2-preview.7", default-features = false }
+# The runtime the SDK runs on, of one thread, kept inside `engine::ai::copilot` (R1.6).
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "io-util", "sync", "macros"] }
 git = { path = "../git" }
 http = { path = "../http" }
 json = { path = "../json" }

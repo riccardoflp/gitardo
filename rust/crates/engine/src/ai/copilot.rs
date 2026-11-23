@@ -1,11 +1,12 @@
 //! GitHub Copilot as the AI provider (`ai.copilot`): the GitHub Copilot CLI, found on the `PATH`, started once for the
-//! window in its server mode and asked as the Copilot SDK asks it, with the user's own sign-in. Nothing is sent to it
-//! until a person asks, and every tool it would use is refused, so that it answers with text alone.
+//! window in its server mode and spoken to through GitHub's SDK, `copilot-sdk` (D87), with the user's own sign-in.
+//! Nothing is sent to it until a person asks, and every tool it would use is refused, so that it answers with text
+//! alone.
 //!
-//! The parts of the protocol used, read from the Copilot SDK's client of protocol version 2 (`github-copilot-sdk`
-//! 0.1.0, which speaks to the CLI of its time), are written down in the card.
+//! The protocol is the SDK's to keep: the card names the version of the SDK and the version of the CLI it was tried
+//! with.
 
-mod connection;
+mod client;
 
 use std::ffi::OsStr;
 use std::fmt;
@@ -14,11 +15,10 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use http::Cancel;
-use json::Value;
 use model::ai::{AiModel, AiRequest, AiSettings, CopilotNeed};
 
-pub use connection::CopilotStreams;
-use connection::{Connection, Process, member, wait};
+pub use client::CopilotStreams;
+use client::{Client, Process, Question};
 
 use super::{AiError, Asked, LanguageModel, Purpose};
 
@@ -29,7 +29,7 @@ pub const ARGUMENTS: [&str; 5] = ["--server", "--stdio", "--no-auto-update", "--
 /// What went wrong asking GitHub Copilot.
 #[derive(Debug)]
 pub enum CopilotError {
-    /// The user has something to do first: install the CLI, or sign in to it.
+    /// The user has something to do first: install the CLI, update it, or sign in to it.
     Needs(CopilotNeed),
     /// The CLI could not be started: what the system said.
     Start(String),
@@ -39,6 +39,8 @@ pub enum CopilotError {
     Refused(String),
     /// What the CLI answered is not what its protocol says.
     Unreadable(String),
+    /// The CLI speaks a protocol newer than the SDK of this Gitardo.
+    TooNew,
     /// The question was cancelled.
     Cancelled,
     /// GitHub Copilot is asked through its CLI, never over HTTP.
@@ -57,6 +59,9 @@ impl fmt::Display for CopilotError {
                     formatter,
                     "The answer of the GitHub Copilot CLI could not be read: {reason}"
                 )
+            }
+            CopilotError::TooNew => {
+                formatter.write_str("The GitHub Copilot CLI is too new for Gitardo. Update Gitardo, then try again.")
             }
             CopilotError::Cancelled => formatter.write_str("The question was cancelled."),
             CopilotError::NotOverHttp => formatter.write_str("GitHub Copilot is asked through its CLI."),
@@ -81,7 +86,7 @@ type Start = dyn Fn() -> Result<(CopilotStreams, Option<Process>), CopilotError>
 #[derive(Clone)]
 pub struct CopilotCli {
     /// The CLI running, once started.
-    running: Arc<Mutex<Option<Arc<Connection>>>>,
+    running: Arc<Mutex<Option<Arc<Client>>>>,
     /// How it is started.
     start: Arc<Start>,
 }
@@ -127,49 +132,35 @@ impl CopilotCli {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .as_ref()
-            .is_some_and(|connection| connection.is_open())
+            .is_some_and(|client| client.is_open())
     }
 
-    /// The CLI running, started now when it is not.
-    fn connection(&self) -> Result<Arc<Connection>, CopilotError> {
+    /// The CLI running, started now when it is not; one whose protocol the SDK does not speak is not kept.
+    fn client(&self, cancel: &Cancel) -> Result<Arc<Client>, CopilotError> {
         let mut running = self.running.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some(connection) = running.as_ref().filter(|connection| connection.is_open()) {
-            return Ok(Arc::clone(connection));
+        if let Some(client) = running.as_ref().filter(|client| client.is_open()) {
+            return Ok(Arc::clone(client));
         }
         let (streams, process) = (self.start)()?;
-        let connection = Arc::new(Connection::over(streams, process)?);
-        *running = Some(Arc::clone(&connection));
-        Ok(connection)
+        let client = Arc::new(Client::over(streams, process, cancel)?);
+        *running = Some(Arc::clone(&client));
+        Ok(client)
     }
 
-    /// The models the user's subscription offers, in Copilot's order (`models.list`).
+    /// The models the user's subscription offers, in Copilot's order.
     ///
     /// # Errors
     ///
     /// When the CLI is not installed or not signed in, it cannot be started, or it refuses.
     pub fn models(&self, cancel: &Cancel) -> Result<Vec<AiModel>, CopilotError> {
-        let connection = self.signed_in(cancel)?;
-        let listed = connection.request("models.list", Value::Object(Vec::new()), cancel)?;
-        let models = listed
-            .get("models")
-            .and_then(Value::as_array)
-            .ok_or_else(|| CopilotError::Unreadable(String::from("it lists no models")))?;
-        Ok(models
-            .iter()
-            .filter_map(|entry| {
-                let id = entry.get("id").and_then(Value::as_str)?.to_owned();
-                let name = entry.get("name").and_then(Value::as_str).unwrap_or(&id).to_owned();
-                Some(AiModel { id, name })
-            })
-            .collect())
+        self.signed_in(cancel)?.models(cancel)
     }
 
-    /// The CLI running and signed in (`auth.getStatus`).
-    fn signed_in(&self, cancel: &Cancel) -> Result<Arc<Connection>, CopilotError> {
-        let connection = self.connection()?;
-        let status = connection.request("auth.getStatus", Value::Object(Vec::new()), cancel)?;
-        if status.get("isAuthenticated").and_then(Value::as_bool) == Some(true) {
-            Ok(connection)
+    /// The CLI running and signed in.
+    fn signed_in(&self, cancel: &Cancel) -> Result<Arc<Client>, CopilotError> {
+        let client = self.client(cancel)?;
+        if client.is_signed_in(cancel)? {
+            Ok(client)
         } else {
             Err(CopilotError::Needs(CopilotNeed::SignIn))
         }
@@ -188,89 +179,15 @@ impl CopilotCli {
         cancel: &Cancel,
         pieces: &mut dyn FnMut(&str),
     ) -> Result<String, CopilotError> {
-        let connection = self.signed_in(cancel)?;
-        let created = connection.request("session.create", session_settings(settings), cancel)?;
-        let session = created
-            .get("sessionId")
-            .and_then(Value::as_str)
-            .ok_or_else(|| CopilotError::Unreadable(String::from("it named no session")))?
-            .to_owned();
-        let events = connection.follow(&session);
-        let sent = connection
-            .request("session.send", session_message(&session, Some(prompt)), cancel)
-            .and_then(|_| answer(&events, cancel, pieces));
-        if matches!(sent, Err(CopilotError::Cancelled)) {
-            // The question is not wanted any more: Copilot stops writing, and the CLI stays for the next one. A CLI
-            // that ended has no session to stop.
-            let _stopped = connection.request("session.abort", session_message(&session, None), &Cancel::new());
-        }
-        connection.forget(&session);
-        // A session that cannot be ended is one the CLI ended or forgot already.
-        let _ended = connection.request("session.destroy", session_message(&session, None), &Cancel::new());
-        sent
+        let question = Question {
+            model: settings.model.clone(),
+            effort: settings
+                .effort
+                .map(|effort| super::wire::chat_effort(effort).to_owned()),
+            prompt: prompt.to_owned(),
+        };
+        self.signed_in(cancel)?.ask(question, cancel, pieces)
     }
-}
-
-/// The text of the answer of a session, each piece passed on as it comes, until the session is idle.
-fn answer(
-    events: &std::sync::mpsc::Receiver<Value>,
-    cancel: &Cancel,
-    pieces: &mut dyn FnMut(&str),
-) -> Result<String, CopilotError> {
-    let mut text = String::new();
-    loop {
-        let event = wait(events, cancel)?;
-        let data = event.get("data");
-        let field = |name: &str| data.and_then(|data| data.get(name)).and_then(Value::as_str);
-        match event.get("type").and_then(Value::as_str) {
-            Some("assistant.message_delta") => {
-                if let Some(piece) = field("deltaContent") {
-                    text.push_str(piece);
-                    pieces(piece);
-                }
-            }
-            // The whole message comes after its pieces; it is the answer when none came before it.
-            Some("assistant.message") if text.is_empty() => {
-                if let Some(whole) = field("content") {
-                    text.push_str(whole);
-                    pieces(whole);
-                }
-            }
-            Some("session.idle") => return Ok(text),
-            Some("session.error") => {
-                let words = field("message").unwrap_or("no reason given");
-                return Err(CopilotError::Refused(words.to_owned()));
-            }
-            // Its thinking, the tools it would use, the usage of the request: nothing of the answer.
-            _ => {}
-        }
-    }
-}
-
-/// The settings of a session: the model of `ai.model` (Copilot's own choice when empty), the effort of `ai.effort`
-/// when set, the answer streamed, no tool at all, and a permission asked of Gitardo for anything it would do.
-fn session_settings(settings: &AiSettings) -> Value {
-    let mut members = Vec::new();
-    if !settings.model.is_empty() {
-        members.push(member("model", Value::String(settings.model.clone())));
-    }
-    if let Some(effort) = settings.effort {
-        let effort = super::wire::chat_effort(effort).to_owned();
-        members.push(member("reasoningEffort", Value::String(effort)));
-    }
-    members.push(member("streaming", Value::Bool(true)));
-    members.push(member("availableTools", Value::Array(Vec::new())));
-    members.push(member("requestPermission", Value::Bool(true)));
-    Value::Object(members)
-}
-
-/// The parameters of a request about a session: its id, and the prompt sent to it.
-fn session_message(session: &str, prompt: Option<&str>) -> Value {
-    let mut members = vec![member("sessionId", Value::String(session.to_owned()))];
-    if let Some(prompt) = prompt {
-        members.push(member("prompt", Value::String(prompt.to_owned())));
-    }
-    Value::Object(members)
 }
 
 /// GitHub Copilot as the language model that `ai.ask-conflict`, `commit.draft-message` and `ai.choose-model` are

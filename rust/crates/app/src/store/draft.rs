@@ -118,7 +118,7 @@ pub fn drafted(state: &mut State, ask: AskId, result: AiResult) -> Vec<Effect> {
 pub fn copilot_said(need: model::ai::CopilotNeed) -> Said {
     let mut said = Said::error(need.sentence().to_owned());
     match need {
-        model::ai::CopilotNeed::Install => {
+        model::ai::CopilotNeed::Install | model::ai::CopilotNeed::Update => {
             said.link = Some((need.button().to_owned(), model::ai::COPILOT_INSTALL_PAGE.to_owned()));
         }
         model::ai::CopilotNeed::SignIn => {

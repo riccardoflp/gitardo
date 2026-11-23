@@ -184,7 +184,7 @@ fn listed(context: &Context, answers: &Answers, typed: Option<&Key>) -> Result<V
 #[must_use]
 pub fn copilot_refusal(need: CopilotNeed) -> Refusal {
     let feature = match need {
-        CopilotNeed::Install => COPILOT_INSTALL,
+        CopilotNeed::Install | CopilotNeed::Update => COPILOT_INSTALL,
         CopilotNeed::SignIn => COPILOT_SIGN_IN,
     };
     Refusal {

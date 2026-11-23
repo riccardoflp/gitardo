@@ -2180,8 +2180,11 @@ language without an SDK of its own.
 
 - **GitHub Copilot, through `copilot-sdk`.** GitHub's own SDK for Rust (`github/copilot-sdk`, the crate
   `copilot-sdk`, which replaced `github-copilot-sdk`) speaks to the CLI in place of the client written here: its
-  `Client` started on the `copilot` program found on the `PATH`, as a process spoken to over its standard input and
-  output (`RuntimeConnection::SpawnedStdio`), its models, its sessions and its events. Its version is pinned exactly in
+  `Client` given the standard input and output of the `copilot` program Gitardo found on the `PATH` and started, as it
+  started it before (`Client::from_streams`, then its handshake), its models, its sessions and its events. The SDK's
+  own way of starting the CLI (`RuntimeConnection::SpawnedStdio`) needs its feature `runtime`, which brings OpenSSL,
+  a second TLS and an HTTP client to download the CLI, so it is not used; the fake CLI of the tests is given to the SDK
+  the same way. Its version is pinned exactly in
   `Cargo.toml`, and moving it is a change of its own, with the fake CLI of the tests and the check by hand of **Before a
   release**. The protocol is the SDK's to keep: the card names the version of the SDK and the version of the CLI it was
   tried with, no longer each request.
@@ -2202,7 +2205,8 @@ language without an SDK of its own.
 - **What does not change** for the user: the settings, the sign-in of the CLI, **How to install**, **Sign in**, the
   sentences of the refusals, the models listed, what is sent and what is shown. One refusal is added: a CLI whose
   protocol the SDK does not speak says *The GitHub Copilot CLI is too old for Gitardo. Update it, then try again.*
-  (or *too new … Update Gitardo.*), in place of an answer that cannot be read (Q1511).
+  (or *too new … Update Gitardo, then try again.*), in place of an answer that cannot be read; *too old* offers **How
+  to install**, since installing it again updates it (Q1511).
 - **Claude, through its API.** Anthropic has no SDK for Rust: its SDKs are for Python, TypeScript, Java, Go, Ruby, C#
   and PHP, and for the others it gives the Messages API over HTTP, which `wire.rs` already speaks (`anthropic-version`
   `2026-10-21`, `output_config.effort`, the answer streamed, the refusal said). The crates of others on crates.io are
@@ -5781,10 +5785,12 @@ it is planned; each is built as it says until the maintainer answers otherwise.
 
 - **Q1510** — `ai.copilot`: on 2026-11-21 the version of `copilot-sdk` is `2.0.2-preview.3`, a preview, and the
   versions of before are those of the deprecated `github-copilot-sdk`. M43 pins the preview of the day it is built. Should
-  it wait for a version that is not a preview?
+  it wait for a version that is not a preview? *Answered by the maintainer on 2026-11-23*: no; M43 pins
+  `2.0.2-preview.7`, the preview of that day, and moving it is a change of its own.
 - **Q1511** — `ai.copilot`: a CLI whose protocol the SDK does not speak is refused with *too old* or *too new*, and the
   version of the CLI the SDK was published with is the one named in the card. Should **How to install** be offered
-  with *too old*, since installing again updates it?
+  with *too old*, since installing again updates it? *Answered by the maintainer on 2026-11-23*: yes; *too old* offers
+  **How to install**, as *not installed* does.
 - **Q1512** — `ai.ask-conflict`, `commit.draft-message`: a request is sent again up to twice, as Anthropic's and
   OpenAI's SDKs do, for both providers over HTTP. Should a setting give the number of tries, or none for a provider
   that bills a request that failed?

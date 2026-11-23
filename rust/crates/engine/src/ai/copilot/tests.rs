@@ -81,12 +81,14 @@ fn ai_copilot__resolve_with_ai_proposes_a_resolution_named_after_the_copilot_mod
     assert_eq!(
         fake.methods(),
         [
+            "connect",
             "auth.getStatus",
             "models.list",
             "auth.getStatus",
             "session.create",
+            "session.options.update",
             "session.send",
-            "session.destroy"
+            "session.detach"
         ]
     );
     let requests = fake.requests();
@@ -263,7 +265,7 @@ fn ai_copilot__cancelling_a_question_ends_its_session_and_not_the_cli_and_closin
     let asked = asking.join().unwrap();
     assert!(matches!(asked, Err(CopilotError::Cancelled)), "{asked:?}");
     let methods = fake.methods();
-    assert_eq!(methods[methods.len() - 2..], ["session.abort", "session.destroy"]);
+    assert_eq!(methods[methods.len() - 2..], ["session.abort", "session.detach"]);
     assert!(cli.is_running() && fake.is_running());
     // The next question is answered by the same CLI.
     fake.answer_with(CopilotScript::default());
@@ -286,4 +288,50 @@ fn ai_copilot__the_tests_speak_to_a_fake_copilot_that_answers_the_protocol() {
     );
     assert!(cli.is_running());
     assert!(fake.requests().iter().all(|request| !request.contains("Authorization")));
+}
+
+#[test]
+fn ai_copilot__a_cli_too_old_for_the_sdk_is_refused_with_how_to_install() {
+    let fake = FakeCopilot::new(CopilotScript {
+        protocol_version: 3,
+        ..CopilotScript::default()
+    });
+    let cli = cli_of(&fake);
+    let refused = cli.models(&Cancel::new()).unwrap_err();
+    assert!(
+        matches!(refused, CopilotError::Needs(CopilotNeed::Update)),
+        "{refused:?}"
+    );
+    assert_eq!(
+        refused.to_string(),
+        "The GitHub Copilot CLI is too old for Gitardo. Update it, then try again."
+    );
+    assert_eq!(CopilotNeed::Update.button(), "How to install");
+    assert_eq!(
+        failed_models(AiError::from(refused)),
+        AiModels::CopilotNeeds(CopilotNeed::Update)
+    );
+    // Nothing more is asked of it, and it is not kept: once updated, it is started again.
+    assert_eq!(fake.methods(), ["connect"]);
+    assert!(!cli.is_running());
+    fake.answer_with(CopilotScript::default());
+    assert_eq!(cli.models(&Cancel::new()).unwrap().len(), 2);
+    assert_eq!(fake.starts(), 2);
+}
+
+#[test]
+fn ai_copilot__a_cli_too_new_for_the_sdk_says_to_update_gitardo() {
+    let fake = FakeCopilot::new(CopilotScript {
+        protocol_version: 5,
+        ..CopilotScript::default()
+    });
+    let refused = cli_of(&fake)
+        .ask(&settings("gpt-test", None), "Q", &Cancel::new(), &mut |_| {})
+        .unwrap_err();
+    assert!(matches!(refused, CopilotError::TooNew), "{refused:?}");
+    assert_eq!(
+        refused.to_string(),
+        "The GitHub Copilot CLI is too new for Gitardo. Update Gitardo, then try again."
+    );
+    assert_eq!(fake.methods(), ["connect"]);
 }

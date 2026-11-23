@@ -108,7 +108,7 @@ fn ai_choose_model__with_github_copilot_the_models_of_the_subscription_are_liste
         panic!("the models are not listed: {finished:?}");
     };
     assert_eq!(plan.title.as_str(), "GPT Test, Claude Test");
-    assert_eq!(fake.methods(), ["auth.getStatus", "models.list"]);
+    assert_eq!(fake.methods(), ["connect", "auth.getStatus", "models.list"]);
     assert!(secrets.kept().is_empty(), "no key is kept for GitHub Copilot");
 }
 

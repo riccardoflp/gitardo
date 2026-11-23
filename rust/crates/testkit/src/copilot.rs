@@ -1,9 +1,10 @@
-//! A fake GitHub Copilot CLI (`ai.copilot`), so that the tests need no account: it answers the parts of the CLI's
-//! protocol Gitardo uses, in JSON-RPC framed with `Content-Length` headers, over pipes in place of a process's standard
-//! input and output, on a thread of its own for each time it is started.
+//! A fake GitHub Copilot CLI (`ai.copilot`), so that the tests need no account: it answers what GitHub's SDK sends the
+//! CLI for what Gitardo asks, in JSON-RPC framed with `Content-Length` headers, over pipes in place of a process's
+//! standard input and output, on a thread of its own for each time it is started: the handshake with its version of
+//! the protocol, the sign-in, the models, the sessions and their events, and the permissions it asks.
 //!
-//! It reads what it is sent by looking for the members it needs in the text, which is enough for the compact JSON
-//! Gitardo writes, and records every request it was sent, by its method.
+//! It reads what it is sent by looking for the members it needs in the text, which is enough for the compact JSON the
+//! SDK writes, and records every request it was sent, by its method.
 
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -24,6 +25,8 @@ pub struct CopilotScript {
     pub refusal: Option<String>,
     /// Whether it writes the first piece only, then waits until the session is aborted.
     pub holds_answer: bool,
+    /// The version of the protocol it speaks; the SDK speaks 4.
+    pub protocol_version: u32,
 }
 
 impl Default for CopilotScript {
@@ -39,6 +42,7 @@ impl Default for CopilotScript {
             asks_permission: false,
             refusal: None,
             holds_answer: false,
+            protocol_version: 4,
         }
     }
 }
@@ -143,71 +147,80 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-/// The session a permission was asked for, whose answer waits for Gitardo's.
-const PERMISSION_ID: u64 = 9_000;
+/// The id of the permission it asks, whose answer it waits for before it answers.
+const PERMISSION_ID: &str = "permission-1";
 
 /// Answers what it reads until its input ends.
 fn serve(mut input: BufReader<io::PipeReader>, mut output: io::PipeWriter, seen: &Mutex<Seen>) {
     let mut sessions = 0;
-    let mut waiting_permission: Option<String> = None;
+    let mut events = 0;
     while let Some(body) = read(&mut input) {
-        let Some(method) = string_member(&body, "method") else {
-            if waiting_permission.is_some() && number_member(&body, "id") == Some(PERMISSION_ID) {
-                lock(seen).permission_answers.push(body.clone());
-                let session = waiting_permission.take().unwrap_or_default();
-                let script = lock(seen).script.clone();
-                stream_answer(&mut output, &session, &script);
-            }
+        // An answer to nothing it asked, or a notification: nothing to answer.
+        let (Some(method), Some(id)) = (string_member(&body, "method"), number_member(&body, "id")) else {
             continue;
         };
         lock(seen).requests.push(format!("{method} {body}"));
-        let id = number_member(&body, "id").unwrap_or_default();
         let script = lock(seen).script.clone();
         let session = string_member(&body, "sessionId").unwrap_or_default();
         let result = match method.as_str() {
-            "auth.getStatus" => Ok(format!("{{\"isAuthenticated\":{}}}", script.is_signed_in)),
-            "models.list" => Ok(models(&script)),
+            "connect" => format!(
+                "{{\"ok\":true,\"protocolVersion\":{},\"version\":\"1.0.115\"}}",
+                script.protocol_version
+            ),
+            "auth.getStatus" => format!("{{\"isAuthenticated\":{}}}", script.is_signed_in),
+            "models.list" => models(&script),
+            // The SDK names the session it creates; a session it does not name is named here.
             "session.create" => {
                 sessions += 1;
-                Ok(format!("{{\"sessionId\":\"session-{sessions}\"}}"))
+                let named = if session.is_empty() {
+                    format!("session-{sessions}")
+                } else {
+                    session.clone()
+                };
+                format!("{{\"sessionId\":{}}}", quoted(&named))
             }
-            "session.send" | "session.abort" | "session.destroy" => Ok(String::from("{}")),
-            other => Err(format!("{other} is not a method of the fake")),
+            "session.send" => String::from("{\"messageId\":\"message-1\"}"),
+            "session.permissions.handlePendingPermissionRequest" => {
+                lock(seen).permission_answers.push(body.clone());
+                String::from("{\"success\":true}")
+            }
+            // What else the SDK sends about a session, as it sets it up, follows it or ends it, is taken as done.
+            _ => String::from("{\"success\":true}"),
         };
-        answer(&mut output, id, result);
+        answer(&mut output, id, &result);
+        let mut event = |kind: &str, data: &str| {
+            events += 1;
+            write_event(&mut output, &session, events, kind, data);
+        };
         match method.as_str() {
-            "session.send" if script.asks_permission => {
-                let request = format!(
-                    "{{\"jsonrpc\":\"2.0\",\"id\":{PERMISSION_ID},\"method\":\"permission.request\",\"params\":\
-                     {{\"sessionId\":\"{session}\",\"permissionRequest\":{{\"kind\":\"read\",\"path\":\"secret.txt\"}}}}}}"
-                );
-                write(&mut output, &request);
-                waiting_permission = Some(session);
-            }
-            "session.send" => stream_answer(&mut output, &session, &script),
-            "session.abort" => event(&mut output, &session, "session.idle", "{}"),
+            "session.send" if script.asks_permission => event(
+                "permission.requested",
+                &format!(
+                    "{{\"requestId\":\"{PERMISSION_ID}\",\"permissionRequest\":\
+                     {{\"kind\":\"read\",\"path\":\"secret.txt\",\"intention\":\"Read the secret\"}}}}"
+                ),
+            ),
+            // The answer comes once the question is sent, or once the permission it asked is answered.
+            "session.send" | "session.permissions.handlePendingPermissionRequest" => stream_answer(&mut event, &script),
+            "session.abort" => event("session.idle", "{}"),
             _ => {}
         }
     }
 }
 
 /// The answer of a session: its pieces then its whole message and idle; its refusal; or its first piece alone.
-fn stream_answer(output: &mut io::PipeWriter, session: &str, script: &CopilotScript) {
+fn stream_answer(event: &mut dyn FnMut(&str, &str), script: &CopilotScript) {
     if let Some(refusal) = &script.refusal {
         event(
-            output,
-            session,
             "session.error",
-            &format!("{{\"message\":{}}}", quoted(refusal)),
+            &format!("{{\"errorType\":\"query\",\"message\":{}}}", quoted(refusal)),
         );
         return;
     }
     for piece in &script.pieces {
         event(
-            output,
-            session,
             "assistant.message_delta",
-            &format!("{{\"deltaContent\":{}}}", quoted(piece)),
+            &format!("{{\"deltaContent\":{},\"messageId\":\"message-1\"}}", quoted(piece)),
         );
         if script.holds_answer {
             return;
@@ -215,12 +228,10 @@ fn stream_answer(output: &mut io::PipeWriter, session: &str, script: &CopilotScr
     }
     let whole = script.pieces.concat();
     event(
-        output,
-        session,
         "assistant.message",
-        &format!("{{\"content\":{}}}", quoted(&whole)),
+        &format!("{{\"content\":{},\"messageId\":\"message-1\"}}", quoted(&whole)),
     );
-    event(output, session, "session.idle", "{}");
+    event("session.idle", "{}");
 }
 
 /// The models of the script, as `models.list` answers them.
@@ -228,24 +239,30 @@ fn models(script: &CopilotScript) -> String {
     let listed: Vec<String> = script
         .models
         .iter()
-        .map(|(id, name)| format!("{{\"id\":{},\"name\":{}}}", quoted(id), quoted(name)))
+        .map(|(id, name)| {
+            format!(
+                "{{\"id\":{},\"name\":{},\"capabilities\":{{}}}}",
+                quoted(id),
+                quoted(name)
+            )
+        })
         .collect();
     format!("{{\"models\":[{}]}}", listed.join(","))
 }
 
-/// Writes the answer to a request: its result, or an error.
-fn answer(output: &mut io::PipeWriter, id: u64, result: Result<String, String>) {
-    let member = match result {
-        Ok(result) => format!("\"result\":{result}"),
-        Err(message) => format!("\"error\":{{\"code\":-32601,\"message\":{}}}", quoted(&message)),
-    };
-    write(output, &format!("{{\"jsonrpc\":\"2.0\",\"id\":{id},{member}}}"));
+/// Writes the answer to a request.
+fn answer(output: &mut io::PipeWriter, id: u64, result: &str) {
+    write(
+        output,
+        &format!("{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":{result}}}"),
+    );
 }
 
-/// Writes an event of a session.
-fn event(output: &mut io::PipeWriter, session: &str, kind: &str, data: &str) {
+/// Writes an event of a session, the `number`th it writes.
+fn write_event(output: &mut io::PipeWriter, session: &str, number: u64, kind: &str, data: &str) {
     let params = format!(
-        "{{\"sessionId\":{},\"event\":{{\"type\":\"{kind}\",\"data\":{data}}}}}",
+        "{{\"sessionId\":{},\"event\":{{\"id\":\"event-{number}\",\"timestamp\":\"2026-11-23T00:00:00Z\",\
+         \"parentId\":null,\"type\":\"{kind}\",\"data\":{data}}}}}",
         quoted(session)
     );
     write(

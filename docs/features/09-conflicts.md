@@ -1724,10 +1724,11 @@ conflicts the rules leave, and the draft of a commit message
   `ai.provider` is `copilot`, in place of `engine::ai::ProviderModel`.
 - **Reads**: the GitHub Copilot CLI, the program `copilot` found on the `PATH`
   ([Q862](../08-decisions.md#open-questions)), started once for the window in its server mode and spoken to over its
-  standard input and output in JSON-RPC, as the Copilot SDK speaks to it: the models the subscription offers, for
-  `ai.choose-model`; one session for each question, with the model of `ai.model` (or the one Copilot picks when it is
-  empty) and the effort of `ai.effort` when the model takes one, its answer streamed and each piece passed on as it
-  comes.
+  standard input and output through GitHub's SDK for Rust, `copilot-sdk`
+  ([D87](../08-decisions.md#d87--github-copilot-through-its-sdk-claude-through-its-api-as-anthropics-sdks-ask-it-proposed)):
+  the models the subscription offers, for `ai.choose-model`; one session for each question, with the model of
+  `ai.model` (or the first of the subscription when it is empty) and the effort of `ai.effort` when set, its answer
+  streamed and each piece passed on as it comes.
 - **Sign-in**: the CLI's own: what `copilot login` stored, or `COPILOT_GITHUB_TOKEN`, `GH_TOKEN` or `GITHUB_TOKEN`.
   Gitardo keeps no key for it and sends none.
 - **Tools**: none. Every permission the CLI asks (to read a file, run a command, fetch an address) is refused, so it
@@ -1736,29 +1737,29 @@ conflicts the rules leave, and the draft of a commit message
   `ai.model`, `ai.effort`; `ai.endpoint` is not used, and the settings page does not list it while `ai.provider` is
   `copilot`.
 - **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`, as the other providers.
-- **Protocol**: read from the Copilot SDK's client for Rust, `github-copilot-sdk` 0.1.0, of protocol version 2, which
-  speaks to the CLI of its time; the CLI itself could not be run where it was built, so its answers are those of the
-  fake ([Q1350](../08-decisions.md#open-questions)).
+- **Protocol**: the SDK's to keep. `copilot-sdk` `2.0.2-preview.7`, pinned exactly with its default features off,
+  speaks version 4 of the protocol; it was tried with the GitHub Copilot CLI `1.0.114`, and published with `1.0.115`.
+  Moving it to another version is a change of its own, with the fake CLI of the tests and the check of **Before a
+  release** ([Q1510](../08-decisions.md#open-questions)).
   - `copilot --server --stdio --no-auto-update --log-level error`, found on the `PATH` (`copilot.cmd`, which npm
-    installs, on Windows, from `PATHEXT`), started the first time a question needs it and kept for the window; it
-    leads a process group of its own (a job object on Windows), ended with what it started when the window closes.
-  - JSON-RPC 2.0, each message framed with `Content-Length: <bytes>` and an empty line, as the Language Server
-    Protocol frames them.
-  - `auth.getStatus` before each question: `isAuthenticated` false is *not signed in*.
-  - `models.list`: `{"models": [{"id", "name"}, …]}`, for `ai.choose-model` and for the first model when `ai.model`
-    is empty.
-  - `session.create` with `model`, `reasoningEffort` (`low`, `medium`, `high`, or `xhigh` for **Extra high** and
-    **Max**) when `ai.effort` is set, `streaming` true, `availableTools` empty and `requestPermission` true; it answers
-    `sessionId`. Then `session.send` with `sessionId` and `prompt`.
-  - The notifications `session.event`, with `sessionId` and `event` (`type`, `data`): `assistant.message_delta` with
-    `deltaContent`, each piece passed on; `assistant.message` with `content`, the answer when no piece came;
-    `session.idle`, the end; `session.error` with `message`, Copilot's refusal.
-  - Cancelled: `session.abort`. Answered, failed or cancelled: `session.destroy`; the CLI keeps running.
-  - What the CLI asks of Gitardo: `permission.request` is answered `{"result": {"kind": "reject"}}`, `tool.call`
-    `{"result": {"resultType": "rejected", …}}`, and any other request with the error `-32601`.
+    installs, on Windows, from `PATHEXT`), started by Gitardo the first time a question needs it and kept for the
+    window; it leads a process group of its own (no console window on Windows), ended with what it started when the
+    window closes. The SDK is given its standard input and output, and makes its handshake first.
+  - The SDK runs on a runtime of one thread inside `engine::ai::copilot`, in its mode that turns off what is optional:
+    no instructions of a repository, no skills, no hooks, no memory, no telemetry of the session.
+  - Before each question, the sign-in is asked of the CLI.
+  - Each question is a session of its own: the model, the effort (`low`, `medium`, `high`, or `xhigh` for **Extra
+    high** and **Max**), the answer streamed, no tool available, and every permission refused with the SDK's
+    `DenyAllHandler`. The pieces of `assistant.message_delta` are passed on; `assistant.message` is the answer when no
+    piece came; `session.idle` is the end; `session.error` is Copilot's refusal, in its words.
+  - Cancelled, the session is aborted. Answered, failed or cancelled, it is ended; the CLI keeps running.
 - **Refuses**: without `copilot` on the `PATH`: *The GitHub Copilot CLI is not installed. Install it, then try again.*
   with **How to install**, which opens GitHub's page on installing it; when it is not signed in: *GitHub Copilot is not
   signed in.* with **Sign in**, which opens a new terminal of the bottom panel and types `copilot login` in it; when
+  the CLI speaks a protocol older than the SDK's: *The GitHub Copilot CLI is too old for Gitardo. Update it, then try
+  again.* with **How to install**, since installing it again updates it
+  ([Q1511](../08-decisions.md#open-questions)); when newer: *The GitHub Copilot CLI is too new for Gitardo. Update
+  Gitardo, then try again.*; when
   Copilot refuses the question (no subscription, no requests left, a model not offered): *GitHub Copilot refused: \<its
   words\>*. A draft or a conflict refused so says it in the status bar with its button; the refusal of
   `ai.choose-model` offers it as its button.
@@ -1779,7 +1780,10 @@ Acceptance:
 - [ ] Signed out, **Sign in** opens a terminal of the bottom panel running `copilot login`; once it ends, asking again
       is answered.
 - [ ] Cancelling a question ends its session and not the CLI; closing the window ends the CLI.
-- [ ] The tests speak to a fake `copilot` of `testkit` that answers the protocol, so that no account is needed.
+- [ ] A CLI too old for the SDK refuses with *The GitHub Copilot CLI is too old for Gitardo. Update it, then try
+      again.* and **How to install**; one too new with *The GitHub Copilot CLI is too new for Gitardo. Update Gitardo,
+      then try again.*
+- [ ] The tests speak to a fake `copilot` of `testkit` that answers what the SDK sends, so that no account is needed.
 
 ## Resolutions git remembers
 

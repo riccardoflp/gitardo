@@ -209,6 +209,7 @@ fn ai_choose_model__github_copilot_signed_out_or_not_installed_refuses_with_sign
     for (need, offered) in [
         (CopilotNeed::SignIn, (COPILOT_SIGN_IN, "Sign in")),
         (CopilotNeed::Install, (COPILOT_INSTALL, "How to install")),
+        (CopilotNeed::Update, (COPILOT_INSTALL, "How to install")),
     ] {
         let answers = Answers::new().with(MODELS, Answer::AiModels(AiModels::CopilotNeeds(need)));
         let Outcome::Refuse(refusal) = choose_model(&context, &answers) else {
