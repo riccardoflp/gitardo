@@ -13,10 +13,10 @@ use model::state::{
 use model::submodule::{Checkout, Distance, Submodule};
 
 use super::{
-    BisectJson, BranchJson, ChangeKindJson, CheckoutJson, ConflictKindJson, ConflictedFileJson, DistanceJson,
-    FileChangeJson, HeadJson, IdentityJson, NotesJson, OperationJson, RebaseStopJson, RemoteBranchJson, SigningJson,
-    SigningKindJson, SkippedFileJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson, UpstreamJson,
-    WorkingTreeJson, WorktreeJson,
+    BisectJson, BranchJson, ChangeKindJson, CheckoutJson, CommitGraphJson, ConflictKindJson, ConflictedFileJson,
+    DistanceJson, FileChangeJson, HeadJson, IdentityJson, NotesJson, OperationJson, RebaseStopJson, RemoteBranchJson,
+    SigningJson, SigningKindJson, SkippedFileJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson,
+    UpstreamJson, WorkingTreeJson, WorktreeJson,
 };
 
 /// A path as the system gives it, as a string.
@@ -76,6 +76,10 @@ impl From<&RepositoryState> for StateJson {
                 reference: state.notes.reference.clone(),
                 tip: state.notes.tip.as_ref().map(id),
                 commits: state.notes.noted.keys().map(id).collect(),
+            },
+            commit_graph: CommitGraphJson {
+                has_file: state.commit_graph.has_file,
+                is_ignored: state.commit_graph.is_ignored,
             },
         }
     }

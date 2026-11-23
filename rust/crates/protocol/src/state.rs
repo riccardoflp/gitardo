@@ -59,6 +59,19 @@ pub struct StateJson {
     /// The commits with a note, in the reference of notes git uses (since 1.11).
     #[serde(default)]
     pub notes: NotesJson,
+    /// Whether git keeps its commit-graph file of the repository and reads it (`upkeep.read-commit-graph`, since 1.12).
+    #[serde(default)]
+    pub commit_graph: CommitGraphJson,
+}
+
+/// Whether git keeps its commit-graph file of a repository and reads it (`upkeep.read-commit-graph`, since 1.12).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitGraphJson {
+    /// Whether the file is there, alone or as a chain.
+    pub has_file: bool,
+    /// Whether `core.commitGraph` is `false`, and git does not read the file.
+    pub is_ignored: bool,
 }
 
 /// The commits with a note, in the reference of notes git uses (since 1.11).

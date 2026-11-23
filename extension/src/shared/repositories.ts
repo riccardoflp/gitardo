@@ -42,7 +42,7 @@ export interface RepositoryRow {
  * What the view is sent of the repository Gitardo shows, for the menus of its rows: its worktrees and its submodules as
  * the Branches view has them, and what their menus ask of the window.
  */
-export type ShownParts = Pick<RepoState, 'root' | 'home' | 'agentsWindow' | 'worktrees' | 'submodules' | 'isLookedAfter'>;
+export type ShownParts = Pick<RepoState, 'root' | 'home' | 'agentsWindow' | 'worktrees' | 'submodules' | 'isLookedAfter' | 'commitGraph'>;
 
 /** A repository of the workspace as the rows take it: what `repository/discover` found, and its name in the lists. */
 export interface ListedRepository {

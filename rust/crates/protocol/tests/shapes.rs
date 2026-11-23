@@ -21,6 +21,12 @@ use protocol::state::StateJson;
 use serde::Serialize;
 use testkit::assert_golden;
 
+/// A commit-graph file git keeps and reads.
+const WRITTEN: model::upkeep::CommitGraph = model::upkeep::CommitGraph {
+    has_file: true,
+    is_ignored: false,
+};
+
 /// The golden file of a test.
 fn golden(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden").join(name)
@@ -103,7 +109,7 @@ fn repository() -> RepositoryState {
         },
         skipped: skipped(),
         is_looked_after: true,
-        commit_graph: model::upkeep::CommitGraph::default(),
+        commit_graph: WRITTEN,
         notes: notes(),
         lfs: model::lfs::LfsStatus::default(),
         rerere: model::rerere::RerereState::default(),

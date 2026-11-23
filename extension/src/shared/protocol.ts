@@ -521,6 +521,8 @@ export type Action =
   | { kind: 'cleanUp' }
   /** Has git look after the repository shown in the background, or stop (`upkeep.start-background`, `upkeep.stop-background`). */
   | { kind: 'lookAfter'; start: boolean }
+  /** Writes git's commit-graph file of the repository shown (`upkeep.write-commit-graph`). */
+  | { kind: 'writeCommitGraph' }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }
