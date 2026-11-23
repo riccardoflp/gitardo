@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { said, subjectAndBody } from '../shared/message';
 import type { CommitDetail, DiffSource, FilePatch, FilesLayout, RepoState } from '../shared/protocol';
 import { buildLabels } from './labels';
@@ -52,6 +52,8 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
   }, [hash, root]);
   // Asked once the details are drawn, so that they never wait for it (`details.signature`).
   const signature = useSignature(hash, Boolean(detail));
+  // The labels are those of the repository the other views show, which may be another by now; made again only with a new state.
+  const labelsHere = useMemo(() => (state?.root === root ? buildLabels(state) : null), [state, root]);
 
   if (detail === undefined) return <div className="empty">Loading the commit…</div>;
   if (!detail) return <div className="empty">This commit is not in the repository any more.</div>;
@@ -64,8 +66,7 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
   const message = said(subject, body);
   // A stash keeps the untracked files it took in its third parent.
   const untracked = detail.parents[2] && detail.untrackedFiles.length ? detail.parents[2] : null;
-  // The labels are those of the repository the other views show, which may be another by now.
-  const labels = state?.root === root ? (buildLabels(state).get(id) ?? []) : [];
+  const labels = labelsHere?.get(id) ?? [];
   const choose = (wanted: FilesLayout) => {
     setLayout(wanted);
     post({ type: 'setFilesLayout', layout: wanted });

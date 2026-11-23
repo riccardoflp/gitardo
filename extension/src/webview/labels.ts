@@ -53,10 +53,11 @@ export function buildLabels(state: RepoState): Map<string, Label[]> {
 /** The commits of each local branch that its upstream has not yet, by hash, with the upstream they would be pushed to. */
 export function unpushedOf(state: RepoState): Map<string, string> {
   const ahead: Ahead[] = [];
+  const remoteTips = new Map(state.remoteBranches.map((remote) => [remote.name, remote.commit]));
   for (const branch of state.branches) {
     const upstream = branch.upstream;
-    const tip = upstream && !upstream.isGone && upstream.ahead ? state.remoteBranches.find((ref) => ref.name === upstreamName(upstream)) : undefined;
-    if (upstream && tip) ahead.push({ tip: branch.commit, upstream: upstreamName(upstream), upstreamTip: tip.commit, ahead: upstream.ahead });
+    const tip = upstream && !upstream.isGone && upstream.ahead ? remoteTips.get(upstreamName(upstream)) : undefined;
+    if (upstream && tip !== undefined) ahead.push({ tip: branch.commit, upstream: upstreamName(upstream), upstreamTip: tip, ahead: upstream.ahead });
   }
   return ahead.length ? unpushedCommits(state.rows, ahead) : new Map();
 }
