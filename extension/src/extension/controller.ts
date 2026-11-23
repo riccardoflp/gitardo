@@ -279,6 +279,12 @@ export class Controller implements vscode.Disposable {
   private operations = 0;
   /** Something changed since that read started. */
   private dirty = false;
+  /** Counts the changes heard of that ask for a read, so that a view that opens can tell whether the state held saw them all. */
+  private heard = 0;
+  /** How many changes had been heard of when the read under way started. */
+  private readingHeard = 0;
+  /** How many changes had been heard of when the state held was read; -1 for a state that no read of this window made. */
+  private stateHeard = -1;
   /** The operation `runOnEngine` runs, which another one asked meanwhile is refused for. */
   private operation: { feature: string; root: string; asker: VscodeAsker } | undefined;
   /** Whether an operation runs: nothing is read meanwhile. */
@@ -365,6 +371,11 @@ export class Controller implements vscode.Disposable {
   private readonly sent = new WeakMap<vscode.Webview, Sent>();
   /** The files of the repository shown that have edits not saved in an editor, by their paths from its root. */
   private unsaved: string[] = [];
+  /**
+   * Whether git ignores each file with edits not saved, by its repository and its path there, asked of the engine once
+   * for each file while it stays unsaved, not at each read.
+   */
+  private readonly ignoredUnsaved = new Map<string, boolean>();
   /** What `unsaved` was last worked out from: the state, and the files of the editors with edits not saved. */
   private unsavedFrom?: { state: RepoState | null; files: string };
   /** The files hidden from git the Explorer's menu was last told of, as JSON. */
@@ -415,7 +426,7 @@ export class Controller implements vscode.Disposable {
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.locate()),
       vscode.workspace.onDidSaveTextDocument((document) => {
         unsaved();
-        this.scheduleRefresh(`${vscode.workspace.asRelativePath(document.uri)} was saved`);
+        this.saved(document.uri);
       }),
       // An edit, or one undone back to what is saved, and an editor closed without saving.
       vscode.workspace.onDidChangeTextDocument(unsaved),
@@ -532,6 +543,7 @@ export class Controller implements vscode.Disposable {
         task.describe(readDetail(reads, cause), this.readTitle(repo));
         // The read sees what changed until now: the files waiting to be asked about, and a change the focus missed.
         this.readStarted();
+        const heard = (this.readingHeard = this.heard);
         const everything = this.everything;
         this.everything = false;
         const operations = this.operations;
@@ -586,11 +598,13 @@ export class Controller implements vscode.Disposable {
           signOff: vscode.workspace.getConfiguration('gitardo').get('commit.signOff') === true,
           tagMarks: this.tagMarks.get(read.root) ?? null,
         }));
+        this.stateHeard = heard;
         this.setState(shown);
         for (const resolve of waiting.splice(0)) resolve();
       }
     } catch (error) {
       this.log.error(errorText(error));
+      this.stateHeard = -1;
       this.setState(null);
     } finally {
       // In the same turn as the last look at `dirty`, so that no request can fall between the two.
@@ -2373,8 +2387,17 @@ export class Controller implements vscode.Disposable {
       .flatMap((file) => inside(file) ?? [])
       .filter((file) => !others.some((other) => file === other || file.startsWith(`${other}/`)))
       .sort();
-    const ignored = await reads.ignored(repo, paths).catch(() => new Set<string>());
-    return paths.filter((file) => !ignored.has(file));
+    const key = (file: string) => `${repo.root}\0${file}`;
+    const unknown = paths.filter((file) => !this.ignoredUnsaved.has(key(file)));
+    if (unknown.length) {
+      // When the engine cannot say, a file is a change, and is asked about again the next time.
+      const ignored = await reads.ignored(repo, unknown).catch(() => null);
+      for (const file of ignored ? unknown : []) this.ignoredUnsaved.set(key(file), ignored!.has(file));
+    }
+    // A file saved since, or of another repository, is asked about again once it has edits not saved there.
+    const asked = new Set(paths.map(key));
+    for (const known of [...this.ignoredUnsaved.keys()]) if (!asked.has(known)) this.ignoredUnsaved.delete(known);
+    return paths.filter((file) => this.ignoredUnsaved.get(key(file)) !== true);
   }
 
   /** Saves the editors of these files, by their paths from the root of the repository. */
@@ -2704,6 +2727,24 @@ export class Controller implements vscode.Disposable {
     this.filesTimer ??= setTimeout(() => void this.askChangedFiles(root), WORKTREE_REFRESH_DELAY);
   }
 
+  /**
+   * A file was saved in an editor. One of the working tree of the repository shown asks for a read as a file changed on
+   * the disk does, once the engine says git does not ignore it, and one of git's own, such as `.git/info/exclude`, at
+   * once; one out of it asks for none, since the watchers of a repository kept see it. With no repository shown, it is
+   * looked for again.
+   */
+  private saved(uri: vscode.Uri): void {
+    if (uri.scheme !== 'file') return;
+    const root = this.repo?.root;
+    if (root === undefined) return this.scheduleRefresh(`${vscode.workspace.asRelativePath(uri)} was saved`);
+    const relative = path.relative(root, uri.fsPath).replace(/\\/g, '/');
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return;
+    // A file that tells git what to ignore may change which unsaved files are changes.
+    if (path.posix.basename(relative) === '.gitignore' || relative === '.git/info/exclude') this.ignoredUnsaved.clear();
+    if (/(^|\/)\.git(\/|$)/.test(relative)) return this.scheduleRefresh(`${relative} was saved`);
+    this.fileChangedIn(root, relative);
+  }
+
   /** Whether a file, from the top of the repository shown, is in the folder of another worktree inside it. */
   private inNestedWorktree(root: string, file: string): boolean {
     const state = this.state;
@@ -2769,6 +2810,7 @@ export class Controller implements vscode.Disposable {
 
   /** Refreshes once, `delay` after the first of a burst of events, however long the burst lasts. `cause` is the last of them. */
   private scheduleRefresh(cause: string, delay = REFRESH_DELAY): void {
+    this.heard++;
     // With no view to show it, the change is remembered for when the window gets the focus.
     if (!this.views.size) this.missed = true;
     if (!this.views.size || this.running) return;
@@ -2813,6 +2855,24 @@ export class Controller implements vscode.Disposable {
     }
   }
 
+  /**
+   * What a view that opens waits for: nothing when the state held was read after the last change heard of, the read
+   * under way when it started after that change, and a read otherwise. Views that open together, as when VS Code
+   * starts, make one read at most (D88). A first read still under way is sent to every view when it is done.
+   */
+  private async readForView(): Promise<void> {
+    if (this.locating) return this.locating;
+    if (!this.located) return this.locate();
+    const fresh = this.state !== null && this.stateHeard === this.heard;
+    if (fresh && !this.loading) {
+      // Not read at the start of VS Code: GitHub is asked only once a view can show what it says.
+      void this.refreshPulls(false);
+      return;
+    }
+    if (this.loading && this.readingHeard === this.heard) return this.loading;
+    return this.refresh();
+  }
+
   private async onMessage(webview: vscode.Webview, message: WebviewMessage): Promise<void> {
     // What the tab of a commit asks is about the repository of its commit.
     const repo = this.pinned.get(webview) ?? this.repo;
@@ -2838,14 +2898,13 @@ export class Controller implements vscode.Disposable {
         // The Repositories view is sent its rows as they are, and what Gitardo shows is read as for any view.
         if (this.views.get(webview) === 'repositories') {
           this.repositoriesView.ready(webview);
-          return this.locating ?? this.refresh();
+          return this.readForView();
         }
-        // What was read before it opened, as at the start of VS Code, is shown at once while it is read again.
+        // What was read before it opened, as at the start of VS Code, is shown at once, and read again if it is not fresh.
         if (this.located && !this.locating && !this.loading) this.post({ type: 'state', state: this.state }, webview);
         if (this.waiting) this.post({ type: 'loading', what: this.waiting.what }, webview);
         if (this.views.get(webview) === 'changes' && this.unsaved.length) this.post({ type: 'unsaved', paths: this.unsaved }, webview);
-        // A first read still under way is sent to every view when it is done, this one too.
-        await (this.locating ?? this.refresh());
+        await this.readForView();
         return this.flushPending();
       case 'setFilter':
         return this.setFilter(message.filter);

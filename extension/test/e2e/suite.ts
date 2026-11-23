@@ -1522,6 +1522,29 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('reads the repository once for five views opened at once, and not at all when nothing changed', async () => {
+    const controllerReads = internals as unknown as { readState: (...args: unknown[]) => Promise<unknown> };
+    const readState = controllerReads.readState;
+    let count = 0;
+    controllerReads.readState = (...args: unknown[]) => {
+      count++;
+      return readState.apply(controller, args);
+    };
+    const five = (['sideGraph', 'commits', 'branches', 'stashes', 'changes'] as const).map(view);
+    try {
+      await until('no read under way', () => !internals.loading);
+      // The state held was read after the last change heard of: each view is sent it, and nothing is read.
+      await Promise.all(five.map((webview) => internals.onMessage(webview, { type: 'ready' })));
+      assert.equal(count, 0, 'no read for views opened while nothing changed');
+      // A change heard of, whose read has not started yet: the five views wait for one read.
+      internals.scheduleRefresh('a change of this test', 60_000);
+      await Promise.all(five.map((webview) => internals.onMessage(webview, { type: 'ready' })));
+      assert.equal(count, 1, 'one read for five views');
+    } finally {
+      controllerReads.readState = readState;
+    }
+  });
+
   // The comparisons open in tabs.
   const tabs = () => [...internals.compareTabs.values()];
   /** The sides of the comparison opened last, and how it compares them. */

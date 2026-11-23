@@ -231,8 +231,13 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
   "Gitardo: `<title>` is running in `<repository>`. Try again once it ends." as in Gitardo Desktop, and nothing is
   read; the read that was under way is let finish and dropped.
 - **Reads follow the files**: file system watchers on `.git` (its `HEAD`, `index`, `refs`, `logs/refs/stash`,
-  `worktrees`, `modules`, …) and on the working tree schedule a read, once per burst of changes. A read that started
-  before an operation ended is dropped and followed by another.
+  `worktrees`, `modules`, …) and on the working tree schedule a read, once per burst of changes. A file of the working
+  tree, changed on the disk or saved in an editor, asks for one only once the engine says git does not ignore it
+  (`changesToRead`). A read that started before an operation ended is dropped and followed by another.
+- **No read twice**: a view that opens while the state held was read after the last change heard of is sent that
+  state and asks no read; one that opens while a read is under way that started after that change waits for it
+  (`Controller.readForView`), so that views opened together make one read. Which unsaved files git ignores is asked
+  once for each file, not at each read (D88).
 - **What is kept between runs** is in VS Code's workspace state and in each webview's own state: see
   [11-data.md](11-data.md). What **Undo** remembers beyond the reflog is the engine's journal, kept in its memory, until
   the window is reloaded.
