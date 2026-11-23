@@ -42,7 +42,6 @@ import type {
   ToViews,
   Loading,
   PullAction,
-  PullRequest,
   RepoInfo,
   RepoState,
   Scope,
@@ -70,7 +69,6 @@ import { pickCoAuthors } from './coAuthors';
 import { ConflictReviewTab } from './conflictReview';
 import { INDEX, contentUri, isAbsent, proposalUri } from './content';
 import { imagePair } from '../shared/images';
-import { githubSession } from './github';
 import { changeSetup, editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
 import { EngineError, ErrorCode } from '../engine/connection';
 import { type EngineRun, engineRuns, syncRuns } from '../engine/actions';
@@ -78,27 +76,16 @@ import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Targe
 import { type HostHooks, VscodeAsker, type WindowEngine, sayEngineMissing } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
 import { type Repository, reads, repositoryName } from '../engine/reads';
-import { type CommitsReader, EngineGraph, completed, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
-import type { EngineClient } from '../engine/client';
+import { completed, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
 import { extensionKey } from '../engine/settings';
 import { RangeDiffTab } from './rangeDiffTab';
+import { type GroupHost, REFRESH_DELAY, RepositorySession, type SessionHost, ViewGroup, errorText, failureText, firstParent, keepOpen, pageSize } from './repositorySession';
+import { Sessions } from './sessions';
 import { type Sent, stateFor } from './sentParts';
 import { partsOf } from '../shared/stateParts';
 import { COMPARE_REWRITE, SEE_WHAT_CHANGED, buttonWords, forcePushed, type RangeDiffTarget } from '../shared/rangeDiff';
 
-/** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
-const PAGE_SIZE = 1000;
-const SMALLEST_PAGE = 100;
-const LARGEST_PAGE = 10_000;
-
-const REFRESH_DELAY = 400;
-/** Builds and installs write many files at once, so those are given longer to settle. */
-const WORKTREE_REFRESH_DELAY = 1000;
-/** How long the pages of a read wait for the next before the views get them together, so that they are drawn less often. */
-const PAGES_DELAY = 150;
-/** How old the last read is when the window getting the focus asks for one (`repo.watch-changes`, Q463). */
-const FOCUS_READ_AFTER = 60_000;
 const REFLOG_ENTRIES = 200;
 /** The diffs VS Code's Git serves the sides of, once it has the repository. */
 const WORKING_SOURCES = new Set<DiffSource['kind']>(['staged', 'unstaged', 'change']);
@@ -115,8 +102,6 @@ const FAVORITES_KEY = 'gitardo.favorites';
 const LOG_LIMIT = 10_000;
 /** What fits of the message of a commit in the title of its tab. */
 const TITLE_LENGTH = 32;
-/** Pull requests change on GitHub's side, so they are re-read at most this often unless something asks for it. */
-const PULLS_MAX_AGE = 120_000;
 /** The comparisons opened last in each repository, by its folder. */
 const RECENT_KEY = 'gitardo.recentComparisons';
 /** How many of them are kept. */
@@ -147,17 +132,6 @@ interface CompareTab {
   shown?: string;
   /** Where the changes the tab shows start from. */
   since?: string;
-}
-
-const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
-/** Whether a read failed because it was cancelled for another. */
-const isCancelled = (error: unknown) => error instanceof EngineError && error.code === ErrorCode.cancelled;
-
-/** What git said when a read failed in the engine; the error itself otherwise. */
-function failureText(error: unknown): string {
-  const output = error instanceof EngineError ? (error.data as { output?: string | null } | undefined)?.output?.trim() : undefined;
-  return output || errorText(error);
 }
 
 /**
@@ -192,23 +166,6 @@ const cleanPath = (path: unknown): string | null => {
 };
 
 const hasCommand = async (id: string) => (await vscode.commands.getCommands(true)).includes(id);
-
-/**
- * Whether a file of the folder of git that changed can mean that the repository did. What git writes for itself and
- * takes away again does not: the daemon of `core.fsmonitor` leaves a file in the folder of a worktree each time
- * `git status` runs there, as it does each time Gitardo reads, which would have it read again and again for ever, and on
- * Linux and macOS listens on a socket beside it; and a lock is followed by the file it locked.
- */
-function meansChange(file: string): boolean {
-  return !/(^|\/)fsmonitor--daemon(\.ipc)?(\/|$)/.test(file) && !file.endsWith('.lock');
-}
-
-/** What the status bar says of a read of the repository: what asked for it, and how many came one after another. */
-function readDetail(reads: number, cause: string | undefined): string | undefined {
-  const why = cause ? `Because ${cause}.` : '';
-  if (reads === 1) return why || undefined;
-  return `Read ${reads} times in a row: something changed during each read. ${why}`.trim();
-}
 
 /**
  * Identifies the first `count` rows of a state: two states with the same key have the same rows, as far as that.
@@ -247,45 +204,15 @@ function branchSort(): BranchSort {
 }
 
 /**
- * Whether a repository left keeps what the views showed of it, and is read again only once it is shown when it changed
- * meanwhile, as `gitardo.repositories.keepOpen` asks (`repo.keep-open`, `repo.watch-hidden`). Off by default.
+ * Serves every Gitardo webview, wherever the user has placed it: the views, the commands, the operation running, and
+ * which repository each group of views shows, whose session reads and watches it (D89).
  */
-function keepOpen(): boolean {
-  return vscode.workspace.getConfiguration('gitardo').get('repositories.keepOpen') === true;
-}
-
-/** How many commits the graph reads at a time, as `gitardo.graph.pageSize` asks. */
-function pageSize(): number {
-  const wanted = Math.trunc(Number(vscode.workspace.getConfiguration('gitardo').get('graph.pageSize')));
-  return Number.isFinite(wanted) ? Math.min(Math.max(wanted, SMALLEST_PAGE), LARGEST_PAGE) : PAGE_SIZE;
-}
-
-/** Owns the repository state and serves every Gitardo webview, wherever the user has placed it. */
 export class Controller implements vscode.Disposable {
-  private repo?: Repository;
-  private state: RepoState | null = null;
   private located = false;
   /** The search for the repositories of the workspace and the first read of the one shown, while they run. */
   private locating?: Promise<void>;
-  private limit = pageSize();
-  /** The read of the repository under way, if any. */
-  private loading?: Promise<void>;
-  /** Who waits for a read that starts after they asked: each is let go once one is done, or when reading stops. */
-  private waiters: (() => void)[] = [];
-  /** What changed last that the repository is read again for, as the status bar says it. */
-  private cause?: string;
-  /** What the views were told the graph is read for, and how many of those reads are not done yet. */
-  private waiting: { what: Loading; count: number } | null = null;
   /** How many operations were started, to tell a state that was read across one. */
   private operations = 0;
-  /** Something changed since that read started. */
-  private dirty = false;
-  /** Counts the changes heard of that ask for a read, so that a view that opens can tell whether the state held saw them all. */
-  private heard = 0;
-  /** How many changes had been heard of when the read under way started. */
-  private readingHeard = 0;
-  /** How many changes had been heard of when the state held was read; -1 for a state that no read of this window made. */
-  private stateHeard = -1;
   /** The operation `runOnEngine` runs, which another one asked meanwhile is refused for. */
   private operation: { feature: string; root: string; asker: VscodeAsker } | undefined;
   /** Whether an operation runs: nothing is read meanwhile. */
@@ -294,48 +221,21 @@ export class Controller implements vscode.Disposable {
   }
   /** Gitardo's engine, which reads the repository and runs every operation on it; without it, the views say so (D49). */
   private engine?: WindowEngine;
-  /**
-   * The commits of the graph the engine reads, the pages of each read added as they come (stage 7, D54), and kept while
-   * the history is the same.
-   */
-  private readonly engineGraph = new EngineGraph((repository) => this.pageRead(repository));
-  /** When the pages read since the state was sent are sent to the views. */
-  private pagesTimer?: ReturnType<typeof setTimeout>;
-  /** The next read is a **Refresh**, or the read of a repository chosen: every worktree is counted again, every commit read. */
-  private everything = false;
-  /** When the last read of each repository ended, by its root, for the focus (`repo.watch-changes`). */
-  private readonly readAt = new Map<string, number>();
-  /** A change came while no view could show it, so that the focus asks for a read. */
-  private missed = false;
-  /** The files of the working tree changed since the last read, which the engine is asked about a second after the first. */
-  private changedFiles = new Set<string>();
-  /** When the files changed are asked about; none while none waits. */
-  private filesTimer?: ReturnType<typeof setTimeout>;
-  /** Counts the reads started, so that an answer about the files asked before one is not waited for any more. */
-  private readsStarted = 0;
-  /** The read of the commits of the graph under way in the engine, to cancel when another takes its place. */
-  private graphRead?: AbortController;
-  private timer?: ReturnType<typeof setTimeout>;
-  /** When `timer` fires. */
-  private due = 0;
-  private watcher?: vscode.Disposable;
-  private filter: Filter | null = null;
-  /** Which branches the graph shows: all of them when null. */
-  private scope: Scope | null = null;
-  /** The hosting service of the main remote, as the engine found it (`hosting.detect-remote`). */
-  private hosting: Hosting | null = null;
   /** Forgets the token of a GitLab that the GitLab refused, so that signing in asks for another (`hosting.token`). */
   private forgetToken?: (host: string) => Promise<void>;
-  private pulls: Record<string, PullRequest> = {};
-  private pullsAt = 0;
-  /** A commit to show as soon as a graph view is there to show it. */
-  private pendingReveal?: string;
-  /** Every repository of the workspace; `repo` is the one being shown. */
+  /** Every repository of the workspace. */
   private repos: RepoInfo[] = [];
-  /** The repository of the workspace shown before a worktree of it that is not in the workspace. */
-  private home?: RepoInfo;
   /** The repositories left that keep what they showed, with `gitardo.repositories.keepOpen` on. */
   private readonly kept = new KeptRepositories();
+  /**
+   * The views of the panel and of the side bar, which show the repository chosen, and the views opened in the editor
+   * that show what they do.
+   */
+  private readonly followers: ViewGroup;
+  /** The session of each repository a group of views shows, and which one each group is on. */
+  private readonly sessions: Sessions<RepositorySession, ViewGroup>;
+  /** The group each view that shows a repository is in; the tabs of a commit, a comparison and the like are in none. */
+  private readonly groups = new Map<vscode.Webview, ViewGroup>();
   /** The rows of the Repositories view, and what the engine follows for them while the view is open (`repo.tabs`). */
   readonly repositoriesView: RepositoriesView;
   /** Whether this VS Code has the Agents window, which is looked up once: it comes and goes with VS Code itself. */
@@ -382,21 +282,56 @@ export class Controller implements vscode.Disposable {
   /** The files hidden from git the Explorer's menu was last told of, as JSON. */
   private hiddenInMenus = '';
   private readonly stateEmitter = new vscode.EventEmitter<RepoState | null>();
+  private readonly readEmitter = new vscode.EventEmitter<RepoState>();
   private readonly subscriptions: vscode.Disposable[];
   /** What Gitardo is doing that takes time, in the status bar. */
   readonly activity: Activity;
   /** The tab of what a rewrite changed, commit by commit (`range-diff.page`). */
   private readonly rangeDiffTab: RangeDiffTab;
 
-  /** Fires whenever the repository state has been reloaded. */
+  /** Fires whenever the state of the repository the panel and the side bar show has been reloaded. */
   readonly onDidChangeState = this.stateEmitter.event;
+  /** Fires whenever a repository a view shows has been read, the panel's or a tab's. */
+  readonly onDidReadRepository = this.readEmitter.event;
 
-  /** The repository state the views were sent last, for a view that opens after it was read. */
+  /** The repository state the panel and the side bar were sent last, for a view that opens after it was read. */
   get shownState(): RepoState | null {
-    return this.state;
+    return this.followers.state;
+  }
+  /** The repository the panel and the side bar show, which the commands of the Command Palette act on (Q1522). */
+  private get repo(): Repository | undefined {
+    return this.followers.repo;
+  }
+  /** The state of the repository the panel and the side bar show. */
+  private get state(): RepoState | null {
+    return this.followers.state;
+  }
+  // The search, how far the history is read, the hosting service and the read under way of what the panel shows, which
+  // the end-to-end suite looks at.
+  /** The search of the panel and the side bar. */
+  private get filter(): Filter | null {
+    return this.followers.filter;
+  }
+  /** How many commits the graph of the panel and the side bar reads. */
+  private get limit(): number {
+    return this.followers.limit;
+  }
+  private set limit(limit: number) {
+    this.followers.limit = limit;
+  }
+  /** The hosting service of the main remote of the repository the panel and the side bar show. */
+  private get hosting(): Hosting | null {
+    return this.followers.session?.hosting ?? null;
+  }
+  private set hosting(hosting: Hosting | null) {
+    if (this.followers.session) this.followers.session.hosting = hosting;
+  }
+  /** The read of the repository the panel and the side bar show, while there is one. */
+  private get loading(): Promise<void> | undefined {
+    return this.followers.session?.loading;
   }
   private readonly chosenEmitter = new vscode.EventEmitter<string>();
-  /** Fires with the root of the repository or worktree chosen to be shown, once the views show it. */
+  /** Fires with the root of the repository or worktree chosen to be shown in the panel and the side bar, once they show it. */
   readonly onDidChooseRepo = this.chosenEmitter.event;
 
   constructor(
@@ -405,11 +340,56 @@ export class Controller implements vscode.Disposable {
     /** Remembers which repository of this workspace was chosen, and which branches of each are shown. */
     private readonly memento: vscode.Memento,
   ) {
-    const schedule = (cause: string) => () => this.scheduleRefresh(cause);
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const controller = this;
     const unsaved = () => void this.checkUnsaved();
+    // Files created, deleted or renamed in the editor: every repository shown is read again, or looked for when none is.
+    const schedule = (cause: string) => () => {
+      if (!this.sessions.all().length) return this.scheduleRefresh(cause);
+      for (const session of this.sessions.all()) session.scheduleRefresh(cause);
+    };
     this.fileIcons = new FileIcons(log);
     this.roots = this.resourceRoots();
     this.activity = new Activity(log);
+    const groupHost: GroupHost = {
+      post: (group, message) => this.postToGroup(group, message),
+      sendRows: (group) => {
+        const state = group.state;
+        for (const [view, kind] of this.views) if (state && showsGraph(kind) && this.groupOf(view) === group) this.post({ type: 'state', state }, view);
+      },
+      historyRead: (group) => {
+        const ask = (message: string, ...buttons: string[]) => vscode.window.showInformationMessage(message, ...buttons);
+        void offerCommitGraph(group.state, { memento: this.memento, ask, write: () => this.action({ kind: 'writeCommitGraph' }, group) });
+      },
+    };
+    this.followers = new ViewGroup(groupHost);
+    const sessionHost: SessionHost = {
+      log,
+      activity: this.activity,
+      get running() {
+        return controller.running;
+      },
+      get operations() {
+        return controller.operations;
+      },
+      groupsOn: (session) => this.sessions.groupsOn(session),
+      hasViews: (session) => this.hasViews(session),
+      repositoryNamed: (root) => this.repos.find((each) => samePath(each.root, root))?.name ?? path.basename(root),
+      autoResolve: () => this.autoResolve(),
+      complete: (group, read) => this.complete(group, read),
+      stateRead: (group, state) => this.setState(group, state),
+      settleScope: (group, root, scope) => this.settleScope(group, root, scope),
+      changedIn: (root, cause, delay) => this.changedIn(root, cause, delay),
+      fileChangedIn: (root, file) => this.fileChangedIn(root, file),
+      pullsRead: (session) => {
+        for (const group of this.sessions.groupsOn(session)) if (group.state) this.setState(group, { ...group.state, pulls: session.pulls });
+      },
+      forgetToken: (host) => this.forgetToken?.(host) ?? Promise.resolve(),
+    };
+    this.sessions = new Sessions<RepositorySession, ViewGroup>({
+      make: (root) => new RepositorySession(root, sessionHost),
+      letGo: (session, last) => this.letGo(session, last),
+    });
     this.rangeDiffTab = new RangeDiffTab({
       attach: (webview, kind, data) => this.attach(webview, kind, data),
       pin: (webview, repo) => (repo ? this.pinned.set(webview, repo) : this.pinned.delete(webview)),
@@ -419,6 +399,7 @@ export class Controller implements vscode.Disposable {
     this.repositoriesView = new RepositoriesView(log);
     this.subscriptions = [
       this.stateEmitter,
+      this.readEmitter,
       this.chosenEmitter,
       this.activity,
       this.repositoriesView,
@@ -440,8 +421,8 @@ export class Controller implements vscode.Disposable {
         const sections = ['gitardo.conflicts', 'gitardo.pull', 'gitardo.worktrees', 'gitardo.branches', 'gitardo.graph', 'gitardo.commit', 'git.branchSortOrder'];
         if (sections.some((section) => event.affectsConfiguration(section))) {
           // They can change what is listed: the commits are read again (Q442), and those that are the same stay (Q781).
-          this.engineGraph.readAgain();
-          this.scheduleRefresh('the settings changed');
+          for (const group of this.allGroups()) group.graph.readAgain();
+          for (const session of this.sessions.all()) session.scheduleRefresh('the settings changed');
           // The repositories kept were read with the settings before: each is read again once it is shown.
           this.kept.changedAll('the settings changed');
         }
@@ -451,7 +432,7 @@ export class Controller implements vscode.Disposable {
         if (event.affectsConfiguration('gitardo.conflicts')) void this.reviewTab?.reload();
       }),
       // The branches a comparison is of may have moved, and the conflicts of the review may be resolved.
-      this.onDidChangeState(() => {
+      this.onDidReadRepository(() => {
         for (const tab of this.compareTabs.values()) void this.sendCompare(tab);
         void this.reviewTab?.reload();
       }),
@@ -464,22 +445,50 @@ export class Controller implements vscode.Disposable {
   }
 
   dispose(): void {
-    clearTimeout(this.timer);
-    clearTimeout(this.pagesTimer);
-    clearTimeout(this.filesTimer);
-    this.engineGraph.forget();
-    this.watcher?.dispose();
+    for (const group of this.allGroups()) {
+      this.sessions.leave(group);
+      group.dispose();
+    }
     this.kept.dispose();
     for (const subscription of this.subscriptions) subscription.dispose();
   }
 
+  /** The followers and every tab of the graph. */
+  private allGroups(): ViewGroup[] {
+    return [this.followers, ...new Set(this.groups.values())].filter((group, index, all) => all.indexOf(group) === index);
+  }
+
+  /**
+   * The group a view is in, whose repository what it asks acts on: the tab of a commit, of a comparison and the like
+   * goes with the group that shows its repository, the panel's first.
+   */
+  private groupOf(webview: vscode.Webview): ViewGroup | undefined {
+    const pinned = this.pinned.get(webview);
+    if (!pinned) return this.groups.get(webview);
+    return this.followers;
+  }
+
+  /** Whether a view is there to show what is read of a session. */
+  private hasViews(session: RepositorySession): boolean {
+    const groups = this.sessions.groupsOn(session);
+    // The panel's views include the tabs of commits and the Repositories view, as they did when one repository was shown.
+    if (groups.includes(this.followers)) return this.views.size > 0;
+    return [...this.groups].some(([view, group]) => groups.includes(group) && this.views.has(view));
+  }
+
+  /** Sends a message to the views of a group. */
+  private postToGroup(group: ViewGroup, message: ToViews): void {
+    for (const [view, kind] of this.views) if (kind !== 'repositories' && this.groupOf(view) === group) this.post(message, view);
+  }
+
   /** Loads the UI into a webview and wires it to this controller. `data` is written on the page for the view to read. */
-  attach(webview: vscode.Webview, kind: ViewKind, data: Record<string, string> = {}): vscode.Disposable {
+  attach(webview: vscode.Webview, kind: ViewKind, data: Record<string, string> = {}, group = this.followers): vscode.Disposable {
     const dist = vscode.Uri.joinPath(this.extensionUri, 'dist');
     webview.options = { enableScripts: true, localResourceRoots: this.roots };
     // The session tells the page what it remembers from an earlier start of VS Code, for what is to start afresh each time.
     webview.html = this.html(webview, dist, { view: kind, session: vscode.env.sessionId, ...data });
     this.views.set(webview, kind);
+    if (kind !== 'repositories') this.groups.set(webview, group);
     const listener = webview.onDidReceiveMessage((message: WebviewMessage) => this.onMessage(webview, message));
     // The Repositories view is sent its rows, which the engine follows the folders of while it is open.
     const rows = kind === 'repositories' ? this.repositoriesView.open(webview) : undefined;
@@ -487,6 +496,7 @@ export class Controller implements vscode.Disposable {
       listener.dispose();
       rows?.dispose();
       this.views.delete(webview);
+      this.groups.delete(webview);
       this.signatureReads.delete(webview);
       this.colored.delete(webview);
       this.iconed.delete(webview);
@@ -506,121 +516,55 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
-   * **Refresh**: reads the repository shown again whole, counting what is not committed in every other worktree and
-   * reading every commit again, which the reads that follow a change keep when nothing changed there (M15).
+   * **Refresh**: reads the repository a group shows again whole, counting what is not committed in every other worktree
+   * and reading every commit again, which the reads that follow a change keep when nothing changed there (M15).
    */
-  async refreshAll(): Promise<void> {
-    this.everything = true;
-    return this.refresh();
+  async refreshAll(on = this.followers): Promise<void> {
+    if (on.session) on.session.everything = true;
+    return this.refresh(on);
   }
 
-  async refresh(): Promise<void> {
-    if (!this.located || !this.repo) return this.locating ?? this.locate();
-    // A read already under way may have started before what the caller just did: it is followed by another,
-    // and the caller waits for that one too.
-    this.dirty = true;
-    // Nothing is read while an operation runs: it reads once it is done. Reading runs git in every worktree, and on
-    // Windows a folder git runs in can be neither moved nor removed.
-    if (this.running) return this.loading;
-    // Only for that one: while files keep changing, a large repository is read again and again, and what the caller
-    // waits for is already there after the first.
-    const read = new Promise<void>((resolve) => this.waiters.push(resolve));
-    this.loading ??= this.load(this.repo);
-    return read;
+  /** Reads again the repository a group shows, the panel's unless another is given; with none yet, looks for one. */
+  async refresh(on = this.followers): Promise<void> {
+    if (!this.located || !on.session) return this.locating ?? this.locate();
+    return on.session.refresh();
   }
 
-  private async load(first: Repository): Promise<void> {
-    const task = this.activity.start(this.readTitle(first));
-    let waiting: (() => void)[] = [];
-    try {
-      for (let repo: Repository | undefined = first, reads = 1; repo && this.dirty && !this.running; repo = this.repo, reads++) {
-        this.dirty = false;
-        waiting = this.waiters.splice(0);
-        const cause = this.cause;
-        this.cause = undefined;
-        // The read that starts now sees what the changes seen until now did: the read they had asked for is this one.
-        clearTimeout(this.timer);
-        this.timer = undefined;
-        task.describe(readDetail(reads, cause), this.readTitle(repo));
-        // The read sees what changed until now: the files waiting to be asked about, and a change the focus missed.
-        this.readStarted();
-        const heard = (this.readingHeard = this.heard);
-        const everything = this.everything;
-        this.everything = false;
-        const operations = this.operations;
-        const scope = this.scope;
-        let state: RepoState | null;
-        try {
-          state = await this.readState(repo, everything);
-        } catch (error) {
-          // An operation that ran meanwhile can take from under the read what it was reading, such as a conflict
-          // resolved while its versions were read: the read is dropped as below, and the one after it says what is there.
-          if (!this.running && operations === this.operations && repo === this.repo) throw error;
-          state = null;
-        }
-        // Read while an operation ran, it can be half from before it and half from after, such as a new commit that
-        // no branch points at yet. It is dropped: the operation is followed by a read of its own.
-        // Unless the views were pointed at another repository in the meantime. Who waited for it waits for the next,
-        // as for a read of the commits cancelled for another.
-        if (state) this.readAt.set(repo.root, Date.now());
-        if (!state || this.running || operations !== this.operations || repo !== this.repo) {
-          // A repository left while it was read keeps what it showed before: it is read again once it is shown.
-          if (repo !== this.repo) this.kept.changed(repo.root, cause ?? 'it was left while it was read');
-          this.waiters.unshift(...waiting.splice(0));
-          continue;
-        }
-        // Unless another was chosen while this one was read.
-        if (scope === this.scope) this.settleScope(state.root, state.scope);
-        const sort = branchSort();
-        const read = state;
-        // The pages of the read that come while the rest is read are laid out under its rows once it is: a read that
-        // ended meanwhile would not be told to the views after.
-        const shown = await completed(sortRefs(read, sort), async () => ({
-          favorites: this.favorites(read),
-          defaultPull: this.defaultPull(),
-          repos: this.repos,
-          hosting: this.hosting,
-          pulls: this.pulls,
-          agentsWindow: await (this.agentsWindow ??= hasCommand(AGENTS_WINDOW)),
-          undo: await this.newestInJournal(read.root),
-          worktreesRoot: worktreesFolder(read),
-          openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? ('worktree' as const) : ('checkout' as const),
-          listed: this.listedIn(read),
-          sortOrder: sort,
-          traceSelected: vscode.workspace.getConfiguration('gitardo').get('graph.traceSelected') !== false,
-          oneLane: vscode.workspace.getConfiguration('gitardo').get('graph.oneLane') === true,
-          graphColumns: graphColumns(),
-          dateSeparators: vscode.workspace.getConfiguration('gitardo').get('graph.dateSeparators') !== false,
-          combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
-          islands: vscode.workspace.getConfiguration('gitardo').get('graph.islands') === true,
-          resolveWithAI: this.resolveWithAI(),
-          home: this.homeOf(read.root),
-          keepOpen: keepOpen(),
-          signOff: vscode.workspace.getConfiguration('gitardo').get('commit.signOff') === true,
-          tagMarks: this.tagMarks.get(read.root) ?? null,
-        }));
-        this.stateHeard = heard;
-        this.setState(shown);
-        for (const resolve of waiting.splice(0)) resolve();
-      }
-    } catch (error) {
-      this.log.error(errorText(error));
-      this.stateHeard = -1;
-      this.setState(null);
-    } finally {
-      // In the same turn as the last look at `dirty`, so that no request can fall between the two.
-      this.dirty = false;
-      this.loading = undefined;
-      for (const resolve of [...waiting, ...this.waiters.splice(0)]) resolve();
-      task.end();
-    }
-    // Not for the read at the start of VS Code: GitHub is asked only once a view can show what it says.
-    if (this.views.size) void this.refreshPulls(false);
+  /** The state read for a group, with what the window adds to it: its favorites, its settings, its pull requests. */
+  private async complete(group: ViewGroup, state: RepoState): Promise<RepoState> {
+    const sort = branchSort();
+    const session = group.session;
+    // The pages of the read that come while the rest is read are laid out under its rows once it is: a read that
+    // ended meanwhile would not be told to the views after.
+    return completed(sortRefs(state, sort), async () => ({
+      favorites: this.favorites(state),
+      defaultPull: this.defaultPull(),
+      repos: this.repos,
+      hosting: session?.hosting ?? null,
+      pulls: session?.pulls ?? {},
+      agentsWindow: await (this.agentsWindow ??= hasCommand(AGENTS_WINDOW)),
+      undo: await this.newestInJournal(state.root),
+      worktreesRoot: worktreesFolder(state),
+      openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? ('worktree' as const) : ('checkout' as const),
+      listed: this.listedIn(state),
+      sortOrder: sort,
+      traceSelected: vscode.workspace.getConfiguration('gitardo').get('graph.traceSelected') !== false,
+      oneLane: vscode.workspace.getConfiguration('gitardo').get('graph.oneLane') === true,
+      graphColumns: graphColumns(),
+      dateSeparators: vscode.workspace.getConfiguration('gitardo').get('graph.dateSeparators') !== false,
+      combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
+      islands: vscode.workspace.getConfiguration('gitardo').get('graph.islands') === true,
+      resolveWithAI: this.resolveWithAI(),
+      home: this.homeOf(group, state.root),
+      keepOpen: keepOpen(),
+      signOff: vscode.workspace.getConfiguration('gitardo').get('commit.signOff') === true,
+      tagMarks: this.tagMarks.get(state.root) ?? null,
+    }));
   }
 
-  /** The repository of the workspace the views go back to, while they show a worktree of it that is not in the workspace. */
-  private homeOf(root: string): RepoInfo | null {
-    return this.repos.some((each) => samePath(each.root, root)) ? null : (this.home ?? null);
+  /** The repository of the workspace a group goes back to, while it shows a worktree of it that is not in the workspace. */
+  private homeOf(group: ViewGroup, root: string): RepoInfo | null {
+    return this.repos.some((each) => samePath(each.root, root)) ? null : (group.home ?? null);
   }
 
   /**
@@ -629,14 +573,7 @@ export class Controller implements vscode.Disposable {
    */
   private keepOpenChanged(): void {
     if (!keepOpen()) this.kept.forget();
-    if (this.state) this.setState({ ...this.state, keepOpen: keepOpen() });
-  }
-
-  /** What the status bar says the repository is read for, by the name the list of repositories gives it. */
-  private readTitle(repo: Repository): string {
-    const name = this.repos.find((each) => samePath(each.root, repo.root))?.name ?? path.basename(repo.root);
-    const searching = this.filter?.kind === 'pickaxe' || this.filter?.kind === 'regex';
-    return `${searching ? 'Searching' : 'Reading'} ${name}`;
+    for (const group of this.allGroups()) if (group.state) this.setState(group, { ...group.state, keepOpen: keepOpen() });
   }
 
   /** Resolving conflicts without choosing a side is experimental: nothing of it is offered, or run, until it is switched on. */
@@ -653,8 +590,8 @@ export class Controller implements vscode.Disposable {
    * Opens the tab where what is proposed for the conflicts is looked at, of these files or of all of them, or shows the
    * one open. With `ai` the language model is asked about the conflicts the rules leave.
    */
-  async reviewConflicts(paths?: string[], ai = false): Promise<void> {
-    const repo = (await this.requireState()) && this.repo;
+  async reviewConflicts(paths?: string[], ai = false, on = this.followers): Promise<void> {
+    const repo = (await this.requireState(on)) && on.repo;
     if (!repo) return;
     if (!this.autoResolve() && !this.resolveWithAI()) {
       void vscode.window
@@ -724,46 +661,6 @@ export class Controller implements vscode.Disposable {
     return written;
   }
 
-  /**
-   * A search git cannot run, such as an invalid regular expression, is reported and dropped rather than taking the graph
-   * down. Null when the read of the commits was cancelled, for a read that takes its place.
-   */
-  private async readState(repo: Repository, everything = false): Promise<RepoState | null> {
-    const client = reads.client();
-    const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
-    const firstParent = this.firstParent();
-    // **Refresh** reads every commit again; the other reads keep them while the history is the same (Q442). The rows of
-    // the commits it finds the same stay as they are, and the views are sent none of them (Q781).
-    if (everything) this.engineGraph.readAgain(repo.root);
-    // What the views show but the commits, and then the commits of the graph from what it says (stage 7).
-    const parts = await reads.parts(repo, this.autoResolve(), everything);
-    const reader = this.graphReader(client, repo);
-    const asked = (filter: Filter | null) => ({ limit: this.limit, filter, scope: this.scope, stashes, firstParent });
-    // The rows shown are kept, and laid out further, when they are of the same read.
-    const shown = this.state && samePath(this.state.root, repo.root) ? laidOutOf(this.state.rows) : undefined;
-    try {
-      if (!this.filter) return await graphState(client, repo.root, parts, asked(null), reader, undefined, shown);
-      try {
-        return await graphState(client, repo.root, parts, asked(this.filter), reader, undefined, shown);
-      } catch (error) {
-        if (isCancelled(error)) throw error;
-        this.filter = null;
-        const text = failureText(error);
-        this.log.error(text);
-        void vscode.window.showErrorMessage(`Gitardo: the search failed. ${text.split('\n')[0]}`);
-        return await graphState(client, repo.root, parts, asked(null), reader, undefined, shown);
-      }
-    } catch (error) {
-      if (isCancelled(error)) return null;
-      throw error;
-    }
-  }
-
-  /** Whether the graph follows only the first parent of each merge, as `gitardo.graph.firstParent` asks. */
-  private firstParent(): boolean {
-    return vscode.workspace.getConfiguration('gitardo').get('graph.firstParent') === true;
-  }
-
   /** The state of a repository the views may not show, with one commit only: for choosing among its branches. */
   private async stateOf(repo: Repository): Promise<RepoState> {
     const client = reads.client();
@@ -771,67 +668,14 @@ export class Controller implements vscode.Disposable {
     return graphState(client, repo.root, await reads.parts(repo), asked, (graph) => readCommits(client, repo.root, graph, 1));
   }
 
-  // The graph read by the engine (stage 7): its rows, the position of a commit and the matches of a search.
-
-  /**
-   * What reads the commits of the graph in the engine: in pages of `gitardo.graph.pageSize`, the next ones from the last
-   * row read. A read that something else takes the place of is cancelled.
-   */
-  private graphReader(client: EngineClient, repo: Repository): CommitsReader {
-    return async (asked) => {
-      this.graphRead?.abort();
-      const reading = new AbortController();
-      this.graphRead = reading;
-      try {
-        return await this.engineGraph.commits(client, repo.root, asked, pageSize(), reading.signal);
-      } finally {
-        if (this.graphRead === reading) this.graphRead = undefined;
-      }
-    };
-  }
-
-  /** Cancels the read of the commits under way, which a read of another history or of more commits takes the place of. */
-  private cancelGraphRead(): void {
-    this.graphRead?.abort();
-    this.graphRead = undefined;
-  }
-
-  /**
-   * A page of the commits of a repository was read: once the pages stop coming for a moment, or the read ends, the
-   * views get their rows, laid out under the rows they have (`graph.load-more`, `graph.lanes`).
-   */
-  private pageRead(repository: string): void {
-    if (!this.state || !samePath(this.state.root, repository)) return;
-    if (!this.engineGraph.isReading(repository)) {
-      this.showPages();
-      // The read of the whole history ended: the commit-graph file is offered when it would make it quicker (M44).
-      const ask = (message: string, ...buttons: string[]) => vscode.window.showInformationMessage(message, ...buttons);
-      return void offerCommitGraph(this.state, { memento: this.memento, ask, write: () => this.action({ kind: 'writeCommitGraph' }) });
-    }
-    this.pagesTimer ??= setTimeout(() => this.showPages(), PAGES_DELAY);
-  }
-
-  /** Sends the views the rows of the pages read since the state they have, without reading anything. */
-  private showPages(): void {
-    clearTimeout(this.pagesTimer);
-    this.pagesTimer = undefined;
-    const state = this.state;
-    const laid = state && laidOutOf(state.rows);
-    if (!state || !laid) return;
-    const rows = laid.catchUp();
-    const hasMore = laid.source.hasMore;
-    if (rows === state.rows && hasMore === state.hasMore) return;
-    this.state = { ...state, rows, hasMore };
-    // The rows of a page change nothing of what the other views show: only those that list commits are sent them.
-    for (const [view, kind] of this.views) if (showsGraph(kind)) this.post({ type: 'state', state: this.state }, view);
-  }
+  // The graph read by the engine (stage 7): the position of a commit and the matches of a search.
 
   /** How many commits come before one in the history listed with a filter and a scope, or -1 when it is not there. */
-  private async positionOf(repo: Repository, hash: string, filter: Filter | null = null, scope: Scope | null = null): Promise<number> {
+  private async positionOf(on: ViewGroup, repo: Repository, hash: string, filter: Filter | null = null, scope: Scope | null = null): Promise<number> {
     if (!isHash(hash)) return -1;
     const client = reads.client();
     try {
-      const history = await historyOf(client, repo.root, filter, scope, this.state?.head.commit ?? null, this.firstParent());
+      const history = await historyOf(client, repo.root, filter, scope, on.state?.head.commit ?? null, firstParent());
       return await positionOnEngine(client, repo.root, hash, history);
     } catch (error) {
       // A history git cannot list has no commit in it.
@@ -841,45 +685,33 @@ export class Controller implements vscode.Disposable {
   }
 
   /** The commits of the history listed that a search finds, newest first; it throws when git refuses the search. */
-  private async matchesOf(repo: Repository, search: Search, filter: Filter | null, scope: Scope | null): Promise<{ hashes: string[]; more: boolean }> {
+  private async matchesOf(on: ViewGroup, repo: Repository, search: Search): Promise<{ hashes: string[]; more: boolean }> {
     const client = reads.client();
-    const history = await historyOf(client, repo.root, filter, scope, this.state?.head.commit ?? null, this.firstParent());
+    const history = await historyOf(client, repo.root, on.filter, on.scope, on.state?.head.commit ?? null, firstParent());
     return matchesOnEngine(client, repo.root, search, history);
   }
 
-  /** Narrows the graph to the history of some branches, or shows them all again. What the filter does is left to it. */
-  async setScope(scope: Scope | null): Promise<void> {
+  /** Narrows the graph of a group to the history of some branches, or shows them all again. What the filter does is left to it. */
+  async setScope(scope: Scope | null, on = this.followers): Promise<void> {
     await this.whenLocated();
     // As it is given: reading the repository leaves out what is not a branch of it.
-    this.scope = scope && typeof scope === 'object' ? scope : null;
-    this.limit = pageSize();
-    this.cancelGraphRead();
-    await this.reload('filter');
+    on.scope = scope && typeof scope === 'object' ? scope : null;
+    on.limit = pageSize();
+    on.cancelGraphRead();
+    await this.reload(on, 'filter');
+  }
+
+  /** Reads the graph of a group again, or does what ends with that, telling its views what for while they wait. */
+  private reload(on: ViewGroup, what: Loading, work = () => this.refresh(on)): Promise<void> {
+    return on.reload(what, work);
   }
 
   /**
-   * Reads the graph again, or does what ends with that, telling the views what for while they wait. Reads that overlap
-   * are one wait: the views are told it is over when the last of them is, and what for by the first.
+   * The scope as git took it, without the branches deleted since they were chosen, is the one in use in the group and
+   * the one remembered for the repository, which the next group to show it starts with.
    */
-  private async reload(what: Loading, work = () => this.refresh()): Promise<void> {
-    if (this.waiting) this.waiting.count++;
-    else {
-      this.waiting = { what, count: 1 };
-      this.post({ type: 'loading', what });
-    }
-    try {
-      await work();
-    } finally {
-      if (!--this.waiting!.count) {
-        this.waiting = null;
-        this.post({ type: 'loading', what: null });
-      }
-    }
-  }
-
-  /** The scope as git took it, without the branches deleted since they were chosen, is the one in use and the one remembered. */
-  private settleScope(root: string, scope: Scope | null): void {
-    this.scope = scope;
+  private settleScope(on: ViewGroup, root: string, scope: Scope | null): void {
+    on.scope = scope;
     const all = this.memento.get<Record<string, Scope>>(SCOPE_KEY, {});
     if (JSON.stringify(all[root] ?? null) === JSON.stringify(scope)) return;
     const others = Object.fromEntries(Object.entries(all).filter(([other]) => other !== root));
@@ -902,43 +734,48 @@ export class Controller implements vscode.Disposable {
     return pruneScope(this.memento.get<Record<string, unknown>>(LISTED_KEY, {})[state.root], state);
   }
 
+  /** The groups that show a repository now, each with its state. */
+  private groupsShowing(root: string): ViewGroup[] {
+    return this.allGroups().filter((group) => group.state && samePath(group.state.root, root));
+  }
+
   /**
-   * Chooses what the references list, in the repository shown, apart from the branches shown in the graph
-   * (`refs.list-filter`). Nothing is read: the views are told at once.
+   * Chooses what the references list, in the repository a group shows, apart from the branches shown in the graph
+   * (`refs.list-filter`). Nothing is read: the views of every group that shows it are told at once.
    */
-  async setListed(listed: unknown): Promise<void> {
-    const state = await this.requireState();
+  async setListed(listed: unknown, on = this.followers): Promise<void> {
+    const state = await this.requireState(on);
     if (!state) return;
     const kept = pruneScope(listed, state);
     const others = Object.fromEntries(Object.entries(this.memento.get<Record<string, unknown>>(LISTED_KEY, {})).filter(([root]) => root !== state.root));
     await this.memento.update(LISTED_KEY, kept ? { ...others, [state.root]: kept } : others);
-    if (this.state?.root === state.root) this.setState({ ...this.state, listed: kept });
+    for (const group of this.groupsShowing(state.root)) this.setState(group, { ...group.state!, listed: kept });
   }
 
   /** Marks a branch as a favorite, or no longer. Nothing of the repository changes: the views are told at once. */
-  async setFavorite(ref: string, favorite: boolean): Promise<void> {
-    const state = await this.requireState();
+  async setFavorite(ref: string, favorite: boolean, on = this.followers): Promise<void> {
+    const state = await this.requireState(on);
     if (!state || typeof ref !== 'string') return;
     // The ones whose branch is gone are forgotten as soon as there is something to save.
     const others = this.favorites(state).filter((other) => other !== ref);
     const next = favorite ? [...others, ref] : others;
     await this.memento.update(FAVORITES_KEY, { ...this.memento.get<Record<string, unknown>>(FAVORITES_KEY, {}), [state.root]: next });
-    if (this.state?.root === state.root) this.setState({ ...this.state, favorites: this.favorites(this.state) });
+    for (const group of this.groupsShowing(state.root)) this.setState(group, { ...group.state!, favorites: this.favorites(group.state!) });
   }
 
-  /** Narrows the graph to the history of a file or to a search, or shows everything again. */
-  async setFilter(filter: Filter | null): Promise<void> {
+  /** Narrows the graph of a group to the history of a file or to a search, or shows everything again. */
+  async setFilter(filter: Filter | null, on = this.followers): Promise<void> {
     await this.whenLocated();
-    this.filter = filter;
-    this.limit = pageSize();
-    this.cancelGraphRead();
+    on.filter = filter;
+    on.limit = pageSize();
+    on.cancelGraphRead();
     // Searching inside the changes of every commit can take a while on a large repository, and so can following lines.
     const slow = filter?.kind === 'pickaxe' || filter?.kind === 'regex' || filter?.kind === 'lines';
-    if (slow) this.post({ type: 'busy', title: 'Searching' });
+    if (slow) this.postToGroup(on, { type: 'busy', title: 'Searching' });
     try {
-      await this.reload('filter');
+      await this.reload(on, 'filter');
     } finally {
-      if (slow) this.post({ type: 'busy', title: null });
+      if (slow) this.postToGroup(on, { type: 'busy', title: null });
     }
   }
 
@@ -1050,56 +887,60 @@ export class Controller implements vscode.Disposable {
     return this.action({ kind: 'stashPush', paths });
   }
 
-  /** Selects a commit in the graph, opening the graph first if needed. `hash` is the full one. */
-  async reveal(hash: string): Promise<void> {
+  /**
+   * Selects a commit in the graph of a group, bringing it into sight first: the panel's, or a tab's. `hash` is the full
+   * one.
+   */
+  async reveal(hash: string, on = this.followers): Promise<void> {
     if (!isHash(hash)) return;
-    await vscode.commands.executeCommand('gitardo.graph.focus');
-    await this.include(hash);
+    if (on.panel) on.panel.reveal();
+    else await vscode.commands.executeCommand('gitardo.graph.focus');
+    await this.include(hash, on);
     // Only now: a view that loads in the meantime would be told of a commit it has not been sent yet.
-    this.pendingReveal = hash;
-    this.flushPending();
+    on.pendingReveal = hash;
+    this.flushPending(on);
   }
 
   /**
-   * Makes sure a commit is among the ones listed. The history is loaded as far back as it is; what narrows the list
-   * gives way if it leaves the commit out; and a commit that no branch or tag reaches any more, such as one found in
-   * the reflog, is shown with its own history.
+   * Makes sure a commit is among the ones a group lists. The history is loaded as far back as it is; what narrows the
+   * list gives way if it leaves the commit out; and a commit that no branch or tag reaches any more, such as one found
+   * in the reflog, is shown with its own history.
    */
-  private async include(hash: string): Promise<void> {
+  private async include(hash: string, on: ViewGroup): Promise<void> {
     await this.whenLocated();
-    const repo = this.repo;
-    if (!repo || this.state?.rows.some((row) => row.hash === hash)) return;
-    const shown = this.filter;
-    const scope = this.scope;
-    let index = await this.positionOf(repo, hash, shown, scope);
+    const repo = on.repo;
+    if (!repo || on.state?.rows.some((row) => row.hash === hash)) return;
+    const shown = on.filter;
+    const scope = on.scope;
+    let index = await this.positionOf(on, repo, hash, shown, scope);
     if (index < 0 && shown) {
-      this.filter = null;
-      index = await this.positionOf(repo, hash, null, scope);
+      on.filter = null;
+      index = await this.positionOf(on, repo, hash, null, scope);
     }
     // On a branch that is not among the ones shown: they are all shown again.
     if (index < 0 && scope) {
-      this.scope = null;
-      index = await this.positionOf(repo, hash);
+      on.scope = null;
+      index = await this.positionOf(on, repo, hash);
     }
     if (index < 0) {
-      this.filter = { kind: 'ref', ref: hash, lost: true };
+      on.filter = { kind: 'ref', ref: hash, lost: true };
       index = 0;
     }
     const page = pageSize();
     const pages = Math.floor(index / page) + 1;
-    const same = this.filter === shown && this.scope === scope;
-    this.limit = Math.max(same ? this.limit : page, pages * page);
-    await this.reload(same ? 'more' : 'filter');
+    const same = on.filter === shown && on.scope === scope;
+    on.limit = Math.max(same ? on.limit : page, pages * page);
+    await this.reload(on, same ? 'more' : 'filter');
     // The read gives its first page at once: the commit is shown once the pages that have it are read.
-    if (this.repo === repo && this.state) {
-      await this.engineGraph.reached(repo.root, pages * page).catch(() => {});
-      this.showPages();
+    if (on.repo === repo && on.state) {
+      await on.graph.reached(repo.root, pages * page).catch(() => {});
+      on.showPages();
     }
   }
 
   /** Selects, in the view that asked, the commit that a hash or anything else git understands stands for. */
-  private async goTo(revision: unknown, asker: vscode.Webview): Promise<void> {
-    const repo = this.repo;
+  private async goTo(revision: unknown, asker: vscode.Webview, on: ViewGroup): Promise<void> {
+    const repo = on.repo;
     if (!repo || typeof revision !== 'string' || !revision.trim()) return;
     const hash = await reads.resolve(repo, revision.trim());
     if (!hash) {
@@ -1107,7 +948,7 @@ export class Controller implements vscode.Disposable {
       void vscode.window.showWarningMessage(`Gitardo: "${revision.trim()}" is not a commit of this repository, or is the start of several.`);
       return;
     }
-    await this.include(hash);
+    await this.include(hash, on);
     this.post({ type: 'reveal', hash }, asker);
   }
 
@@ -1155,8 +996,8 @@ export class Controller implements vscode.Disposable {
    * Opens the tab where what new worktrees get of what git ignores is chosen, for the repository the views show, or
    * shows the one open for it.
    */
-  async openWorktreeSetup(): Promise<void> {
-    const repo = (await this.requireState()) && this.repo;
+  async openWorktreeSetup(on = this.followers): Promise<void> {
+    const repo = (await this.requireState(on)) && on.repo;
     if (!repo) return;
     // Once it has been seen, creating a worktree no longer offers it.
     void this.memento.update(SETUP_OFFERED, true);
@@ -1199,7 +1040,7 @@ export class Controller implements vscode.Disposable {
     try {
       if (rescan || !tab.entries) [tab.entries, tab.proposed] = await Promise.all([reads.setupIgnored(root), reads.setupCommands(root)]);
       // The other worktrees can be given what applies only while the views show this repository, which that runs in.
-      const state = this.state && samePath(this.state.root, root) ? this.state : null;
+      const state = this.heldFor(root);
       const others = state?.worktrees.filter((worktree) => !worktree.isMissing && !samePath(worktree.folder, root)).length ?? 0;
       this.post({ type: 'worktreeSetup', info: { ...worktreeSetupInfo(root, others, tab.proposed), entries: tab.entries } }, webview);
     } catch (error) {
@@ -1208,23 +1049,23 @@ export class Controller implements vscode.Disposable {
     }
   }
 
-  /** Asks for a hash or a revision, and shows its commit in the graph. */
-  async goToCommit(): Promise<void> {
-    const repo = (await this.requireState()) && this.repo;
+  /** Asks for a hash or a revision, and shows its commit in the graph of a group. */
+  async goToCommit(on = this.followers): Promise<void> {
+    const repo = (await this.requireState(on)) && on.repo;
     if (!repo) return;
     const commit = await this.askRevision(repo, 'Go to commit');
-    if (commit) await this.reveal(commit.hash);
+    if (commit) await this.reveal(commit.hash, on);
   }
 
-  /** Tells a view which commits a search finds in the history that is shown, for it to highlight them where they are. */
-  private async find(search: Search, asker: vscode.Webview): Promise<void> {
-    const repo = this.repo;
+  /** Tells a view which commits a search finds in the history its group shows, for it to highlight them where they are. */
+  private async find(search: Search, asker: vscode.Webview, on: ViewGroup): Promise<void> {
+    const repo = on.repo;
     const kinds = ['message', 'author', 'pickaxe', 'regex'];
     if (!repo || !kinds.includes(search?.kind) || typeof search.query !== 'string' || !search.query) return;
     try {
       // A list of results gives way to the graph, in which the new ones are to be shown.
-      if (this.filter && 'query' in this.filter) await this.setFilter(null);
-      const found = await this.matchesOf(repo, { kind: search.kind, query: search.query }, this.filter, this.scope);
+      if (on.filter && 'query' in on.filter) await this.setFilter(null, on);
+      const found = await this.matchesOf(on, repo, { kind: search.kind, query: search.query });
       this.post({ type: 'found', search, ...found }, asker);
     } catch (error) {
       const text = failureText(error);
@@ -1234,25 +1075,32 @@ export class Controller implements vscode.Disposable {
     }
   }
 
-  /** Selects a commit in the views that list commits and are there, without opening any or taking the focus. */
-  private show(hash: string): void {
+  /** The views of a group that list commits. */
+  private graphViews(on: ViewGroup): vscode.Webview[] {
+    return [...this.views].filter(([view, kind]) => showsGraph(kind) && this.groupOf(view) === on).map(([view]) => view);
+  }
+
+  /** Selects a commit in the views of a group that list commits and are there, without opening any or taking the focus. */
+  private show(hash: string, on = this.followers): void {
     if (!isHash(hash)) return;
-    for (const [view, kind] of this.views) if (showsGraph(kind)) this.post({ type: 'reveal', hash }, view);
+    for (const view of this.graphViews(on)) this.post({ type: 'reveal', hash }, view);
   }
 
-  /** Brings out the history of a commit in the views of the graph, or no longer, while the pointer rests on its branch. */
-  private trace(hash: string | null): void {
+  /**
+   * Brings out the history of a commit in the views of the graph of a group, or no longer, while the pointer rests on
+   * its branch.
+   */
+  private trace(hash: string | null, on: ViewGroup): void {
     if (hash !== null && !isHash(hash)) return;
-    for (const [view, kind] of this.views) if (showsGraph(kind)) this.post({ type: 'trace', hash }, view);
+    for (const view of this.graphViews(on)) this.post({ type: 'trace', hash }, view);
   }
 
-  /** Hands over what was waiting for a graph view to be there. */
-  private flushPending(): void {
-    const views = (wanted: (kind: ViewKind) => boolean) => [...this.views].filter(([, kind]) => wanted(kind)).map(([view]) => view);
-    const lists = views(showsGraph);
-    if (this.pendingReveal && lists.length) {
-      for (const view of lists) this.post({ type: 'reveal', hash: this.pendingReveal }, view);
-      this.pendingReveal = undefined;
+  /** Hands over what was waiting for a graph view of a group to be there. */
+  private flushPending(on: ViewGroup): void {
+    const lists = this.graphViews(on);
+    if (on.pendingReveal && lists.length) {
+      for (const view of lists) this.post({ type: 'reveal', hash: on.pendingReveal }, view);
+      on.pendingReveal = undefined;
     }
   }
 
@@ -1260,9 +1108,9 @@ export class Controller implements vscode.Disposable {
    * Compares two branches, tags or commits, or one with the working tree, in a tab, asking which. With `from`, only
    * the other side is asked. The first question also offers the comparisons opened last.
    */
-  async compare(from?: ComparedRef): Promise<void> {
-    const state = await this.requireState();
-    const repo = this.repo;
+  async compare(from?: ComparedRef, on = this.followers): Promise<void> {
+    const state = await this.requireState(on);
+    const repo = on.repo;
     if (!state || !repo) return;
     try {
       const given = from && isSide(from.hash) && typeof from.name === 'string' ? { name: from.name, hash: from.hash } : undefined;
@@ -1315,10 +1163,9 @@ export class Controller implements vscode.Disposable {
    */
   private async compareFile(source: DiffSource, file: FileChange, names: { hash?: string; parent?: string } = {}, repo = this.repo): Promise<void> {
     if (!repo || typeof file?.path !== 'string') return;
-    // The branches offered are those of the repository the file is in.
-    await this.selectRepo(repo.root);
-    const { state } = this;
-    if (!state || !samePath(state.root, repo.root)) return;
+    // The branches offered are those of the repository the file is in, which no view may show.
+    const state = this.heldFor(repo.root) ?? (await this.stateOf(repo).catch(() => null));
+    if (!state) return;
     const deleted = file.kind === 'deleted';
     const head = state.head.commit;
     let at: ComparedRef | undefined;
@@ -1475,7 +1322,7 @@ export class Controller implements vscode.Disposable {
     const { panel, repo } = tab;
     const { webview } = panel;
     // Its repository is read again only while the other views show it.
-    if (!again && !(this.state && samePath(this.state.root, repo.root))) return;
+    if (!again && !this.heldFor(repo.root)) return;
     // A tab closed while git answered is not there to be told.
     const open = () => this.compareTabs.get(webview) === tab;
     try {
@@ -1517,7 +1364,7 @@ export class Controller implements vscode.Disposable {
   /** Lets the user choose one side of a comparison again, in its tab. */
   private async pickCompareSide(tab: CompareTab, which: 'from' | 'to'): Promise<void> {
     // The branches to choose from are of the repository of the tab, which the other views may no longer show.
-    const state = this.state && samePath(this.state.root, tab.repo.root) ? this.state : await this.stateOf(tab.repo).catch(() => null);
+    const state = this.heldFor(tab.repo.root) ?? (await this.stateOf(tab.repo).catch(() => null));
     if (!state) return;
     const other = which === 'from' ? tab.to : tab.from;
     const title = which === 'from' ? `Compare with ${other.name}` : `Compare ${other.name} with`;
@@ -1573,9 +1420,9 @@ export class Controller implements vscode.Disposable {
    * service knows once it is pushed (`compare.open-on-service`, which is `compare.open-on-github` on GitHub).
    */
   private async openCompareOnService(tab: CompareTab): Promise<void> {
-    const { state, hosting } = this;
+    const hosting = this.sessions.find(tab.repo.root)?.hosting;
     const { from, to } = tab;
-    if (!state || !hosting || !samePath(state.root, tab.repo.root) || from.hash === WORKTREE || to.hash === WORKTREE) return;
+    if (!hosting || from.hash === WORKTREE || to.hash === WORKTREE) return;
     // The engine names each side on the service and opens the address.
     await this.runOnEngine([{ feature: 'compare.open-on-service', target: this.comparisonTarget(tab) }], tab.repo);
   }
@@ -1656,22 +1503,23 @@ export class Controller implements vscode.Disposable {
     return { name: isHash(revision) ? hash.slice(0, 7) : revision, hash };
   }
 
-  async command(command: UiCommand): Promise<void> {
+  /** Runs a command of the toolbar or of the Command Palette, on the repository of a group: the panel's unless another is given. */
+  async command(command: UiCommand, on = this.followers): Promise<void> {
     try {
       if (command === 'showLog') return this.log.show();
       if (command === 'activeFileHistory') return await this.fileHistory();
-      if (command === 'signInGitHub') return await this.refreshPulls(true, true);
-      if (command === 'signInGitLab') return await this.runHostingFeature('hosting.load-merge-requests');
-      if (command === 'checkOutPullRequest') return await this.runHostingFeature('hosting.checkout-pull-request');
-      if (command === 'reflog') return await this.browseReflog();
-      if (command === 'goToCommit') return await this.goToCommit();
-      if (command === 'cleanupBranches') return await this.cleanupBranches();
-      if (command === 'draftMessage') return await this.draftMessage();
-      if (command === 'switchIdentity') return await this.switchIdentity();
-      if (command === 'selectRepository') return await this.pickRepo();
-      if (command === 'remotes') return await this.manageRemotes();
-      if (command === 'switchWorktree') return await this.switchWorktree();
-      if (command === 'worktreeSetup') return await this.openWorktreeSetup();
+      if (command === 'signInGitHub') return await this.signIn(on);
+      if (command === 'signInGitLab') return await this.runHostingFeature('hosting.load-merge-requests', on);
+      if (command === 'checkOutPullRequest') return await this.runHostingFeature('hosting.checkout-pull-request', on);
+      if (command === 'reflog') return await this.browseReflog(on);
+      if (command === 'goToCommit') return await this.goToCommit(on);
+      if (command === 'cleanupBranches') return await this.cleanupBranches(on);
+      if (command === 'draftMessage') return await this.draftMessage(on);
+      if (command === 'switchIdentity') return await this.switchIdentity(on);
+      if (command === 'selectRepository') return await this.pickRepo(on);
+      if (command === 'remotes') return await this.manageRemotes(false, on);
+      if (command === 'switchWorktree') return await this.switchWorktree(on);
+      if (command === 'worktreeSetup') return await this.openWorktreeSetup(on);
     } catch (error) {
       void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
     }
@@ -1681,8 +1529,8 @@ export class Controller implements vscode.Disposable {
    * Lists the worktrees with how they stand: the branch against its upstream, the files not committed, the pull request.
    * The one picked opens where the settings say; the last entry creates another.
    */
-  private async switchWorktree(): Promise<void> {
-    const state = await this.requireState();
+  private async switchWorktree(on: ViewGroup): Promise<void> {
+    const state = await this.requireState(on);
     if (!state) return;
     const create = { label: '$(add) Create worktree…', path: '', current: false };
     const worktrees = state.worktrees
@@ -1712,14 +1560,14 @@ export class Controller implements vscode.Disposable {
       matchOnDetail: true,
     });
     if (!picked || picked.current) return;
-    await this.action(picked === create ? { kind: 'worktreeAdd' } : { kind: 'worktreeOpen', path: picked.path });
+    await this.action(picked === create ? { kind: 'worktreeAdd' } : { kind: 'worktreeOpen', path: picked.path }, on);
   }
 
   /** Lists where HEAD has been, and offers what can be done with the chosen position, even if no branch reaches it any more. */
-  private async browseReflog(): Promise<void> {
-    const state = await this.requireState();
-    if (!state || !this.repo) return;
-    const entries = await reads.reflog(this.repo, 'HEAD', REFLOG_ENTRIES);
+  private async browseReflog(on: ViewGroup): Promise<void> {
+    const state = await this.requireState(on);
+    if (!state || !on.repo) return;
+    const entries = await reads.reflog(on.repo, 'HEAD', REFLOG_ENTRIES);
     const entry = await vscode.window.showQuickPick(
       entries.map((item) => ({
         label: item.subject,
@@ -1734,11 +1582,11 @@ export class Controller implements vscode.Disposable {
     const short = hash.slice(0, 7);
     const choice = await vscode.window.showQuickPick(
       [
-        { label: 'Show in the graph', run: () => this.reveal(hash) },
-        { label: 'Create branch here…', run: () => this.action({ kind: 'createBranch', at: hash }) },
-        { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, run: () => this.action({ kind: 'reset', hash }) },
-        { label: 'Check out (detached)', run: () => this.action({ kind: 'checkout', target: 'detached', ref: hash }) },
-        { label: 'Cherry-pick', run: () => this.action({ kind: 'cherryPick', hash, isMerge: false }) },
+        { label: 'Show in the graph', run: () => this.reveal(hash, on) },
+        { label: 'Create branch here…', run: () => this.action({ kind: 'createBranch', at: hash }, on) },
+        { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, run: () => this.action({ kind: 'reset', hash }, on) },
+        { label: 'Check out (detached)', run: () => this.action({ kind: 'checkout', target: 'detached', ref: hash }, on) },
+        { label: 'Cherry-pick', run: () => this.action({ kind: 'cherryPick', hash, isMerge: false }, on) },
       ],
       { title: `${short}: ${entry.item.subject}` },
     );
@@ -1746,11 +1594,11 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Offers to delete the local branches that are merged into the current one, or whose upstream is gone. */
-  private async cleanupBranches(): Promise<void> {
-    const state = await this.requireState();
-    if (!state || !this.repo) return;
+  private async cleanupBranches(on: ViewGroup): Promise<void> {
+    const state = await this.requireState(on);
+    if (!state || !on.repo) return;
     // Once the plan is confirmed, VS Code's Git first lets go of the worktrees it removes.
-    await this.runOnEngine([{ feature: 'branch.clean-up', target: { kind: 'head' } }], this.repo, { confirmed: (plan) => this.closeRemoved(plan) });
+    await this.runOnEngine([{ feature: 'branch.clean-up', target: { kind: 'head' } }], on.repo, { confirmed: (plan) => this.closeRemoved(plan) }, undefined, on);
   }
 
   /** Closes in VS Code's Git the worktrees a plan of the engine removes, which Windows would not let git delete. */
@@ -1763,9 +1611,9 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Asks the language model for a commit message and hands it to the Changes view. */
-  private async draftMessage(): Promise<void> {
-    const state = await this.requireState();
-    const repo = this.repo;
+  private async draftMessage(on: ViewGroup): Promise<void> {
+    const state = await this.requireState(on);
+    const repo = on.repo;
     if (!state || !repo) return;
     this.post({ type: 'drafting', active: true });
     try {
@@ -1785,48 +1633,31 @@ export class Controller implements vscode.Disposable {
    * saying why, when the remote is not on a service that has it (`hosting.load-merge-requests`,
    * `hosting.checkout-pull-request`).
    */
-  private async runHostingFeature(feature: 'hosting.load-merge-requests' | 'hosting.checkout-pull-request'): Promise<void> {
-    const repo = this.repo;
+  private async runHostingFeature(feature: 'hosting.load-merge-requests' | 'hosting.checkout-pull-request', on: ViewGroup): Promise<void> {
+    const repo = on.repo;
     if (!repo) return;
-    await this.runOnEngine([{ feature, target: { kind: 'head' } }], repo);
+    await this.runOnEngine([{ feature, target: { kind: 'head' } }], repo, {}, undefined, on);
   }
 
   /**
-   * Reads the open pull requests from GitHub, or the merge requests of a GitLab (`hosting.read-merge-requests`). Without
-   * `force` it reuses what it has for a while; without `prompt` it reads only with a token already there: the user
-   * signed in to GitHub in VS Code, or the token of the GitLab kept in the secret storage.
+   * Signs in to the hosting service of the main remote of a group's repository, and loads its pull requests with the
+   * engine's `github.load-pull-requests` or `hosting.load-merge-requests`, which read them again.
    */
-  private async refreshPulls(force: boolean, prompt = false): Promise<void> {
-    const hosting = this.hosting;
+  private async signIn(on: ViewGroup): Promise<void> {
+    const hosting = on.session?.hosting;
+    const repo = on.repo;
     if (!hosting || !readsPullRequests(hosting.service)) {
-      if (prompt) void vscode.window.showWarningMessage('Gitardo: the main remote of this repository is not on github.com or on a GitLab.');
+      void vscode.window.showWarningMessage('Gitardo: the main remote of this repository is not on github.com or on a GitLab.');
       return;
     }
-    if (!force && Date.now() - this.pullsAt < PULLS_MAX_AGE) return;
-    const repo = this.repo;
     if (!repo) return;
     const gitLab = hosting.service === 'gitLab';
     const words = `${pullWords(hosting.service)}s`;
     try {
-      // Signing in loads them with the engine's `github.load-pull-requests` or `hosting.load-merge-requests`, which
-      // read them again.
-      if (prompt) {
-        await this.runOnEngine([{ feature: gitLab ? 'hosting.load-merge-requests' : 'github.load-pull-requests', target: { kind: 'head' } }], repo);
-        return;
-      }
-      // On GitHub only once the user signed in in VS Code: the engine asks it for the same session (`host/githubToken`).
-      if (!reads.available || (!gitLab && !(await githubSession(false)))) return;
-      this.pullsAt = Date.now();
-      const what = gitLab ? 'Reading the merge requests from GitLab' : 'Reading the pull requests from GitHub';
-      const pulls = await this.activity.track(what, () => reads.pullRequests(repo.root, hosting.remote, hosting.service));
-      if (hosting !== this.hosting || JSON.stringify(pulls) === JSON.stringify(this.pulls)) return;
-      this.pulls = pulls;
-      if (this.state) this.setState({ ...this.state, pulls });
+      await this.runOnEngine([{ feature: gitLab ? 'hosting.load-merge-requests' : 'github.load-pull-requests', target: { kind: 'head' } }], repo, {}, undefined, on);
     } catch (error) {
-      // A token the GitLab refused is forgotten: the next sign-in asks for another.
-      if (gitLab && (error as { isUnauthorized?: boolean }).isUnauthorized) await this.forgetToken?.(hosting.host);
       this.log.warn(`Could not read ${words}: ${errorText(error)}`);
-      if (prompt) void vscode.window.showErrorMessage(`Gitardo: could not read ${words}. ${errorText(error)}`);
+      void vscode.window.showErrorMessage(`Gitardo: could not read ${words}. ${errorText(error)}`);
     }
   }
 
@@ -1860,9 +1691,9 @@ export class Controller implements vscode.Disposable {
    * Asks which language model resolves conflicts, and how much it thinks: `ai.choose-model` of the engine, which lists
    * VS Code's models and leaves the two settings to write.
    */
-  async chooseConflictModel(): Promise<void> {
-    const repo = (await this.requireState()) && this.repo;
-    if (repo) await this.runOnEngine([{ feature: 'ai.choose-model', target: { kind: 'head' } }], repo);
+  async chooseConflictModel(on = this.followers): Promise<void> {
+    const repo = (await this.requireState(on)) && on.repo;
+    if (repo) await this.runOnEngine([{ feature: 'ai.choose-model', target: { kind: 'head' } }], repo, {}, undefined, on);
   }
 
   /** Writes a setting the engine left, in the user's settings, by the extension's name; null removes it. */
@@ -1893,20 +1724,20 @@ export class Controller implements vscode.Disposable {
    * Opens the pull request of a branch in the browser, or the page of the hosting service that creates one, whose
    * address the engine gives (`hosting.open-pull-request`, `hosting.web-links`).
    */
-  private async openPullRequest(branch: string): Promise<void> {
-    const repo = this.repo;
-    if (!this.hosting || !repo) return;
-    const known = this.pulls[branch]?.url;
+  private async openPullRequest(branch: string, on: ViewGroup): Promise<void> {
+    const repo = on.repo;
+    if (!on.session?.hosting || !repo) return;
+    const known = on.session.pulls[branch]?.url;
     const url = known ?? (await reads.webLink(repo.root, { kind: 'create', branch }).catch((error) => void this.log.warn(`No address: ${errorText(error)}`)));
     if (url) await vscode.env.openExternal(vscode.Uri.parse(url));
   }
 
   /** Checks out the pull request a remote branch has on its label, by its number (`hosting.checkout-pull-request`). */
-  private async checkOutPullRequest(number: number, remoteBranch: string): Promise<void> {
-    const repo = this.repo;
-    if (!repo || !this.hosting?.canCheckOut) return;
+  private async checkOutPullRequest(number: number, remoteBranch: string, on: ViewGroup): Promise<void> {
+    const repo = on.repo;
+    if (!repo || !on.session?.hosting?.canCheckOut) return;
     const answers = { number: { kind: 'text' as const, text: String(number) } };
-    await this.runOnEngine([{ feature: 'hosting.checkout-pull-request', target: { kind: 'remoteBranch', name: remoteBranch }, answers }], repo);
+    await this.runOnEngine([{ feature: 'hosting.checkout-pull-request', target: { kind: 'remoteBranch', name: remoteBranch }, answers }], repo, {}, undefined, on);
   }
 
   /** What the Pull button runs: the settings add `--rebase` and `--autostash`, unless switched off. */
@@ -1923,19 +1754,22 @@ export class Controller implements vscode.Disposable {
     return this.sync(this.defaultPull());
   }
 
-  async sync(action: SyncAction): Promise<void> {
-    const state = await this.requireState();
+  /** Fetches, pulls, pushes or syncs the repository a group shows: the panel's unless another is given. */
+  async sync(action: SyncAction, on = this.followers): Promise<void> {
+    const state = await this.requireState(on);
     if (!state) return;
     // Fetch, pull, push and Sync are the engine's.
-    if (this.repo && (await this.runOnEngine(syncRuns(action, this.defaultPull()), this.repo))) await this.afterSync(action, state);
+    const repo = on.repo;
+    if (repo && (await this.runOnEngine(syncRuns(action, this.defaultPull()), repo, {}, undefined, on))) await this.afterSync(action, state, on);
   }
 
   /** What is said after a pull or a push, on either path, from the state before it and the state read after. */
-  private async afterSync(action: SyncAction, before: RepoState): Promise<void> {
+  private async afterSync(action: SyncAction, before: RepoState, on: ViewGroup): Promise<void> {
+    const after = on.state && samePath(on.state.root, before.root) ? on.state : null;
     // The changes that were set aside no longer fit on what came in: git leaves them in conflict in the files, and
     // keeps the stash it made, which nothing says unless its output is read.
-    const kept = this.state?.stashes[0];
-    if (kept && this.state!.stashes.length > before.stashes.length && /autostash/i.test(kept.message)) {
+    const kept = after?.stashes[0];
+    if (kept && after.stashes.length > before.stashes.length && /autostash/i.test(kept.message)) {
       void vscode.window
         .showWarningMessage(
           `Gitardo: pulled, but your changes do not fit on what came in. They are in conflict in the files, and whole in the stash "${kept.message}": resolve the conflicts, then drop the stash.`,
@@ -1944,22 +1778,22 @@ export class Controller implements vscode.Disposable {
         .then((choice) => choice && vscode.commands.executeCommand('gitardo.openStashes'));
     }
     // A fetch that found the upstream of a branch force pushed says so, with what it changed (M36).
-    const forced = this.state && forcePushed(before, this.state);
-    if (forced && this.repo) {
-      const repo = this.repo;
+    const forced = after && forcePushed(before, after);
+    if (forced && on.repo) {
+      const repo = on.repo;
       void vscode.window.showInformationMessage(`Gitardo: ${forced} was force pushed.`, SEE_WHAT_CHANGED).then((choice) => {
-        if (choice) void this.runOnEngine([{ feature: COMPARE_REWRITE, target: { kind: 'remoteBranch', name: forced } }], repo);
+        if (choice) void this.runOnEngine([{ feature: COMPARE_REWRITE, target: { kind: 'remoteBranch', name: forced } }], repo, {}, undefined, on);
       });
     }
     // The first push of a branch is the natural moment to open a pull request for it: it had no upstream, and has one now.
     const branch = checkedOutBranch(before);
     const hadUpstream = before.branches.some((each) => each.isCheckedOut && each.upstream);
-    const hasUpstream = this.state?.branches.some((each) => each.isCheckedOut && each.name === branch && each.upstream);
-    const hosting = this.hosting;
-    if ((action.startsWith('push') || action === 'sync') && branch && !hadUpstream && hasUpstream && hosting && !this.pulls[branch]) {
+    const hasUpstream = after?.branches.some((each) => each.isCheckedOut && each.name === branch && each.upstream);
+    const hosting = on.session?.hosting;
+    if ((action.startsWith('push') || action === 'sync') && branch && !hadUpstream && hasUpstream && hosting && !on.session?.pulls[branch]) {
       const button = hosting.service === 'gitLab' ? 'Create Merge Request' : 'Create Pull Request';
       const choice = await vscode.window.showInformationMessage(`Pushed ${branch}.`, button);
-      if (choice) await this.openPullRequest(branch);
+      if (choice) await this.openPullRequest(branch, on);
     }
   }
 
@@ -1973,9 +1807,10 @@ export class Controller implements vscode.Disposable {
     this.forgetToken = forget;
   }
 
-  async action(action: Action): Promise<void> {
-    const state = await this.requireState();
-    const repo = this.repo;
+  /** Runs an action of a view on the repository its group shows: the panel's unless another is given. */
+  async action(action: Action, on = this.followers): Promise<void> {
+    const state = await this.requireState(on);
+    const repo = on.repo;
     if (!state || !repo) return;
     // Every operation on the repository is the engine's: what is VS Code's around it is done here (`hostAction`).
     // A key binding, or a view drawn before the setting changed, can still ask for it: said here, where the engine would
@@ -2002,7 +1837,7 @@ export class Controller implements vscode.Disposable {
     const first = runs[0];
     if (action.kind === 'applyPatch' && first) first.answers = { clipboard: { kind: 'text', text: await vscode.env.clipboard.readText() } };
     // A bisect says once it ran whether the commit it was looking for is found, which the engine leaves to the window.
-    if ((await this.runOnEngine(runs, repo)) && action.kind === 'bisect') this.reportBisect();
+    if ((await this.runOnEngine(runs, repo, {}, undefined, on)) && action.kind === 'bisect') this.reportBisect(on);
   }
 
   /**
@@ -2010,7 +1845,7 @@ export class Controller implements vscode.Disposable {
    * the output channel, and the follow-ups it leaves carried out here; false when it did not run, for want of an engine
    * or because another operation runs, which is said.
    */
-  private async runOnEngine(runs: EngineRun[], repo: Repository, hooks: HostHooks = {}, ran?: () => void): Promise<boolean> {
+  private async runOnEngine(runs: EngineRun[], repo: Repository, hooks: HostHooks = {}, ran?: () => void, on = this.groupShowing(repo.root)): Promise<boolean> {
     const client = this.engine?.running;
     if (!client) {
       sayEngineMissing();
@@ -2053,7 +1888,7 @@ export class Controller implements vscode.Disposable {
         // What a new worktree runs and offers once made is VS Code's.
         await this.followUpsBeforeRead(this.worktreeMade(feature, finished, followUps, repo), { feature, target, repo, title: finished.plan.title });
       }
-      await this.refresh();
+      await this.refreshAfter(repo);
       // The engine runs one operation in a repository at a time, whoever asked for it.
       if (busy) {
         void vscode.window.showErrorMessage(runningElsewhere(null, this.repositoryNamed(repo.root)));
@@ -2063,12 +1898,36 @@ export class Controller implements vscode.Disposable {
       if (failed !== undefined) this.reportEngineFailure(failed, asker.confirmed, repo);
       if (finished?.kind === 'refused') this.offerAfterRefusal(finished.message, finished.offer, target, repo);
       // **Compare First** in the warning of a force push: nothing of the plan ran, and what it offered instead runs now.
-      if (asker.instead) return this.runOnEngine([{ feature: asker.instead.feature, target: asker.instead.target, answers: asker.instead.answers }], repo);
+      if (asker.instead) return this.runOnEngine([{ feature: asker.instead.feature, target: asker.instead.target, answers: asker.instead.answers }], repo, {}, undefined, on);
       if (finished?.kind !== 'ran') return true;
-      this.followUpsAfterRead(followUps, repo);
+      this.followUpsAfterRead(followUps, repo, on);
     }
     ran?.();
     return true;
+  }
+
+  /**
+   * Reads again, once an operation ran, the repository it ran in, the one the panel shows, and every other repository
+   * shown that heard of a change meanwhile: nothing is read while an operation runs.
+   */
+  private async refreshAfter(repo: Repository): Promise<void> {
+    const ran = this.sessions.find(repo.root);
+    const sessions = this.sessions.all().filter((session) => session === ran || session === this.followers.session || !session.isFresh);
+    if (!sessions.length) return this.refresh();
+    await Promise.all(sessions.map((session) => session.refresh()));
+  }
+
+  /** The group that shows a repository, for what an operation run there selects and says: the panel's first. */
+  private groupShowing(root: string): ViewGroup {
+    if (!this.followers.session || samePath(this.followers.session.root, root)) return this.followers;
+    return this.allGroups().find((group) => group.session && samePath(group.session.root, root)) ?? this.followers;
+  }
+
+  /** The state held of a repository by a group that shows it, the panel's first; null when no group shows it. */
+  private heldFor(root: string): RepoState | null {
+    const shown = (group: ViewGroup) => group.state && samePath(group.state.root, root);
+    if (shown(this.followers)) return this.followers.state;
+    return this.allGroups().find(shown)?.state ?? null;
   }
 
   // Area 5: worktrees and what new worktrees get, submodules, run by the engine.
@@ -2108,7 +1967,7 @@ export class Controller implements vscode.Disposable {
     const added = finished.plan.steps.map(argumentsOf).find((args) => args[0] === 'worktree' && args[1] === 'add') ?? [];
     const dir = added[added.length - 2];
     if (!dir) return followUps;
-    const agents = this.state?.agentsWindow ?? false;
+    const agents = this.heldFor(repo.root)?.agentsWindow ?? false;
     const says = followUps.flatMap((followUp) => (followUp.kind === 'say' ? [String(followUp.text)] : []));
     const offersSetup =
       followUps.some((followUp) => followUp.kind === 'offerRun' && followUp.feature === 'worktree-setup.page') && !this.memento.get(SETUP_OFFERED);
@@ -2156,9 +2015,10 @@ export class Controller implements vscode.Disposable {
    * each operation the plan offers once git refused it, such as **Delete anyway**.
    */
   private reportEngineFailure(failure: unknown, title: string | undefined, repo: Repository): void {
-    const operation = this.state?.operation;
-    if (failure instanceof EngineError && failure.code === ErrorCode.stepFailed && this.state?.workingTree.conflicted.length) {
-      this.reportFailure({ title: title ?? `The ${operation ? operationName(operation) : 'operation'}` }, errorText(failure));
+    const state = this.heldFor(repo.root);
+    const operation = state?.operation;
+    if (failure instanceof EngineError && failure.code === ErrorCode.stepFailed && state?.workingTree.conflicted.length) {
+      this.reportFailure({ title: title ?? `The ${operation ? operationName(operation) : 'operation'}` }, errorText(failure), repo);
       return;
     }
     const data = failure instanceof EngineError ? (failure.data as { followUps?: FollowUp[] } | undefined) : undefined;
@@ -2193,7 +2053,7 @@ export class Controller implements vscode.Disposable {
   /** Keeps the marks of the tags of a repository, and shows them while it is the one shown. */
   private markTags(root: string, marks: TagMarks): void {
     this.tagMarks.set(root, marks);
-    if (this.state && samePath(this.state.root, root)) this.setState({ ...this.state, tagMarks: marks });
+    for (const group of this.groupsShowing(root)) this.setState(group, { ...group.state!, tagMarks: marks });
   }
 
   /** Carries out what a plan of the engine leaves for the host before the repository is read again. */
@@ -2231,7 +2091,7 @@ export class Controller implements vscode.Disposable {
           break;
         // Branches, tags and remotes (stage 4, area 2): a fetch, a pull, a push or a remote changed.
         case 'readPullRequests':
-          void this.refreshPulls(true);
+          void this.sessions.find(run.repo.root)?.refreshPulls(true);
           break;
         // AI and GitHub (stage 4, area 6): the model that resolves conflicts, chosen with `ai.choose-model`.
         case 'writeSetting':
@@ -2239,7 +2099,7 @@ export class Controller implements vscode.Disposable {
           break;
         // The commit box of the Changes view, after a squash merge and a split (area 3).
         case 'preparedMessage': {
-          const prepared = (this.repo && (await reads.squashMessage(this.repo).catch(() => null)))?.trim();
+          const prepared = (await reads.squashMessage(run.repo).catch(() => null))?.trim();
           if (prepared) this.post({ type: 'commitMessage', message: prepared });
           break;
         }
@@ -2250,7 +2110,7 @@ export class Controller implements vscode.Disposable {
         case 'tagsOnRemote': {
           const marks = this.tagMarks.get(run.repo.root);
           const changed = { remote: (followUp.remote as string | null) ?? null, pushed: followUp.pushed as string[], notPushed: followUp.notPushed as string[] };
-          if (marks) this.markTags(run.repo.root, followMarks(marks, changed, this.state?.tags ?? []));
+          if (marks) this.markTags(run.repo.root, followMarks(marks, changed, this.heldFor(run.repo.root)?.tags ?? []));
           break;
         }
         default:
@@ -2281,56 +2141,62 @@ export class Controller implements vscode.Disposable {
     void vscode.window.showInformationMessage(words, ...offers.map((offer) => offer.label), ...undo).then((choice) => {
       const offer = offers.find((each) => each.label === choice);
       if (offer) void this.runOnEngine([{ feature: offer.feature, target: offer.target, answers: offer.answers }], run.repo);
-      if (choice === 'Undo') void this.action({ kind: 'undo' });
+      if (choice === 'Undo') void this.action({ kind: 'undo' }, this.groupShowing(run.repo.root));
     });
   }
 
   /** Carries out what a plan of the engine leaves for the host once the repository was read again: what to select. */
-  private followUpsAfterRead(followUps: FollowUp[], repo: Repository): void {
+  private followUpsAfterRead(followUps: FollowUp[], repo: Repository, on: ViewGroup): void {
+    // What to select is selected in the group the operation was asked in, when it still shows that repository.
+    const state = on.state && samePath(on.state.root, repo.root) ? on.state : null;
     for (const followUp of followUps) {
       // The tab of what a rewrite changed (M36), in the repository the operation ran in.
       if (followUp.kind === 'openRangeDiff') void this.rangeDiffTab.open(followUp as RangeDiffTarget, repo);
-      if (followUp.kind === 'selectHead' && this.state?.head.commit) this.show(this.state.head.commit);
-      if (followUp.kind === 'selectCommit') this.show(String(followUp.commit));
-      if (followUp.kind === 'selectBeforeHead' && this.state?.head.commit && this.repo) {
+      if (followUp.kind === 'selectHead' && state?.head.commit) this.show(state.head.commit, on);
+      if (followUp.kind === 'selectCommit' && state) this.show(String(followUp.commit), on);
+      if (followUp.kind === 'selectBeforeHead' && state?.head.commit) {
         const count = Number(followUp.count);
-        void reads.resolve(this.repo, `HEAD~${count}`).then((hash) => hash && this.show(hash));
+        void reads.resolve(repo, `HEAD~${count}`).then((hash) => hash && this.show(hash, on));
       }
-      if (followUp.kind === 'openCommitPage') void this.openCommit(String(followUp.commit));
+      if (followUp.kind === 'openCommitPage') void this.openCommit(String(followUp.commit), repo);
       // Conflicts (stage 4, area 4): **Review** of resolving automatically.
-      if (followUp.kind === 'openReview') void this.reviewConflicts(Array.isArray(followUp.paths) ? (followUp.paths as string[]) : undefined);
+      if (followUp.kind === 'openReview') void this.reviewConflicts(Array.isArray(followUp.paths) ? (followUp.paths as string[]) : undefined, false, on);
     }
   }
 
   /** Says so when the last answer left a single suspect: that is the commit the bisect was looking for. */
-  private reportBisect(): void {
-    const bisect = this.state?.bisect;
+  private reportBisect(on: ViewGroup): void {
+    const bisect = on.state?.bisect;
     const bad = bisect?.bad;
     if (!bad || bisect.remaining !== 1) return;
-    const subject = this.state?.rows.find((row) => row.hash === bad)?.subject;
+    const subject = on.state?.rows.find((row) => row.hash === bad)?.subject;
     void vscode.window
       .showInformationMessage(`Bisect: the first bad commit is ${bad.slice(0, 7)}${subject ? ` "${subject}"` : ''}.`, 'Show in the graph', 'End bisect')
       .then((choice) => {
-        if (choice === 'Show in the graph') void this.reveal(bad);
-        if (choice === 'End bisect') void this.action({ kind: 'bisectReset' });
+        if (choice === 'Show in the graph') void this.reveal(bad, on);
+        if (choice === 'End bisect') void this.action({ kind: 'bisectReset' }, on);
       });
   }
 
-  /** The state of the repository shown; without one, the user is told why: no engine, or no repository. */
-  private async requireState(): Promise<RepoState | null> {
+  /** The state of the repository a group shows; without one, the user is told why: no engine, or no repository. */
+  private async requireState(on = this.followers): Promise<RepoState | null> {
     await this.whenLocated();
     if (!reads.available) sayEngineMissing();
-    else if (!this.state) void vscode.window.showWarningMessage('Gitardo: no Git repository in this workspace.');
-    return this.state;
+    else if (!on.state) void vscode.window.showWarningMessage('Gitardo: no Git repository in this workspace.');
+    return on.state;
   }
 
-  private setState(state: RepoState | null): void {
-    this.state = state;
-    this.showHiddenInMenus(state);
-    this.post({ type: 'state', state });
-    this.repositoriesView.shown(state);
-    this.stateEmitter.fire(state);
-    void this.checkUnsaved();
+  /** The state of a group, sent to its views; the panel's also says in the menus and the Repositories view what it shows. */
+  private setState(group: ViewGroup, state: RepoState | null): void {
+    group.state = state;
+    if (group === this.followers) this.showHiddenInMenus(state);
+    this.postToGroup(group, { type: 'state', state });
+    if (group === this.followers) {
+      this.repositoriesView.shown(state);
+      this.stateEmitter.fire(state);
+      void this.checkUnsaved();
+    }
+    if (state) this.readEmitter.fire(state);
   }
 
   /**
@@ -2455,140 +2321,137 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
-   * Points every view at one repository of the workspace, or at none. With `gitardo.repositories.keepOpen` on, the one
-   * left keeps what it showed, and one that kept what it showed is shown as it was (`repo.keep-open`).
+   * Points the panel and the side bar at one repository of the workspace, or at none, from the start: with
+   * `gitardo.repositories.keepOpen` on, the one left keeps what it showed, and one that kept what it showed is shown as
+   * it was (`repo.keep-open`).
    */
   private async open(root: string | undefined): Promise<void> {
-    // A repository left reads no more pages: it reads its commits again once it is shown (Q437).
-    if (this.repo) this.engineGraph.stop(this.repo.root);
-    this.leave();
-    this.repo = undefined;
-    this.limit = pageSize();
-    this.cancelGraphRead();
-    this.filter = null;
-    this.scope = null;
-    this.hosting = null;
-    this.pulls = {};
-    this.pullsAt = 0;
-    if (!root) return this.setState(null);
-    const repo: Repository = { root };
-    const kept = keepOpen() ? this.kept.take(root) : undefined;
-    if (kept) return this.comeBack(repo, kept);
-    this.scope = this.memento.get<Record<string, Scope>>(SCOPE_KEY, {})[root] ?? null;
-    this.repo = repo;
-    // A repository chosen counts every worktree again, as **Refresh** does.
-    this.everything = true;
-    // The commits of the repository before stay in the views until those of this one come.
-    await this.reload('filter', async () => {
-      const gitDir = await reads.commonDir(repo);
-      // Another may have been chosen meanwhile, which has watchers of its own.
-      if (this.repo !== repo) return;
-      this.watcher = this.watch(root, gitDir);
-      await this.detectHosting(repo);
-      await this.refresh();
-    });
+    return this.point(this.followers, root, true);
   }
 
   /**
-   * The repository shown is left. With `gitardo.repositories.keepOpen` on it keeps what it showed, and its watchers,
-   * which from now on only mark it out of date (`repo.keep-open`, `repo.watch-hidden`); else it is no longer watched.
+   * Points a group of views at a repository, a worktree or a submodule, or at none: it goes on the session of that
+   * repository, made when no group showed it, and the session it leaves is let go when it was the last group there.
+   * With `again`, a group already there starts again, as when the repositories of the workspace are looked for again.
    */
-  private leave(): void {
-    const { repo, state, watcher } = this;
+  private async point(group: ViewGroup, root: string | undefined, again = false): Promise<void> {
+    const before = group.session;
+    if (before && root && samePath(before.root, root)) {
+      if (!again) return;
+      this.sessions.leave(group);
+    }
+    // A repository left reads no more pages: it reads its commits again once it is shown (Q437).
+    if (before) group.graph.stop(before.root);
+    if (!root) {
+      this.sessions.leave(group);
+      group.session = undefined;
+      group.reset(null);
+      return this.setState(group, null);
+    }
+    const { session, made } = this.sessions.move(group, root);
+    group.session = session;
+    const kept = made && keepOpen() ? this.kept.take(root) : undefined;
+    group.reset(this.memento.get<Record<string, Scope>>(SCOPE_KEY, {})[root] ?? null);
+    if (kept) return this.comeBack(group, session, kept);
+    // A repository chosen counts every worktree again, as **Refresh** does.
+    if (made) session.everything = true;
+    // The commits of the repository before stay in the views until those of this one come.
+    await this.reload(group, 'filter', () => (made ? session.open() : session.refresh()));
+  }
+
+  /**
+   * A session no group shows any more. With `gitardo.repositories.keepOpen` on its repository keeps what the last group
+   * showed of it, and its watchers, which from now on only mark it out of date (`repo.keep-open`, `repo.watch-hidden`);
+   * else it is no longer watched.
+   */
+  private letGo(session: RepositorySession, last: ViewGroup): void {
     // A change seen just before is the repository left's, not the next one's.
-    const pending = this.timer !== undefined ? (this.cause ?? 'something changed') : undefined;
-    clearTimeout(this.timer);
-    this.timer = undefined;
-    this.cause = undefined;
-    this.watcher = undefined;
-    if (!repo || !state || !samePath(state.root, repo.root) || !keepOpen()) return watcher?.dispose();
-    this.kept.keep(repo.root, {
+    const pending = session.takePending();
+    const state = last.state;
+    if (!state || !samePath(state.root, session.root) || !keepOpen()) return session.dispose();
+    this.kept.keep(session.root, {
       state,
-      filter: this.filter,
-      scope: this.scope,
-      limit: this.limit,
-      hosting: this.hosting,
-      pulls: this.pulls,
-      pullsAt: this.pullsAt,
-      watcher,
+      filter: last.filter,
+      scope: last.scope,
+      limit: last.limit,
+      hosting: session.hosting,
+      pulls: session.pulls,
+      pullsAt: session.pullsAt,
+      watcher: session.watcher,
       changed: pending,
     });
+    session.dispose(true);
   }
 
   /**
    * Shows at once what a repository showed when it was left, and reads it again behind that when it changed meanwhile,
    * as **Refresh** would, the status bar saying why (`repo.keep-open`, `repo.watch-hidden`).
    */
-  private async comeBack(repo: Repository, kept: KeptRepository): Promise<void> {
-    this.repo = repo;
-    this.filter = kept.filter;
-    this.scope = kept.scope;
-    this.limit = kept.limit;
-    this.hosting = kept.hosting;
-    this.pulls = kept.pulls;
-    this.pullsAt = kept.pullsAt;
-    this.watcher = kept.watcher;
+  private async comeBack(group: ViewGroup, session: RepositorySession, kept: KeptRepository): Promise<void> {
+    group.filter = kept.filter;
+    group.scope = kept.scope;
+    group.limit = kept.limit;
+    session.hosting = kept.hosting;
+    session.pulls = kept.pulls;
+    session.pullsAt = kept.pullsAt;
+    session.watcher = kept.watcher;
     // The repositories of the workspace may have changed while it was not shown.
-    this.setState({ ...kept.state, repos: this.repos, home: this.homeOf(kept.state.root), keepOpen: true });
+    this.setState(group, { ...kept.state, repos: this.repos, home: this.homeOf(group, kept.state.root), keepOpen: true });
     if (kept.changed) {
-      this.cause = kept.changed;
-      this.everything = true;
-      await this.detectHosting(repo).catch((error) => this.log.warn(`Could not read the remotes of ${repo.root}: ${errorText(error)}`));
-      await this.refresh();
-    } else if (this.views.size) void this.refreshPulls(false);
-  }
-
-  /**
-   * Asks the engine which hosting service the main remote is on (`hosting.detect-remote`), with the services of one's own
-   * of `gitardo.hosting.selfHosted`; the pull requests known are forgotten when it is another.
-   */
-  private async detectHosting(repo: Repository): Promise<void> {
-    const hosting = await reads.hosting(repo.root);
-    if (JSON.stringify(hosting) === JSON.stringify(this.hosting)) return;
-    this.hosting = hosting;
-    this.pulls = {};
-    this.pullsAt = 0;
-  }
-
-  /** The services of one's own changed: the main remote may be on another, and the views say so. */
-  private async hostingChanged(): Promise<void> {
-    const repo = this.repo;
-    if (!repo || !reads.available) return;
-    try {
-      await this.detectHosting(repo);
-    } catch (error) {
-      return this.log.warn(`Could not read the remotes of ${repo.root}: ${errorText(error)}`);
+      session.cause = kept.changed;
+      session.everything = true;
+      await session.detectHosting().catch((error) => this.log.warn(`Could not read the remotes of ${session.root}: ${errorText(error)}`));
+      await session.refresh();
+    } else {
+      session.markFresh();
+      if (this.views.size) void session.refreshPulls(false);
     }
-    if (this.state && this.repo === repo) this.setState({ ...this.state, hosting: this.hosting, pulls: this.pulls });
-    void this.refreshPulls(true);
+  }
+
+  /** The services of one's own changed: the main remote of each repository shown may be on another, and the views say so. */
+  private async hostingChanged(): Promise<void> {
+    if (!reads.available) return;
+    for (const session of this.sessions.all()) {
+      try {
+        await session.detectHosting();
+      } catch (error) {
+        this.log.warn(`Could not read the remotes of ${session.root}: ${errorText(error)}`);
+        continue;
+      }
+      for (const group of this.sessions.groupsOn(session)) {
+        if (group.state) this.setState(group, { ...group.state, hosting: session.hosting, pulls: session.pulls });
+      }
+      void session.refreshPulls(true);
+    }
   }
 
   /** Lists the remotes, to fetch, rename, repoint or remove one, or to add another. */
-  private async manageRemotes(add = false): Promise<void> {
-    const state = await this.requireState();
-    const repo = this.repo;
+  private async manageRemotes(add = false, on = this.followers): Promise<void> {
+    const state = await this.requireState(on);
+    const repo = on.repo;
     if (!state || !repo) return;
     // The remote that pull requests are read from may be another one after.
-    if (!(await this.runOnEngine([{ feature: add ? 'remote.add' : 'remote.manage', target: { kind: 'head' } }], repo))) return;
-    await this.detectHosting(repo);
-    await this.refresh();
+    if (!(await this.runOnEngine([{ feature: add ? 'remote.add' : 'remote.manage', target: { kind: 'head' } }], repo, {}, undefined, on))) return;
+    await on.session?.detectHosting();
+    await this.refresh(on);
   }
 
   /**
-   * Switches to another repository of the workspace, and remembers the choice for this workspace; or to another worktree
-   * of the repository shown, for as long as the window lasts: its changes, commits and branches are worked on from here.
+   * Switches a group to another repository of the workspace: the panel and the side bar unless another is given, whose
+   * choice is remembered for this workspace; or to another worktree of the repository it shows, for as long as the window
+   * lasts: its changes, commits and branches are worked on from there.
    */
-  async selectRepo(root: string): Promise<void> {
-    const shown = this.repo?.root;
+  async selectRepo(root: string, on = this.followers): Promise<void> {
+    const shown = on.repo?.root;
     if (this.running || (shown && samePath(root, shown))) return;
     const repo = this.repos.find((each) => samePath(each.root, root));
     if (repo) {
-      await this.memento.update(REPO_KEY, repo.root);
-      await this.open(repo.root);
-      this.chosenEmitter.fire(repo.root);
+      if (on === this.followers) await this.memento.update(REPO_KEY, repo.root);
+      await this.point(on, repo.root);
+      this.chose(on, repo.root);
       return;
     }
-    const state = this.state;
+    const state = on.state;
     // A worktree of it, or one of its submodules initialized since the repositories of the workspace were looked for.
     const folder = !state
       ? undefined
@@ -2596,17 +2459,22 @@ export class Controller implements vscode.Disposable {
         state.submodules.filter((each) => each.checkout?.commit).map((each) => submoduleFolder(each, state)).find((each) => samePath(each, root)));
     if (folder) {
       // The way back is the repository of the workspace that was shown, or the one that was before another worktree.
-      this.home = this.repos.find((each) => shown && samePath(each.root, shown)) ?? this.home;
-      await this.open(folder);
-      this.chosenEmitter.fire(folder);
+      on.home = this.repos.find((each) => shown && samePath(each.root, shown)) ?? on.home;
+      await this.point(on, folder);
+      this.chose(on, folder);
       return;
     }
     // A worktree of another repository of the workspace, such as one chosen in VS Code's Repositories view.
     const owner = await this.worktreeOwner(root);
     if (!owner || this.running) return;
-    this.home = owner;
-    await this.open(root);
-    this.chosenEmitter.fire(root);
+    on.home = owner;
+    await this.point(on, root);
+    this.chose(on, root);
+  }
+
+  /** A group shows what was chosen: what the panel shows is selected in VS Code's Repositories view. */
+  private chose(on: ViewGroup, root: string): void {
+    if (on === this.followers) this.chosenEmitter.fire(root);
   }
 
   /** The repository of the workspace that a folder is a worktree of, by the git directory they share. */
@@ -2628,26 +2496,25 @@ export class Controller implements vscode.Disposable {
     await this.selectRepo(root);
   }
 
-  private async pickRepo(): Promise<void> {
+  private async pickRepo(on: ViewGroup): Promise<void> {
     await this.whenLocated();
+    const state = on.state;
     // Showing a worktree, there is always the repository of the workspace to go back to.
-    if (this.repos.length < 2 && !this.state?.home) {
+    if (this.repos.length < 2 && !state?.home) {
       void vscode.window.showInformationMessage(
         this.repos.length ? 'Gitardo: this workspace has a single repository.' : 'Gitardo: no Git repository in this workspace.',
       );
       return;
     }
-    const current = this.repo?.root;
+    const current = on.repo?.root;
     const choice = await vscode.window.showQuickPick(
       [
         ...this.repos.map((repo) => ({ label: repo.name, description: repo.root === current ? 'current' : undefined, detail: repo.root, repo })),
-        ...(this.state?.home && current
-          ? [{ label: this.state.name, description: 'worktree, current', detail: current, repo: { root: current, name: this.state.name, depth: 0 } }]
-          : []),
+        ...(state?.home && current ? [{ label: state.name, description: 'worktree, current', detail: current, repo: { root: current, name: state.name, depth: 0 } }] : []),
       ],
       { title: 'Repository shown in Gitardo', matchOnDetail: true },
     );
-    if (choice) await this.selectRepo(choice.repo.root);
+    if (choice) await this.selectRepo(choice.repo.root, on);
   }
 
   /**
@@ -2662,19 +2529,19 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Chooses who commits are made as in this repository: a profile from the settings, a new one, or the global identity again. */
-  private async switchIdentity(): Promise<void> {
-    const state = await this.requireState();
-    const repo = this.repo;
+  private async switchIdentity(on: ViewGroup): Promise<void> {
+    const state = await this.requireState(on);
+    const repo = on.repo;
     if (!state || !repo) return;
     // The engine's, with the entry that opens the setting at the end of its pick (B9).
     const editList = { label: 'Edit the list of identities…', description: 'gitardo.identities', run: () => this.openIdentities() };
-    await this.runOnEngine([{ feature: 'identity.switch', target: { kind: 'head' } }], repo, { choices: { 'identity-pick': [editList] } });
+    await this.runOnEngine([{ feature: 'identity.switch', target: { kind: 'head' } }], repo, { choices: { 'identity-pick': [editList] } }, undefined, on);
   }
 
   /** Asks for the co-authors of the next commit, the authors of the history read as the pick opens, and gives them to the box. */
   private async pickCoAuthors(repo: Repository, chosen: string[], webview: vscode.Webview): Promise<void> {
     const authors = reads.authors(repo);
-    const email = this.state?.root === repo.root ? this.state.identity.email : null;
+    const email = this.heldFor(repo.root)?.identity.email ?? null;
     const picked = await pickCoAuthors(authors, email, Array.isArray(chosen) ? chosen : []);
     if (picked) this.post({ type: 'coAuthors', coAuthors: picked }, webview);
   }
@@ -2685,151 +2552,63 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
-   * Picks up changes made outside Gitardo: the terminal, another tool, a background fetch. A repository kept while
-   * another is shown is watched too, and a change there only marks it out of date (`repo.watch-hidden`).
-   */
-  private watch(root: string, gitDir: string): vscode.Disposable {
-    const pattern = new vscode.RelativePattern(
-      vscode.Uri.file(gitDir),
-      // The submodules keep their repositories in it too: what is checked out in them and their branches.
-      '{HEAD,FETCH_HEAD,ORIG_HEAD,MERGE_HEAD,CHERRY_PICK_HEAD,REVERT_HEAD,BISECT_LOG,index,config,packed-refs,refs/**,logs/refs/stash,worktrees/**,modules/**/HEAD,modules/**/refs/**}',
-    );
-    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    const relative = (from: string, uri: vscode.Uri) => path.relative(from, uri.fsPath).replace(/\\/g, '/');
-    const schedule = (uri: vscode.Uri) => {
-      const file = relative(gitDir, uri);
-      if (!meansChange(file)) return;
-      this.changedIn(root, `.git/${file} changed`);
-    };
-    // Files written by something other than this editor, such as a command in the terminal. Git's own files have the watcher above.
-    const files = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(root), '**'));
-    const fileChanged = (uri: vscode.Uri) => {
-      if (/(^|\/)\.git(\/|$)/.test(uri.path)) return;
-      this.fileChangedIn(root, relative(root, uri));
-    };
-    return vscode.Disposable.from(
-      watcher,
-      watcher.onDidChange(schedule),
-      watcher.onDidCreate(schedule),
-      watcher.onDidDelete(schedule),
-      files,
-      files.onDidChange(fileChanged),
-      files.onDidCreate(fileChanged),
-      files.onDidDelete(fileChanged),
-    );
-  }
-
-  /**
-   * A file of the working tree changed in a repository (`repo.watch-changes`, M15). One in a worktree nested in the
-   * repository shown asks for nothing; the others wait to be asked of the engine together, a second after the first of
-   * them, which says which git does not ignore: only those ask for a read. A repository kept is only marked out of
-   * date (Q461).
+   * A file of the working tree changed in a repository (`repo.watch-changes`, M15): its session asks the engine whether
+   * git ignores it before it reads. A repository kept is only marked out of date (Q461).
    */
   private fileChangedIn(root: string, file: string): void {
-    if (!this.repo || !samePath(this.repo.root, root)) return this.kept.changed(root, `${file} changed`);
-    if (!this.views.size || this.running) return this.scheduleRefresh(`${file} changed`, WORKTREE_REFRESH_DELAY);
-    if (this.inNestedWorktree(root, file)) return;
-    this.changedFiles.add(file);
-    this.filesTimer ??= setTimeout(() => void this.askChangedFiles(root), WORKTREE_REFRESH_DELAY);
+    const session = this.sessions.find(root);
+    if (!session) return this.kept.changed(root, `${file} changed`);
+    session.fileChanged(file);
   }
 
   /**
-   * A file was saved in an editor. One of the working tree of the repository shown asks for a read as a file changed on
+   * A file was saved in an editor. One of the working tree of a repository shown asks for a read as a file changed on
    * the disk does, once the engine says git does not ignore it, and one of git's own, such as `.git/info/exclude`, at
-   * once; one out of it asks for none, since the watchers of a repository kept see it. With no repository shown, it is
+   * once; one out of them asks for none, since the watchers of a repository kept see it. With no repository shown, it is
    * looked for again.
    */
   private saved(uri: vscode.Uri): void {
     if (uri.scheme !== 'file') return;
-    const root = this.repo?.root;
-    if (root === undefined) return this.scheduleRefresh(`${vscode.workspace.asRelativePath(uri)} was saved`);
-    const relative = path.relative(root, uri.fsPath).replace(/\\/g, '/');
-    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return;
-    // A file that tells git what to ignore may change which unsaved files are changes.
-    if (path.posix.basename(relative) === '.gitignore' || relative === '.git/info/exclude') this.ignoredUnsaved.clear();
-    if (/(^|\/)\.git(\/|$)/.test(relative)) return this.scheduleRefresh(`${relative} was saved`);
-    this.fileChangedIn(root, relative);
+    const sessions = this.sessions.all();
+    if (!sessions.length) return this.scheduleRefresh(`${vscode.workspace.asRelativePath(uri)} was saved`);
+    for (const session of sessions) {
+      const relative = path.relative(session.root, uri.fsPath).replace(/\\/g, '/');
+      if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) continue;
+      // A file that tells git what to ignore may change which unsaved files are changes.
+      if (path.posix.basename(relative) === '.gitignore' || relative === '.git/info/exclude') this.ignoredUnsaved.clear();
+      if (/(^|\/)\.git(\/|$)/.test(relative)) session.scheduleRefresh(`${relative} was saved`);
+      else session.fileChanged(relative);
+    }
   }
 
-  /** Whether a file, from the top of the repository shown, is in the folder of another worktree inside it. */
-  private inNestedWorktree(root: string, file: string): boolean {
-    const state = this.state;
-    if (!state || !samePath(state.root, root)) return false;
-    const inside = (folder: string) => {
-      const relative = path.relative(root, folder).replace(/\\/g, '/');
-      return relative && !relative.startsWith('..') && !path.isAbsolute(relative) ? relative : null;
-    };
-    const lower = (text: string) => (process.platform === 'win32' || process.platform === 'darwin' ? text.toLowerCase() : text);
-    return state.worktrees.some((worktree) => {
-      const folder = !worktree.isCurrent && inside(worktree.folder);
-      return !!folder && (lower(file) === lower(folder) || lower(file).startsWith(`${lower(folder)}/`));
-    });
-  }
-
-  /**
-   * Asks the engine which of the files changed ask for a read, and reads the repository at once when one does: their
-   * second is over. Files that change meanwhile wait for the next question; a read that starts meanwhile sees them all,
-   * and the answer is not waited for. When the engine cannot say, every file asks for a read.
-   */
-  private async askChangedFiles(root: string): Promise<void> {
-    this.filesTimer = undefined;
-    const files = [...this.changedFiles];
-    this.changedFiles.clear();
-    if (!files.length || !this.repo || !samePath(this.repo.root, root)) return;
-    const started = this.readsStarted;
-    const toRead = await reads
-      .client()
-      .changesToRead(root, files)
-      .catch((error: unknown) => {
-        this.log.warn(`Could not ask which changed files git ignores: ${errorText(error)}`);
-        return files;
-      });
-    if (this.changedFiles.size) this.filesTimer ??= setTimeout(() => void this.askChangedFiles(root), WORKTREE_REFRESH_DELAY);
-    if (!toRead.length || started !== this.readsStarted || !this.repo || !samePath(this.repo.root, root)) return;
-    this.scheduleRefresh(`${toRead[0]} changed`, 0);
-  }
-
-  /** A read starts: it sees every change until now, so that nothing waits to be asked about, nor for the focus. */
-  private readStarted(): void {
-    this.readsStarted++;
-    this.missed = false;
-    this.changedFiles.clear();
-    clearTimeout(this.filesTimer);
-    this.filesTimer = undefined;
-  }
-
-  /**
-   * The window got the focus: it asks for a read only when a change came while no view could show it, or when the last
-   * read of the repository shown ended more than a minute ago, or it was never read (`repo.watch-changes`, Q463).
-   */
+  /** The window got the focus: each repository shown asks for a read when it missed a change or was read long ago. */
   private focusGot(): void {
-    const root = this.repo?.root;
-    const readAt = root === undefined ? undefined : this.readAt.get(root);
-    if (this.missed || readAt === undefined || Date.now() - readAt > FOCUS_READ_AFTER) this.scheduleRefresh('VS Code got the focus');
+    const sessions = this.sessions.all();
+    if (!sessions.length) return this.scheduleRefresh('VS Code got the focus');
+    for (const session of sessions) session.focusGot();
   }
 
-  /** A change seen in a repository: the one shown is read again for it, one kept is only marked out of date. */
+  /** A change seen in a repository: one shown is read again for it, one kept is only marked out of date. */
   private changedIn(root: string, cause: string, delay?: number): void {
-    if (this.repo && samePath(this.repo.root, root)) this.scheduleRefresh(cause, delay);
+    const session = this.sessions.find(root);
+    if (session) session.scheduleRefresh(cause, delay);
     else this.kept.changed(root, cause);
   }
 
-  /** Refreshes once, `delay` after the first of a burst of events, however long the burst lasts. `cause` is the last of them. */
+  /**
+   * Reads again the repository the panel shows, once, `delay` after the first of a burst of events; with none shown, it
+   * is looked for again.
+   */
   private scheduleRefresh(cause: string, delay = REFRESH_DELAY): void {
-    this.heard++;
-    // With no view to show it, the change is remembered for when the window gets the focus.
-    if (!this.views.size) this.missed = true;
+    const session = this.followers.session;
+    if (session) return session.scheduleRefresh(cause, delay);
     if (!this.views.size || this.running) return;
-    this.cause = cause;
-    const due = Date.now() + delay;
-    if (this.timer && this.due <= due) return;
-    clearTimeout(this.timer);
-    this.due = due;
-    this.timer = setTimeout(() => {
-      this.timer = undefined;
-      void this.refresh();
-    }, delay);
+    clearTimeout(this.lookAgain);
+    this.lookAgain = setTimeout(() => void this.refresh(), delay);
   }
+
+  /** When the repositories of the workspace are looked for again, for a change heard of while none was shown. */
+  private lookAgain?: ReturnType<typeof setTimeout>;
 
   private post(message: ToViews, to?: vscode.Webview): void {
     // The Repositories view is sent its rows alone, by `repositoriesView`.
@@ -2850,7 +2629,8 @@ export class Controller implements vscode.Disposable {
         continue;
       }
       const keys = new Map<number, string>();
-      const keyOf = (count: number) => keys.get(count) ?? keys.set(count, rowsKey(state, this.filter, count)).get(count)!;
+      const filter = this.groupOf(view)?.filter ?? null;
+      const keyOf = (count: number) => keys.get(count) ?? keys.set(count, rowsKey(state, filter, count)).get(count)!;
       const { message: posted, sent } = stateFor(kind, state, this.sent.get(view), keyOf);
       this.sent.set(view, sent);
       if (!posted) continue;
@@ -2862,26 +2642,20 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
-   * What a view that opens waits for: nothing when the state held was read after the last change heard of, the read
-   * under way when it started after that change, and a read otherwise. Views that open together, as when VS Code
-   * starts, make one read at most (D88). A first read still under way is sent to every view when it is done.
+   * What a view that opens waits for: the search for the repositories of the workspace while it runs, and then what the
+   * session of its group says (`RepositorySession.readForView`, D88). With no repository shown, they are looked for again.
    */
-  private async readForView(): Promise<void> {
+  private async readForView(on: ViewGroup): Promise<void> {
     if (this.locating) return this.locating;
     if (!this.located) return this.locate();
-    const fresh = this.state !== null && this.stateHeard === this.heard;
-    if (fresh && !this.loading) {
-      // Not read at the start of VS Code: GitHub is asked only once a view can show what it says.
-      void this.refreshPulls(false);
-      return;
-    }
-    if (this.loading && this.readingHeard === this.heard) return this.loading;
-    return this.refresh();
+    if (!on.session) return this.refresh(on);
+    return on.session.readForView(on);
   }
 
   private async onMessage(webview: vscode.Webview, message: WebviewMessage): Promise<void> {
-    // What the tab of a commit asks is about the repository of its commit.
-    const repo = this.pinned.get(webview) ?? this.repo;
+    // What a view asks is about the repository its group shows, and what the tab of a commit asks about its commit's.
+    const on = this.groupOf(webview) ?? this.followers;
+    const repo = this.pinned.get(webview) ?? on.repo;
     const compareTab = this.compareTabs.get(webview);
     const review = this.reviewTab?.webview === webview ? this.reviewTab : undefined;
     // The tab of the review reads the files in conflict by itself.
@@ -2895,29 +2669,29 @@ export class Controller implements vscode.Disposable {
         // A view that has just loaded has nothing yet: it is sent every part it shows.
         this.sent.delete(webview);
         // The tab of a commit reads its commit by itself, and nothing in it goes stale: the repository is not read for it.
-        if (this.views.get(webview) === 'commit') return this.post({ type: 'state', state: this.state }, webview);
+        if (this.views.get(webview) === 'commit') return this.post({ type: 'state', state: on.state }, webview);
         // The tab of a comparison is sent its comparison, and the state for what each side is.
         if (compareTab) {
-          this.post({ type: 'state', state: this.state }, webview);
+          this.post({ type: 'state', state: on.state }, webview);
           return this.sendCompare(compareTab, true);
         }
-        // The Repositories view is sent its rows as they are, and what Gitardo shows is read as for any view.
+        // The Repositories view is sent its rows as they are, and what the panel shows is read as for any view.
         if (this.views.get(webview) === 'repositories') {
           this.repositoriesView.ready(webview);
-          return this.readForView();
+          return this.readForView(this.followers);
         }
         // What was read before it opened, as at the start of VS Code, is shown at once, and read again if it is not fresh.
-        if (this.located && !this.locating && !this.loading) this.post({ type: 'state', state: this.state }, webview);
-        if (this.waiting) this.post({ type: 'loading', what: this.waiting.what }, webview);
+        if (this.located && !this.locating && !on.session?.loading) this.post({ type: 'state', state: on.state }, webview);
+        if (on.waiting) this.post({ type: 'loading', what: on.waiting.what }, webview);
         if (this.views.get(webview) === 'changes' && this.unsaved.length) this.post({ type: 'unsaved', paths: this.unsaved }, webview);
-        await this.readForView();
-        return this.flushPending();
+        await this.readForView(on);
+        return this.flushPending(on);
       case 'setFilter':
-        return this.setFilter(message.filter);
+        return this.setFilter(message.filter, on);
       case 'setScope':
-        return this.setScope(message.scope);
+        return this.setScope(message.scope, on);
       case 'setListed':
-        return this.setListed(message.listed);
+        return this.setListed(message.listed, on);
       case 'setShowStashes':
         return vscode.workspace.getConfiguration('gitardo').update('graph.showStashes', message.show === true, vscode.ConfigurationTarget.Global);
       case 'setDateSeparators':
@@ -2939,17 +2713,17 @@ export class Controller implements vscode.Disposable {
       case 'setTraceSelected':
         return vscode.workspace.getConfiguration('gitardo').update('graph.traceSelected', message.trace === true, vscode.ConfigurationTarget.Global);
       case 'setFavorite':
-        return this.setFavorite(message.ref, message.favorite === true);
+        return this.setFavorite(message.ref, message.favorite === true, on);
       case 'goTo':
-        return this.goTo(message.revision, webview);
+        return this.goTo(message.revision, webview, on);
       case 'find':
-        return this.find(message.search, webview);
+        return this.find(message.search, webview, on);
       case 'command':
-        return this.command(message.command);
+        return this.command(message.command, on);
       case 'pullRequest':
-        return this.openPullRequest(message.branch);
+        return this.openPullRequest(message.branch, on);
       case 'checkOutPullRequest':
-        return this.checkOutPullRequest(message.number, message.remoteBranch);
+        return this.checkOutPullRequest(message.number, message.remoteBranch, on);
       case 'syntaxTheme':
         this.colored.add(webview);
         return this.post({ type: 'syntaxTheme', theme: (await this.themes.resolveActive()) ?? null }, webview);
@@ -2985,7 +2759,7 @@ export class Controller implements vscode.Disposable {
       case 'editWorktreeSetup':
         return repo && editSetupJson(repo.root, message.target === 'user' ? 'user' : 'workspace');
       case 'reviewConflicts':
-        return this.reviewConflicts(Array.isArray(message.paths) ? message.paths : undefined, message.ai === true);
+        return this.reviewConflicts(Array.isArray(message.paths) ? message.paths : undefined, message.ai === true, on);
       case 'getReview':
         return review?.reload();
       case 'writeResolutions':
@@ -2999,23 +2773,23 @@ export class Controller implements vscode.Disposable {
       case 'stopAsking':
         return review?.stop();
       case 'chooseConflictModel':
-        return this.chooseConflictModel();
+        return this.chooseConflictModel(on);
       case 'openConflict':
         return repo && this.openConflict(repo, message.path, message.line, message.editor);
       case 'refresh':
-        return this.refreshAll();
+        return this.refreshAll(on);
       case 'loadMore': {
         // While a read adds its pages, the next ones come without asking (`graph.load-more`); and a list that asked while
         // the last page came has nothing left to ask for once the read ended at the end of the history.
-        if (!this.repo || this.engineGraph.isReading(this.repo.root) || this.state?.hasMore === false) return;
-        this.cancelGraphRead();
-        const listed = this.state?.rows.filter((row) => row.hash !== WORKTREE && row.stash === undefined).length ?? 0;
-        this.limit = Math.max(this.limit, listed) + pageSize();
-        return this.reload('more');
+        if (!on.repo || on.graph.isReading(on.repo.root) || on.state?.hasMore === false) return;
+        on.cancelGraphRead();
+        const listed = on.state?.rows.filter((row) => row.hash !== WORKTREE && row.stash === undefined).length ?? 0;
+        on.limit = Math.max(on.limit, listed) + pageSize();
+        return this.reload(on, 'more');
       }
       case 'getLog': {
         const limit = Math.min(Math.max(Math.trunc(Number(message.limit)) || 1, 1), LOG_LIMIT);
-        const log = this.repo && (await reads.branchLog(this.repo, limit).catch(() => null));
+        const log = on.repo && (await reads.branchLog(on.repo, limit).catch(() => null));
         return log ? this.post({ type: 'log', log }, webview) : undefined;
       }
       case 'getDetail': {
@@ -3042,13 +2816,17 @@ export class Controller implements vscode.Disposable {
       case 'openCommit':
         return this.openCommit(message.hash, repo);
       case 'reveal':
-        // In the repository the commit is of, when the tab that asks is of another than the one shown.
-        if (repo && repo.root !== this.repo?.root) await this.selectRepo(repo.root);
-        return this.reveal(message.hash);
+        // In the graph of the group that asks; from a tab of a commit, in the panel, pointed at the repository the commit
+        // is of when it shows another.
+        if (this.pinned.has(webview)) {
+          if (repo && repo.root !== this.repo?.root) await this.selectRepo(repo.root);
+          return this.reveal(message.hash);
+        }
+        return this.reveal(message.hash, on);
       case 'setFilesLayout':
         return void this.memento.update(FILES_KEY, message.layout === 'list' ? 'list' : 'tree');
       case 'compare':
-        return this.compare(message.from);
+        return this.compare(message.from, on);
       case 'openCompare':
         return this.openCompare(message.from, message.to, repo);
       case 'pickCompareSide':
@@ -3076,15 +2854,15 @@ export class Controller implements vscode.Disposable {
       case 'openCompareOnService':
         return compareTab ? this.openCompareOnService(compareTab) : undefined;
       case 'show':
-        return this.show(message.hash);
+        return this.show(message.hash, on);
       case 'trace':
-        return this.trace(message.hash);
+        return this.trace(message.hash, on);
       case 'getComparison': {
-        const comparison = this.repo && (await reads.compare(this.repo, message.from, message.to).catch(() => null));
+        const comparison = on.repo && (await reads.compare(on.repo, message.from, message.to).catch(() => null));
         return comparison ? this.post({ type: 'comparison', comparison }, webview) : undefined;
       }
       case 'selectRepo':
-        return this.selectRepo(message.root);
+        return this.selectRepo(message.root, on);
       case 'keepMessage':
         return this.keepMessage(webview, message.root, message.message, message.shown);
       case 'openDiff':
@@ -3107,9 +2885,9 @@ export class Controller implements vscode.Disposable {
         if (!repo || typeof message.path !== 'string') return;
         return void vscode.commands.executeCommand('workbench.files.action.compareWithSaved', vscode.Uri.file(path.join(repo.root, message.path)));
       case 'sync':
-        return this.sync(message.action);
+        return this.sync(message.action, on);
       case 'action':
-        return this.action(message.action);
+        return this.action(message.action, on);
       case 'copy':
         return void vscode.env.clipboard.writeText(message.text);
     }
@@ -3145,16 +2923,18 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Says that an operation failed or stopped on conflicts, with what can be done next. */
-  private reportFailure(op: { title: string }, error: string): void {
+  private reportFailure(op: { title: string }, error: string, repo: Repository): void {
     const showLog = (choice?: string) => choice && this.log.show();
-    const conflicts = this.state?.workingTree.conflicted.length ?? 0;
-    if (this.state && conflicts) {
-      const { operation } = this.state;
+    const state = this.heldFor(repo.root);
+    const on = this.groupShowing(repo.root);
+    const conflicts = state?.workingTree.conflicted.length ?? 0;
+    if (state && conflicts) {
+      const { operation } = state;
       const files = conflicts === 1 ? '1 file has conflicts' : `${conflicts} files have conflicts`;
       // Without an operation to continue, as after a stash that did not apply cleanly, staging the files is all there is to do.
       const then = operation ? `continue or abort the ${operationName(operation)}` : 'stage the files';
-      const marked = this.state.conflictFiles.reduce((sum, file) => sum + file.conflicts, 0);
-      const resolvable = this.state.conflictFiles.reduce((sum, file) => sum + file.resolvable.length, 0);
+      const marked = state.conflictFiles.reduce((sum, file) => sum + file.conflicts, 0);
+      const resolvable = state.conflictFiles.reduce((sum, file) => sum + file.resolvable.length, 0);
       // The ones that need no choice between the two sides are a click away.
       const which = marked === 1 ? 'the conflict' : resolvable === marked ? `all ${marked} conflicts` : `${resolvable} of the ${marked} conflicts`;
       const offer = resolvable ? ` Gitardo can resolve ${which} automatically.` : '';
@@ -3162,8 +2942,8 @@ export class Controller implements vscode.Disposable {
       const ai = this.resolveWithAI() && (!marked || resolvable < marked);
       const items = [...(resolvable ? ['Resolve Automatically'] : []), ...(ai ? ['Resolve with AI'] : []), 'Show Log'];
       void vscode.window.showWarningMessage(`${op.title} stopped: ${files}. Resolve them, then ${then}.${offer}`, ...items).then((choice) => {
-        if (choice === 'Resolve Automatically') void this.action({ kind: 'resolveConflicts' });
-        if (choice === 'Resolve with AI') void this.reviewConflicts(undefined, true);
+        if (choice === 'Resolve Automatically') void this.action({ kind: 'resolveConflicts' }, on);
+        if (choice === 'Resolve with AI') void this.reviewConflicts(undefined, true, on);
         if (choice === 'Show Log') this.log.show();
       });
       return;
@@ -3179,7 +2959,8 @@ export class Controller implements vscode.Disposable {
     const added = file.kind === 'added';
     const deleted = file.kind === 'deleted';
     const before = file.originalPath ?? file.path;
-    const head = this.state?.head.commit ?? '';
+    const held = this.heldFor(repo.root);
+    const head = held?.head.commit ?? '';
     const onDisk = vscode.Uri.file(path.join(repo.root, file.path));
     const at = (ref: string, filePath = file.path) => contentUri(repo.root, ref, filePath);
     // The index and HEAD as VS Code's Git extension serves them, when it has the repository: its own commands, such as
@@ -3209,7 +2990,7 @@ export class Controller implements vscode.Disposable {
         return { left: added ? at('') : inGit('~'), right: deleted ? at('') : onDisk, label: 'Working Tree' };
       case 'change': {
         // The file as git lists it on that side: added to the index and changed since is `A` there, `M` here.
-        const working = repo === this.repo ? this.state?.workingTree : undefined;
+        const working = held?.workingTree;
         // An untracked file is all in the working tree.
         const unstaged = working?.unstaged.find((each) => each.path === file.path) ?? (working?.untracked.includes(file.path) ? file : undefined);
         if (unstaged || !working) return this.sides(repo, { kind: 'unstaged' }, unstaged ?? file);
@@ -3296,7 +3077,7 @@ export class Controller implements vscode.Disposable {
         if ([1, 2, 3].every((stage) => stages.includes(stage))) {
           try {
             // Not part of the documented API, hence the fallback.
-            await openMergeEditor(repo.root, file.path, this.state?.operation ?? null);
+            await openMergeEditor(repo.root, file.path, this.heldFor(repo.root)?.operation ?? null);
             return;
           } catch (error) {
             this.log.warn(`Could not open the merge editor: ${errorText(error)}`);

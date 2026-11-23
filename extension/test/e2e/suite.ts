@@ -43,6 +43,8 @@ interface Internals {
   memento: { get<T>(key: string): T | undefined };
   /** The host of the Repositories view, with what its pages were last sent, as one text. */
   repositoriesView: { sent?: string };
+  /** The views of the panel and of the side bar, and the session of the repository they show (D89). */
+  followers: { session?: object };
 }
 
 /** A comparison open in a tab, as the controller keeps it. */
@@ -1523,12 +1525,15 @@ export async function run(): Promise<void> {
   });
 
   await step('reads the repository once for five views opened at once, and not at all when nothing changed', async () => {
-    const controllerReads = internals as unknown as { readState: (...args: unknown[]) => Promise<unknown> };
-    const readState = controllerReads.readState;
+    // The session of the repository the panel shows reads it, for every view on it.
+    const session = internals.followers.session;
+    assert.ok(session, 'the panel shows a repository');
+    const sessionReads = session as unknown as { readState: (...args: unknown[]) => Promise<unknown> };
+    const readState = sessionReads.readState;
     let count = 0;
-    controllerReads.readState = (...args: unknown[]) => {
+    sessionReads.readState = (...args: unknown[]) => {
       count++;
-      return readState.apply(controller, args);
+      return readState.apply(session, args);
     };
     const five = (['sideGraph', 'commits', 'branches', 'stashes', 'changes'] as const).map(view);
     try {
@@ -1541,7 +1546,7 @@ export async function run(): Promise<void> {
       await Promise.all(five.map((webview) => internals.onMessage(webview, { type: 'ready' })));
       assert.equal(count, 1, 'one read for five views');
     } finally {
-      controllerReads.readState = readState;
+      delete (sessionReads as { readState?: unknown }).readState;
     }
   });
 
