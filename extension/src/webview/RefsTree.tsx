@@ -152,8 +152,10 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
   // What is listed here is what the filter of the references says, whatever the graph is narrowed to (`refs.listed`);
   // the branches, remote branches and tags the graph leaves out are dimmed (`filter.list-too`).
   // Worked out again only when the references or the choice were sent again, not at each state.
-  const { head, remoteBranches, tags } = state;
-  const refs = useMemo(() => ({ head, branches: state.branches, remoteBranches, tags }), [head, state.branches, remoteBranches, tags]);
+  const refs = useMemo(
+    () => ({ head: state.head, branches: state.branches, remoteBranches: state.remoteBranches, tags: state.tags }),
+    [state.head, state.branches, state.remoteBranches, state.tags],
+  );
   const scoped = useMemo(() => (state.scope ? new Set(scopeRefs(state.scope, refs)) : null), [state.scope, refs]);
   const within = (ref: string) => !scoped || scoped.has(ref);
   const listed = useMemo(() => listedRefs(state.listed, refs), [state.listed, refs]);
