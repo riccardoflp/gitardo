@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { type Repository, reads } from '../engine/reads';
 import { sayEngineMissing } from '../engine/vscode';
 import type { ShownBlameLine as BlameLine } from '../engine/shapes';
+import { samePath } from '../shared/paths';
 import { DEFAULT_AGE, DEFAULT_FORMAT, ageColor, blameLabels, parseFormat, type AgeColors, type FormatPart } from '../shared/blameFormat';
 import { ignoresWhitespace, type Blamable, type BlameSource } from './blame';
 import { SCHEME, revisionUri } from './content';
@@ -97,12 +98,22 @@ interface Shown {
   auto: boolean;
 }
 
+/**
+ * What is drawn over what is beside a line: the name of its commit on the first line in sight, or the light of the
+ * lines of the commit under the cursor.
+ */
+type Over = 'pinned' | 'lit';
+
 interface Drawn {
   lines: (BlameLine | undefined)[];
   labels: string[];
-  /** What the first line in sight is given, when it is not the first of its commit. */
-  pin(line: BlameLine, label: string): vscode.DecorationOptions['renderOptions'];
-  /** The line that was given it, -1 for none, -2 until it is told. */
+  /** How a line is drawn beside its text, or over what is beside it, standing out or not. */
+  before(line: BlameLine | undefined, label: string, stands?: boolean, over?: Over): vscode.ThemableDecorationAttachmentRenderOptions;
+  /** What hovering what is beside a committed line shows, when the hint of its room does not show it. */
+  hover(line: BlameLine | undefined): vscode.MarkdownString | undefined;
+  /** The commit whose lines stand out: the one of the line under the cursor. */
+  commit: string | undefined;
+  /** The line that was given what the first line in sight is given, -1 for none, -2 until it is told. */
   at: number;
 }
 
@@ -126,6 +137,13 @@ export class FileBlame implements vscode.Disposable {
   private readonly pinned = vscode.window.createTextEditorDecorationType({
     before: { color: new vscode.ThemeColor('editorCodeLens.foreground'), fontStyle: 'normal', fontWeight: 'normal' },
   });
+  /**
+   * What is beside the lines of the commit of the line under the cursor, drawn again over them as it stands out: a
+   * decoration of its own, so that moving the cursor to another commit draws those lines and not every line again.
+   */
+  private readonly lit = vscode.window.createTextEditorDecorationType({
+    before: { color: new vscode.ThemeColor('gitardo.blameHighlightForeground'), fontStyle: 'normal', fontWeight: 'normal' },
+  });
   /** Where the other lines of the commit of the line under the cursor are, in the scroll bar of a file longer than its editor. */
   private readonly marks = vscode.window.createTextEditorDecorationType({
     overviewRulerColor: new vscode.ThemeColor('gitardo.blameHighlightForeground'),
@@ -148,8 +166,6 @@ export class FileBlame implements vscode.Disposable {
   /** The files git has no blame for, which are not asked of it again each time they come in sight. */
   private readonly none = new Set<string>();
   private readonly loading = new Set<string>();
-  /** The commit each editor has highlighted the lines of: the one of the line its cursor is on. */
-  private readonly highlighted = new WeakMap<vscode.TextEditor, string | undefined>();
   /** What was drawn beside the lines of each editor, for the first line in sight to be given what its commit says. */
   private readonly drawn = new WeakMap<vscode.TextEditor, Drawn>();
 
@@ -159,6 +175,7 @@ export class FileBlame implements vscode.Disposable {
   ) {
     this.subscriptions = [
       this.decoration,
+      this.lit,
       this.pinned,
       this.marks,
       this.roomChanged,
@@ -220,9 +237,15 @@ export class FileBlame implements vscode.Disposable {
     );
   }
 
-  /** Asks git again for the files that show their blame: the commits may have changed under them. */
-  refresh(): void {
-    for (const document of vscode.workspace.textDocuments) this.schedule(document);
+  /**
+   * Asks git again for the files of a repository whose `HEAD` moved that show their blame: the commits under them may
+   * have changed. A file as it was in a commit keeps its blame, and a file that had none may have one now.
+   */
+  refresh(root: string): void {
+    for (const document of vscode.workspace.textDocuments) {
+      const shown = this.shown.get(document.uri.toString());
+      if (shown && document.uri.scheme !== SCHEME && samePath(shown.root, root)) this.schedule(document);
+    }
     this.none.clear();
     this.follow();
   }
@@ -306,7 +329,7 @@ export class FileBlame implements vscode.Disposable {
     } finally {
       this.loading.delete(key);
     }
-    this.render();
+    this.redraw(document.uri);
     this.tell();
     return true;
   }
@@ -347,7 +370,7 @@ export class FileBlame implements vscode.Disposable {
     clearTimeout(shown.timer);
     this.shown.delete(uri.toString());
     this.makeRoom(uri, 0);
-    this.render();
+    this.redraw(uri);
     this.tell();
   }
 
@@ -378,7 +401,8 @@ export class FileBlame implements vscode.Disposable {
       const [taken, put] = whole ? [range.end.line - range.start.line, written - 1] : [range.end.line - range.start.line + 1, written];
       shown.lines.splice(range.start.line, taken, ...Array<BlameLine>(put).fill(UNCOMMITTED));
     }
-    this.render();
+    // Only the editors typed in: the others show other files.
+    this.redraw(event.document.uri);
     // An edit moves the hints with the text, and a file read again from the disk runs them all into its first line.
     this.roomChanged.fire();
     this.schedule(event.document);
@@ -396,7 +420,7 @@ export class FileBlame implements vscode.Disposable {
       shown.lines = read.lines;
       // What the hints say of each line, too.
       this.roomChanged.fire();
-      this.render();
+      this.redraw(document.uri);
     }, DELAY);
   }
 
@@ -411,9 +435,15 @@ export class FileBlame implements vscode.Disposable {
     return this.shown.get(editor.document.uri.toString())?.lines[editor.selection.active.line]?.hash;
   }
 
-  /** The cursor is on a line of another commit: the lines that stand out are others. */
+  /** The cursor is on a line of another commit: the lines that stand out are others, and only they are drawn again. */
   private moved(editor: vscode.TextEditor): void {
-    if (this.under(editor) !== this.highlighted.get(editor)) this.render(editor);
+    this.light(editor);
+  }
+
+  /** Draws again the editors in sight that show a document. */
+  private redraw(uri: vscode.Uri): void {
+    const key = uri.toString();
+    for (const editor of vscode.window.visibleTextEditors) if (editor.document.uri.toString() === key) this.render(editor);
   }
 
   private render(only?: vscode.TextEditor): void {
@@ -421,20 +451,14 @@ export class FileBlame implements vscode.Disposable {
     const now = Date.now() / 1000;
     for (const editor of only ? [only] : vscode.window.visibleTextEditors) {
       const shown = this.shown.get(editor.document.uri.toString());
-      const commit = this.under(editor);
-      this.highlighted.set(editor, commit);
       if (!shown) {
         this.makeRoom(editor.document.uri, 0);
         this.drawn.delete(editor);
-        editor.setDecorations(this.decoration, []);
-        editor.setDecorations(this.pinned, []);
-        editor.setDecorations(this.marks, []);
+        for (const decoration of [this.decoration, this.lit, this.pinned, this.marks]) editor.setDecorations(decoration, []);
         continue;
       }
       const hovers = new Map<BlameLine, vscode.MarkdownString>();
       const styles = new Map<string, string>();
-      const options: vscode.DecorationOptions[] = [];
-      const marks: vscode.Range[] = [];
       // Every line has something before it, if only room, for the text to stay in one column: as wide as the longest.
       const labels = blameLabels(shown.lines, editor.document.lineCount, { format, group, now });
       const chars = labels.reduce((longest, text) => Math.max(longest, text.length), 1);
@@ -445,66 +469,86 @@ export class FileBlame implements vscode.Disposable {
       /**
        * How what is beside a line is drawn: over the room kept for it, on the background of the editor that hides the
        * one of the hint, or before the line when there is no room; with the color of the age of the line at its left,
-       * where a line git said nothing of has the room of it. What a line is given for its commit to be named on it
-       * is drawn over what it has beside it, always on the background of the editor.
+       * where a line git said nothing of has the room of it. What is drawn over what a line has beside it, for its
+       * commit to stand out or to be named on it, is always on the background of the editor, the name over the light.
        */
-      const style = (line: BlameLine | undefined, stands: boolean, pinned = false) => {
-        const key = `${line?.hash ?? ''} ${stands} ${pinned}`;
+      const style = (line: BlameLine | undefined, stands: boolean, over?: Over) => {
+        const key = `${line?.hash ?? ''} ${stands} ${over ?? ''}`;
         let text = styles.get(key);
         if (text) return text;
         const parts = [STYLE];
         if (room) {
           const lit = stands ? `linear-gradient(to right, ${LIT} calc(100% - ${GAP}), transparent 0), ` : '';
           parts.push(`position: absolute; left: 0; box-sizing: border-box; background: ${lit}var(--vscode-editor-background)`);
-        } else if (pinned) {
+        } else if (over) {
           const lit = stands ? `linear-gradient(${LIT}, ${LIT}), ` : '';
           parts.push(`position: absolute; left: 0; background: ${lit}var(--vscode-editor-background)`);
         } else parts.push(`margin-right: ${GAP}`);
-        if (pinned) parts.push('z-index: 1');
+        if (over) parts.push(`z-index: ${over === 'pinned' ? 2 : 1}`);
         // A line that is in no commit was changed now.
         if (age) parts.push(`border-left: ${BAR} solid ${line ? ageColor(line.committed ? line.date : now, now, age) : 'transparent'}`);
         styles.set(key, (text = parts.join('; ')));
         return text;
       };
-      // What the line under the cursor has beside it stands out, as it does beside the other lines of its commit.
-      const lit = { color: new vscode.ThemeColor('gitardo.blameHighlightForeground') };
-      const litBefore = room ? lit : { ...lit, backgroundColor: new vscode.ThemeColor('gitardo.blameHighlightBackground') };
-      for (const [index, label] of labels.entries()) {
-        const line = shown.lines[index];
-        let hoverMessage: vscode.MarkdownString | undefined;
-        // Over the room, the hint has it.
-        if (line?.committed && !room) {
-          hoverMessage = hovers.get(line);
-          if (!hoverMessage) hovers.set(line, (hoverMessage = hover(line, shown.root)));
-        }
-        const stands = line !== undefined && line.hash === commit;
+      const before = (line: BlameLine | undefined, label: string, stands = false, over?: Over) => ({
+        contentText: label ? label.replace(/ /g, SPACE) : SPACE,
+        width,
+        textDecoration: style(line, stands, over),
+      });
+      // Over the room, the hint has it.
+      const hoverOf = (line: BlameLine | undefined) => {
+        if (!line?.committed || room) return undefined;
+        let hoverMessage = hovers.get(line);
+        if (!hoverMessage) hovers.set(line, (hoverMessage = hover(line, shown.root)));
+        return hoverMessage;
+      };
+      editor.setDecorations(
+        this.decoration,
+        labels.map((label, index) => ({
+          range: new vscode.Range(index, 0, index, 0),
+          hoverMessage: hoverOf(shown.lines[index]),
+          renderOptions: { before: before(shown.lines[index], label) },
+        })),
+      );
+      // Drawn again, whatever line had what the first line in sight is given, and whatever lines stood out.
+      this.drawn.set(editor, { lines: shown.lines, labels, before, hover: hoverOf, commit: undefined, at: -2 });
+      this.light(editor, true);
+    }
+  }
+
+  /**
+   * What the line under the cursor has beside it stands out, as it does beside the other lines of its commit, with a
+   * mark for each run of them in the scroll bar: drawn again only when the cursor is on a line of another commit, or
+   * when everything is.
+   */
+  private light(editor: vscode.TextEditor, again = false): void {
+    const drawn = this.drawn.get(editor);
+    if (!drawn) return;
+    const commit = this.under(editor);
+    if (!again && commit === drawn.commit) return;
+    drawn.commit = commit;
+    const options: vscode.DecorationOptions[] = [];
+    const marks: vscode.Range[] = [];
+    if (commit) {
+      for (const [index, label] of drawn.labels.entries()) {
+        const line = drawn.lines[index];
+        if (line?.hash !== commit) continue;
         options.push({
           range: new vscode.Range(index, 0, index, 0),
-          hoverMessage,
-          renderOptions: {
-            before: { contentText: label ? label.replace(/ /g, SPACE) : SPACE, width, textDecoration: style(line, stands), ...(stands ? litBefore : {}) },
-          },
+          hoverMessage: drawn.hover(line),
+          renderOptions: { before: drawn.before(line, label, true, 'lit') },
         });
-        if (!stands) continue;
         // One mark for the lines that follow each other.
         const last = marks.at(-1);
         if (last?.end.line === index - 1) marks[marks.length - 1] = new vscode.Range(last.start.line, 0, index, 0);
         else marks.push(new vscode.Range(index, 0, index, 0));
       }
-      editor.setDecorations(this.decoration, options);
-      editor.setDecorations(this.marks, marks);
-      this.drawn.set(editor, {
-        lines: shown.lines,
-        labels,
-        pin: (line, label) => {
-          const stands = line.hash === commit;
-          return { before: { contentText: label.replace(/ /g, SPACE), width, textDecoration: style(line, stands, true), ...(stands ? lit : {}) } };
-        },
-        // Drawn again, whatever line had it.
-        at: -2,
-      });
-      this.pin(editor);
     }
+    editor.setDecorations(this.lit, options);
+    editor.setDecorations(this.marks, marks);
+    // The name on the first line in sight stands out with its commit.
+    drawn.at = -2;
+    this.pin(editor);
   }
 
   /**
@@ -524,7 +568,9 @@ export class FileBlame implements vscode.Disposable {
     drawn.at = at;
     editor.setDecorations(
       this.pinned,
-      line && at >= 0 ? [{ range: new vscode.Range(at, 0, at, 0), renderOptions: drawn.pin(line, drawn.labels[first]) }] : [],
+      line && at >= 0
+        ? [{ range: new vscode.Range(at, 0, at, 0), renderOptions: { before: drawn.before(line, drawn.labels[first], line.hash === drawn.commit, 'pinned') } }]
+        : [],
     );
   }
 
