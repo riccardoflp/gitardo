@@ -1692,7 +1692,8 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
   reads **No language model** when the provider has none.
 - **Reads**: the models the provider lists at `ai.endpoint`, the request sent again after a failure that passes as a
   question is (`ai.ask-conflict`); with `ai.provider` set to `copilot`, the models of the user's GitHub Copilot
-  subscription, listed by its CLI, and no key is asked (`ai.copilot`).
+  subscription, listed by its CLI, or **Auto** (`auto`, Copilot's choice for each question) when the subscription
+  lists none, and no key is asked (`ai.copilot`).
 - **Asks**: **The model that resolves conflicts** (*Gitardo asks it about the conflicts the rules leave*): **The first
   model of the provider** (with its name) or one of the models listed, the current choice ticked; then **How much the
   model thinks before it answers** (*More is slower, and often better on hard conflicts. A model without such a setting
@@ -1726,7 +1727,8 @@ Acceptance:
 - [ ] A list of the models answered 429 is asked again after the wait, as a question is.
 - [ ] Each AI proposal written after the change names the new model.
 - [ ] With `ai.provider` set to `copilot`, the models listed are those of the GitHub Copilot subscription, no key is
-      asked or kept, and signed out or without the CLI it refuses with **Sign in** or **How to install**.
+      asked or kept, and signed out or without the CLI it refuses with **Sign in** or **How to install**. A subscription
+      that lists no model offers **Auto**, which is the one asked when no model is chosen.
 - [ ] Extension: with two models, the first pick offers **The first model of the provider**, **First model**,
       **Chosen model**; the second **As the model is set up**, **Low**, **Medium**, **High**, **Extra high**, **Max**.
       Without the engine's binary, it says **Gitardo's engine is not available on this system.** with **Show the log**,
@@ -1752,8 +1754,9 @@ conflicts the rules leave, and the draft of a commit message
   ([Q862](../08-decisions.md#open-questions)), started once for the window in its server mode and spoken to over its
   standard input and output through GitHub's SDK for Rust, `copilot-sdk`
   ([D87](../08-decisions.md#d87--github-copilot-through-its-sdk-claude-through-its-api-as-anthropics-sdks-ask-it-proposed)):
-  the models the subscription offers, for `ai.choose-model`; one session for each question, with the model of
-  `ai.model` (or the first of the subscription when it is empty) and the effort of `ai.effort` when set, its answer
+  the models the subscription offers, for `ai.choose-model`, or **Auto** (`auto`, which lets Copilot choose the model
+  of each question) when it lists none, as a subscription that offers only Copilot's choice does; one session for each
+  question, with the model of `ai.model` (or the first of the subscription when it is empty) and the effort of `ai.effort` when set, its answer
   streamed and each piece passed on as it comes.
 - **Sign-in**: the CLI's own: what `copilot login` stored, or `COPILOT_GITHUB_TOKEN`, `GH_TOKEN` or `GITHUB_TOKEN`.
   Gitardo keeps no key for it and sends none.

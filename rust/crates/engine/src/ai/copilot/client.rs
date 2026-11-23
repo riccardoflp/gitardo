@@ -29,6 +29,9 @@ use super::CopilotError;
 /// How often a wait for the CLI looks whether the question was cancelled.
 const CANCEL_CHECK: Duration = Duration::from_millis(50);
 
+/// The model that lets Copilot choose the model of each question, offered when the subscription lists no other.
+pub(super) const AUTO_MODEL: &str = "auto";
+
 /// How much of what the CLI writes, or is written, is carried at once.
 const CARRIED: usize = 64 * 1024;
 
@@ -136,7 +139,7 @@ impl Client {
     pub(super) fn models(&self, cancel: &Cancel) -> Result<Vec<AiModel>, CopilotError> {
         let sdk = self.sdk()?;
         let listed = self.run(async move { sdk.list_models().await }, cancel)?;
-        Ok(listed
+        let models: Vec<AiModel> = listed
             .into_iter()
             .map(|model| AiModel {
                 name: if model.name.is_empty() {
@@ -146,7 +149,15 @@ impl Client {
                 },
                 id: model.id,
             })
-            .collect())
+            .collect();
+        // A subscription that lets Copilot choose the model of each question lists none: its choice is the one model.
+        if models.is_empty() {
+            return Ok(vec![AiModel {
+                id: String::from(AUTO_MODEL),
+                name: String::from("Auto"),
+            }]);
+        }
+        Ok(models)
     }
 
     /// Asks a question in a session of its own, each piece of its answer passed on as it comes, until the session is

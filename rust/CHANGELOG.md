@@ -41,7 +41,8 @@
 - **GitHub Copilot** as the AI provider: `ai.provider` set to `copilot` asks GitHub Copilot, with the sign-in and the
   subscription of the GitHub Copilot CLI, to resolve conflicts and to draft commit messages. Gitardo starts `copilot`
   once for the window, in its server mode, and allows it no tool, so it reads and runs nothing; **Choose the model that
-  resolves conflicts** lists the models of the subscription, and `ai.endpoint` is left off the settings page. Without
+  resolves conflicts** lists the models of the subscription, or **Auto** when it lets Copilot choose, and
+  `ai.endpoint` is left off the settings page. Without
   the CLI, Gitardo says so with **How to install**; signed out, with **Sign in**, which runs `copilot login` in a
   terminal of the bottom panel. Gitardo speaks to the CLI through GitHub's SDK for it, which keeps up with the CLI's
   protocol; a CLI too old for Gitardo is said with **How to install**, which updates it, and one too new says to update

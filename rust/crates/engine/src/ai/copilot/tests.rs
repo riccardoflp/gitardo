@@ -335,3 +335,42 @@ fn ai_copilot__a_cli_too_new_for_the_sdk_says_to_update_gitardo() {
     );
     assert_eq!(fake.methods(), ["connect"]);
 }
+
+#[test]
+fn ai_choose_model__a_copilot_subscription_that_lists_no_model_offers_auto_which_is_asked() {
+    let fake = FakeCopilot::new(CopilotScript {
+        models: Vec::new(),
+        ..CopilotScript::default()
+    });
+    let cli = cli_of(&fake);
+    let cancel = Cancel::new();
+    let models = cli.models(&cancel).unwrap();
+    let listed: Vec<(&str, &str)> = models
+        .iter()
+        .map(|model| (model.id.as_str(), model.name.as_str()))
+        .collect();
+    assert_eq!(listed, [("auto", "Auto")]);
+    // With no model chosen, Copilot's choice is asked, and named.
+    let settings = settings("", None);
+    let mut model = CopilotModel {
+        cli: &cli,
+        settings: &settings,
+        cancel: &cancel,
+    };
+    let asked = crate::ai::LanguageModel::ask(
+        &mut model,
+        crate::ai::Purpose::CommitMessage,
+        &model::ai::AiRequest {
+            prompt: String::from("Q"),
+        },
+        &mut |_| {},
+    )
+    .unwrap();
+    assert_eq!((asked.model.as_str(), asked.text.as_str()), ("auto", "Fixed"));
+    let requests = fake.requests();
+    let created = requests
+        .iter()
+        .find(|request| request.starts_with("session.create"))
+        .unwrap();
+    assert!(created.contains("\"model\":\"auto\""), "{created}");
+}
