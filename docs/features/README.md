@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 583 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 586 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -17,7 +17,7 @@ earns it.
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 40 |
+| [01-repositories.md](01-repositories.md) | Repositories | 43 |
 | [02-graph.md](02-graph.md) | Graph | 59 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 26 |
@@ -83,6 +83,9 @@ earns it.
 | [`upkeep.read-background`](01-repositories.md#upkeepread-background--whether-git-looks-after-a-repository-in-the-background) | Whether git looks after a repository in the background | Read | Built | Built |
 | [`upkeep.start-background`](01-repositories.md#upkeepstart-background--have-git-look-after-a-repository-in-the-background) | Have git look after a repository in the background | Operation | Built | Built |
 | [`upkeep.stop-background`](01-repositories.md#upkeepstop-background--stop-having-git-look-after-a-repository) | Stop having git look after a repository | Operation | Built | Built |
+| [`upkeep.read-commit-graph`](01-repositories.md#upkeepread-commit-graph--whether-git-keeps-a-commit-graph-file) | Whether git keeps a commit-graph file | Read | Specified | Planned |
+| [`upkeep.write-commit-graph`](01-repositories.md#upkeepwrite-commit-graph--speed-up-reading-the-history) | Speed up reading the history | Operation | Specified | Planned |
+| [`upkeep.offer-commit-graph`](01-repositories.md#upkeepoffer-commit-graph--offer-the-commit-graph-file) | Offer the commit-graph file | View | Specified | Planned |
 
 ## Graph
 

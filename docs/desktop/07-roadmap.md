@@ -1666,6 +1666,109 @@ for `anthropic`, `openai-compatible` and the list of models: the wait is shown a
 it where no other activity of the question is older; for a draft and for Ask Gitardo it is in the tooltip of the
 indicator and the Activity tab. Phase 3: the cards, D87, R1.4 and R1.7, the CHANGELOG and **Before a release**.
 
+## M44 — Reads that cost less, in the extension most of all
+
+Git's commit-graph file is offered where it is missing, and the extension stops spending time of its own: the views are
+sent only the parts of the state they show and that changed, the blame is asked once for each line, no read is made
+twice, and the pages draw only what changed
+([D88](../08-decisions.md#d88--gits-commit-graph-file-offered-and-the-extensions-views-sent-only-what-changed-proposed),
+Q1515–Q1519).
+
+Measured on 2026-11-23 with the release build of `gitardo-engine` and `node dist/perf.js`, on the repository
+`test/perf/big-repo.mjs <folder> 50000 1779` makes (56,120 commits, 250 branches, 2,000 tags, 1,779 changed files):
+
+| Read | As made | With a commit-graph |
+| --- | ---: | ---: |
+| The whole history, its first page | 458 ms | 190 ms |
+| The state with 1,000 commits | 428 ms | 165 ms |
+| A search by message | 447 ms | 214 ms |
+| The history of a file | 1,226 ms | 574 ms |
+
+The state with 1,000 commits is 644 KB, of which 285 KB are not rows: the references, the stashes, the worktrees and
+the working tree, sent again whole to each view at each read.
+
+Built in seven phases, each one commit or more, each ending with its cards built and their tests passing; Gitardo
+Desktop first, then the extension.
+
+1. **The commit-graph file, in Gitardo Desktop.** `git::read::upkeep::read_commit_graph`, read with the state;
+   `features::upkeep::write_commit_graph`; the notice in the status bar once the whole history is read, and
+   **Speed up reading the history** in the menu of the row of the repository shown. **Not for this repository** is
+   kept in the state of the window, beside what `persisted/` keeps, and
+   [05-stored-data.md](../transition/05-stored-data.md) says so. `cargo xtask perf` times the large repository with and
+   without the file. Cards: `upkeep.read-commit-graph`, `upkeep.write-commit-graph`, `upkeep.offer-commit-graph`.
+2. **The commit-graph file, in the extension.** The notification with **Write it** and **Not for this repository**,
+   kept under `gitardo.commitGraphDeclined` ([11-data.md](../extension/11-data.md)); the entry in `repositoryRowMenu`;
+   both send `feature/run` of `upkeep.write-commit-graph`; the protocol sends what `upkeep.read-commit-graph` read with
+   the state, a minor version. Cards: the same three, Built in the extension.
+3. **Each view sent its parts.** The `state` message of `src/shared/protocol.ts` is in parts, each with a key, as the
+   rows are; `Controller.post` sends each kind of view the parts it shows (`partsOf(kind)`), and of those only the
+   ones whose key changed since that view was sent them; the tabs of a commit, of a comparison, of conflicts and of a
+   range are sent only the references their labels need, and only when they change. The page keeps the parts it has
+   and puts the new ones in their place, so `RefsTree`, `buildLabels` and `unpushedOf` run again only when theirs
+   changed. QA5 and QA6 of [12-quality.md](../extension/12-quality.md) say it for every part, and a step of
+   `test/e2e/suite.ts` checks that a file saved sends the Branches view nothing. No card changes.
+4. **No read twice.** A view that is ready while the state held was read after the last change it heard of is sent
+   that state and asks no read (`Controller.onMessage`, `ready`); a file saved goes through `changesToRead`, so one
+   that git ignores asks no read; `checkUnsaved` asks the engine which unsaved files are ignored once for each file,
+   not at every read. A step of the suite opens five views at once and counts one read. No card changes.
+5. **The blame asked once.** `BlameAnnotator` keeps the blame of a line for the document, its version and the line, and
+   asks again only when one of them changes; the text of an unsaved document is sent only with a new version.
+   `FileBlame` draws again, after an edit, only the editor typed in; the lines of the commit under the cursor are a
+   decoration type of their own; `refresh` reads again only the documents of a repository whose `HEAD` moved, not at
+   every state. Unit tests of the cache, and a step of the suite that moves the cursor in a line and counts no read.
+   Cards: `blame.current-line`, `blame.file`, their lines of what is asked.
+6. **The rest of the extension's code.** `FrameReader` keeps the pieces of a message in a list and joins them once
+   its `Content-Length` has come; the draft of the uncommitted changes is kept apart from `rows`, so that a new count
+   lays out no row again; `CommitList` draws each row with a `memo` component and looks up `hovered` and `chosen` in
+   sets; the Commits view draws the rows in sight as `CommitList` does; `RefsTree` and `labels.ts` find favorites,
+   recents and remote branches in maps. `webview.js` is built as ES modules, split as the Flow Diff is, each kind of
+   view loading what it shows. Unit tests of the framing with a message of 4 MB in pieces of 64 KB. No card changes.
+7. **Measured and said.** `test/perf/vscode.mjs` on the large repository, before and after, with and without the
+   commit-graph file, in [12-quality.md](../extension/12-quality.md) and the table of
+   [06-testing.md](06-testing.md); the CHANGELOG of each app under **Unreleased**; the README of the extension where it
+   gives the times. Cards: none but those of phases 1 and 2.
+
+Exit: on the large repository with no commit-graph file, Gitardo Desktop and the extension say once that git can read
+the history faster, **Write it** writes the file, and the first page of the history then comes in less than half the
+time; a file saved in the large repository sends the Branches view and the tabs of a commit nothing; moving the cursor
+along a line asks no blame; five views opened at once make one read; QA1 to QA4 are at least as quick as on 2026-11-23,
+and every card of the milestone passes its tests.
+
+## M45 — A repository for each tab of the graph, in the extension
+
+Each tab of the graph in the editor shows a repository, a worktree or a submodule of its own, and keeps it; the panel
+and the side bar follow the tab last in focus
+([D89](../08-decisions.md#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed),
+Q1520–Q1524). The extension alone: Gitardo Desktop already has a tab for each repository open and does not change, and
+the engine already keeps an `Engine` for each repository opened in it. After M44, whose parts sent to each view are
+what a session sends its views here.
+
+Built in five phases, each one commit or more, each ending with its cards built and their tests passing.
+
+1. **A session for each repository.** What `Controller` holds for the repository shown, its state, its reads and
+   their loop, its watchers, its refresh, the rows and the parts each view was sent, and `keptRepositories`,
+   moves into `RepositorySession` (`src/extension/repositorySession.ts`), one for each repository a view shows; the
+   controller keeps the views, the commands, the operation running and which session each view is on. Every view is
+   on one session, as today: nothing changes for the user, and the whole suite passes as it is. No card changes.
+2. **A tab, its repository.** `openInEditor` and **Open in a new tab** attach the tab to the session of its repository,
+   made when no view had it and let go when the last view leaves it, unless `gitardo.repositories.keepOpen` keeps it;
+   the list and the menu of the worktrees in its toolbar move that tab alone; its title names what it shows; what it
+   runs, runs there. **Gitardo: Open Repository in a New Tab** and the entry of `repositoryRowMenu`. Steps of the
+   suite with two repositories in two tabs. Cards: `repo.tab-repository`.
+3. **The panel and the side bar follow the tab in focus.** `followTab` on `onDidChangeViewState`; the panel and the
+   views of the side bar move to the session of that tab; `SourceControlSelection` selects it in VS Code's
+   Repositories view as it selects the repository chosen. Cards: `repo.follow-tab`.
+4. **Kept across a reload.** The `WebviewPanelSerializer` of `gitardo.graphEditor`, the page's state with its
+   repository and its filter, and the page of a folder that is gone. A step of the suite reloads the window. Cards:
+   `repo.keep-tabs`.
+5. **Said.** The README of the extension, where the graph in an editor tab is described; its CHANGELOG under
+   **Unreleased**; [02-architecture.md](../extension/02-architecture.md) with the sessions; the cards Built.
+
+Exit: in VS Code, with `api` and `web` in the workspace, a tab on `api` and one on `web` side by side each show their
+history and keep it; a click in either moves the panel and **Gitardo Changes** to its repository; choosing another
+repository in the panel moves no tab; two tabs on `api` keep their own filters and a file saved in `api` makes one
+read; after a reload both tabs come back on their repositories; every card of the milestone passes its tests.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

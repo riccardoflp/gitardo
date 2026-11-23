@@ -1,13 +1,13 @@
 # The catalog of features
 
-Every feature, one card each, 10 in all. The template and the rules of the cards are in the
+Every feature, one card each, 13 in all. The template and the rules of the cards are in the
 feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
 earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
 **Differs** line is *Differs*; when the line goes, it becomes *Documented*.
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 2 |
+| [01-repositories.md](01-repositories.md) | Repositories | 5 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 7 |
 | [18-settings.md](18-settings.md) | Settings | 1 |
 
@@ -17,6 +17,9 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | --- | --- | --- | --- |
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | View | Documented |
 | [`repo.follow-source-control`](01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code) | Follow the Repositories view of VS Code | View | Documented |
+| [`repo.tab-repository`](01-repositories.md#repotab-repository--each-tab-of-the-graph-shows-a-repository-of-its-own) | Each tab of the graph shows a repository of its own | View | Specified |
+| [`repo.follow-tab`](01-repositories.md#repofollow-tab--the-panel-and-the-side-bar-follow-the-tab-in-focus) | The panel and the side bar follow the tab in focus | View | Specified |
+| [`repo.keep-tabs`](01-repositories.md#repokeep-tabs--the-tabs-of-the-graph-come-back-after-a-reload) | The tabs of the graph come back after a reload | View | Specified |
 
 
 

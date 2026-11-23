@@ -90,3 +90,93 @@ Acceptance:
   level; when a command does not select the repository asked for, Gitardo says so in the log and selects nothing there
   again until the window is reloaded.
 - [ ] What Gitardo selects in the view is not followed back.
+
+### `repo.tab-repository` — Each tab of the graph shows a repository of its own
+
+A tab of the graph in the editor shows the repository, the worktree or the submodule it was opened on, and keeps it,
+whatever the other views show
+([D89](../../08-decisions.md#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed)).
+
+- **Kind**: View
+- **Function**: `Controller.attach(webview, 'graph', repository)`, which ties the view to the session of its
+  repository, and `RepositorySession` in `src/extension/repositorySession.ts`: the state, the reads, the watchers and
+  what each view was sent, for one repository; the list of the toolbar posts `selectRepo`, which moves its own view.
+- **Entry points**: **Open in a new tab** in the context menu of a row of the **Gitardo Repositories** view (`repo.tabs`),
+  on a repository, a worktree or a submodule; **Gitardo: Open Repository in a New Tab** in the Command Palette, a picker
+  of the repositories, worktrees and submodules as **Gitardo: Select Repository** lists them; **Gitardo** in the status
+  bar and **Gitardo: Open Graph in Editor**, on the repository the panel shows.
+- **Offered when**: the workspace has a repository.
+- **Uses**: `repo.select`, `worktree.show-in-gitardo`, `repo.keep-open`, `repo.follow-tab`.
+- **Implemented in**: not yet (M45).
+- **Tested by**: not yet (M45).
+
+The title of the tab is `Gitardo · <repository>`, with `› <worktree>` or `› <submodule>` after it, as the rows of the
+Repositories view name them (Q1520). Its toolbar, its menus, its keys and the banners in it act on its repository: an
+operation runs there, a commit opened from it opens in that repository, **Show in graph** from another view does not
+move it. The list of the repositories and the menu of the worktrees in its toolbar move this tab alone. Two tabs on the
+same repository each keep their selection, their filter, the branches shown, their scroll and their folds; the
+repository is read once for both.
+
+Acceptance:
+
+- [ ] With `api` and `web` in the workspace, **Open in a new tab** on `web` while the panel shows `api` opens a tab
+  titled `Gitardo · web` showing the history of `web`; the panel still shows `api`.
+- [ ] Choosing `docs` in the list of that tab's toolbar shows `docs` in that tab, and no other view changes.
+- [ ] A worktree `feature/login` of `api` opened in a new tab is titled `Gitardo · api › feature/login`, and a commit
+  made from its uncommitted row is made in that worktree.
+- [ ] Two tabs on `api` with different filters keep them; a file saved in `api` asks one read, and both tabs show it.
+- [ ] Closing the last view of a repository stops watching it, unless `gitardo.repositories.keepOpen` is on.
+- [ ] An operation asked in one tab while another runs in a second is refused with *… is running in …*.
+
+### `repo.follow-tab` — The panel and the side bar follow the tab in focus
+
+The **Graph** view of the panel and the views of the side bar show the repository of the tab of the graph last in
+focus, as they show the repository chosen.
+
+- **Kind**: View
+- **Function**: `Controller.followTab(panel)`, on `onDidChangeViewState` of a tab of the graph when it becomes
+  active; the session the panel and the side bar are on.
+- **Entry points**: a click in a tab of the graph, or any way to bring one into focus.
+- **Offered when**: a tab of the graph is open.
+- **Uses**: `repo.tab-repository`, `repo.select`, `repo.follow-source-control`.
+- **Implemented in**: not yet (M45).
+- **Tested by**: not yet (M45).
+
+The panel and the views **Gitardo Changes**, **Commits**, **Gitardo Graph**, **Branches** and **Stashes** follow the
+tab of the graph that last came into focus; until one has, they show the repository chosen as before (`repo.select`),
+and the workspace state keeps it under `gitardo.repository`. Choosing another in the panel or in the side bar, or
+following VS Code's Repositories view (`repo.follow-source-control`), moves them and no tab. A tab of a commit, of a
+comparison or of conflicts does not move them (Q1521). The commands of the Command Palette that act on the repository
+shown act on theirs (Q1522).
+
+Acceptance:
+
+- [ ] With a tab on `api` and one on `web`, a click in the tab of `web` shows `web` in the panel and in **Gitardo
+  Changes**; a click in the tab of `api` shows `api` there.
+- [ ] Choosing `docs` in the list of the panel's toolbar shows `docs` in the panel and the side bar, and neither tab
+  changes.
+- [ ] With `scm.repositories.selectionMode` set to `single`, bringing the tab of `web` into focus selects `web` in VS
+  Code's Repositories view, as `repo.follow-source-control` selects the repository chosen.
+
+### `repo.keep-tabs` — The tabs of the graph come back after a reload
+
+A tab of the graph comes back when VS Code opens the workspace again, on what it showed.
+
+- **Kind**: View
+- **Function**: a `WebviewPanelSerializer` of `gitardo.graphEditor`, registered in `activate`
+  (`src/extension/extension.ts`), which reattaches the page with the repository kept in its state.
+- **Entry points**: opening the workspace, or reloading the window, with tabs of the graph open.
+- **Offered when**: a tab of the graph was open when the window closed.
+- **Uses**: `repo.tab-repository`.
+- **Implemented in**: not yet (M45).
+- **Tested by**: not yet (M45).
+
+The page keeps, in its own state (`setState`), the root of its repository, its worktree or submodule, its filter and
+the branches shown. A tab whose folder is no longer there says **`<folder>` is no longer there.** with **Close** (Q1523).
+Nothing is added to the workspace state.
+
+Acceptance:
+
+- [ ] A tab on `web` with a filter by author, after **Developer: Reload Window**, shows `web` with the same filter, and
+  the panel shows what it showed.
+- [ ] A tab on a worktree removed while VS Code was closed says the folder is no longer there, and **Close** closes it.

@@ -1594,3 +1594,86 @@ Acceptance:
 
 - [ ] It runs `git maintenance unregister`; the repository is no longer listed, and the entry is unticked.
 - [ ] Another repository registered stays registered.
+
+### `upkeep.read-commit-graph` — Whether git keeps a commit-graph file
+
+Whether the repository has git's commit-graph file, the cache of its commits and their parents that lets git list the
+history without walking all of it first, and whether git reads it.
+
+- **Kind**: Read
+- **Function**: `git::read::upkeep::read_commit_graph(git: &Git, request: &CommitGraphRequest) -> Result<CommitGraph, GitError>`
+- **Reads**: `git rev-parse --git-path objects/info/commit-graph --git-path objects/info/commit-graphs/commit-graph-chain`,
+  the two places git keeps the file, alone or as a chain, and whether either is there; `git config --type=bool --get
+  core.commitGraph`, where `false` means git does not read the file. It runs with `repo.read-state`, again only when
+  the object folder of the repository changed.
+- **Uses**: by `upkeep.offer-commit-graph` and `upkeep.write-commit-graph`.
+- **Extension**: Planned: read by the engine for the notice and the menu of the row, sent with the state.
+
+Acceptance:
+
+- [ ] A repository made by `git fast-import` reads as having no file; after `git commit-graph write --reachable`, as
+      having one; after `git commit-graph write --reachable --split`, as having one too.
+- [ ] With `core.commitGraph` set to `false`, it reads as not read by git, whether the file is there or not.
+- [ ] In a worktree, it reads the file of the repository the worktrees share.
+
+### `upkeep.write-commit-graph` — Speed up reading the history
+
+Writes git's commit-graph file for the repository, with the paths each commit changed, so that the history, a search
+and the history of a file are read about twice as fast
+([D88](../08-decisions.md#d88--gits-commit-graph-file-offered-and-the-extensions-views-sent-only-what-changed-proposed)).
+
+- **Kind**: Operation
+- **Function**: `features::upkeep::write_commit_graph(context, answers) -> Outcome`
+- **Entry points**: **Write it** in the notice of `upkeep.offer-commit-graph`; **Speed up reading the history** in the
+  context menu of the row of the repository shown in **Repositories**, after **Clean up…**.
+- **Offered when**: the repository has no commit-graph file and git reads one (`upkeep.read-commit-graph`), and no
+  operation of Gitardo runs in it.
+- **Reads**: `upkeep.read-commit-graph`.
+- **Plan**: `git commit-graph write --reachable --changed-paths`. Git's configuration is not changed.
+- **Danger**: None: the file is git's own cache of the commits, which `git gc` writes again; nothing of the history
+  changes.
+- **Undo**: Not needed, and not taken back by Undo: deleting the file leaves the repository as it was.
+- **After**: says **Wrote git's commit-graph file of `<repository>`.**, and reads the repository again. It runs with
+  what is running in the status bar and in the Activity tab (`activity.status-bar`), as long as it takes: about 1.5 s
+  for 56,000 commits.
+- **Refuses**: git's message, as when another git writes the file at the same time.
+- **Uses**: `upkeep.read-commit-graph`, `upkeep.offer-commit-graph`, `repo.tabs`, `activity.status-bar`.
+- **Extension**: Planned: the same entry in the context menu of the row of the repository shown in the **Gitardo
+  Repositories** view, and **Write it** in the notice, sending `feature/run` of `upkeep.write-commit-graph`.
+
+Acceptance:
+
+- [ ] On a repository with no file, it runs `git commit-graph write --reachable --changed-paths`; then
+      `upkeep.read-commit-graph` reads a file, and the entry is no longer offered.
+- [ ] The first page of the history of the large repository of `cargo xtask perf` is read in less than half the time
+      it took before.
+- [ ] With `core.commitGraph` set to `false`, the entry is not in the menu.
+
+### `upkeep.offer-commit-graph` — Offer the commit-graph file
+
+A notice, once, for a repository with a long history and no commit-graph file, that git can read it about twice as
+fast with one.
+
+- **Kind**: View
+- **Function**: `views::status::commit_graph_notice(state: &CommitGraphNotice, ui) -> Vec<Intent>`
+- **Entry points**: the notices of the status bar (`activity.status-bar`), when the read of the whole history of the
+  repository shown ends.
+
+When the read of the whole history (`graph.read-commits`) finds 10,000 commits or more (Q1515), and the repository has
+no commit-graph file and git would read one (`upkeep.read-commit-graph`), the status bar says **Git can read the
+history of `<repository>` about twice as fast with its commit-graph file.** with **Write it**, which runs
+`upkeep.write-commit-graph`, and **Not for this repository**, which is remembered for that repository, in the state of
+the window, and says it no more (Q1517). Closed without either, it comes again the next time the repository is opened.
+It is said once each time the repository is opened, not at every read.
+
+- **Uses**: `upkeep.read-commit-graph`, `upkeep.write-commit-graph`, `graph.read-commits`, `activity.status-bar`.
+- **Extension**: Planned: a notification of VS Code with the same sentence and the same two buttons; **Not for this
+  repository** is kept in the workspace state under `gitardo.commitGraphDeclined`, the roots of the repositories.
+
+Acceptance:
+
+- [ ] Opening the large repository of `cargo xtask perf` with no commit-graph file says the notice once the history is
+      read; **Write it** writes the file, and the notice does not come again.
+- [ ] **Not for this repository**, then opening the repository again, says nothing.
+- [ ] A repository of 9,999 commits, or one with the file, or one with `core.commitGraph` set to `false`, says
+      nothing.

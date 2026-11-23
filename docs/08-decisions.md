@@ -2238,6 +2238,113 @@ process of Node or Python, or Claude Code run as a program (the sign-in of a sub
 other programs, and a harness of tools that `ai.copilot` refuses in Copilot); `@anthropic-ai/sdk` in the extension
 (the AI of the extension goes through the engine and VS Code, D37).
 
+## D88 — Git's commit-graph file offered, and the extension's views sent only what changed (proposed)
+
+*Asked by the maintainer on 2026-11-24 for milestone M44, after measuring where the extension spends its time; the
+details proposed while planning. It proposes what
+[D54](#d54--the-timeline-is-read-by-one-git-log-as-it-prints) rejected doing without asking, and keeps the rest of
+D54 as it is.*
+
+Measured on 2026-11-23 with the release build of `gitardo-engine` and `node dist/perf.js`, on the repository
+`test/perf/big-repo.mjs <folder> 50000 1779` makes (56,120 commits, 250 branches, 2,000 tags, 1,779 changed files):
+the state with its first 1,000 commits takes 428 ms, of which `git log` alone takes about 350, since without a
+commit-graph file git walks the whole history before it prints the first commit. After
+`git commit-graph write --reachable --changed-paths`, which took 1.6 s, the same read takes 165 ms, the first page of
+the whole history 190 ms instead of 458, a search by message 214 ms instead of 447, and the history of a file 574 ms
+instead of 1,226. What is left is the extension's own: the views are sent every part of the state at every read, the
+blame is asked again for a line it already has, and a few reads happen twice.
+
+- **The commit-graph file, offered.** Git writes it with `git gc` (`gc.writeCommitGraph`, on by default) and with its
+  scheduled maintenance, so most repositories that were cleaned up have one, and a fresh clone has none. When the read
+  of the whole history finds 10,000 commits or more (Q1515) and the repository has no commit-graph file, a notice says
+  that git can read the history about twice as fast with one, with **Write it** and **Not for this repository**
+  (`upkeep.offer-commit-graph`). **Write it** runs `git commit-graph write --reachable --changed-paths`
+  (`upkeep.write-commit-graph`); the menu of the row of the repository has it too, as **Speed up reading the
+  history**, while there is no file. The file is git's own cache of the commits: nothing of the history changes,
+  git reads it when it is there, and `git gc` writes it again. Nothing is written without the user's click, and
+  **Not for this repository** is remembered for that repository.
+- **The changed paths with it.** `--changed-paths` makes the file larger, by about a tenth, and lets git skip the
+  commits that did not touch a file: the history of a file and a search by change are about twice as fast. Git's
+  configuration is not changed (`fetch.writeCommitGraph`, `core.commitGraph`): a repository where
+  `core.commitGraph` is `false` is not offered the file, since git would not read it.
+- **Each view of the extension sent its parts.** The state is in parts: the rows, the references, the stashes, the
+  worktrees, the working tree, the submodules, the pull requests. Each kind of view is sent the parts it shows, and of
+  those only the ones that changed since it was last sent them, as the rows already are (QA6); a tab of a commit, of a
+  comparison, of conflicts or of what changed in a range is sent no state, but the parts its labels need. The view
+  keeps the parts it was sent and puts the new ones in their place, so what is the same keeps its identity and is not
+  drawn again.
+- **The blame asked once for each line.** The blame of the line under the cursor is kept for the version of the
+  document and the line, and asked again only when either changes; the blame of a whole file draws again only the
+  editor that was typed in, and the lines of the commit under the cursor are shown by a decoration of their own, so
+  that moving the cursor does not send every line again; both read again when `HEAD` or the file changed, not at
+  every read of the repository.
+- **No read twice.** A view that opens while the state held is fresh, and nothing changed since it was read, is sent
+  that state and does not ask for another read; a file saved that git ignores asks for no read, as a file changed on
+  the disk already does not.
+- **The rest, in the extension's code.** The messages of the engine are put together once all their bytes have
+  come, not copied again at every piece; the draft of the uncommitted changes is kept apart from the rows, so that a
+  new count of files does not lay out every row again; the rows of the lists of commits are drawn by a component of
+  their own that draws again only when its row changed, and the Commits view draws only the rows in sight; the views
+  are built as modules, each loading what it shows.
+
+Rejected: writing the commit-graph file without asking (it is the user's repository, as D54 said); setting
+`fetch.writeCommitGraph` or `gc.writeCommitGraph` for the user (a change of their configuration, for every repository
+they have); keeping a cache of the history on disk (another stored file, for a read that now takes a fifth of a
+second); sending the views a diff of the state (a patch format to keep in two languages, for parts that are each
+cheap to send whole); a read of the blame of the whole file for the line under the cursor (slow on long files, where
+the line alone is quick).
+
+## D89 — In the extension, each tab of the graph shows a repository of its own (proposed)
+
+*Asked by the maintainer on 2026-11-24 for milestone M45: "every tab of Gitardo can point at a repository or a
+worktree other than the others'". The details proposed while planning, and three of them answered then: the panel and
+the side bar follow the tab of the graph last in focus; two tabs may show the same repository; Gitardo Desktop does
+not change. It is an exception to
+[D39](#d39--desktop-first-and-a-status-for-each-app) for the cards of M45.*
+
+In the extension, every view shows one repository, the one chosen: the **Graph** view in the panel, each tab of the
+graph opened in the editor (**Gitardo** in the status bar, **Gitardo: Open Graph in Editor**), and the views of the side bar.
+Opening a second tab of the graph gives a second view of the same repository. In Gitardo Desktop, each repository open
+already has a tab of its own, which keeps what it showed ([D50](#d50--repository-tabs-and-what-each-repository-keeps),
+`repo.tabs`, `repo.keep-open`).
+
+- **A tab, its repository.** A tab of the graph in the editor shows the repository, the worktree or the submodule it
+  was opened on, and keeps it: the list of the repositories and the menu of the worktrees in its toolbar change that
+  tab alone, and its title names what it shows, `Gitardo · api` or `Gitardo · api › feature/login`. What its toolbar,
+  its menus and its keys run, runs on its repository.
+- **The panel and the side bar follow the tab in focus.** The **Graph** view of the panel and the views of the side
+  bar (**Gitardo Changes**, **Commits**, **Gitardo Graph**, **Branches**, **Stashes**) show the repository of the tab of the graph last in focus;
+  until one has been, the repository chosen as today (`repo.select`, `repo.follow-source-control`). Choosing another
+  in the panel or in the side bar changes them, not a tab; a tab is never changed by another view. VS Code's
+  Repositories view follows the tab in focus as it follows the repository chosen.
+- **The same repository in two tabs.** Each tab keeps its own selection, filter, branches shown, scroll and folds;
+  the repository is read once for all the views that show it, watched once, and each view is sent what it shows.
+- **One read for each repository shown.** What the controller held for the one repository shown, its state, its
+  reads, its watchers and what each view was sent, is held for each repository a view shows, and let go when no view
+  shows it any more, unless `gitardo.repositories.keepOpen` keeps it (`repo.keep-open`). A tab out of sight is not
+  read again while it is hidden; it is when it comes back, if something changed meanwhile, as a view out of sight is
+  today.
+- **One operation at a time in a window.** As in Gitardo Desktop, an operation asked while another runs, in any
+  repository, is refused with *… is running in …* (M42).
+- **Kept across a reload.** A tab of the graph comes back when VS Code opens the workspace again, on the repository,
+  the worktree or the submodule it showed, with its filter; one whose folder is gone says so, with **Close**.
+- **Opened on a repository.** The menu of a row of the **Gitardo Repositories** view has **Open in a new tab**, and
+  **Gitardo: Open Repository in a New Tab** in the Command Palette asks which; **Gitardo** in the status bar opens a
+  tab on the repository the panel shows, as it does today.
+- **Gitardo Desktop does not change.** Its window shows one repository at a time, with a tab for each repository open
+  and its worktrees and submodules grouped under it ([D50](#d50--repository-tabs-and-what-each-repository-keeps)); the
+  editor of VS Code, its tabs side by side and its groups are what makes several graphs at once useful, and the window
+  has none of them. So the cards of M45 are the extension's, in `features/extension/`, Specified there, and need no
+  status in the desktop; nothing of the engine changes, since it already keeps an `Engine` for each repository opened
+  in it ([D41](#d41--json-rpc-over-the-standard-input-and-output-one-process-per-window)).
+
+Rejected: a tab of the panel for each repository (VS Code gives a view container one view of each kind, so the panel
+cannot hold two graphs); every view, the side bar's too, with a repository of its own (the side bar would show four
+repositories at once with nothing saying which); a window of VS Code for each repository, as today (what the user
+asked to avoid); the side bar following the tab in sight rather than in focus (a tab beside another in a second group
+would move the side bar at every click in the editor); the same change in Gitardo Desktop (one repository shown at a
+time is the shape of its window, D50).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -5801,3 +5908,44 @@ it is planned; each is built as it says until the maintainer answers otherwise.
   the SDK was published with. Should **Before a release** keep its check by hand with the CLI of the day (Q1350), or
   should the pipeline install the CLI and run one question against it, with a token of the maintainer kept as a
   secret?
+
+### Of the reads that cost less, from Q1515
+
+Questions of milestone M44
+([D88](#d88--gits-commit-graph-file-offered-and-the-extensions-views-sent-only-what-changed-proposed)), asked while
+it is planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1515** — `upkeep.offer-commit-graph`: the notice comes once the whole history is read and counts 10,000 commits
+  or more, where the file saves about a quarter of a second at each read. Is 10,000 the line, or should the notice
+  come from the time the read took, say more than 300 ms for its first page?
+- **Q1516** — `upkeep.write-commit-graph`: commits made or fetched after the file was written are not in it, and git
+  walks them as before; `git gc`, run by git itself now and then and by **Clean up…**, writes the file again. Should
+  Gitardo also write it again after a fetch that brought many commits, or leave that to git's maintenance
+  (`upkeep.start-background`)?
+- **Q1517** — `upkeep.offer-commit-graph`: **Not for this repository** is kept for the repository, in the desktop's
+  state and in the workspace state of the extension. Should it be kept for every repository, as **Don't ask again**?
+- **Q1518** — D88: a view of the extension that comes back after it was out of sight keeps what it showed, since every
+  view is made with `retainContextWhenHidden`; each costs the memory of its page while hidden. Should the views of the
+  side bar let VS Code drop their page while hidden, and draw again from the state when they come back, losing their
+  scroll and what was unfolded?
+- **Q1519** — D88: the times of [12-quality.md](extension/12-quality.md) are targets no test enforces. Should M44 make
+  `test/perf/vscode.mjs` fail above them, on the pipeline's machines, whose times differ from the maintainer's?
+
+### Of a repository for each tab, from Q1520
+
+Questions of milestone M45
+([D89](#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed)), asked while it is
+planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1520** — `repo.tab-repository`: the title of a tab names its repository, and its worktree or submodule after
+  `›`. With two tabs on the same repository, should their titles differ, by the branch checked out or by a number?
+- **Q1521** — `repo.follow-tab`: the panel and the side bar follow the tab of the graph last in focus. Should a tab of
+  a commit or of a comparison, which belongs to a repository too, move them as well?
+- **Q1522** — `repo.tab-repository`: a command of the Command Palette that runs on "the repository shown", such as
+  **Gitardo: Fetch**, runs on the repository of the panel and of the side bar, which is that of the tab last in
+  focus. Is that the reading, or should it ask which, when tabs show different repositories?
+- **Q1523** — `repo.keep-tabs`: a tab whose repository is gone after a reload says so, with **Close**. Should it be
+  closed without a word instead?
+- **Q1524** — D89: the tabs of the graph in the editor are made with `retainContextWhenHidden`, as every view now. Ten
+  tabs open keep ten pages in memory. Should a tab out of sight let its page go, and draw again from its state when it
+  comes back?
