@@ -134,12 +134,13 @@ describe('the parts of the state each view is sent (D88)', () => {
     expect(second.parts).not.toContain('rows');
     expect(second.state?.draft?.subject).toBe('Uncommitted changes (2)');
     expect(graph.shown.draft?.subject).toBe('Uncommitted changes (2)');
+    // The rows are the same list: nothing worked out from them is worked out again.
+    expect(graph.shown.rows).toBe(rows);
 
     // More commits under the same: what is kept counts the commits alone.
     const more = graph.send(read({ rows: [draft(2), ...commits.slice(0, 2), row('c1', ['c0']), row('c0')], changes: 2 }))!;
     expect(more.kept).toBe(3);
     expect(graph.shown.rows.map((each) => each.hash)).toEqual([WORKTREE, 'c3', 'c2', 'c1', 'c0']);
-    expect(rows).toHaveLength(4);
   });
 
   it('sends a view that loaded again, and has nothing, every part again', () => {

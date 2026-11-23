@@ -83,7 +83,10 @@ export function partsIn(state: RepoState, parts: readonly StatePart[]): SentStat
  * of the uncommitted changes first when there is one, as the graph draws them.
  */
 export interface ShownState extends RepoState {
-  /** The row of the uncommitted changes, first in `rows`, as it was last sent. */
+  /**
+   * The row of the uncommitted changes as it was last sent, with the count of its files. The one first in `rows` is
+   * laid out the same, and is not put there again when only its count changed, so that the rows stay the same list.
+   */
   draft: Row | null;
   /** The commits of `rows`, without the row of the uncommitted changes. */
   commits: Row[];
@@ -145,6 +148,12 @@ export const NO_STATE: ShownState = {
   commits: [],
 };
 
+/** Whether two rows of the uncommitted changes are drawn the same in the graph, whatever count of files they say. */
+function laidOutAlike(one: Row | null, other: Row | null): boolean {
+  if (!one || !other) return one === other;
+  return one.parents[0] === other.parents[0] && JSON.stringify(one.graph) === JSON.stringify(other.graph);
+}
+
 /**
  * The state of a view once it is sent some parts: those take the place of the ones it had, whole, and every other part
  * stays the same object. With `kept`, the commits sent come after the first `kept` it has.
@@ -166,8 +175,9 @@ export function withParts(previous: ShownState | null, sent: SentState, parts: r
     else if (kept !== commits.length || sentRows.length) commits = commits.slice(0, kept).concat(sentRows);
   }
   const draft = parts.includes('draft') ? (sentDraft ?? null) : base.draft;
+  const sameRows = commits === base.commits && laidOutAlike(draft, draftOf(base.rows));
   next.commits = commits;
   next.draft = draft;
-  next.rows = commits === base.commits && draft === base.draft ? base.rows : draft ? [draft, ...commits] : commits;
+  next.rows = sameRows ? base.rows : draft ? [draft, ...commits] : commits;
   return next as unknown as ShownState;
 }

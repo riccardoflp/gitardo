@@ -484,6 +484,7 @@ export function App({ compact = false }: { compact?: boolean }) {
           listing={listingOf(state)}
           keepOpen={state.keepOpen}
           rows={state.rows}
+          draft={state.draft}
           empty={state.filter ? 'No commits found' : state.head.commit ? 'No commits to show' : 'No commits yet'}
           hasMore={state.hasMore}
           loading={loading}

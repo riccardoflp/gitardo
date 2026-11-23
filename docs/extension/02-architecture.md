@@ -150,7 +150,8 @@ flowchart TB
    submodules, the pull requests, the commits, the row of the uncommitted changes, and the rest). Each kind of view is
    sent the parts it shows (`partsOf` of `src/shared/stateParts.ts`), and of those only the ones whose key changed
    since it was last sent them (`stateFor` of `src/extension/sentParts.ts`); of the commits, only those it does not
-   have yet, and the row of the uncommitted changes apart from them, so that a new count of files sends no commit. A
+   have yet, and the row of the uncommitted changes apart from them, so that a new count of files sends no commit and
+   the page keeps the same rows, the row first in them laid out as it was and its count drawn from the one sent. A
    view that was sent nothing new is sent no message. The tabs of a commit and of a comparison are sent what the
    labels of their commits need; the tabs that read what they show themselves, no state. The page puts the parts it is
    sent in place of the ones it had (`receive` of `src/webview/received.ts`, D88), so that what did not change keeps

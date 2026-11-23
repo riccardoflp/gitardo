@@ -50,6 +50,11 @@ interface Props {
   /** Whether it does, as `gitardo.repositories.keepOpen` says (`repo.keep-open`). */
   keepOpen: boolean;
   rows: Row[];
+  /**
+   * The row of the uncommitted changes as last sent, which says how many files they are: the one first in `rows` is
+   * laid out the same, and stays when only that count changed, so that the rows are not laid out again for it.
+   */
+  draft?: Row | null;
   /** What to say in their place when there are none. */
   empty: string;
   hasMore: boolean;
@@ -574,8 +579,9 @@ export function CommitList(props: Props) {
       )}
       {/* With more to load, one more row says so at the end, where scrolling gets before they come. */}
       <div className="spacer" style={{ height: length * rowHeight }}>
-        {rows.slice(start, end).map((row, offset) => {
+        {rows.slice(start, end).map((listed, offset) => {
           const index = start + offset;
+          const row = listed.hash === WORKTREE && props.draft ? { ...listed, subject: props.draft.subject } : listed;
           if (row.folded) {
             const { merge, count } = row.folded;
             const mergeRow = props.rows.find((other) => other.hash === merge);
