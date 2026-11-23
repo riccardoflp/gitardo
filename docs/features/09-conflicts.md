@@ -1520,6 +1520,18 @@ Sends the AI provider the question about one conflict and returns its answer as 
   first model the provider lists when it is empty) and the effort of `ai.effort` when it is set, the key taken from the
   credential store of the system; the answer is streamed, and each piece is passed on as it comes. With `copilot`, a
   session of the GitHub Copilot CLI in place of the request, with the same model and effort (`ai.copilot`).
+- **Sent again**, as Anthropic's SDKs send theirs
+  ([D87](../08-decisions.md#d87--github-copilot-through-its-sdk-claude-through-its-api-as-anthropics-sdks-ask-it-proposed)):
+  a request of `anthropic` or `openai-compatible` whose connection failed, or that was answered 408, 409, 429 or a
+  status of 500 or more, is sent again up to twice, unless the answer's `x-should-retry` is `false`. The wait is what
+  the answer's `retry-after-ms`, else its `retry-after` in seconds, asks for, up to a minute; otherwise half a second,
+  then one second (doubled each time, up to 8), less up to a quarter at random. Only the head of the answer is waited
+  for: once the answer streams, a failure is said, not hidden behind a second answer. While it waits, the status bar
+  says *Waiting for Anthropic, then trying again…* (the host of `ai.endpoint` for `openai-compatible`), with why in its
+  tooltip, and **Cancel** ends the wait at once.
+- **Refuses**: an answer that stops at the most tokens the model may write (`stop_reason` `max_tokens`, or
+  `finish_reason` `length` for `openai-compatible`), with *The answer of the model was cut at its length. Ask again
+  with a lower effort.*, rather than read a resolution cut in half.
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`.
 - **Extension**: `read/ai.ask-conflict` of the engine, asked by the review with the file's lines and the conflict
@@ -1537,6 +1549,18 @@ Acceptance:
       of a streamed answer arrive in order before the whole answer.
 - [ ] With `ai.effort` set to `high`, the request carries the provider's setting for high effort; with it empty, none.
 - [ ] Cancelling the question closes the request and returns no answer.
+- [ ] An answer 529 then 200 gives the answer after one wait, while the status bar says *Waiting for Anthropic, then
+      trying again…*.
+- [ ] The wait is what `retry-after-ms` or `retry-after` asks for, up to a minute; without them, half a second after
+      the first try and one second after the second, less up to a quarter at random, and never more than 8 seconds.
+- [ ] An answer 429 with `retry-after: 2` is sent again after two seconds.
+- [ ] 408, 409, 429 and 500 and more are sent again; 400, or an answer with `x-should-retry: false`, is not.
+- [ ] A request whose connection failed is sent again.
+- [ ] A request is sent again at most twice: after three answers 529, the third is said.
+- [ ] A failure after the first piece of the answer is said, and the request is not sent again.
+- [ ] **Cancel** while it waits ends the wait at once, and nothing more is sent.
+- [ ] An answer that stops at `max_tokens`, or at `finish_reason` `length`, is refused with *The answer of the model
+      was cut at its length. Ask again with a lower effort.*
 - [ ] With `ai.provider` set to `copilot`, the question is asked of GitHub Copilot, and its proposal names the Copilot
       model asked.
 - [ ] Extension: the model chosen in `gitardo.conflicts.aiModel` is asked, not the first one, with `reasoningEffort`
@@ -1666,8 +1690,9 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
 - **Entry points**: **Choose the model that resolves conflicts** in Quick search; the button with the model's name in
   the head of `review.page` (*Choose the language model that resolves the conflicts, and how much it thinks*), which
   reads **No language model** when the provider has none.
-- **Reads**: the models the provider lists at `ai.endpoint`; with `ai.provider` set to `copilot`, the models of the
-  user's GitHub Copilot subscription, listed by its CLI, and no key is asked (`ai.copilot`).
+- **Reads**: the models the provider lists at `ai.endpoint`, the request sent again after a failure that passes as a
+  question is (`ai.ask-conflict`); with `ai.provider` set to `copilot`, the models of the user's GitHub Copilot
+  subscription, listed by its CLI, and no key is asked (`ai.copilot`).
 - **Asks**: **The model that resolves conflicts** (*Gitardo asks it about the conflicts the rules leave*): **The first
   model of the provider** (with its name) or one of the models listed, the current choice ticked; then **How much the
   model thinks before it answers** (*More is slower, and often better on hard conflicts. A model without such a setting
@@ -1698,6 +1723,7 @@ Acceptance:
       button then reads *\<model name\> · high effort*.
 - [ ] Choosing **The first model of the provider** and **As the model is set up** removes both settings.
 - [ ] Cancelling either question writes nothing.
+- [ ] A list of the models answered 429 is asked again after the wait, as a question is.
 - [ ] Each AI proposal written after the change names the new model.
 - [ ] With `ai.provider` set to `copilot`, the models listed are those of the GitHub Copilot subscription, no key is
       asked or kept, and signed out or without the CLI it refuses with **Sign in** or **How to install**.

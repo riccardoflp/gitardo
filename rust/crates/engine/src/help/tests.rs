@@ -90,6 +90,7 @@ fn asked_over_http(
         sending: Sending {
             http: &http,
             cancel: &cancel,
+            waiting: None,
         },
         provider,
     };

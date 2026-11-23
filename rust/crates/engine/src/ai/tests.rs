@@ -14,7 +14,7 @@ use super::{
 };
 
 /// The events of the Messages API that write a text in pieces.
-fn anthropic_stream(pieces: &[&str]) -> String {
+pub(super) fn anthropic_stream(pieces: &[&str]) -> String {
     let mut stream = String::from(
         "event: message_start\ndata: {\"type\":\"message_start\"}\n\n\
          event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0}\n\n\
@@ -34,7 +34,7 @@ fn anthropic_stream(pieces: &[&str]) -> String {
 }
 
 /// An answer of server-sent events.
-fn events_answer(stream: &str) -> Answer {
+pub(super) fn events_answer(stream: &str) -> Answer {
     Answer::Bytes(answer(
         "200 OK",
         &[("Content-Type", "text/event-stream")],
@@ -43,7 +43,7 @@ fn events_answer(stream: &str) -> Answer {
 }
 
 /// The provider of a kind at the server of a test, with a key and a model.
-fn provider_at(server: &TestServer, kind: AiProvider, model: &str, effort: Option<Effort>) -> Provider {
+pub(super) fn provider_at(server: &TestServer, kind: AiProvider, model: &str, effort: Option<Effort>) -> Provider {
     Provider {
         settings: AiSettings {
             provider: Some(kind),
@@ -55,12 +55,12 @@ fn provider_at(server: &TestServer, kind: AiProvider, model: &str, effort: Optio
     }
 }
 
-fn http() -> Http {
+pub(super) fn http() -> Http {
     Http::new(TestServer::trust(), Proxies::none())
 }
 
 /// A question about a conflict, with nothing around it.
-fn conflict_request(question: &str) -> ConflictRequest {
+pub(super) fn conflict_request(question: &str) -> ConflictRequest {
     ConflictRequest {
         question: question.to_owned(),
         before: Vec::new(),
@@ -69,7 +69,7 @@ fn conflict_request(question: &str) -> ConflictRequest {
     }
 }
 
-const REPLY: [&str; 4] = [
+pub(super) const REPLY: [&str; 4] = [
     "<resolution>\nboth",
     "();\n</resolution>",
     "<reason>Kept both.</reason>",
@@ -83,7 +83,7 @@ fn body_of(server: &TestServer, index: usize) -> Value {
 }
 
 /// The question about a conflict asked of the provider over HTTP.
-fn asked(
+pub(super) fn asked(
     sending: Sending<'_>,
     provider: &Provider,
     request: &ConflictRequest,
@@ -103,6 +103,7 @@ fn ai_ask_conflict__the_request_is_the_question_and_the_pieces_come_in_order_bef
         Sending {
             http: &http,
             cancel: &cancel,
+            waiting: None,
         },
         &provider,
         &conflict_request("Resolve one merge conflict in the file a.rs."),
@@ -140,6 +141,7 @@ fn ai_ask_conflict__high_effort_is_sent_as_the_provider_says_and_no_effort_when_
     let sending = Sending {
         http: &http,
         cancel: &cancel,
+        waiting: None,
     };
     let ask = |provider: &Provider| asked(sending, provider, &conflict_request("Q"), &mut |_| {}).unwrap();
     let _high = ask(&provider_at(&server, AiProvider::Anthropic, "m", Some(Effort::High)));
@@ -196,6 +198,7 @@ fn ai_ask_conflict__cancelling_closes_the_request_and_returns_no_answer() {
         Sending {
             http: &http,
             cancel: &cancel,
+            waiting: None,
         },
         &provider,
         &conflict_request("Q"),
@@ -226,6 +229,7 @@ fn ai_choose_model__each_answer_names_the_model_asked_or_the_first_the_provider_
     let sending = Sending {
         http: &http,
         cancel: &cancel,
+        waiting: None,
     };
     let chosen = provider_at(&server, AiProvider::Anthropic, "model-b", None);
     let reply = asked(sending, &chosen, &conflict_request("Q"), &mut |_| {}).unwrap();
@@ -253,6 +257,7 @@ fn the_models_are_listed_with_their_names_and_a_refused_key_asks_for_another() {
     let sending = Sending {
         http: &http,
         cancel: &cancel,
+        waiting: None,
     };
     let provider = provider_at(&server, AiProvider::Anthropic, "", None);
     let listed = list_models(sending, &provider).unwrap();
@@ -274,6 +279,7 @@ fn a_model_the_provider_does_not_have_is_said_by_its_name() {
         Sending {
             http: &http,
             cancel: &cancel,
+            waiting: None,
         },
         &provider,
         &conflict_request("Q"),

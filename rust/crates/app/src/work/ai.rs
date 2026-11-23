@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use engine::ai::{
-    ConflictReply, ConflictRequest, CopilotCli, CopilotError, LanguageModel, Provider, ProviderModel, Sending,
+    ConflictReply, ConflictRequest, CopilotCli, CopilotError, LanguageModel, Provider, ProviderModel, Sending, Waiting,
 };
 use engine::{Activities, SecretStore};
 use git::read::commit::{DraftDiffRequest, read_draft_diff};
@@ -189,6 +189,7 @@ impl Asking {
                     secrets: &secrets,
                     http: &http,
                     copilot: &copilot,
+                    activities: &activities,
                 };
                 let result = answer(&question, asked, &cancel, &deliver);
                 let _done = lock(&running).remove(&id);
@@ -246,7 +247,8 @@ fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-/// Who is asked, and with what: the key of the provider, the client of its requests, and the GitHub Copilot CLI.
+/// Who is asked, and with what: the key of the provider, the client of its requests, the GitHub Copilot CLI, and where
+/// the wait before a request is sent again is shown.
 #[derive(Clone, Copy)]
 struct Asked<'a> {
     /// Where the key of the provider is kept.
@@ -255,12 +257,19 @@ struct Asked<'a> {
     http: &'a Mutex<Option<Http>>,
     /// The GitHub Copilot CLI of the window.
     copilot: &'a CopilotCli,
+    /// The activities of the window, among which the status bar says *Waiting for Anthropic, then trying again…*.
+    activities: &'a Activities,
 }
 
 /// Asks the provider, or GitHub Copilot through the CLI of the window, passing on the text of the answer so far at most
 /// every [`PIECE_INTERVAL`].
 fn answer(question: &AiQuestion, asked: Asked<'_>, cancel: &Cancel, deliver: &Deliver) -> AiResult {
-    let Asked { secrets, http, copilot } = asked;
+    let Asked {
+        secrets,
+        http,
+        copilot,
+        activities,
+    } = asked;
     let Some(kind) = question.settings.provider else {
         return Err(engine::ai::AiError::NotSetUp.into());
     };
@@ -288,7 +297,14 @@ fn answer(question: &AiQuestion, asked: Asked<'_>, cancel: &Cancel, deliver: &De
         settings: question.settings.clone(),
         key,
     };
-    let sending = Sending { http: &http, cancel };
+    let sending = Sending {
+        http: &http,
+        cancel,
+        waiting: Some(Waiting {
+            activities,
+            clock: &super::operations::SystemClock,
+        }),
+    };
     let mut model = ProviderModel {
         sending,
         provider: &provider,

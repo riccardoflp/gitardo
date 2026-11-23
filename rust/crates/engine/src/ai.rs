@@ -6,6 +6,7 @@
 //! tests send them to a server of their own on 127.0.0.1.
 
 mod copilot;
+mod retry;
 mod wire;
 
 use std::fmt;
@@ -20,6 +21,7 @@ use model::commit::{DraftInput, clean_draft, draft_message};
 pub use copilot::{
     ARGUMENTS, CopilotCli, CopilotError, CopilotModel, CopilotStreams, copilot_model, find_copilot, program_extensions,
 };
+pub use retry::Waiting;
 pub use wire::{ANTHROPIC_VERSION, MOST_TOKENS};
 
 /// The provider asked, with its key.
@@ -31,13 +33,15 @@ pub struct Provider {
     pub key: Option<Key>,
 }
 
-/// How a request is sent: with what, and what cancels it.
+/// How a request is sent: with what, what cancels it, and where the wait before it is sent again is shown.
 #[derive(Clone, Copy, Debug)]
 pub struct Sending<'a> {
     /// The client.
     pub http: &'a Http,
-    /// What cancels the request: the token of the job that sends it.
+    /// What cancels the request: the token of the job that sends it, which also ends the wait before it is sent again.
     pub cancel: &'a Cancel,
+    /// Where the wait before the request is sent again is shown while it lasts; none where nothing shows it.
+    pub waiting: Option<Waiting<'a>>,
 }
 
 /// What a question to a language model is for, so that the host says why it sends it.
@@ -126,6 +130,9 @@ pub enum AiError {
     Refused(String),
     /// The answer is not what the provider's interface says.
     Unreadable(String),
+    /// The answer stopped at the most tokens the model may write: `stop_reason` `max_tokens`, or `finish_reason`
+    /// `length`.
+    Cut,
     /// The answer is not a resolution (`ai.read-answer`, `ai.trim-answer`).
     Answer(AnswerError),
     /// The question was cancelled.
@@ -170,6 +177,9 @@ impl fmt::Display for AiError {
             AiError::Unreadable(reason) => {
                 write!(formatter, "The answer of the AI provider could not be read: {reason}")
             }
+            AiError::Cut => {
+                formatter.write_str("The answer of the model was cut at its length. Ask again with a lower effort.")
+            }
             AiError::Answer(error) => formatter.write_str(error.0.as_str()),
             AiError::Cancelled => formatter.write_str("The question was cancelled."),
             AiError::Host(said) => formatter.write_str(said),
@@ -184,15 +194,17 @@ impl std::error::Error for AiError {}
 ///
 /// # Errors
 ///
-/// When no provider is set up, it wants a key that is not kept or refuses it, or the request fails.
+/// When no provider is set up, it wants a key that is not kept or refuses it, or the request fails, also once sent
+/// again after a failure that passes.
 pub fn list_models(sending: Sending<'_>, provider: &Provider) -> Result<Vec<AiModel>, AiError> {
     let kind = http_kind(provider)?;
     let request = wire::models_request(kind, provider)?;
-    let response = sending.http.send(&request, sending.cancel)?;
-    if !response.head.is_success() {
-        return Err(wire::status_error(&response.head, &response.body, provider, None));
+    let mut opened = retry::open(sending, &request, kind)?;
+    let body = opened.body.read_all()?;
+    if !opened.head.is_success() {
+        return Err(wire::status_error(&opened.head, &body, provider, None));
     }
-    wire::parse_models(kind, &response.body)
+    wire::parse_models(kind, &body)
 }
 
 /// The kind of provider asked over HTTP; GitHub Copilot is asked through its CLI ([`CopilotModel`]) instead.
@@ -223,12 +235,13 @@ pub struct Asked {
     pub text: String,
 }
 
-/// Asks the model, its answer streamed: each piece is given to `pieces` as it comes, before the whole answer is.
+/// Asks the model, its answer streamed: each piece is given to `pieces` as it comes, before the whole answer is. The
+/// request is sent again after a failure that passes, before the answer streams.
 ///
 /// # Errors
 ///
-/// When the provider is not set up, the model is not there, the provider refuses, the answer cannot be read, or the
-/// question is cancelled.
+/// When the provider is not set up, the model is not there, the provider refuses, the answer cannot be read or is cut
+/// at its length, or the question is cancelled.
 pub fn ask(
     sending: Sending<'_>,
     provider: &Provider,
@@ -243,7 +256,7 @@ pub fn ask(
         provider.settings.model.clone()
     };
     let sent = wire::ask_request(kind, provider, &model, request)?;
-    let mut opened = sending.http.open(&sent, sending.cancel)?;
+    let mut opened = retry::open(sending, &sent, kind)?;
     if !opened.head.is_success() {
         let body = opened.body.read_all()?;
         let chosen = (!provider.settings.model.is_empty()).then_some(model.as_str());

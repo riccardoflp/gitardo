@@ -196,6 +196,10 @@ impl Engine {
             crate::ai::Sending {
                 http: &http,
                 cancel: &cancel,
+                waiting: Some(crate::ai::Waiting {
+                    activities: &self.activities,
+                    clock: self.clock.as_ref(),
+                }),
             },
             &crate::ai::Provider { settings, key },
         );

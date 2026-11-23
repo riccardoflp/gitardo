@@ -1106,8 +1106,12 @@ answer replaces the text of the message box. Nothing is sent until the button is
 activity indicator of the status bar says **drafting commit message** and it can be cancelled there; cancelled or failed,
 the message box is left as it was.
 
+The request is sent again after a failure that passes, and an answer cut at its length is refused, as for the
+conflicts (`ai.ask-conflict`).
+
 Refuses: "There are no changes to describe." with nothing changed; with `ai.provider` empty, "No AI provider is set
-up." with **Open settings** at `ai.provider`.
+up." with **Open settings** at `ai.provider`; an answer that stops at the most tokens the model may write, with "The
+answer of the model was cut at its length. Ask again with a lower effort.", the message box left as it was.
 
 Acceptance:
 
@@ -1119,6 +1123,8 @@ Acceptance:
 - [ ] The answer "```text\nAdd the parser\n```" puts `Add the parser` in the message box.
 - [ ] No HTTP request is made before the button is pressed.
 - [ ] Cancelling while it runs leaves the message box as it was.
+- [ ] An answer cut at `max_tokens` is refused with "The answer of the model was cut at its length. Ask again with a
+      lower effort." and gives no draft.
 - [ ] With `ai.provider` set to `copilot`, the draft is written by GitHub Copilot.
 - [ ] Extension: nothing is sent to a model until the sparkle button is pressed.
 - [ ] Extension: with no model in VS Code, the error above is shown and the box keeps what it had.

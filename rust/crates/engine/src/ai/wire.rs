@@ -162,7 +162,8 @@ pub(super) fn read_event(kind: AiProvider, event: &Event) -> Result<Read, AiErro
     }
 }
 
-/// An event of the Messages API: the text of a `content_block_delta`, an `error`, the end, or a refusal.
+/// An event of the Messages API: the text of a `content_block_delta`, an `error`, the end, a refusal, or an answer
+/// cut at its length.
 fn read_anthropic_event(event: &Event) -> Result<Read, AiError> {
     match event.name.as_str() {
         "content_block_delta" => {
@@ -182,10 +183,12 @@ fn read_anthropic_event(event: &Event) -> Result<Read, AiError> {
                 .get("delta")
                 .and_then(|delta| delta.get("stop_reason"))
                 .and_then(Value::as_str);
-            if reason == Some("refusal") {
-                return Err(AiError::Refused(String::from("the model declined to answer.")));
+            match reason {
+                Some("refusal") => Err(AiError::Refused(String::from("the model declined to answer."))),
+                // An answer cut in half would be read as a whole one, or refused as no resolution.
+                Some("max_tokens") => Err(AiError::Cut),
+                _ => Ok(Read::Nothing),
             }
-            Ok(Read::Nothing)
         }
         "error" => Err(AiError::Refused(error_message(&parse(event.data.as_bytes())?))),
         "message_stop" => Ok(Read::End),
@@ -194,7 +197,8 @@ fn read_anthropic_event(event: &Event) -> Result<Read, AiError> {
     }
 }
 
-/// An event of the chat completions: the content of the delta of its first choice, an error, or `[DONE]`.
+/// An event of the chat completions: the content of the delta of its first choice, an error, an answer cut at its
+/// length (`finish_reason` `length`), or `[DONE]`.
 fn read_chat_event(event: &Event) -> Result<Read, AiError> {
     if event.data.trim() == "[DONE]" {
         return Ok(Read::End);
@@ -203,10 +207,15 @@ fn read_chat_event(event: &Event) -> Result<Read, AiError> {
     if data.get("error").is_some() {
         return Err(AiError::Refused(error_message(&data)));
     }
-    let content = data
-        .get("choices")
-        .and_then(Value::as_array)
-        .and_then(<[Value]>::first)
+    let choice = data.get("choices").and_then(Value::as_array).and_then(<[Value]>::first);
+    if choice
+        .and_then(|choice| choice.get("finish_reason"))
+        .and_then(Value::as_str)
+        == Some("length")
+    {
+        return Err(AiError::Cut);
+    }
+    let content = choice
         .and_then(|choice| choice.get("delta"))
         .and_then(|delta| delta.get("content"))
         .and_then(Value::as_str);

@@ -224,6 +224,13 @@
   image at a revision is drawn the same way.
 - The preview of a Markdown file draws an SVG of the repository it names, as it draws a PNG, with the fonts of
   the program and without reading anything the SVG names.
+- Claude, and a server of the chat completions, are asked as Anthropic's SDKs ask them: a question whose connection
+  failed, or that was answered 408, 409, 429 or 500 and more (such as 529 when Anthropic is overloaded), is sent again
+  up to twice, after the wait the answer asks for, up to a minute, or after half a second, then one second. The status
+  bar says *Waiting for Anthropic, then trying again…* while it waits, and **Cancel** ends the wait. Once the answer
+  has started to come, a failure is said, not asked again. An answer cut at the most the model may write is refused
+  with *The answer of the model was cut at its length. Ask again with a lower effort.*, in place of a resolution or a
+  message cut in half.
 
 ## 1.2.0 - 2026-11-18
 
