@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { FlowDiff } from '../flow/flowDiff';
 import { reads } from '../engine/reads';
 import { WindowEngine } from '../engine/vscode';
+import { HeadsSeen } from '../shared/blameCache';
 import type { RepoState, SyncAction, ViewKind } from '../shared/protocol';
 import { checkedOutBranch } from '../shared/state';
 import { answerLanguageModel, languageModels } from './ai';
@@ -50,6 +51,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     open: (hash, repo) => controller.openCommit(hash, repo),
     reveal: (hash) => controller.reveal(hash),
   });
+  const lineBlame = new BlameAnnotator(blameSource);
+  const heads = new HeadsSeen();
   // What it stages and unstages runs as Gitardo's own operations, and what Gitardo reads again may have moved it.
   const flowDiff = new FlowDiff(context.extensionUri, (root, runs) => controller.runIn(root, runs));
   // The repository shown and the one selected in VS Code's Repositories view follow each other.
@@ -157,8 +160,12 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
       hasRepository(true);
       showRootsInMenus([...new Set([...roots, ...state.repos.map((repo) => repo.root)])]);
       flowDiff.repositoryChanged(state.root);
-      // A commit made since gives its name to the lines that had none.
-      fileBlame.refresh();
+      // A commit made since gives its name to the lines that had none, and a checkout or a reset gives others theirs: a read
+      // that left HEAD where it was changes no blame, and a file changed on the disk is read again by the editor.
+      if (heads.moved(state.root, state.head.commit)) {
+        fileBlame.refresh(state.root);
+        lineBlame.refresh();
+      }
     }),
   );
 
@@ -197,7 +204,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     flowDiff,
     status,
     shown,
-    new BlameAnnotator(blameSource),
+    lineBlame,
     fileBlame,
     command('gitardo.fileHistory', (uri) => controller.fileHistory(uri instanceof vscode.Uri ? uri : undefined)),
     command('gitardo.folderHistory', (uri) => controller.folderHistory(uri instanceof vscode.Uri ? uri : undefined)),

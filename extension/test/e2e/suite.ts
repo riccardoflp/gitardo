@@ -3806,6 +3806,48 @@ export async function run(): Promise<void> {
     assert.equal(errors.length, before);
   });
 
+  await step('asks the blame of the line under the cursor once for each line and version of the text, not as the cursor moves along it', async () => {
+    const before = errors.length;
+    const client = internals.engine?.running as EngineClient | undefined;
+    if (!client) return;
+    // The engine the extension asks is this one: what it is asked is counted on it.
+    const asked: { line: number; contents: unknown }[] = [];
+    const blameLine = client.blameLine;
+    client.blameLine = (repository, file, line, contents, signal) => {
+      asked.push({ line, contents });
+      return blameLine.call(client, repository, file, line, contents, signal);
+    };
+    try {
+      const editor = await vscode.window.showTextDocument(vscode.Uri.file(path.join(app, 'a.txt')));
+      assert.ok(editor.document.lineCount > 2, 'a file of a few lines');
+      const along = async (line: number) => {
+        for (let character = 0; character <= Math.min(editor.document.lineAt(line).text.length, 6); character++) {
+          editor.selection = new vscode.Selection(line, character, line, character);
+          await sleep(300);
+        }
+        await sleep(600);
+      };
+      // Typed, the line is a new version of the text: asked once, with the text, since it is not saved.
+      await editor.edit((builder) => builder.insert(new vscode.Position(1, 0), 'x'));
+      editor.selection = new vscode.Selection(1, 0, 1, 0);
+      await until('the blame of the line typed', () => asked.some((each) => each.line === 2 && each.contents));
+      await sleep(600);
+      const once = asked.length;
+      await along(1);
+      assert.equal(asked.length, once, 'no blame asked while the cursor moves along the line');
+      // Another line is asked, and the first one, come back to in the same text, is not.
+      await along(2);
+      assert.equal(asked.length, once + 1, JSON.stringify(asked.slice(once)));
+      await along(1);
+      assert.equal(asked.length, once + 1, JSON.stringify(asked.slice(once)));
+    } finally {
+      client.blameLine = blameLine;
+      await vscode.commands.executeCommand('workbench.action.files.revert');
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    }
+    assert.equal(errors.length, before);
+  });
+
   await step('sends the commits to the graph once, not again each time a file changes', async () => {
     const graph = view('graph');
     const sent: Extract<HostMessage, { type: 'state' }>[] = [];
