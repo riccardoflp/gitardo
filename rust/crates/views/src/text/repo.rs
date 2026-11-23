@@ -67,6 +67,21 @@ pub const CLOSE_TAB: &str = "Close tab";
 pub const CLOSE_OTHER_TABS: &str = "Close other tabs";
 /// **Clean up…** in the menu of the row of the repository shown (`upkeep.clean-up`).
 pub const CLEAN_UP: &str = "Clean up\u{2026}";
+/// **Speed up reading the history** in the menu of the row of the repository shown, while git keeps no commit-graph
+/// file of it (`upkeep.write-commit-graph`).
+pub const SPEED_UP_HISTORY: &str = "Speed up reading the history";
+/// The button of the notice of the commit-graph file that writes it (`upkeep.offer-commit-graph`).
+pub const WRITE_COMMIT_GRAPH: &str = "Write it";
+/// The button of the notice of the commit-graph file that says it no more for that repository
+/// (`upkeep.offer-commit-graph`).
+pub const NOT_FOR_THIS_REPOSITORY: &str = "Not for this repository";
+
+/// The notice of the commit-graph file, for a repository with a long history and none (`upkeep.offer-commit-graph`).
+#[must_use]
+pub fn commit_graph_notice(repository: &str) -> String {
+    format!("Git can read the history of {repository} about twice as fast with its commit-graph file.")
+}
+
 /// **Look after it in the background…** in the menu of the row of the repository shown, ticked while git's
 /// maintenance looks after it (`upkeep.start-background`, `upkeep.stop-background`).
 pub const LOOK_AFTER: &str = "Look after it in the background\u{2026}";

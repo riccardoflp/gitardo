@@ -7,7 +7,7 @@
 //! folds of each repository ([`timeline`]); how the files are laid out in the inspector, in the pages of commits and in
 //! the Changes page ([`layouts`]); the message of the commit box of each repository ([`changes`]); the values given last
 //! for the inputs of the format of branch names in each workspace ([`inputs`]); the folders the user trusts
-//! ([`trust`]).
+//! ([`trust`]); the repositories whose notice of git's commit-graph file was answered **Not for this repository**.
 //!
 //! The file is JSON, written whole each time. A file that cannot be read gives what a first start has.
 
@@ -76,6 +76,9 @@ pub struct Persisted {
     pub file_searches: Vec<file_search::RepositorySearch>,
     /// The folder the last clone went in, where the dialog of the next clone starts (`repo.clone`).
     pub clone_folder: Option<PathBuf>,
+    /// The repositories, by the folder of their main worktree, whose notice of git's commit-graph file was answered
+    /// **Not for this repository**, in the order they were (`upkeep.offer-commit-graph`). None is cut.
+    pub commit_graph_declined: Vec<PathBuf>,
 }
 
 /// Where a window was, how large and whether it was maximized (`window.title-bar`).
@@ -152,6 +155,7 @@ impl Persisted {
             trusted_folders: trust::trusted_folders(&document),
             file_searches: list(&document, "fileSearches", file_search::repository_search),
             clone_folder: document.get("cloneFolder").and_then(Value::as_str).map(PathBuf::from),
+            commit_graph_declined: trust::folders(&document, "commitGraphDeclined"),
         }
     }
 
@@ -209,9 +213,8 @@ impl Persisted {
                 Value::Array(self.branch_inputs.iter().map(inputs::inputs_value).collect()),
             ));
         }
-        if !self.trusted_folders.is_empty() {
-            members.push(member("trustedFolders", trust::folders_value(&self.trusted_folders)));
-        }
+        members.extend(trust::member("trustedFolders", &self.trusted_folders));
+        members.extend(trust::member("commitGraphDeclined", &self.commit_graph_declined));
         members.extend(
             self.clone_folder
                 .as_deref()

@@ -1605,7 +1605,7 @@ history without walking all of it first, and whether git reads it.
 - **Reads**: `git rev-parse --git-path objects/info/commit-graph --git-path objects/info/commit-graphs/commit-graph-chain`,
   the two places git keeps the file, alone or as a chain, and whether either is there; `git config --type=bool --get
   core.commitGraph`, where `false` means git does not read the file. It runs with `repo.read-state`, again only when
-  the object folder of the repository changed.
+  one of those places, the folder that holds it, or the configuration of the repository or of the user changed.
 - **Uses**: by `upkeep.offer-commit-graph` and `upkeep.write-commit-graph`.
 - **Extension**: Planned: read by the engine for the notice and the menu of the row, sent with the state.
 
@@ -1655,7 +1655,7 @@ A notice, once, for a repository with a long history and no commit-graph file, t
 fast with one.
 
 - **Kind**: View
-- **Function**: `views::status::commit_graph_notice(state: &CommitGraphNotice, ui) -> Vec<Intent>`
+- **Function**: `views::activity::commit_graph_notice(state: &CommitGraphNotice, ui) -> Vec<Intent>`
 - **Entry points**: the notices of the status bar (`activity.status-bar`), when the read of the whole history of the
   repository shown ends.
 

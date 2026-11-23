@@ -185,6 +185,7 @@ struct Parts {
     shallow: Shallow,
     skipped: Vec<model::state::SkippedFile>,
     is_looked_after: bool,
+    commit_graph: model::upkeep::CommitGraph,
     notes: model::note::Notes,
     lfs: model::lfs::LfsStatus,
     rerere: model::rerere::RerereState,
@@ -242,12 +243,14 @@ fn read_parts(
             shallow: joined(shallow)?,
             skipped: kept.skipped.files.clone(),
             is_looked_after: kept.background.is_registered,
+            commit_graph: kept.commit_graph.graph,
             notes: kept.notes.clone(),
             lfs: joined(lfs)?,
             rerere: joined(rerere)?,
         };
         counted.skipped = Some(kept.skipped);
         counted.background = Some(kept.background);
+        counted.commit_graph = Some(kept.commit_graph);
         counted.notes = Some(kept.notes);
         Ok((parts, counted))
     })
@@ -257,6 +260,7 @@ fn read_parts(
 struct Kept {
     skipped: crate::read::changes::SkippedRead,
     background: crate::read::upkeep::BackgroundRead,
+    commit_graph: crate::read::upkeep::CommitGraphRead,
     notes: model::note::Notes,
 }
 
@@ -294,8 +298,9 @@ fn read_rerere(git: &Git, location: &Location) -> Result<model::rerere::RerereSt
 
 /// The reads kept from the read before while what they read did not change: the files hidden from git, while the index
 /// did not change (`changes.read-skipped`); whether git's maintenance looks after the repository, while the user's
-/// configuration did not (`upkeep.read-background`); and the commits with a note, while the reference of notes did not
-/// move (`note.read`).
+/// configuration did not (`upkeep.read-background`); whether git keeps its commit-graph file, while the object folder
+/// and the configuration did not change (`upkeep.read-commit-graph`); and the commits with a note, while the reference
+/// of notes did not move (`note.read`).
 fn read_kept(git: &Git, location: &Location, before: &CountedWorktrees) -> Result<Kept, GitError> {
     let skipped_request = crate::read::changes::SkippedRequest {
         git_folder: location.git_folder.clone(),
@@ -305,12 +310,17 @@ fn read_kept(git: &Git, location: &Location, before: &CountedWorktrees) -> Resul
         folder: location.folder.clone(),
         before: before.background.clone(),
     };
+    let commit_graph_request = crate::read::upkeep::CommitGraphRequest {
+        folder: location.folder.clone(),
+        before: before.commit_graph.clone(),
+    };
     let notes_request = crate::read::note::NoteRequest {
         before: before.notes.clone(),
     };
     Ok(Kept {
         skipped: crate::read::changes::read_skipped(git, &skipped_request)?,
         background: crate::read::upkeep::read_background_kept(git, &background_request)?,
+        commit_graph: crate::read::upkeep::read_commit_graph_kept(git, &commit_graph_request)?,
         notes: crate::read::note::read(git, &notes_request)?,
     })
 }
@@ -353,6 +363,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         shallow: parts.shallow,
         skipped: parts.skipped,
         is_looked_after: parts.is_looked_after,
+        commit_graph: parts.commit_graph,
         notes: parts.notes,
         lfs: parts.lfs,
         rerere: parts.rerere,

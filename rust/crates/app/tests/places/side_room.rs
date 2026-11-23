@@ -128,6 +128,7 @@ fn long_entry(name: &str, branch: &str) -> TabEntry {
         members: Vec::new(),
         is_unfolded: true,
         looked_after: None,
+        commit_graph: None,
         remembers_resolutions: None,
     }
 }

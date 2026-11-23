@@ -1,6 +1,6 @@
 //! The upkeep of a repository, from the menu of its row in **Repositories**: **Clean up…** with `git gc`
-//! (`upkeep.clean-up`), and git's scheduled maintenance started and stopped for it (`upkeep.start-background`,
-//! `upkeep.stop-background`).
+//! (`upkeep.clean-up`), git's commit-graph file written (`upkeep.write-commit-graph`), and git's scheduled maintenance
+//! started and stopped for it (`upkeep.start-background`, `upkeep.stop-background`).
 
 use model::branch::repository_name;
 use model::contract::{AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Query, Refusal, Step, Text, Undo};
@@ -36,6 +36,42 @@ pub fn clean_up(context: &Context, answers: &Answers) -> Outcome {
         after: vec![FollowUp::Say(Text::from(format!(
             "Cleaned up {name}, which took {}.",
             size_text(size.total_kib())
+        )))],
+        on_failure: Vec::new(),
+    })
+}
+
+/// Writes git's commit-graph file of the repository, with the paths each commit changed, so that the history, a search
+/// and the history of a file are read about twice as fast (D88). Git's configuration is not changed; the file is git's
+/// own cache of the commits, which `git gc` writes again.
+///
+/// Feature: upkeep.write-commit-graph
+#[must_use]
+pub fn write_commit_graph(context: &Context, _answers: &Answers) -> Outcome {
+    let graph = context.repository.commit_graph;
+    if graph.is_ignored {
+        return Outcome::Refuse(Refusal::saying(
+            "Git does not read a commit-graph file in this repository: core.commitGraph is false.",
+        ));
+    }
+    if graph.has_file {
+        return Outcome::Refuse(Refusal::saying(
+            "Git keeps a commit-graph file of this repository already.",
+        ));
+    }
+    let name = repository_name(&context.repository);
+    Outcome::Run(Plan {
+        title: Text::from(format!("Speed up reading the history of {name}")),
+        steps: vec![Step::git(
+            context.repository.folder.clone(),
+            ["commit-graph", "write", "--reachable", "--changed-paths"],
+        )],
+        danger: Danger::None,
+        undo: Undo::Impossible(Text::from(
+            "Not needed: deleting the file leaves the repository as it was.",
+        )),
+        after: vec![FollowUp::Say(Text::from(format!(
+            "Wrote git's commit-graph file of {name}."
         )))],
         on_failure: Vec::new(),
     })
@@ -102,7 +138,7 @@ mod tests {
     use model::contract::{Answer, Answers, Danger, Outcome, Query, Target};
     use model::upkeep::RepositorySize;
 
-    use super::{SIZE, clean_up, start_background, stop_background};
+    use super::{SIZE, clean_up, start_background, stop_background, write_commit_graph};
     use crate::testing::{context, lines, plan, state};
 
     fn sized() -> Answers {
@@ -162,5 +198,33 @@ mod tests {
         assert_eq!(plan.danger, Danger::None);
         let context = crate::testing::context(state(), Target::Head);
         assert!(matches!(stop_background(&context, &Answers::new()), Outcome::Refuse(_)));
+    }
+
+    #[test]
+    fn upkeep_write_commit_graph__it_writes_the_file_with_the_changed_paths_and_says_so() {
+        let context = context(state(), Target::Head);
+        let plan = plan(write_commit_graph(&context, &Answers::new()));
+        assert_eq!(lines(&plan), ["git commit-graph write --reachable --changed-paths"]);
+        assert_eq!(plan.danger, Danger::None);
+        let said = format!("{:?}", plan.after);
+        assert!(said.contains("Wrote git's commit-graph file of"), "{said}");
+    }
+
+    #[test]
+    fn upkeep_write_commit_graph__it_is_refused_where_git_keeps_the_file_or_does_not_read_one() {
+        let mut written = state();
+        written.commit_graph.has_file = true;
+        let context = crate::testing::context(written, Target::Head);
+        assert!(matches!(
+            write_commit_graph(&context, &Answers::new()),
+            Outcome::Refuse(_)
+        ));
+        let mut ignored = state();
+        ignored.commit_graph.is_ignored = true;
+        let context = crate::testing::context(ignored, Target::Head);
+        assert!(matches!(
+            write_commit_graph(&context, &Answers::new()),
+            Outcome::Refuse(_)
+        ));
     }
 }

@@ -72,7 +72,9 @@ it starts; and since milestone M26 a key of its own, `fileSearches`, for each re
 searches (`file-search.remember`): what is typed, the switches, the mode, the scope with the path **Search here** named,
 **Include** and **Exclude**, only what differs from a first search, for the 20 repositories searched last; nothing is
 kept for a repository whose search is as a first one is, and an entry in a shape the version does not know is left
-out. The extension's
+out. Since milestone M44 it keeps `commitGraphDeclined`, the folders of the main worktrees of the repositories whose
+notice of git's commit-graph file was answered **Not for this repository** (`upkeep.offer-commit-graph`), in the order
+they were, none cut, left out while it is empty. The extension's
 references have their own filter since phase 3 of M13, kept under `gitardo.branchesListed` in the workspace state, in
 the shape of `gitardo.scope`; the engine reads neither, since what the references list is drawn by the webviews alone.
 

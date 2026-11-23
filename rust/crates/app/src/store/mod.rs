@@ -10,6 +10,7 @@ mod changes;
 mod changes_beside;
 mod co_authors;
 mod code_workspace;
+mod commit_graph;
 mod commit_images;
 mod commit_options;
 mod commit_page;
@@ -63,6 +64,7 @@ use views::{FolderAnswer, Intent};
 
 use crate::persisted;
 use crate::settings::Settings;
+use commit_graph::notice;
 
 pub use changes::{Changes, ChangesData};
 pub use code_workspace::code_workspace_folders;
@@ -123,6 +125,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(changes::follow_unsaved(state));
     effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
+    commit_graph::follow(state);
     effects.extend(terminals::follow(state));
     effects.extend(tasks_tab::follow(state));
     effects.extend(tabs::follow_hidden(state));
@@ -419,7 +422,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             Vec::new()
         }
         Intent::OpenUrl(url) => vec![Effect::OpenUrl(url)],
-        Intent::DismissNotice => dismiss_notice(state),
+        Intent::DismissNotice | Intent::DismissCommitGraph | Intent::DeclineCommitGraph => notice(state, &intent),
         Intent::Rail(intent) => pages::starting_again(state, |state| rail::reduce_rail(state, intent)),
         Intent::Filter(intent) => rail::reduce_filter(state, intent),
         Intent::Graph(intent) => reduce_graph(state, intent),
@@ -457,12 +460,6 @@ fn read_again(state: &mut State, intent: &Intent) -> Vec<Effect> {
         return reads::asked(state, model::repo::ReadCause::Refresh);
     }
     look_again(state, *intent == Intent::Refresh)
-}
-
-/// Puts the notice shown away.
-fn dismiss_notice(state: &mut State) -> Vec<Effect> {
-    state.notice = None;
-    Vec::new()
 }
 
 /// An intent of the timeline; selecting a row there closes the comparison shown in place in the inspector.

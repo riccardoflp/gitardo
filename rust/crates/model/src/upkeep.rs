@@ -1,5 +1,6 @@
 //! The upkeep of a repository: the room its objects take (`upkeep.read-size`), said in words for **Clean up…**
-//! (`upkeep.clean-up`), and whether git's scheduled maintenance looks after it (`upkeep.read-background`).
+//! (`upkeep.clean-up`), whether git's scheduled maintenance looks after it (`upkeep.read-background`), and whether git
+//! keeps a commit-graph file of it (`upkeep.read-commit-graph`), offered when it does not (`upkeep.offer-commit-graph`).
 
 use std::path::Path;
 
@@ -114,6 +115,36 @@ pub fn size_sentence(repository: &str, size: &RepositorySize) -> String {
     )
 }
 
+/// How many commits the history has, at least, for the commit-graph file to be offered once it is read
+/// (`upkeep.offer-commit-graph`, Q1515).
+pub const COMMIT_GRAPH_OFFERED_FROM: usize = 10_000;
+
+/// Whether git keeps its commit-graph file of a repository, the cache of its commits and their parents, and whether git
+/// reads it (`upkeep.read-commit-graph`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CommitGraph {
+    /// Whether the file is there, alone or as a chain.
+    pub has_file: bool,
+    /// Whether `core.commitGraph` is `false`, and git does not read the file.
+    pub is_ignored: bool,
+}
+
+impl CommitGraph {
+    /// Whether writing the file would make the history quicker to read: there is none, and git would read one
+    /// (`upkeep.write-commit-graph`).
+    #[must_use]
+    pub fn is_missing(self) -> bool {
+        !self.has_file && !self.is_ignored
+    }
+}
+
+/// Whether a repository of this many commits, read whole, is offered the commit-graph file
+/// (`upkeep.offer-commit-graph`): 10,000 commits or more, and the file missing where git would read it.
+#[must_use]
+pub fn offers_commit_graph(commits: usize, graph: CommitGraph) -> bool {
+    commits >= COMMIT_GRAPH_OFFERED_FROM && graph.is_missing()
+}
+
 /// Whether a folder is among those `maintenance.repo` lists, each compared as git writes it, absolute with `/`, and
 /// whatever the case on Windows and macOS, whose file systems ignore it.
 #[must_use]
@@ -136,7 +167,7 @@ pub fn is_registered(listed: &[String], folder: &Path) -> bool {
 mod tests {
     use std::path::Path;
 
-    use super::{RepositorySize, is_registered, size_sentence, size_text};
+    use super::{CommitGraph, RepositorySize, is_registered, offers_commit_graph, size_sentence, size_text};
 
     #[test]
     fn upkeep_read_size__the_sizes_are_said_for_people() {
@@ -168,5 +199,22 @@ mod tests {
         let listed = vec![String::from("C:\\code\\app"), String::from("/srv/other")];
         assert!(is_registered(&listed, Path::new("C:/code/app")));
         assert!(!is_registered(&listed, Path::new("C:/code/app2")));
+    }
+
+    #[test]
+    fn upkeep_offer_commit_graph__ten_thousand_commits_with_no_file_where_git_reads_one_are_offered_it() {
+        let missing = CommitGraph::default();
+        assert!(offers_commit_graph(10_000, missing));
+        assert!(!offers_commit_graph(9_999, missing));
+        let written = CommitGraph {
+            has_file: true,
+            is_ignored: false,
+        };
+        assert!(!offers_commit_graph(56_000, written));
+        let ignored = CommitGraph {
+            has_file: false,
+            is_ignored: true,
+        };
+        assert!(!offers_commit_graph(56_000, ignored));
     }
 }

@@ -1,6 +1,7 @@
 //! What runs: the status bar at the foot of the window (`activity.status-bar`) and the Activity tab of the bottom
 //! panel (`activity.what-is-running`).
 
+mod commit_graph;
 mod said;
 mod tab;
 #[cfg(test)]
@@ -17,6 +18,7 @@ use crate::intent::Intent;
 use crate::line::is_narrow;
 use crate::text::header;
 
+pub use commit_graph::{CommitGraphNotice, commit_graph_notice};
 pub use said::{SAID_FOR, said_view};
 pub use tab::{ActivityState, what_is_running_view};
 
@@ -61,6 +63,8 @@ pub struct StatusBarState<'a> {
     pub is_running: bool,
     /// What was said last, or a notice of the window, after what runs (`activity.said`).
     pub said: Option<crate::feature::SaidState<'a>>,
+    /// The notice of the commit-graph file, said while nothing else is (`upkeep.offer-commit-graph`).
+    pub commit_graph: Option<CommitGraphNotice<'a>>,
 }
 
 /// The least room what was said keeps: the identity gives its room up first, then the words of what runs.
@@ -122,7 +126,11 @@ pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
     let spacing = theme.sizes.spacing;
     let bar = ui.current_clip();
     let mut parts = Area::with_gap(inset(bar, Insets::symmetric(spacing.large, 0.0)), spacing.large);
-    let said_least = if state.said.is_some() { SAID_LEAST } else { 0.0 };
+    let said_least = if state.said.is_some() || state.commit_graph.is_some() {
+        SAID_LEAST
+    } else {
+        0.0
+    };
     let room = parts.rest().width;
     let width = indicator_width(state, ui, room - said_least);
     let indicator = parts.left(width);
@@ -131,6 +139,9 @@ pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
     if let Some(said) = &state.said {
         let rect = parts.rest();
         intents.extend(ui.clip(rect, |ui| said_view(said, ui)));
+    } else if let Some(notice) = &state.commit_graph {
+        let rect = parts.rest();
+        intents.extend(ui.clip(rect, |ui| commit_graph_notice(notice, ui)));
     }
     let Some(longest) = shown(state.running).next() else {
         return intents;

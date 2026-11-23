@@ -25,6 +25,7 @@ mod changes_section;
 mod clone;
 mod close_tabs;
 mod co_authors;
+mod commit_graph;
 mod commit_images;
 mod commit_options;
 mod commit_page;

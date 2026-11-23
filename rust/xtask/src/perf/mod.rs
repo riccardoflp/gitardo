@@ -5,7 +5,9 @@
 //! as the extension reads it; the first page after the branches shown change, streamed as the extension asks it; a
 //! read after a change as the extension asks it, with the git processes each read starts; and the whole history in the
 //! window, read and laid out as `app` does, then after the branches shown change, by a test of `app` built in release.
-//! It prints tables of times; it is not pass or fail (`docs/desktop/06-testing.md`).
+//! It prints tables of times; it is not pass or fail (`docs/desktop/06-testing.md`). It says whether git keeps a
+//! commit-graph file of the repository, which makes the reads of the history about twice as fast (D88): run it again
+//! after `git commit-graph write --reachable --changed-paths` to time the repository with one.
 
 mod after_change;
 mod engine;
@@ -85,7 +87,8 @@ pub fn run(root: &Path, arguments: &[String]) -> Result<bool, Error> {
         "{}: each read asked {times} times, from the request to the last byte of the answer",
         folder.display()
     )?;
-    writeln!(out, "Opened in {}\n", milliseconds(opened.took))?;
+    writeln!(out, "Opened in {}", milliseconds(opened.took))?;
+    writeln!(out, "{}\n", commit_graph_said(&folder))?;
     writeln!(out, "| Read | Rows | Bytes | Fastest | Median | Slowest |")?;
     writeln!(out, "| --- | ---: | ---: | ---: | ---: | ---: |")?;
     let far = read_pages(&mut engine, &repository, times, &mut out)?;
@@ -105,6 +108,31 @@ pub fn run(root: &Path, arguments: &[String]) -> Result<bool, Error> {
     after_change::run(&place, times.max(TIMES * 2), &mut out)?;
     drop(out);
     if engine_only { Ok(true) } else { window(root, &folder) }
+}
+
+/// Whether git keeps a commit-graph file of the repository, alone or as a chain, as `upkeep.read-commit-graph` reads it.
+fn commit_graph_said(folder: &Path) -> &'static str {
+    let places = std::process::Command::new("git")
+        .arg("-C")
+        .arg(folder)
+        .args([
+            "rev-parse",
+            "--git-path",
+            "objects/info/commit-graph",
+            "--git-path",
+            "objects/info/commit-graphs/commit-graph-chain",
+        ])
+        .output();
+    let has_file = places.is_ok_and(|output| {
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .any(|place| folder.join(place).is_file())
+    });
+    if has_file {
+        "With git's commit-graph file."
+    } else {
+        "Without git's commit-graph file: `git commit-graph write --reachable --changed-paths` writes it."
+    }
 }
 
 /// The engine built in release; none, said on the standard error, when it is not built.

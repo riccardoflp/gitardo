@@ -103,6 +103,7 @@ fn repository() -> RepositoryState {
         },
         skipped: skipped(),
         is_looked_after: true,
+        commit_graph: model::upkeep::CommitGraph::default(),
         notes: notes(),
         lfs: model::lfs::LfsStatus::default(),
         rerere: model::rerere::RerereState::default(),
