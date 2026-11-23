@@ -1615,7 +1615,7 @@ Exit: in the extension, **Stage** then **Unstage** on a change of the Flow Diff,
 ends, says "Gitardo: diff.stage-change is running in app. Try again once it ends." and unstages nothing; **Unstage**
 asked once it ended unstages the change.
 
-## M43 — GitHub Copilot through its SDK, Claude asked as Anthropic's SDKs ask
+## M43 — GitHub Copilot through its SDK, Claude asked as Anthropic's SDKs ask (done)
 
 `ai.copilot` speaks to the GitHub Copilot CLI through GitHub's own SDK for Rust, `copilot-sdk`, in place of the
 JSON-RPC client written here from a crate now deprecated; Claude, which has no SDK for Rust, stays on the Messages API
@@ -1655,15 +1655,28 @@ answered; signed out, **Sign in** still opens `copilot login`; without the CLI, 
 after one wait, and an answer cut at `max_tokens` says so; every card of the milestone passes its tests, against the
 fake CLI and the server of the tests.
 
+Built: phase 1, `copilot-sdk` `2.0.2-preview.7` (Q1510) in `engine::ai::copilot`, given the standard input and output
+of the CLI Gitardo starts (`Client::from_streams`), since the SDK's own way of starting it needs its feature `runtime`
+and OpenSSL with it; the client written here and its requests are gone, and `cargo tree -p engine` shows no OpenSSL
+and no second TLS. The fake `copilot` of `testkit` answers the SDK's handshake, the setting up and the ending of a
+session, and the permissions it asks as events. *Too old* offers **How to install** (Q1511), as `CopilotNeed::Update`.
+Tried with the real CLI `1.0.114`, signed in: a question answered, one cancelled with the CLI left running, and the
+next answered; its subscription lists no model but `auto`, which is asked by its name. Phase 2, `engine::ai::retry`,
+for `anthropic`, `openai-compatible` and the list of models: the wait is shown as an activity, so the status bar says
+it where no other activity of the question is older; for a draft and for Ask Gitardo it is in the tooltip of the
+indicator and the Activity tab. Phase 3: the cards, D87, R1.4 and R1.7, the CHANGELOG and **Before a release**.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
 
 - [ ] Sign in to GitHub with a real token, load the pull requests, open one.
 - [ ] Draft a commit message and resolve a conflict with the AI provider configured.
-- [ ] With the GitHub Copilot CLI installed and signed in, and `ai.provider` set to `copilot`: choose the model, resolve
-      a conflict and draft a message with GitHub Copilot; sign out with `copilot logout` and sign in again from
-      **Sign in** (`ai.copilot`, Q1350).
+- [ ] With the GitHub Copilot CLI of the day installed and signed in, and `ai.provider` set to `copilot`: choose the
+      model, resolve a conflict and draft a message with GitHub Copilot, through `copilot-sdk` `2.0.2-preview.7`; sign
+      out with `copilot logout` and sign in again from **Sign in** (`ai.copilot`, Q1350, Q1514).
+- [ ] With `ai.provider` set to `anthropic`, a provider over HTTP that answers 429 is asked again, and the answer
+      comes after the wait (`ai.ask-conflict`, D87).
 - [ ] Choose a folder, a file to open and a file to save with the system's dialogs.
 - [ ] On Linux, on GNOME and on KDE Plasma, both on Wayland: move the window by its title bar, maximize it with a
       double click and resize it from an edge; open the menu of the window with a right click on the caption; type a

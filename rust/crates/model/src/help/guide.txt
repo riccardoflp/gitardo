@@ -2051,6 +2051,7 @@ title: One question about one conflict
 place: the Conflicts page
 show: none
 Sends the AI provider the question about one conflict and returns its answer as it comes.
+Refuses: an answer that stops at the most tokens the model may write (`stop_reason` `max_tokens`, or `finish_reason` `length` for `openai-compatible`), with *The answer of the model was cut at its length. Ask again with a lower effort.*, rather than read a resolution cut in half.
 @card desktop ai.conflict-question
 title: What is sent about a conflict
 place: the Conflicts page
@@ -2078,7 +2079,7 @@ title: GitHub Copilot as the AI provider
 place: the Conflicts page
 show: none
 Asks GitHub Copilot, with the user's own sign-in and subscription, the questions Gitardo asks a language model: the conflicts the rules leave, and the draft of a commit message.
-Refuses: without `copilot` on the `PATH`: *The GitHub Copilot CLI is not installed. Install it, then try again.* with **How to install**, which opens GitHub's page on installing it; when it is not signed in: *GitHub Copilot is not signed in.* with **Sign in**, which opens a new terminal of the bottom panel and types `copilot login` in it; when Copilot refuses the question (no subscription, no requests left, a model not offered): *GitHub Copilot refused: \<its words\>*. A draft or a conflict refused so says it in the status bar with its button; the refusal of `ai.choose-model` offers it as its button.
+Refuses: without `copilot` on the `PATH`: *The GitHub Copilot CLI is not installed. Install it, then try again.* with **How to install**, which opens GitHub's page on installing it; when it is not signed in: *GitHub Copilot is not signed in.* with **Sign in**, which opens a new terminal of the bottom panel and types `copilot login` in it; when the CLI speaks a protocol older than the SDK's: *The GitHub Copilot CLI is too old for Gitardo. Update it, then try again.* with **How to install**, since installing it again updates it; when newer: *The GitHub Copilot CLI is too new for Gitardo. Update Gitardo, then try again.*; when Copilot refuses the question (no subscription, no requests left, a model not offered): *GitHub Copilot refused: \<its words\>*. A draft or a conflict refused so says it in the status bar with its button; the refusal of `ai.choose-model` offers it as its button.
 @card desktop rerere.read-state
 title: Whether git remembers resolutions
 place: the Conflicts page
