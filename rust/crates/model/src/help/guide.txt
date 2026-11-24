@@ -6698,3 +6698,38 @@ title: Run a task from anywhere
 place: the bottom panel
 show: none
 Done by VS Code itself.
+@card extension lfs.read-status
+title: Whether Git LFS is there, and what the repository stores with it
+place: the Files page
+show: none
+Whether the program Git LFS is installed and set up for the repository, and the patterns of the files the repository stores with it.
+In VS Code: built: read by the engine with the state of the repository (`lfs` of `RepositoryState`, protocol 1.13), the version only once the repository has patterns or is set up; `read/lfs.read-status` reads it with the version, for the **Large files** tab.
+@card extension lfs.read-files
+title: The files stored with Git LFS
+place: the Files page
+show: none
+The files of the commit checked out that the repository stores with Git LFS, with their sizes and whether their content is downloaded.
+In VS Code: built: `read/lfs.read-files` (protocol 1.13), with the version `read/lfs.read-status` read, asked when the **Large files** tab opens and on **Refresh** there.
+@card extension lfs.pointer
+title: A file left as a pointer
+place: the Files page
+show: none
+Tells whether some bytes are a pointer of Git LFS, and which content they stand for.
+@card extension lfs.read-content
+title: The content of a file stored with Git LFS, from the store of the repository
+place: the Files page
+show: none
+The content a pointer stands for, read from the store of Git LFS on this computer, never downloaded by a read.
+In VS Code: built: `read/lfs.read-content` (protocol 1.13) gives a file of a commit, or of the index for no revision, with the content in place of its pointer when the store has it, the pointer with its size, its id and `isDownloaded` otherwise; the files of the scheme `gitardo` the extension opens, the sides of its diffs among them, are read with it (`reads.fileShownAt`).
+@card extension lfs.show-in-pages
+title: A file stored with Git LFS, in the pages
+place: the Files page
+show: none
+What the File page, the Diff page and the page of a commit show of a file stored with Git LFS: its content when it is on this computer, and otherwise that it is not downloaded, with **Download**, never the text of its pointer.
+In VS Code: built: a version of a commit or of the index that is a pointer opens as its content when it is in the store, and otherwise as a text that says **Stored with Git LFS, not downloaded**, with the path, the size and the first ten digits of its id, never the lines of its pointer; a message of VS Code says the file is not downloaded, with its size, and offers **Download**, once for each version opened. The file of the working tree is VS Code's own, which shows the pointer of a file not downloaded as it is; the **Large files** tab says which files are pointers.
+@card extension lfs.download
+title: Download files stored with Git LFS
+place: the Files page
+show: show where
+Downloads the content of files left as pointers, into the working tree for the commit checked out, or into the store for another commit.
+In VS Code: built: **Download** in the message of a version not downloaded sends `feature/run` of `lfs.download` with the target `lfsFiles` (protocol 1.13), the path and the commit of the version, or none for the index; once it ran, the tabs of the scheme `gitardo` said not downloaded in that repository are read again and show the content.

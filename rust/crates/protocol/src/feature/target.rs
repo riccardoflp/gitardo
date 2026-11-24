@@ -8,16 +8,18 @@ use model::contract::Target;
 use serde::{Deserialize, Serialize};
 
 use model::compare::{CompareSide, ComparisonPart, ComparisonTarget, Side};
+use model::lfs::{LfsDownload, LfsPath};
 
 use super::diff_change::DiffChangeJson;
 use super::resolutions::{FileResolutionsJson, MergeResultJson};
-use crate::reads::{CompareModeJson, ComparisonSideJson};
+use crate::reads::{CompareModeJson, ComparisonSideJson, LfsLockJson};
 use crate::state::FileChangeJson;
 
 /// What a feature was invoked on (`Target` of `model`). The kinds with a structure of their own come with the areas that
 /// use them: the resolutions of the review and the file of a Merge page with the conflicts (1.3), a comparison page as a
 /// whole with AI and GitHub (1.6), a file of a comparison and a change of a diff with stage 10 (1.7); files saved, a
-/// file at a commit, the settings of new worktrees, lines, a line of a file and a file of a list with theirs.
+/// file at a commit, the settings of new worktrees, lines, a line of a file and a file of a list with theirs; the
+/// files stored with Git LFS to download and a lock of one with Git LFS (1.13).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum TargetJson {
@@ -113,6 +115,28 @@ pub enum TargetJson {
     },
     /// A change of a diff (1.7, `diff.stage-change` and `diff.unstage-change`).
     DiffChange(DiffChangeJson),
+    /// Files stored with Git LFS to download, of the commit checked out or of another (1.13, `lfs.download`).
+    LfsFiles {
+        /// The files and the folders; empty for every file stored with Git LFS.
+        paths: Vec<LfsPathJson>,
+        /// The commit whose files are fetched into the store, by its full id; none for the commit checked out, whose
+        /// files are pulled into the working tree.
+        #[serde(default)]
+        commit: Option<String>,
+    },
+    /// A lock of a file stored with Git LFS, as `read/lfs.read-locks` gave it (1.13, `lfs.unlock`).
+    LfsLock(LfsLockJson),
+}
+
+/// A file or a folder to download with Git LFS, from the top of the working tree, with `/`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LfsPathJson {
+    /// Its path.
+    pub path: String,
+    /// Whether it is a folder, named to Git LFS as `<folder>/**`.
+    #[serde(default)]
+    pub is_folder: bool,
 }
 
 /// A side of a comparison page: its name, where it is now, and whether it follows its name.
@@ -200,6 +224,17 @@ impl TryFrom<TargetJson> for Target {
                     .map_or(ComparisonPart::Whole, |file| ComparisonPart::File(file.into())),
             })),
             TargetJson::DiffChange(change) => Target::DiffChange(Box::new(change.try_into()?)),
+            TargetJson::LfsFiles { paths, commit: id } => Target::LfsFiles(Box::new(LfsDownload {
+                paths: paths
+                    .into_iter()
+                    .map(|path| LfsPath {
+                        path: path.path,
+                        is_folder: path.is_folder,
+                    })
+                    .collect(),
+                commit: id.as_deref().map(commit).transpose()?,
+            })),
+            TargetJson::LfsLock(lock) => Target::LfsLock(Box::new(lock.into())),
         })
     }
 }
@@ -231,6 +266,18 @@ impl TargetJson {
             Target::Path(where_it_is) => TargetJson::Path {
                 path: path(where_it_is),
             },
+            Target::LfsFiles(download) => TargetJson::LfsFiles {
+                paths: download
+                    .paths
+                    .iter()
+                    .map(|path| LfsPathJson {
+                        path: path.path.clone(),
+                        is_folder: path.is_folder,
+                    })
+                    .collect(),
+                commit: download.commit.as_ref().map(|commit| commit.as_str().to_owned()),
+            },
+            Target::LfsLock(lock) => TargetJson::LfsLock(LfsLockJson::from(lock.as_ref())),
             _ => return None,
         })
     }

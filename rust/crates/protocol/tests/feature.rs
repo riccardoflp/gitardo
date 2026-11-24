@@ -198,7 +198,7 @@ fn an_operation_offered_crosses_with_its_target_and_answers_and_not_when_one_can
     let flag: AnswerJson = serde_json::from_value(json!({ "kind": "flag", "value": false })).unwrap();
     assert_eq!(Answer::from(flag), Answer::Flag(false));
     // A reading of the engine that cannot cross would make the operation run otherwise than offered.
-    assert_eq!(FollowUpJson::all_of(&[offered(Answer::Names(Vec::new()))]), Vec::new());
+    assert_eq!(FollowUpJson::all_of(&[offered(Answer::Commit(None))]), Vec::new());
 }
 
 #[test]

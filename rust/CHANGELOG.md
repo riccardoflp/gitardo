@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Version 1.13 of the protocol of `gitardo-engine --stdio`, for the extension: the state says whether Git LFS is there
+  and set up and the patterns it stores, `read/lfs.read-status`, `read/lfs.read-files` and `read/lfs.read-locks` read
+  them for its **Large files** tab, and `read/lfs.read-content` gives a file of a commit or of the index with the
+  content in place of its pointer when the store of the repository has it, never downloaded. `lfs.download` and
+  `lfs.unlock` take their targets from it, and an operation offered carries the files `lfs.track` read for **Store
+  them with Git LFS in the next commit**.
+
 ## 1.3.0 - 2026-11-24
 
 - Once the history of a repository of 10,000 commits or more is read, and git keeps no commit-graph file of it, the

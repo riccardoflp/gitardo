@@ -10,6 +10,7 @@ mod conflicts;
 mod files;
 mod graph;
 mod hosting;
+mod lfs;
 mod repository;
 mod tags;
 
@@ -123,6 +124,10 @@ fn read(reading: &Reading<'_>, method: &str, params: Value) -> Result<Value, Res
         methods::DETAILS_SIGNATURE => commit_box::signature(reading, &parameters(params)?),
         methods::COMMIT_AUTHORS => commit_box::authors(reading),
         methods::TAG_REMOTE_TAGS => tags::remote_tags(reading, parameters(params)?),
+        methods::LFS_STATUS => lfs::status(reading),
+        methods::LFS_FILES => lfs::files(reading, parameters(params)?),
+        methods::LFS_LOCKS => lfs::locks(reading, parameters(params)?),
+        methods::LFS_CONTENT => lfs::content(reading, &parameters(params)?),
         _ => Err(ResponseError::new(
             codes::METHOD_NOT_FOUND,
             format!("Gitardo's engine has no method named {method}."),

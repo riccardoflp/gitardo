@@ -4,6 +4,7 @@
  * within five minutes stops the restarts until the window is reloaded. It imports nothing of VS Code, so that the
  * tests drive it as the extension does.
  */
+import type { LfsFile, LfsLocks, LfsStatus } from '../shared/lfs';
 import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import type { JournalEntry } from './journal';
@@ -48,6 +49,7 @@ import {
   type IgnoredEntry,
   type InitializeParams,
   type InitializeResult,
+  type LfsContent,
   type LineRange,
   type LogLineParams,
   type Matches,
@@ -417,6 +419,29 @@ export class EngineClient {
    */
   remoteTags(repository: string, remote: string, signal?: AbortSignal): Promise<TagComparison> {
     return this.read(ReadMethod.remoteTags, repository, { remote }, signal);
+  }
+
+  /** Whether Git LFS is there with its version, whether the repository is set up, and its patterns (`lfs.read-status`, 1.13). */
+  lfsStatus(repository: string, signal?: AbortSignal): Promise<LfsStatus> {
+    return this.read(ReadMethod.lfsStatus, repository, {}, signal);
+  }
+
+  /** The files of the commit checked out stored with Git LFS, with the version `lfsStatus` read (`lfs.read-files`, 1.13). */
+  lfsFiles(repository: string, version: string, signal?: AbortSignal): Promise<{ files: LfsFile[] }> {
+    return this.read(ReadMethod.lfsFiles, repository, { version }, signal);
+  }
+
+  /** The locks of the server, asked over the network (`lfs.read-locks`, 1.13). */
+  lfsLocks(repository: string, signal?: AbortSignal): Promise<LfsLocks> {
+    return this.read(ReadMethod.lfsLocks, repository, { remote: null }, signal);
+  }
+
+  /**
+   * A file of a commit, or of the index for a null revision, with the content in place of its pointer when the store
+   * of the repository has it (`lfs.read-content`, 1.13).
+   */
+  lfsContent(repository: string, path: string, revision: string | null, signal?: AbortSignal): Promise<LfsContent> {
+    return this.read(ReadMethod.lfsContent, repository, { path, revision }, signal);
   }
 
   /** The people who made commits in the repository, the one with the most first (`commit.read-authors`, 1.11). */

@@ -4,7 +4,9 @@
 
 use std::path::{Path, PathBuf};
 
-use model::lfs::{LfsContent, LfsContentRequest, LfsFile, LfsFilesRequest, LfsPattern, LfsStatus, LfsStatusRequest};
+use model::lfs::{
+    LfsContent, LfsContentRequest, LfsFile, LfsFilesRequest, LfsPattern, LfsPointer, LfsStatus, LfsStatusRequest,
+};
 
 use crate::read::fields::arguments;
 use crate::{Git, GitError};
@@ -259,6 +261,21 @@ pub fn read_content(git: &Git, request: &LfsContentRequest) -> Result<LfsContent
         return Ok(LfsContent::NotDownloaded);
     };
     Ok(content_in(Path::new(folder.trim()), request))
+}
+
+/// The pointer some bytes are and the content it stands for in the store, when they are a pointer of Git LFS at a path
+/// the repository stores with it (`lfs.show-in-pages`); none for any other file, or when git cannot say. A store that
+/// cannot be found, as without Git LFS, holds nothing: the content is said not downloaded.
+#[must_use]
+pub fn stored_content(git: &Git, path: &str, bytes: &[u8]) -> Option<(LfsPointer, LfsContent)> {
+    let pointer = model::lfs::pointer(bytes)?;
+    // A file git cannot say the attributes of is shown as it is, as a file that only looks like a pointer is.
+    if !read_is_stored(git, path).ok()? {
+        return None;
+    }
+    let request = LfsContentRequest { pointer };
+    let content = read_content(git, &request).unwrap_or(LfsContent::NotDownloaded);
+    Some((request.pointer, content))
 }
 
 /// The content of a pointer in a store of Git LFS: `<folder>/<first two digits>/<the next two>/<id>`, of the size the

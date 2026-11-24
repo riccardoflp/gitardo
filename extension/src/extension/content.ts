@@ -62,6 +62,17 @@ export function isAbsent(uri: vscode.Uri): boolean {
   }
 }
 
+/** A version of a file stored with Git LFS whose content is not on this computer, as a tab opened it. */
+export interface NotDownloaded {
+  root: string;
+  /** The file, from the top of the working tree. */
+  path: string;
+  /** The commit of the version, by its full id; null for the index, whose file **Download** pulls into the working tree. */
+  commit: string | null;
+  /** The size of its content, in bytes. */
+  size: number;
+}
+
 /**
  * The files of the scheme `gitardo` as bytes, which can only be read: VS Code opens an image there in its preview of
  * images, and the two sides of a diff of an image in its diff editor as two pictures; a text file opens as before
@@ -70,13 +81,33 @@ export function isAbsent(uri: vscode.Uri): boolean {
 export class GitFileSystem implements vscode.FileSystemProvider {
   private readonly changed = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
   readonly onDidChangeFile = this.changed.event;
+  /** The versions said not downloaded, by their URIs, which are read again once a download ran. */
+  private readonly notDownloaded = new Map<string, vscode.Uri>();
+
+  /** `said` is told of each version stored with Git LFS whose content is not downloaded, once until it is read again. */
+  constructor(private readonly said: (side: NotDownloaded) => void = () => undefined) {}
 
   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     const { root, ref, file } = JSON.parse(uri.query) as { root: string; ref: string; file?: string };
     if (!ref) return new Uint8Array();
     if (ref === PROPOSAL) return Buffer.from(proposals.get(`${root}\n${uri.path.slice(1)}`) ?? '', 'utf8');
     // The path is the name of the file, but for the URIs whose tab says more than the name.
-    return (await reads.fileBytesAt(root, ref, file ?? uri.path.slice(1))) ?? new Uint8Array();
+    const path = file ?? uri.path.slice(1);
+    const shown = await reads.fileShownAt(root, ref, path);
+    const key = uri.toString();
+    if (shown.stored && !shown.stored.isDownloaded) {
+      // `stat` reads the file too: the message is said once for a version opened.
+      if (!this.notDownloaded.has(key)) this.said({ root, path, commit: shown.commit, size: shown.stored.size });
+      this.notDownloaded.set(key, uri);
+    } else this.notDownloaded.delete(key);
+    return shown.bytes ?? new Uint8Array();
+  }
+
+  /** Has VS Code read again the versions of a repository said not downloaded, once **Download** ran there. */
+  readAgain(root: string): void {
+    const again = [...this.notDownloaded.values()].filter((uri) => (JSON.parse(uri.query) as { root: string }).root === root);
+    for (const uri of again) this.notDownloaded.delete(uri.toString());
+    if (again.length) this.changed.fire(again.map((uri) => ({ type: vscode.FileChangeType.Changed, uri })));
   }
 
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {

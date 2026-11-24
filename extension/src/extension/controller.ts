@@ -77,6 +77,8 @@ import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Targe
 import { type HostHooks, VscodeAsker, type WindowEngine, sayEngineMissing } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
 import { type Repository, reads, repositoryName } from '../engine/reads';
+import type { NotDownloaded } from './content';
+import { LFS_WORDS, notDownloadedMessage } from '../shared/lfs';
 import { completed, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
 import { extensionKey } from '../engine/settings';
@@ -1065,6 +1067,21 @@ export class Controller implements vscode.Disposable {
       this.log.error(errorText(error));
       this.post({ type: 'worktreeSetup', info: null, error: errorText(error) }, webview);
     }
+  }
+
+  // Milestone M47: the files stored with Git LFS.
+
+  /**
+   * Says that a version of a file stored with Git LFS that a tab opened is not downloaded, with **Download**, which
+   * downloads it with the engine (`lfs.download`): into the working tree for the commit checked out and the index, into
+   * the store for another commit. `downloaded` has the tabs read it again.
+   */
+  sayNotDownloaded(side: NotDownloaded, downloaded: (root: string) => void): void {
+    void vscode.window.showInformationMessage(notDownloadedMessage(side.path, side.size), LFS_WORDS.download).then(async (choice) => {
+      if (choice !== LFS_WORDS.download) return;
+      const target: Target = { kind: 'lfsFiles', paths: [{ path: side.path, isFolder: false }], commit: side.commit };
+      if (await this.runOnEngine([{ feature: 'lfs.download', target }], { root: side.root })) downloaded(side.root);
+    });
   }
 
   /** Asks for a hash or a revision, and shows its commit in the graph of a group. */

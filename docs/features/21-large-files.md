@@ -25,7 +25,9 @@ stores with it.
     `filter.lfs.smudge` is set, in any of its configurations.
 - **Uses**: `repo.read-state`, with which it runs, and again only when a `.gitattributes` or the configuration changed
   (`repo.watch-changes`).
-- **Extension**: read by the engine with the state of the repository: planned.
+- **Extension**: built: read by the engine with the state of the repository (`lfs` of `RepositoryState`, protocol 1.13),
+  the version only once the repository has patterns or is set up; `read/lfs.read-status` reads it with the version, for
+  the **Large files** tab.
 - As built, its request carries the version read before (`LfsStatusRequest::version`), so that `git lfs version`
   runs once for the engine, and the patterns read before (`LfsStatusRequest::patterns`), kept when no
   `.gitattributes` changed; a pattern of a commented line is not one. With `repo.read-state`, which is read without
@@ -55,7 +57,8 @@ is downloaded.
   `*` says downloaded and `-` not. It runs when the **Large files** page opens and on **Refresh** there, not with the
   reads of the repository (Q1190).
 - **Uses**: `lfs.read-status`, by `lfs.page`.
-- **Extension**: read by the engine for what the extension shows of the files stored with Git LFS: planned.
+- **Extension**: built: `read/lfs.read-files` (protocol 1.13), with the version `read/lfs.read-status` read, asked when
+  the **Large files** tab opens and on **Refresh** there.
 - As built, the output of `--json` is read one key on each line, as Git LFS indents it, since serde_json is kept to
   the crates `protocol` and `server` (rule R1.7); its escapes, `\u003c` and the others, are read. The sizes of
   `--long --size` are rounded by Git LFS, `1.2 KB` read as 1,200 bytes. Without Git LFS, an empty version, nothing is run.
@@ -103,7 +106,10 @@ The content a pointer stands for, read from the store of Git LFS on this compute
   pointer. A missing file, or one of another size, is content not downloaded. It never runs the filter of Git LFS
   (`git cat-file --filters`, `git lfs smudge`), which would download from the server in the middle of a read.
 - **Uses**: `lfs.pointer`, by `lfs.show-in-pages`, `diff.read-sides`, `file-view.read-revision`.
-- **Extension**: read by the engine for the diffs the extension opens: planned.
+- **Extension**: built: `read/lfs.read-content` (protocol 1.13) gives a file of a commit, or of the index for no
+  revision, with the content in place of its pointer when the store has it, the pointer with its size, its id and
+  `isDownloaded` otherwise; the files of the scheme `gitardo` the extension opens, the sides of its diffs among them,
+  are read with it (`reads.fileShownAt`).
 
 Acceptance:
 
@@ -125,9 +131,11 @@ on this computer, and otherwise that it is not downloaded, with **Download**, ne
   stores with Git LFS, so that a file that only looks like a pointer is shown as it is.
 - **Uses**: `lfs.pointer`, `lfs.read-content`, `lfs.download`, `diff.page`, `diff.read-sides`, `file-view.page`,
   `file-view.read-revision`, `commit-page.view`, `commit-page.read-patch`.
-- **Extension**: planned: the diffs and the files the extension opens get their sides from the engine, which gives the
-  content in place of the pointer when it is in the store; a side not downloaded opens as a text that says so, with
-  **Download** in a message of VS Code.
+- **Extension**: built: a version of a commit or of the index that is a pointer opens as its content when it is in the
+  store, and otherwise as a text that says **Stored with Git LFS, not downloaded**, with the path, the size and the
+  first ten digits of its id, never the lines of its pointer; a message of VS Code says the file is not downloaded, with
+  its size, and offers **Download**, once for each version opened. The file of the working tree is VS Code's own, which
+  shows the pointer of a file not downloaded as it is; the **Large files** tab says which files are pointers.
 
 - **File page.** A file of the working tree that is a pointer, as after a clone without Git LFS, shows **Stored with
   Git LFS, not downloaded**, its size, **Download**, and no text. A file at a revision shows the content when it is in
@@ -184,8 +192,10 @@ for another commit.
   git-lfs.com**; a path holding `,` or a character of patterns, which `--include` cannot name alone: **`<path>` cannot
   be named to Git LFS on its own: download all the files instead.** (Q1192).
 - **Uses**: `lfs.read-status`, `lfs.show-in-pages`, `lfs.page`, `remote.default`.
-- **Extension**: planned: **Download** in the message that a side is not downloaded, sending `feature/run` of
-  `lfs.download` to the engine (`Controller.runOnEngine`).
+- **Extension**: built: **Download** in the message of a version not downloaded sends `feature/run` of `lfs.download`
+  with the target `lfsFiles` (protocol 1.13), the path and the commit of the version, or none for the index
+  (`Controller.runOnEngine`); once it ran, the tabs of the scheme `gitardo` said not downloaded in that repository are
+  read again and show the content.
 - As built, it runs on `Target::LfsFiles`, the paths and the commit; a commit that is the one checked out is pulled.
   A refusal offers an operation only, so the refusal without Git LFS says the message with no **Open git-lfs.com**,
   which the **Large files** page has. A commit not checked out in a repository with no remote is refused: **This

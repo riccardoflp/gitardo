@@ -7,6 +7,7 @@
 
 import type { HostingService } from '../shared/hosting';
 import type { RangeDiffTarget } from '../shared/rangeDiff';
+import type { LfsLock } from '../shared/lfs';
 import type { FolderSummary } from '../shared/summaries';
 import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shared/state';
 
@@ -26,9 +27,11 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * (milestone M36), the validation of the number of a pull request and the host question of the token of a GitLab
  * (milestone M37), the files hidden from git and the locks of worktrees (milestone M38), whether git's maintenance
  * looks after the repository and the notes of commits (milestone M40); 1.12 has `commitGraph` in the state, whether
- * git keeps its commit-graph file of the repository (milestone M44).
+ * git keeps its commit-graph file of the repository (milestone M44); 1.13 has `lfs` in the state, the reads of Git LFS
+ * (`read/lfs.read-status`, `read/lfs.read-files`, `read/lfs.read-locks`, `read/lfs.read-content`), the targets
+ * `lfsFiles` and `lfsLock` and the answer `names` (milestone M47).
  */
-export const PROTOCOL = '1.12';
+export const PROTOCOL = '1.13';
 
 /** The names of the methods. */
 export const Method = {
@@ -110,7 +113,10 @@ export type Target =
   // Area 6 of stage 4, from 1.6: a comparison page as a whole, or one of its files from 1.7.
   | ComparisonTarget
   // From 1.7: a change of a diff, which the Flow Diff stages or unstages.
-  | DiffChangeTarget;
+  | DiffChangeTarget
+  // From 1.13: files stored with Git LFS to download, of the commit checked out (null) or of another, and a lock of one.
+  | { kind: 'lfsFiles'; paths: { path: string; isFolder: boolean }[]; commit: string | null }
+  | ({ kind: 'lfsLock' } & LfsLock);
 
 /** The resolutions accepted in a file of the review, and the text they were made from (`FileResolutions` of `model`). */
 export interface FileResolutions {
@@ -140,7 +146,9 @@ export type Answer =
   | { kind: 'confirmed' }
   | { kind: 'path'; path: string }
   /** Only in the answers of an operation offered (`offerRun`), sent back as they came. */
-  | { kind: 'flag'; value: boolean };
+  | { kind: 'flag'; value: boolean }
+  /** Names read before an operation was offered (1.13): the files **Store them with Git LFS in the next commit** stores. */
+  | { kind: 'names'; names: string[] };
 
 /** What typed text must be; sent back as it came in `question/validate`. */
 export type Validation = { kind: string } & Record<string, unknown>;
@@ -294,7 +302,35 @@ export const ReadMethod = {
   signature: 'read/details.read-signature',
   authors: 'read/commit.read-authors',
   remoteTags: 'read/tag.read-remote-tags',
+  // Version 1.13, milestone M47.
+  lfsStatus: 'read/lfs.read-status',
+  lfsFiles: 'read/lfs.read-files',
+  lfsLocks: 'read/lfs.read-locks',
+  lfsContent: 'read/lfs.read-content',
 } as const;
+
+/**
+ * A file of a commit or of the index as `read/lfs.read-content` gives it (1.13): the content in place of its pointer
+ * when the store of the repository has it, the pointer otherwise, with its size and its id.
+ */
+export interface LfsContent {
+  /** The bytes; null when the commit or the index has no such file. */
+  bytes: Bytes | null;
+  /** The commit the revision named, by its full id; null for the index. */
+  commit: string | null;
+  /** The pointer the file is, at a path the repository stores with Git LFS; null for any other file. */
+  stored: StoredPointer | null;
+}
+
+/** A version of a file that is a pointer of Git LFS. */
+export interface StoredPointer {
+  /** The size of its content, in bytes. */
+  size: number;
+  /** The id of its content, 64 hexadecimal digits. */
+  oid: string;
+  /** Whether its content is in the store of the repository. */
+  isDownloaded: boolean;
+}
 
 /** The notification of a page of `read/graph.read-commits` asked with `stream`, as it is read (1.8). */
 export const GRAPH_ROWS = 'read/graph.rows';

@@ -8,6 +8,8 @@
  * unless the field says it is a full one (`refs/heads/main`).
  */
 
+import type { LfsStatus } from './lfs';
+
 /** How a file changed. */
 export type ChangeKind = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'typeChanged';
 
@@ -285,6 +287,11 @@ export interface RepositoryState {
   notes?: Notes;
   /** Whether git keeps its commit-graph file of the repository and reads it (protocol 1.12, `upkeep.read-commit-graph`). */
   commitGraph?: CommitGraph;
+  /**
+   * Whether Git LFS is there and set up, and the patterns of the files the repository stores with it (protocol 1.13,
+   * `lfs.read-status`); the version only once the repository has patterns or is set up.
+   */
+  lfs?: LfsStatus;
 }
 
 /** Whether git keeps its commit-graph file of a repository, alone or as a chain, and whether git reads it. */

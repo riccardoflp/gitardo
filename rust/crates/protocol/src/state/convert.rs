@@ -81,6 +81,7 @@ impl From<&RepositoryState> for StateJson {
                 has_file: state.commit_graph.has_file,
                 is_ignored: state.commit_graph.is_ignored,
             },
+            lfs: crate::reads::LfsStatusJson::from(&state.lfs),
         }
     }
 }

@@ -2,6 +2,12 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- A file stored with Git LFS opens by its content, at a commit, in the index and on either side of a diff Gitardo opens, when the store of the repository has it. One whose content is not downloaded, as in a clone made without downloading, opens as a text that says **Stored with Git LFS, not downloaded**, with its size and the first digits of its id, never the lines of its pointer, and a message offers **Download**, which downloads it with Gitardo's engine and shows its content.
+
 ## 1.3.0 - 2026-11-24
 
 ### Added

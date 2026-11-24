@@ -23,7 +23,7 @@ pub use resolutions::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-pub use target::{NotACommit, TargetJson};
+pub use target::{LfsPathJson, NotACommit, TargetJson};
 
 use crate::rpc::RequestId;
 

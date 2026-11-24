@@ -575,6 +575,10 @@ Another way to look at the diff of a file, beside the diff editor of VS Code. Th
 
 An image at a commit, in the index or in a conflict, opened from Gitardo (**Open the file at this revision**, the history of a file, a diff from the Gitardo Changes view, the graph, the tab of a commit or a comparison), opens in VS Code's preview of images, and the diff of an image in VS Code's diff editor with its two pictures, its bytes read by Gitardo's engine. A text file opens as before.
 
+### Large files stored with Git LFS
+
+A file the repository stores with Git LFS opens by its content when Gitardo opens it at a commit, in the index or on a side of a diff, once the store of the repository has it. One whose content is not downloaded, as in a clone made without downloading, opens as a text that says **Stored with Git LFS, not downloaded**, with its size and the first digits of its id, never the lines of its pointer, and a message offers **Download**, which downloads it with Gitardo's engine and shows its content.
+
 ### Mermaid diagrams in the preview of Markdown
 
 VS Code's preview of Markdown draws a block of code fenced as `mermaid` as its diagram: flowcharts, sequence, class, state and entity relationship diagrams, Gantt charts, pies, Git graphs, mind maps and the other kinds Mermaid draws. Gitardo's engine lays it out and draws it in the colors of VS Code's default theme of the kind of yours, dark, light or high contrast, again when the theme changes. It is shown as an image, so nothing in it runs, is followed or is fetched; the screen reader reads its `accTitle`, or *Mermaid diagram*. Until it is drawn, and without the engine, the block shows its code; a diagram with an error, or of a kind not drawn, shows its code with a line saying why. When another extension that draws Mermaid in the preview is installed, its blocks are left to it.

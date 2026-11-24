@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.12** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.13** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -128,6 +128,17 @@ needed: `commitGraph` in `RepositoryState`, whether git keeps its commit-graph f
 (`upkeep.read-commit-graph`), for the notice and the entry of the row menu that run `upkeep.write-commit-graph` with
 `feature/run`. An older extension leaves the field aside.
 
+Version 1.13 adds what milestone M47
+([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed))
+needed for Git LFS in the extension: `lfs` in `RepositoryState`, whether Git LFS is there and set up and the patterns
+of the files the repository stores with it (`lfs.read-status`); the reads `read/lfs.read-status`, with the version
+always read, `read/lfs.read-files`, `read/lfs.read-locks` and `read/lfs.read-content`, a file of a commit or of the
+index with the content in place of its pointer when the store of the repository has it, which the files of the scheme
+`gitardo` are read with; the targets `lfsFiles`, the files `lfs.download` downloads, and `lfsLock`, the lock
+`lfs.unlock` takes away; and the answer `names`, which an `offerRun` carries for **Store them with Git LFS in the next
+commit** (`lfs.store-committed`), the files `lfs.track` read before offering it. An older extension leaves the field
+aside and asks none of the reads.
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -186,7 +197,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.12",
+  protocol: "1.13",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -385,6 +396,10 @@ change the repository and run at the same time as each other and as an operation
 | `read/details.read-signature` | `{ commit }` | `{ verdict: "good" \| "goodUnknownValidity" \| "goodExpired" \| "goodExpiredKey" \| "goodRevokedKey" \| "bad" \| "cannotCheck" \| "signedNotChecked" \| "notSigned", kind: "openpgp" \| "x509" \| "ssh" \| null, signer, key, fingerprint, trust }` | `details.read-signature` (1.11) |
 | `read/commit.read-authors` | — | `{ authors: { name, email, commits }[] }` | `commit.read-authors` (1.11) |
 | `read/tag.read-remote-tags` | `{ remote }` | `{ remote, tags: { name, onRemote: "pushed" \| "differentThere" \| "notPushed" }[], onlyThere: string[] }`, asked of the remote over the network | `tag.read-remote-tags`, `tag.compare-remote` (1.11) |
+| `read/lfs.read-status` | — | `{ version: string \| null, isSetUp, patterns: { pattern, file, line }[] }`, the version always read | `lfs.read-status` (1.13) |
+| `read/lfs.read-files` | `{ version }`, that of `read/lfs.read-status` | `{ files: { path, size, oid, isDownloaded, isCheckedOut }[] }` | `lfs.read-files` (1.13) |
+| `read/lfs.read-locks` | `{ remote: string \| null }`, null for the remote Git LFS chooses | `{ kind: "read", locks: LfsLock[] } \| { kind: "unsupported", message }`, asked of the server over the network; another failure is an error with what git said | `lfs.read-locks` (1.13) |
+| `read/lfs.read-content` | `{ path, revision: string \| null }`, null for the index | `{ bytes: Bytes \| null, commit: CommitId \| null, stored: { size, oid, isDownloaded } \| null }`: the content in place of a pointer at a path stored with Git LFS when the store has it, the pointer otherwise; never downloaded | `lfs.read-content`, `lfs.show-in-pages` (1.13) |
 | `read/submodule.read-list` | — | `Submodule[]` | `submodule.read-list` |
 | `read/worktree.read-folder-links` | `{ worktree }` | `{ paths: string[] }` | `worktree.read-folder-links` |
 | `read/worktree-setup.read-ignored` | `{ worktree }` | `IgnoredEntry[]` | `worktree-setup.read-ignored` |
@@ -804,7 +819,9 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `notes: { reference, tip: CommitId | null, commits: CommitId[] }` (1.11), the reference of notes git uses, the
   commit it is at and the commits with a note (`note.read`), `commitGraph: { hasFile, isIgnored }` (1.12), whether git
   keeps its commit-graph file, alone or as a chain, and whether `core.commitGraph` is `false`
-  (`upkeep.read-commit-graph`).
+  (`upkeep.read-commit-graph`), `lfs: { version: string | null, isSetUp, patterns: { pattern, file, line }[] }` (1.13),
+  whether Git LFS is there and set up and the patterns of the files the repository stores with it, the version only
+  once the repository has patterns or is set up (`lfs.read-status`).
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,
@@ -832,6 +849,10 @@ The fields are those of `model`; this section says only what the JSON adds or le
   leftLines, rightLines, leftText: string[], rightText: string[] }`, a change of a diff, each `DiffSide` `{ kind:
   "head" }`, `{ kind: "index" }`, `{ kind: "workingTree" }`, `{ kind: "commit", commit }` or `{ kind: "empty" }`, the
   lines `{ start, end }` counted from 0 with the end left out, and the text of those lines as the diff showed them.
+  Built in 1.13: `{ kind: "lfsFiles", paths: { path, isFolder }[], commit: CommitId | null }`, the files and folders
+  `lfs.download` downloads, every file for none, pulled into the working tree for no commit or the one checked out and
+  fetched into the store for another; and `{ kind: "lfsLock", id, path, owner, lockedAt, isOurs: boolean | null }`, a
+  lock as `read/lfs.read-locks` gave it (**`LfsLock`**), which `lfs.unlock` takes away.
 - **`FileResolutions`** (`model/src/review/resolutions.rs`, 1.3): `{ path, text, conflicts, accepted: Proposal[] }`:
   the text the proposals were made from, which the file must still have to be written, and how many conflicts it has.
   **`Proposal`**: `{ source, from, to, text, newLines }`, the lines `from` to `to` of the file (from 0, `to` left out)
@@ -848,8 +869,8 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `{ kind: "cloneFolder", parent, taken }` and `{ kind: "count" }` (1.11).
   **`FileQuestion`**: `{ folder: string | null, fileName: string | null, filters: { name, extensions }[] }`.
 - **`Answer`** (`model/src/contract/answers.rs`): only the kinds a person gives travel to the engine: `text`,
-  `choice`, `choices`, `confirmed`, `path`, and `flag { value }` (1.3) in the `answers` of an `offerRun`, which the
-  extension sends back as it received them. The other kinds are answers of the engine's own queries and never cross;
+  `choice`, `choices`, `confirmed`, `path`, and `flag { value }` (1.3) and `names { names }` (1.13) in the `answers` of
+  an `offerRun`, which the extension sends back as it received them. The other kinds are answers of the engine's own queries and never cross;
   an `offerRun` that would need one is not sent.
 - **`Plan`** (`model/src/contract/plan.rs`): `{ title, steps: Step[], danger: "none" | { kind: "confirm", reason } |
   { kind: "destructive", reason }, undo: "byReflog" | { kind: "impossible", reason } | { kind: "journal" } | {

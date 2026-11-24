@@ -45,6 +45,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   context.subscriptions.push(engine);
   reads.use(() => engine.running);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
+  // A version stored with Git LFS and not downloaded offers **Download**, after which the tabs read it again.
+  const fileSystem: GitFileSystem = new GitFileSystem((side) => controller.sayNotDownloaded(side, (root) => fileSystem.readAgain(root)));
   controller.useEngine(engine);
   controller.useTokenForgetting((host) => Promise.resolve(context.secrets.delete(hostingTokenKey(host))));
   const blameSource = new BlameSource(log);
@@ -264,7 +266,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ),
     command('gitardo.addSubmodule', () => controller.action({ kind: 'submoduleAdd' })),
     command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
-    vscode.workspace.registerFileSystemProvider(SCHEME, new GitFileSystem(), { isReadonly: true, isCaseSensitive: true }),
+    vscode.workspace.registerFileSystemProvider(SCHEME, fileSystem, { isReadonly: true, isCaseSensitive: true }),
     vscode.window.registerWebviewViewProvider(GRAPH_VIEW, graphProvider, webviewOptions),
     // The tabs of the graph come back after a reload, on what their pages kept (`repo.keep-tabs`).
     vscode.window.registerWebviewPanelSerializer(GRAPH_TAB, {

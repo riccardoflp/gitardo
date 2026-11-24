@@ -111,9 +111,22 @@ fn repository() -> RepositoryState {
         is_looked_after: true,
         commit_graph: WRITTEN,
         notes: notes(),
-        lfs: model::lfs::LfsStatus::default(),
+        lfs: lfs(),
         rerere: model::rerere::RerereState::default(),
         resolved_as_before: Vec::new(),
+    }
+}
+
+/// Git LFS 3.7.1, set up, storing `*.psd`.
+fn lfs() -> model::lfs::LfsStatus {
+    model::lfs::LfsStatus {
+        version: Some(String::from("3.7.1")),
+        is_set_up: true,
+        patterns: vec![model::lfs::LfsPattern {
+            pattern: String::from("*.psd"),
+            file: String::from(".gitattributes"),
+            line: 1,
+        }],
     }
 }
 

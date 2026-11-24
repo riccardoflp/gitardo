@@ -62,6 +62,10 @@ pub struct StateJson {
     /// Whether git keeps its commit-graph file of the repository and reads it (`upkeep.read-commit-graph`, since 1.12).
     #[serde(default)]
     pub commit_graph: CommitGraphJson,
+    /// Whether Git LFS is there and set up, and the patterns of the files the repository stores with it
+    /// (`lfs.read-status`, since 1.13); the version only once the repository has patterns or is set up.
+    #[serde(default)]
+    pub lfs: crate::reads::LfsStatusJson,
 }
 
 /// Whether git keeps its commit-graph file of a repository and reads it (`upkeep.read-commit-graph`, since 1.12).
