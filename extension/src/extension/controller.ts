@@ -296,6 +296,7 @@ export class Controller implements vscode.Disposable {
   /** What `unsaved` was last worked out from: the state, and the files of the editors with edits not saved. */
   private unsavedFrom?: { state: RepoState | null; files: string };
   /** The files hidden from git the Explorer's menu was last told of, as JSON. */
+  private lfsInMenus = false;
   private hiddenInMenus = '';
   private readonly stateEmitter = new vscode.EventEmitter<RepoState | null>();
   private readonly readEmitter = new vscode.EventEmitter<RepoState>();
@@ -2225,6 +2226,7 @@ export class Controller implements vscode.Disposable {
   private setState(group: ViewGroup, state: RepoState | null): void {
     group.state = state;
     if (group === this.followers) this.showHiddenInMenus(state);
+    if (group === this.followers) this.showLfsInMenus(state);
     this.postToGroup(group, { type: 'state', state });
     if (group === this.followers) {
       this.repositoriesView.shown(state);
@@ -2244,6 +2246,36 @@ export class Controller implements vscode.Disposable {
     if (said === this.hiddenInMenus) return;
     this.hiddenInMenus = said;
     void vscode.commands.executeCommand('setContext', 'gitardo.hiddenFromGit', hidden);
+  }
+
+  /**
+   * Tells the context menu of the Explorer whether the repository shown stores files with Git LFS, for it to offer
+   * **Store with Git LFS…** there alone, as the desktop's Files page does: Git for Windows sets Git LFS up for every
+   * repository, and it would be offered everywhere (`lfs.track`).
+   */
+  private showLfsInMenus(state: RepoState | null): void {
+    const stores = !!state?.lfs?.patterns.length;
+    if (stores === this.lfsInMenus) return;
+    this.lfsInMenus = stores;
+    void vscode.commands.executeCommand('setContext', 'gitardo.storesWithLfs', stores);
+  }
+
+  /**
+   * **Store with Git LFS…** on a file of the Explorer: has the engine ask how its files are named, by its extension,
+   * the file alone, its folder or a pattern typed, and write the pattern in the `.gitattributes` at the top of the
+   * repository it is in, which the views show first (`lfs.track`). What follows, **Store them with Git LFS in the next
+   * commit** for the files committed before, is offered as the engine says (`lfs.store-committed`).
+   */
+  async storeWithLfsFromExplorer(uri: vscode.Uri | undefined): Promise<void> {
+    if (uri?.scheme !== 'file' || !(await this.requireState())) return;
+    await this.showRepoOf(uri);
+    const repo = this.repo;
+    const relative = repo ? path.relative(repo.root, uri.fsPath).replace(/\\/g, '/') : '';
+    if (!repo || !relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+      void vscode.window.showWarningMessage(`Gitardo: ${path.basename(uri.fsPath)} is in no repository of the workspace.`);
+      return;
+    }
+    await this.runOnEngine([{ feature: 'lfs.track', target: { kind: 'file', path: relative } }], repo);
   }
 
   /**

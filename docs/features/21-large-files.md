@@ -309,8 +309,11 @@ Has Git LFS store the files that a pattern takes, from their next commit on.
 - **Refuses**: without Git LFS, as `lfs.download`; not set up: **Git LFS is not set up in this repository.** with
   **Set up**.
 - **Uses**: `lfs.read-status`, `lfs.set-up`, `lfs.untrack`, `lfs.store-committed`, `changes.row-menu`.
-- **Extension**: planned: **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, sending
-  `feature/run` of `lfs.track` to the engine.
+- **Extension**: built: **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, in a repository
+  that stores files with Git LFS already, as the Files page offers it, sends `feature/run` of `lfs.track` with the
+  target `file` (`Controller.storeWithLfsFromExplorer`), its questions asked with VS Code's picks and input boxes; it is
+  not offered on a folder, for which **Everything in `<folder>`** of a file of it, or a pattern typed, does (Q1527).
+  **Track a pattern…** is on the **Large files** tab.
 
 Acceptance:
 
@@ -346,7 +349,9 @@ pattern was there, so that the next commit stores them with Git LFS. The commits
 - **Undo**: Not taken back by Undo: unstaging the files (`changes.unstage`) does.
 - **After**: the files are listed in the changes as modified and staged.
 - **Uses**: `lfs.read-files`, `changes.pathspec`, `changes.unstage`.
-- **Extension**: planned, with `lfs.track`.
+- **Extension**: built: **Store them with Git LFS in the next commit**, offered on the message after `lfs.track` with
+  the files it read (the answer `names`, protocol 1.13) and in the menu of a pattern of the **Large files** tab, sends
+  `feature/run` of `lfs.store-committed`.
 
 Acceptance:
 

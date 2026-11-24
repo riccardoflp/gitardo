@@ -9,10 +9,11 @@ import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { OfferedRun } from '../src/engine/messages';
 import { Reads } from '../src/engine/reads';
 import { notDownloadedText } from '../src/shared/lfs';
 import { git } from './git';
-import { built, cleanUpAfterEach, client, engineState, folder, repository, runFeature } from './engine/harness';
+import { answering, built, choice, cleanUpAfterEach, client, commitFile, engineState, folder, repository, runFeature } from './engine/harness';
 
 cleanUpAfterEach();
 
@@ -120,4 +121,42 @@ describe.skipIf(!built)('Git LFS, through the engine', { timeout: 120_000 }, () 
     expect(Buffer.from(after.bytes!).toString('utf8')).toBe(content);
     expect(fs.readFileSync(path.join(clone, 'art', 'logo.psd'), 'utf8')).toBe(content);
   });
+
+  it.skipIf(hasLfs)('lfs.track: without Git LFS, Store with Git LFS… on a file refuses with its message', async () => {
+    const root = await withPointer();
+    const { finished } = await runFeature(root, 'lfs.track', { kind: 'file', path: 'art/logo.psd' });
+    expect(finished).toMatchObject({ kind: 'refused', message: 'Git LFS is not installed: install it from git-lfs.com, then try again.' });
+  });
+
+  it.skipIf(!hasLfs)(
+    'lfs.track, lfs.store-committed: All .bin files on a file of the Explorer writes its pattern, and offers to store the one committed before',
+    async () => {
+      const root = await repository();
+      await git(root, ['lfs', 'install', '--local']);
+      // A pattern already, so that the Explorer offers it; `data.bin` is committed before `*.bin` is stored with Git LFS.
+      await commitFile(root, '.gitattributes', '*.psd filter=lfs diff=lfs merge=lfs -text\n', 'Store the drawings with Git LFS');
+      await commitFile(root, 'data.bin', 'some data\n', 'Add the data');
+      const { finished } = await client().runFeature(
+        { repository: root, feature: 'lfs.track', target: { kind: 'file', path: 'data.bin' } },
+        answering({ how: choice('extension') }),
+      );
+      expect(finished.kind, JSON.stringify(finished)).toBe('ran');
+      if (finished.kind !== 'ran') return;
+      expect(finished.plan.steps.map((step) => step.line)).toEqual(['git lfs track *.bin']);
+      expect(fs.readFileSync(path.join(root, '.gitattributes'), 'utf8')).toContain('*.bin filter=lfs diff=lfs merge=lfs -text');
+      const offer = finished.plan.after.find((followUp) => followUp.kind === 'offerRun') as OfferedRun | undefined;
+      expect(offer).toMatchObject({
+        label: 'Store them with Git LFS in the next commit',
+        feature: 'lfs.store-committed',
+        answers: { files: { kind: 'names', names: ['data.bin'] } },
+      });
+      if (!offer) return;
+      const { finished: stored } = await client().runFeature(
+        { repository: root, feature: offer.feature, target: offer.target, answers: offer.answers },
+        answering({}),
+      );
+      expect(stored.kind === 'ran' && stored.plan.steps.map((step) => step.line)).toEqual(['git add --renormalize -- data.bin']);
+      expect((await git(root, ['show', ':data.bin'])).stdout).toContain('version https://git-lfs.github.com/spec/v1');
+    },
+  );
 });

@@ -723,8 +723,8 @@ earns it.
 | [`lfs.download`](21-large-files.md#lfsdownload--download-files-stored-with-git-lfs) | Download files stored with Git LFS | Operation | Built | Built |
 | [`lfs.page`](21-large-files.md#lfspage--the-large-files-page) | The Large files page | View | Built | Planned |
 | [`lfs.set-up`](21-large-files.md#lfsset-up--set-up-git-lfs-for-a-repository) | Set up Git LFS for a repository | Operation | Built | Planned |
-| [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Built | Planned |
-| [`lfs.store-committed`](21-large-files.md#lfsstore-committed--store-with-git-lfs-the-files-committed-before) | Store with Git LFS the files committed before | Operation | Built | Planned |
+| [`lfs.track`](21-large-files.md#lfstrack--store-files-with-git-lfs) | Store files with Git LFS | Operation | Built | Built |
+| [`lfs.store-committed`](21-large-files.md#lfsstore-committed--store-with-git-lfs-the-files-committed-before) | Store with Git LFS the files committed before | Operation | Built | Built |
 | [`lfs.untrack`](21-large-files.md#lfsuntrack--stop-storing-a-pattern-with-git-lfs) | Stop storing a pattern with Git LFS | Operation | Built | Planned |
 | [`lfs.read-locks`](21-large-files.md#lfsread-locks--the-locks-of-the-files-stored-with-git-lfs) | The locks of the files stored with Git LFS | Read | Built | Planned |
 | [`lfs.lock`](21-large-files.md#lfslock--lock-a-file-stored-with-git-lfs) | Lock a file stored with Git LFS | Operation | Built | Planned |

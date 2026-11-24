@@ -494,6 +494,11 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.storeWithLfs",
+        "title": "Store with Git LFS…",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.stopTracking",
         "title": "Stop Tracking, Keep on Disk…",
         "category": "Gitardo"
@@ -636,6 +641,10 @@
         },
         {
           "command": "gitardo.ignore",
+          "when": "false"
+        },
+        {
+          "command": "gitardo.storeWithLfs",
           "when": "false"
         },
         {
@@ -799,6 +808,11 @@
           "command": "gitardo.ignore",
           "when": "resourceScheme == file && gitardo.hasRepository && resourcePath not in gitardo.repositoryRoots && resourcePath not in gitardo.hiddenFromGit",
           "group": "z_gitardo_leave_alone@1"
+        },
+        {
+          "command": "gitardo.storeWithLfs",
+          "when": "resourceScheme == file && !explorerResourceIsFolder && gitardo.hasRepository && gitardo.storesWithLfs",
+          "group": "z_gitardo_lfs@1"
         },
         {
           "command": "gitardo.stopTracking",

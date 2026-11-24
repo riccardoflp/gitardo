@@ -264,6 +264,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ...(['ignore', 'stopTracking', 'hideFromGit', 'showToGit'] as const).map((kind) =>
       command(`gitardo.${kind}`, (uri) => controller.leaveAloneFromExplorer(kind, uri instanceof vscode.Uri ? uri : undefined)),
     ),
+    // Git LFS, on the file the Explorer's menu was opened on (`lfs.track`).
+    command('gitardo.storeWithLfs', (uri) => controller.storeWithLfsFromExplorer(uri instanceof vscode.Uri ? uri : undefined)),
     command('gitardo.addSubmodule', () => controller.action({ kind: 'submoduleAdd' })),
     command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
     vscode.workspace.registerFileSystemProvider(SCHEME, fileSystem, { isReadonly: true, isCaseSensitive: true }),

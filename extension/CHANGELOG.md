@@ -7,6 +7,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 ### Added
 
 - A file stored with Git LFS opens by its content, at a commit, in the index and on either side of a diff Gitardo opens, when the store of the repository has it. One whose content is not downloaded, as in a clone made without downloading, opens as a text that says **Stored with Git LFS, not downloaded**, with its size and the first digits of its id, never the lines of its pointer, and a message offers **Download**, which downloads it with Gitardo's engine and shows its content.
+- **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, in a repository that stores files with Git LFS already, asks how its files are named, all the files of its extension, this file, everything in its folder or a pattern typed, and has Git LFS write the pattern in the `.gitattributes` at the top. When files the pattern takes were committed before, the message after counts them and offers **Store them with Git LFS in the next commit**.
 
 ## 1.3.0 - 2026-11-24
 
