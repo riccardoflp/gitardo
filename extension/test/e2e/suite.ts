@@ -1790,10 +1790,14 @@ export async function run(): Promise<void> {
     };
     const five = (['sideGraph', 'commits', 'branches', 'stashes', 'changes'] as const).map(view);
     try {
-      // The watcher of macOS tells of the changes of the step before up to a second or two after them: those are read
-      // first, and only the reads of this step are counted.
-      await sleep(2_000);
-      await until('no read under way', () => !internals.loading);
+      // The changes of the steps before, which the watcher of macOS tells of late and git may still be writing after a
+      // fetch, are read first: the repository is quiet once its state saw every change heard of for a second and a half.
+      const fresh = session as unknown as { isFresh: boolean };
+      let quietSince = Date.now();
+      await until('the changes of the steps before to be read', () => {
+        if (internals.loading || !fresh.isFresh) quietSince = Date.now();
+        return Date.now() - quietSince > 1_500;
+      });
       count = 0;
       // The state held was read after the last change heard of: each view is sent it, and nothing is read.
       await Promise.all(five.map((webview) => internals.onMessage(webview, { type: 'ready' })));
