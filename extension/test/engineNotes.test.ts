@@ -72,7 +72,9 @@ describe.skipIf(!built)('Notes and archives, through the engine', { timeout: 60_
     const root = await repository();
     await git(root, ['tag', 'v1.0']);
     const saved = path.join(folder(), 'v1.0.zip');
-    expect(await runAction(root, { kind: 'saveArchive', at: 'refs/tags/v1.0' }, { path: { kind: 'path', path: saved } })).toBe('ran');
+    // The format starts on zip on Windows only, so it is chosen here.
+    const answers: Record<string, Answer> = { format: { kind: 'choice', identifier: 'zip' }, path: { kind: 'path', path: saved } };
+    expect(await runAction(root, { kind: 'saveArchive', at: 'refs/tags/v1.0' }, answers)).toBe('ran');
     expect(fs.readFileSync(saved).subarray(0, 2).toString('latin1')).toBe('PK');
   });
 });
