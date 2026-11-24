@@ -1575,6 +1575,8 @@ export async function run(): Promise<void> {
       await git(app, ['reset', '-q', '--hard', start]).catch(() => undefined);
       await git(app, ['branch', '-D', 'rerere-side']).catch(() => undefined);
       await git(app, ['config', '--local', '--unset', 'rerere.enabled']).catch(() => undefined);
+      // With rerere.enabled unset, a folder rr-cache still turns it on: the steps after would see conflicts resolved as before.
+      fs.rmSync(path.join(app, '.git', 'rr-cache'), { recursive: true, force: true });
       await refreshed();
     }
   });
@@ -1589,7 +1591,7 @@ export async function run(): Promise<void> {
       fs.writeFileSync(shallowFile, `${boundary}\n`);
       await refreshed();
       await until('the state to say where the history ends', () => state().shallow?.includes(boundary));
-      const commands = (extension.packageJSON.contributes.commands as { command: string; title: string }[]).filter((entry) => /History$/.test(entry.title));
+      const commands = (extension.packageJSON.contributes.commands as { command: string; title: string }[]).filter((entry) => /^gitardo\.load(More|Whole)History$/.test(entry.command));
       assert.deepEqual(commands.map((entry) => entry.title), ['Load More History', 'Load the Whole History']);
 
       // Load more history, as the last row of the graph and the Command Palette ask it, with 3 commits further back.
@@ -1597,13 +1599,21 @@ export async function run(): Promise<void> {
       inputs = ['3'];
       await fromWebview({ type: 'action', action: { kind: 'deepen' } });
       assert.ok(commandsLogged().includes('> git fetch --deepen=3 origin'), commandsLogged().join('\n'));
+      // A second operation asked while the first runs would be refused (M42).
+      await until('the deepening to end', () => !(controller as unknown as { running: boolean }).running);
+      // The history of the suite's repository is short enough for three more commits to reach its start: it is made
+      // shallow again before it is loaded whole.
+      fs.writeFileSync(shallowFile, `${boundary}\n`);
+      await refreshed();
+      await until('the state to say where the history ends again', () => state().shallow?.includes(boundary));
 
       // Load the whole history: the repository is a clone like any other, and the graph has no row of its end.
       logged.length = 0;
       await vscode.commands.executeCommand('gitardo.loadWholeHistory');
       assert.ok(commandsLogged().includes('> git fetch --unshallow origin'), commandsLogged().join('\n'));
+      // Git takes the file away once the fetch is done; the state says so after the read that follows.
+      await until('git to take the shallow file away', () => !fs.existsSync(shallowFile));
       await until('the state to say the history is whole', () => !state().shallow?.length);
-      assert.ok(!fs.existsSync(shallowFile));
     } finally {
       inputs = [];
       fs.rmSync(shallowFile, { force: true });
@@ -4880,6 +4890,9 @@ export async function run(): Promise<void> {
         write('logo.psd', 'the layers of the logo\n');
         await git(app, ['add', '--', '.gitattributes', 'logo.psd']);
         await git(app, ['commit', '--quiet', '-m', 'Store the drawings with Git LFS']);
+      } else {
+        // The patterns are read from the files .gitattributes git knows, as the engine lists them with git ls-files.
+        await git(app, ['add', '--', '.gitattributes']);
       }
       await vscode.commands.executeCommand('gitardo.refresh');
       posted.length = 0;
