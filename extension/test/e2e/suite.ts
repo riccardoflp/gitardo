@@ -1790,7 +1790,11 @@ export async function run(): Promise<void> {
     };
     const five = (['sideGraph', 'commits', 'branches', 'stashes', 'changes'] as const).map(view);
     try {
+      // The watcher of macOS tells of the changes of the step before up to a second or two after them: those are read
+      // first, and only the reads of this step are counted.
+      await sleep(2_000);
       await until('no read under way', () => !internals.loading);
+      count = 0;
       // The state held was read after the last change heard of: each view is sent it, and nothing is read.
       await Promise.all(five.map((webview) => internals.onMessage(webview, { type: 'ready' })));
       assert.equal(count, 0, 'no read for views opened while nothing changed');
