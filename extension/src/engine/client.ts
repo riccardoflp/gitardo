@@ -851,6 +851,8 @@ export class EngineClient {
     else if (entry.kind === 'warning') this.options.log.warn(`[engine] ${entry.line}${where}`);
     // A step is logged as a command, `> ` before it, as the log has always shown them.
     else if (entry.kind === 'step') this.options.log.info(`> ${entry.line}`);
+    // Under it, what it was given on its standard input, indented, and what git printed once it succeeded, as they are.
+    else if (entry.kind === 'input' || entry.kind === 'output') this.options.log.info(entry.line);
     else this.options.log.info(`[engine] ${entry.line}${where}`);
   }
 }

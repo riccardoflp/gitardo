@@ -47,20 +47,33 @@ Acceptance:
 
 ### `log.record` — Log every command that changes something
 
-Every step of every plan is written to the command log before it starts, and its result after.
+Every step of every plan is written to the command log before it starts, with what it is given on its standard input,
+and its result after: what git printed once it succeeded, or what went wrong.
 
 - **Kind**: Operation (of the engine; it has no entry point of its own)
 - **Function**: `engine::log::record(step, result)`
 - **Plan**: the lines are, by step: the git command as it runs (arguments quoted where they hold spaces), `write <path>`,
-  `symlink <folder>`, `copy <path>`, `unlink <path>`, `delete <path>`, `run <command>`. A failed step is followed by
-  what git or the system said.
+  `symlink <folder>`, `copy <path>`, `unlink <path>`, `delete <path>`, `run <command>`. Under a git step given something
+  on its standard input, that input, each line indented by two spaces, as the preview shows it. A git step that
+  succeeded is followed by what git printed, on its output then on its error output, a line each, as a terminal leaves
+  it (of its progress, the last line), at `info` like the step: the hint of a push and the link to open a pull request,
+  what a pull or an autostash did ([D11](../transition/04-differences.md#d11-the-log-keeps-no-output-of-commands-that-succeeded-nor-what-was-given-on-standard-input)).
+  A failed step is followed by what git or the system said.
 - **Danger**: None
 - **Undo**: Not applicable.
 - **Settings**: `log.level` (`info` or `debug`): at `debug`, the reads are logged too, with how long each took.
+- **Extension**: the engine sends each line in `log/line` (protocol 1.13 for the kinds `input` and `output`), and the
+  extension writes it in the **Gitardo** output channel (`EngineClient.logLine` in `src/engine/client.ts`): a step as
+  `> <command>`, then what it was given and what git printed as they are, at info; a failure as an error and a warning
+  as a warning. The desktop's Command log draws what a step was given and printed muted, under it.
 
 Acceptance:
 
 - [ ] Every command that changes the repository or a remote is in the log, exactly as it ran.
+- [x] What git printed under a step that succeeded, such as the branch `git checkout -b` switched to or the commit
+  `git commit` made, is in the log under the step, a line each, at `info`.
+- [x] What a step is given on its standard input, as the message of a commit or the patch of `git apply --cached`, is
+  in the log under the step, each line indented, as the preview shows it.
 - [ ] Reads (`git log`, `git status` and the like) are not in the log at `info`, and are at `debug`.
 - [ ] A step that fails has its error under it, and the steps after it are not run nor logged.
 - [ ] A step that fails and that the plan gets past, as a cherry-pick that changes nothing is skipped, has what git said

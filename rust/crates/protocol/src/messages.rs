@@ -83,7 +83,8 @@ pub mod methods {
 /// and `read/lfs.read-content` ([`crate::reads`]), the targets `lfsFiles` and `lfsLock`, and the answer `names`, which
 /// an operation offered is given; `target` in the follow-up `writeSetting`, where VS Code writes the setting, the
 /// target `setupSettings` and `setup` in `feature/run`, what new worktrees get in the repository's folder, for the
-/// settings of new worktrees saved by the engine's plans.
+/// settings of new worktrees saved by the engine's plans; and the kinds `input` and `output` of a line of the log, what
+/// a step was given on its standard input and what git printed under a step that succeeded.
 pub const VERSION: &str = "1.13";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
@@ -307,11 +308,12 @@ pub struct LogEntryJson {
     pub line: String,
 }
 
-/// What a line of the log is: `"step"`, `"failure"`, `"warning"`, or `{ "kind": "read", "milliseconds": 12 }`.
+/// What a line of the log is: `"step"`, `"failure"`, `"warning"`, `"input"`, `"output"` (version 1.13), or
+/// `{ "kind": "read", "milliseconds": 12 }`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LogKindJson {
-    /// A step, a failure or a warning.
+    /// A step, a failure, a warning, or a line a step was given or printed.
     Plain(PlainKind),
     /// A read, with how long it took.
     Read(ReadKind),
@@ -327,6 +329,10 @@ pub enum PlainKind {
     Failure,
     /// What went wrong without stopping anything.
     Warning,
+    /// A line of what the step above was given on its standard input, indented as the preview shows it (version 1.13).
+    Input,
+    /// A line of what git printed under the step above, which succeeded (version 1.13).
+    Output,
 }
 
 /// A read, with how long it took.
@@ -353,6 +359,8 @@ impl From<&LogEntry> for LogEntryJson {
             LogKind::Step => LogKindJson::Plain(PlainKind::Step),
             LogKind::Failure => LogKindJson::Plain(PlainKind::Failure),
             LogKind::Warning => LogKindJson::Plain(PlainKind::Warning),
+            LogKind::Input => LogKindJson::Plain(PlainKind::Input),
+            LogKind::Output => LogKindJson::Plain(PlainKind::Output),
             LogKind::Read(took) => LogKindJson::Read(ReadKind {
                 kind: ReadWord::Read,
                 milliseconds: u64::try_from(took.as_millis()).unwrap_or(u64::MAX),

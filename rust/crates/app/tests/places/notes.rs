@@ -182,7 +182,12 @@ fn note_remove__the_inspector_shows_no_note_after_it() {
         &mut state,
         ("note.remove", Target::Commit(commit.clone()), Answers::new()),
     );
-    let log: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let log: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert!(log.contains(&format!("git notes remove {commit}")), "{log:?}");
     let tree = drawn(&state);
     assert!(!says(&tree, "Note"));

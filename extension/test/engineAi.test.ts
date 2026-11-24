@@ -258,7 +258,7 @@ describe.skipIf(!built)('AI and GitHub through the engine', { timeout: 60_000 },
       },
     });
     const { finished } = await engine.runFeature({ repository: root, feature: 'github.load-pull-requests', target: { kind: 'head' } }, answering({}));
-    // No input box for a token: the user backed out of VS Code's sign-in (G6).
+    // No input box for a token: the user backed out of VS Code's sign-in (G4).
     expect(finished).toEqual({ kind: 'backedOut' });
     expect(asks).toEqual([true]);
   });

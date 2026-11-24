@@ -124,7 +124,12 @@ fn compare_take_file__taking_c_from_feature_runs_git_checkout_after_asking_and_s
     click(&driver, &mut state, "Take the version of feature into the working tree");
     let _after = after_it_ended(&driver, &mut state);
     let feature = commit(&repository, "feature");
-    let ran: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let ran: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert!(ran.contains(&format!("git checkout {feature} -- c.txt")), "{ran:?}");
     assert_eq!(repository.git(&["diff", "--cached", "--name-only"]).trim(), "c.txt");
     assert_eq!(std::fs::read_to_string(repository.path().join("c.txt")).unwrap(), "c\n");

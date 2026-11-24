@@ -125,8 +125,9 @@ export class FlowDiff implements vscode.Disposable {
       await vscode.window.showTextDocument(fileUri(panel.descriptor), { preview: false });
       return;
     }
-    // The engine asks first before what can lose work.
-    const feature = kind === 'stage' ? 'changes.stage' : kind === 'unstage' ? 'changes.unstage' : 'changes.discard';
+    // The engine asks first before what can lose work. Discarding takes back only what is not staged (`diff.discard-file`),
+    // and says there is nothing to discard when every change of the file is staged.
+    const feature = kind === 'stage' ? 'changes.stage' : kind === 'unstage' ? 'changes.unstage' : 'diff.discard-file';
     if (await this.runOp(repoRoot, [{ feature, target: { kind: 'file', path: file } }])) await refreshPanel(this.engine, panel);
   }
 

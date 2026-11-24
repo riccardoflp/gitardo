@@ -34,7 +34,12 @@ fn delete_here_and_from(repository: &Repository) -> Vec<String> {
             other => panic!("tag.delete-remote asks nothing here, and said {other:?}"),
         }
     }
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 #[test]

@@ -45,7 +45,12 @@ fn to_the_end_with(driver: &OperationsDriver, state: &mut State, intents: Vec<In
 
 /// The git commands the operations ran, as the Command log has them.
 fn logged(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 /// A merge stopped on `added.txt`, which both sides added with the same first three lines and a different fourth.

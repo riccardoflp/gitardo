@@ -72,7 +72,12 @@ fn marked(feature: &'static str, commit: &CommitId, mark: &str) -> Vec<Intent> {
 
 /// The git commands the operations ran, as the Command log has them.
 fn logged(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 /// The commit checked out.

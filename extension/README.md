@@ -720,7 +720,7 @@ The answer comes from a guide to Gitardo's features, made from their description
 
 ## Command preview
 
-Gitardo runs the `git` executable found on your `PATH`, and every command that changes the repository or a remote is written to the **Gitardo** output channel (**Gitardo: Show Command Log**).
+Gitardo runs the `git` executable found on your `PATH`, and every command that changes the repository or a remote is written to the **Gitardo** output channel (**Gitardo: Show Command Log**), with what it was given on its standard input under it and, once it succeeded, what git printed, such as the link to open a pull request after a push.
 
 Set `gitardo.commandPreview` to `all` to see the exact commands before they run and approve them:
 

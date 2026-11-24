@@ -153,7 +153,11 @@ Version 1.13 also adds what milestone M48
 needed to have the engine's plans save the settings of new worktrees, Q399: `target` in the follow-up `writeSetting`,
 `"workspaceFolder"`, `"workspace"` or `"user"`, where VS Code writes the setting, the user's settings when an engine
 of 1.12 leaves it out; the target `setupSettings` of `worktree-setup.save` and `worktree-setup.remove-from`; and
-`setup` in `feature/run`, what new worktrees get in the folder of the repository, with where each list is set.
+`setup` in `feature/run`, what new worktrees get in the folder of the repository, with where each list is set. And
+for the log ([D11](04-differences.md#d11-the-log-keeps-no-output-of-commands-that-succeeded-nor-what-was-given-on-standard-input)):
+the kinds `"input"` of a [`log/line`](#logline), a line of what the step above was given on its standard input,
+indented by two spaces as the preview shows it, and `"output"`, a line of what git printed under the step above once
+it succeeded. An older extension writes them as it writes a line of a kind it does not know.
 
 ## Transport
 
@@ -751,11 +755,12 @@ with that TypeScript (stage 10).
 Notification from the engine: `{ repository: string | null, entry: LogEntry }`, each line as it is written.
 
 ```ts
-LogEntry = { time: Timestamp, kind: "step" | "failure" | "warning" | { kind: "read", milliseconds: number }, line: string }
+LogEntry = { time: Timestamp, kind: "step" | "failure" | "warning" | "input" | "output" | { kind: "read", milliseconds: number }, line: string }
 ```
 
-The extension writes it in the **Gitardo** output channel as today (`Controller.run` logs, `controller.ts`). Reads are
-sent only at `logLevel` `"debug"`.
+The extension writes it in the **Gitardo** output channel (`EngineClient.logLine`, `src/engine/client.ts`): a step as
+`> <command>`, what it was given (`"input"`, 1.13) and what git printed under it (`"output"`, 1.13) at info, a failure
+as an error, a warning as a warning. Reads are sent only at `logLevel` `"debug"`.
 
 ### `activity/changed`
 

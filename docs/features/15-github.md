@@ -104,7 +104,7 @@ keeps that token for the next times.
 - **Extension**: **Sign in to GitHub**, in the **…** menu of the graph and in Quick search, runs it on the engine,
   whose token is VS Code's sign-in to GitHub (`host/githubToken` with `ask` set, `githubToken` in
   `src/extension/github.ts`): VS Code asks the user to sign in, and no box asks for a token. Backing out of the sign-in
-  backs out of the feature, with no message (G4). VS Code keeps the session; nothing is kept in the credential store.
+  backs out of the feature, with no message (G4, settled in M48). VS Code keeps the session; nothing is kept in the credential store.
   When the engine's binary is missing, it says so (D49).
 
 Acceptance:

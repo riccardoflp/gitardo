@@ -60,7 +60,12 @@ fn patch_apply__undo_right_after_a_patch_of_three_commits_takes_back_the_three_a
     );
     until_ended(&driver, &mut state);
     assert_eq!(repository.git(&["rev-parse", "HEAD"]).trim(), first);
-    let undone: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let undone: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(undone.last(), Some(&format!("git reset --keep {first}")));
 }
 

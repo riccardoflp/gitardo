@@ -54,7 +54,14 @@ fn run_operation(
                 driver.intent(state, Intent::Feature(FeatureIntent::Answer(answer.clone())));
             }
             Message::FeatureEnded { ended, log } => {
-                return (ended, log.into_iter().map(|entry| entry.line).collect(), shown);
+                return (
+                    ended,
+                    log.into_iter()
+                        .filter(super::support::is_ran)
+                        .map(|entry| entry.line)
+                        .collect(),
+                    shown,
+                );
             }
             _ => {}
         }
@@ -229,7 +236,11 @@ fn file_view_open_external__the_command_of_the_setting_is_run_with_the_absolute_
     };
     assert!(matches!(ended, Ended::Ran { .. }), "{ended:?}");
     let path = repository.path().join("src").join("app.rs");
-    let lines: Vec<String> = log.into_iter().map(|entry| entry.line).collect();
+    let lines: Vec<String> = log
+        .into_iter()
+        .filter(super::support::is_ran)
+        .map(|entry| entry.line)
+        .collect();
     assert_eq!(lines, [format!("run echo {} 42", path.display())]);
 }
 

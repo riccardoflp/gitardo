@@ -102,7 +102,13 @@ fn confirm_until_ended(driver: &OperationsDriver, state: &mut State) -> Vec<Stri
     loop {
         match driver.next(state) {
             Message::FeatureConfirms(_) => driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true))),
-            Message::FeatureEnded { log, .. } => return log.into_iter().map(|entry| entry.line).collect(),
+            Message::FeatureEnded { log, .. } => {
+                return log
+                    .into_iter()
+                    .filter(super::support::is_ran)
+                    .map(|entry| entry.line)
+                    .collect();
+            }
             _ => {}
         }
     }

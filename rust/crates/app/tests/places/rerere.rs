@@ -84,7 +84,13 @@ fn run_from_menu(window: &mut Window, state: &mut State, item: &str, answer: Opt
         match driver.next(state) {
             Message::FeatureAsks(_) => driver.intent(state, Intent::Feature(FeatureIntent::Answer(answer.cloned()))),
             Message::FeatureConfirms(_) => driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true))),
-            Message::FeatureEnded { log, .. } => return log.into_iter().map(|entry| entry.line).collect(),
+            Message::FeatureEnded { log, .. } => {
+                return log
+                    .into_iter()
+                    .filter(super::support::is_ran)
+                    .map(|entry| entry.line)
+                    .collect();
+            }
             _ => {}
         }
     }

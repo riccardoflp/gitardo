@@ -185,7 +185,12 @@ fn sync_unshallow__in_a_clone_with_depth_1_of_ten_commits_it_fetches_the_whole_h
     assert_eq!(commits(&state), 1);
     let driver = driver(&origin);
     run_operation(&driver, &mut state, "sync.unshallow", model::contract::Answers::new());
-    let lines: Vec<&str> = state.log.entries().map(|entry| entry.line.as_str()).collect();
+    let lines: Vec<&str> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.as_str())
+        .collect();
     assert!(lines.contains(&"git fetch --unshallow origin"), "{lines:?}");
     let _effects = run(&mut state, Message::Intent(Intent::Refresh));
     assert_eq!(commits(&state), 10);

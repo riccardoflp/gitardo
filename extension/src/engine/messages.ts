@@ -33,7 +33,8 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * reads of Git LFS (`read/lfs.read-status`, `read/lfs.read-files`, `read/lfs.read-locks`, `read/lfs.read-content`),
  * the targets `lfsFiles` and `lfsLock` and the answer `names` (milestone M47), and `target` in the follow-up
  * `writeSetting`, the target `setupSettings` and `setup` in `feature/run`, for the settings of new worktrees saved by
- * the engine's plans (milestone M48).
+ * the engine's plans, and the kinds `input` and `output` of a line of the log, what a step was given on its standard
+ * input and what git printed under a step that succeeded (milestone M48).
  */
 export const PROTOCOL = '1.13';
 
@@ -90,7 +91,7 @@ export interface LogLineParams {
   repository: string | null;
   entry: {
     time: number;
-    kind: 'step' | 'failure' | 'warning' | { kind: 'read'; milliseconds: number };
+    kind: 'step' | 'failure' | 'warning' | 'input' | 'output' | { kind: 'read'; milliseconds: number };
     line: string;
   };
 }

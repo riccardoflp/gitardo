@@ -11,7 +11,7 @@ import { engineRuns } from '../src/engine/actions';
 import type { Answer, Question } from '../src/engine/messages';
 import type { Action } from '../src/shared/protocol';
 import { git } from './git';
-import { built, choice, cleanUpAfterEach, confirmed, engineState, repository, runFeature, text } from './engine/harness';
+import { answering, built, choice, cleanUpAfterEach, client, confirmed, engineState, memoryLog, repository, runFeature, text } from './engine/harness';
 
 cleanUpAfterEach();
 
@@ -113,6 +113,35 @@ describe.skipIf(!built)('Changes and commit, through the engine', { timeout: 60_
     expect(all.engine).toEqual(['git add --all', 'git commit -m "Change a"']);
     const amend = await scenario(changed, { kind: 'commit', message: 'Better words', amend: true });
     expect(amend.engine).toEqual(['git commit --amend -m "Better words"']);
+  });
+});
+
+describe.skipIf(!built)('The Flow Diff and the log, through the engine', { timeout: 60_000 }, () => {
+  it("discards only what is not staged of the file of a diff, and says there is nothing to discard when all of it is staged (A4)", async () => {
+    const root = await repository();
+    await changed(root);
+    const partly = await runFeature(root, 'diff.discard-file', { kind: 'file', path: 'c.txt' });
+    expect(partly.lines).toEqual(['git restore -- c.txt']);
+    expect(fs.readFileSync(path.join(root, 'c.txt'), 'utf8')).toBe('c staged\n');
+    const staged = await runFeature(root, 'diff.discard-file', { kind: 'file', path: 'b.txt' });
+    expect(staged.finished).toEqual(expect.objectContaining({ kind: 'refused', message: 'There is nothing to discard.' }));
+    expect((await git(root, ['status', '--porcelain=v1', '--', 'b.txt'])).stdout).toBe('M  b.txt\n');
+  });
+
+  it('writes in the log what git printed under a commit that succeeded, after the command (D11)', async () => {
+    const root = await repository();
+    await changed(root);
+    const log = memoryLog();
+    const runs = engineRuns({ kind: 'commit', message: 'Change b and c', amend: false }, NO_REFS) ?? [];
+    for (const run of runs) {
+      const asker = answering(Object.fromEntries(Object.entries(run.answers ?? {}).map(([key, answer]) => [key, () => answer])));
+      const { finished } = await client(log).runFeature({ repository: root, feature: run.feature, target: run.target }, asker);
+      expect(finished.kind).toBe('ran');
+    }
+    const step = log.lines.indexOf('info > git commit -m "Change b and c"');
+    expect(step, log.lines.join('\n')).toBeGreaterThanOrEqual(0);
+    // git says the commit it made, `[main 1a2b3c4] Change b and c`, then what it changed, in the user's language.
+    expect(log.lines[step + 1]).toMatch(/^info \[main [0-9a-f]+\] Change b and c$/);
   });
 });
 

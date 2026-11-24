@@ -147,6 +147,20 @@ impl Step {
             Step::Warn { words } => words.clone(),
         }
     }
+
+    /// The lines of what a git step is given on its standard input, each indented by two spaces, as the preview shows
+    /// them under the step and the command log writes them after it: the patch of `git apply --cached`, the message of
+    /// a commit. None for a step given nothing.
+    #[must_use]
+    pub fn input_lines(&self) -> Vec<String> {
+        match self {
+            Step::Git { input: Some(input), .. } => String::from_utf8_lossy(input)
+                .lines()
+                .map(|line| format!("  {line}"))
+                .collect(),
+            _ => Vec::new(), // Only a git step reads its standard input.
+        }
+    }
 }
 
 impl Step {
