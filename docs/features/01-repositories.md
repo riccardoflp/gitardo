@@ -1221,8 +1221,8 @@ Acceptance:
 - [ ] While a pull runs in `api`, `web` can be shown, scrolled and searched, and the tab of `api` shows a spinner.
 - [ ] A question the operation of `api` asks while `web` is shown is asked once `api` is shown again.
 - [ ] Starting a commit in `web` while a pull runs in `api` is refused with that sentence.
-- [ ] In the extension, **Unstage** in the Flow Diff while its **Stage** runs is refused with that sentence, and
-  nothing is unstaged.
+- [ ] Extension: **Unstage** in the Flow Diff while its **Stage** runs is refused with that sentence, and nothing is
+  unstaged.
 - [ ] **Show File History** of a file of `web`, chosen while `api` is shown, shows the tab of `web`.
 - [ ] The tab shown is the one shown when the window opens again.
 
