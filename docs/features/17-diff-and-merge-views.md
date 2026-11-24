@@ -491,8 +491,10 @@ Selects some lines of a Diff page, on either side, so that only those are staged
 - **Entry points**: dragging over the lines or over their numbers on either side of the Diff page; `Shift` with a
   click, or with `↑`, `↓`, `Page Up` and `Page Down`, from the line chosen; text selected in the side that is edited.
 - **Uses**: `diff.align`, `diff.edit`, `diff.stage-lines`, `diff.unstage-lines`, `diff.revert-lines`.
-- **Extension**: Planned: the lines selected in either side of the Flow Diff, which is Monaco and has its own
-  selection. In VS Code's diff editor, the selection is VS Code's own, for its **Stage Selected Ranges**.
+- **Extension**: the selection of either side of the Flow Diff, Monaco's own, mapped to the rows of the aligned model, a
+  caret alone taking the row of its line; the context menu of both sides has **Stage lines**, **Unstage lines** and
+  **Revert lines** where the page offers them, greyed out while no row of a change is selected. The keys are not bound
+  (Q1525). In VS Code's diff editor, the selection is VS Code's own, for its **Stage Selected Ranges**.
 
 - The selection is of rows, the rows `diff.align` lays out: from the row of the line where it starts to the row of the
   line where it ends, on whichever side it was made, the filler rows between them included. A line changed into
@@ -528,7 +530,7 @@ The patch that takes into a version of a file only the lines selected of the dif
 - **Kind**: Derivation
 - **Function**: `text::diff::lines_patch(input: &LinesPatchInput) -> Option<String>`
 - **Uses**: `diff.line-diff`, `diff.align`, `diff.change-patch`.
-- **Extension**: Planned, as `diff.stage-lines`.
+- **Extension**: made by the engine from the rows the Flow Diff sends, as `diff.stage-lines`.
 
 Its input is the text the patch applies to (the index, to stage or to unstage), the text it takes lines from (the
 working tree to stage, `HEAD` to unstage), the rows selected, and where each row is in each of the two texts.
@@ -579,9 +581,9 @@ Puts into the index only the lines selected of the changes of the working tree
 - **Function**: `features::diff::stage_lines(context, answers) -> Outcome`
 - **Entry points**: **Stage lines** in the context menu of either side of the Diff page while lines are selected;
   `Alt+S` (`Ctrl+Option+S` on macOS) (`diff.select-lines`).
-- **Extension**: Planned: **Stage lines** in the context menu of the Flow Diff, sending `diff.stage-lines` to the engine
-  with the rows selected, as the stage button of a change sends `diff.stage-change`. In VS Code's diff editor, **Stage
-  Selected Ranges** of VS Code's Git does it.
+- **Extension**: **Stage lines** in the context menu of the Flow Diff sends `diff.stage-lines` to the engine with the
+  lines of each side in the rows selected and their text, as the stage button of a change sends `diff.stage-change`. In
+  VS Code's diff editor, **Stage Selected Ranges** of VS Code's Git does it.
 - **Offered when**: the right side is the working tree and the left is `HEAD` or the index, the file is not renamed
   (Q1073), and some line selected differs between the index and the working tree.
 - **Reads**: the index and the working tree again, to check the lines are where the page says (`diff.read-sides`).
@@ -626,8 +628,8 @@ Takes only the lines selected back out of the index, the working tree unchanged
 - **Function**: `features::diff::unstage_lines(context, answers) -> Outcome`
 - **Entry points**: **Unstage lines** in the context menu of either side of the Diff page while lines are selected;
   `Alt+U` (`Ctrl+Option+U` on macOS) (`diff.select-lines`).
-- **Extension**: Planned: **Unstage lines** in the context menu of the Flow Diff, as `diff.stage-lines`. In VS Code's
-  diff editor, **Unstage Selected Ranges** of VS Code's Git does it.
+- **Extension**: **Unstage lines** in the context menu of the Flow Diff, sending `diff.unstage-lines` as `diff.stage-lines`
+  is sent. In VS Code's diff editor, **Unstage Selected Ranges** of VS Code's Git does it.
 - **Offered when**: the page shows the index against `HEAD`, or the working tree against `HEAD`; the file is not
   renamed; and some line selected differs between `HEAD` and the index.
 - **Reads**: the index and `HEAD` again, to check the lines are where the page says.
@@ -658,9 +660,10 @@ Puts back in the working tree what the left side has in place of the lines selec
 - **Function**: `features::diff::revert_lines(context, answers) -> Outcome`
 - **Entry points**: **Revert lines** in the context menu of either side of the Diff page while lines are selected;
   `Alt+R` (`Ctrl+Option+R` on macOS) (`diff.select-lines`).
-- **Extension**: Planned: **Revert lines** in the context menu of the Flow Diff, which edits VS Code's document and
-  saves it, as its button that reverts a change does ([A5](../transition/04-differences.md#a5-revert-one-change-in-a-diff)).
-  In VS Code's diff editor, **Revert Selected Ranges** of VS Code's Git does it.
+- **Extension**: **Revert lines** in the context menu of the Flow Diff edits VS Code's document and saves it, as its
+  button that reverts a change does ([A5](../transition/04-differences.md#a5-revert-one-change-in-a-diff)): the lines of
+  the working tree in the rows selected take the text the left side has in the rows of a change. In VS Code's diff
+  editor, **Revert Selected Ranges** of VS Code's Git does it.
 - **Offered when**: the right side is the working tree (against `HEAD`, the index or a commit), and some line selected
   differs between the two sides.
 - **Reads**: the text of the side of the working tree, to check the lines are still there.

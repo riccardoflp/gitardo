@@ -35,6 +35,7 @@ export class FlowDiff implements vscode.Disposable {
     const themes = new ThemeService();
     this.registry = new PanelRegistry(extensionUri, themes, {
       chunkAction: (panel, message) => void chunks.handle(panel, message.type, message.chunkId),
+      linesAction: (panel, action, rows) => void chunks.handleLines(panel, action, rows),
       navigateFile: (panel, direction) => void this.openAdjacentFile(panel, direction),
     });
     this.refresher = new Refresher(this.registry, refresh);

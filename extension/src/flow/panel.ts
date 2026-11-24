@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 import { normalizeEol } from './diff/hunks';
 import type { AlignedDiffModel } from './diff/model';
-import type { HostMessage, WebviewMessage } from './diff/protocol';
+import type { RowSpan } from './diff/lineMap';
+import type { HostMessage, LinesAction, WebviewMessage } from './diff/protocol';
 import { minimalReplace, offsetToPosition } from './diff/textEdit';
-import { type DiffDescriptor, canStage, diffKey, fileUri, rightSide, title } from './sides';
+import { type DiffDescriptor, canStage, diffKey, fileUri, linesOffered, rightSide, title } from './sides';
 import type { ThemeService } from './theme';
 
 export type ChunkActionMessage = Extract<WebviewMessage, { type: 'revertChunk' | 'stageChunk' | 'unstageChunk' }>;
@@ -19,6 +20,8 @@ export interface DiffHost {
 /** What a panel delegates to the rest of the extension. */
 export interface PanelHandlers {
   chunkAction(panel: DiffPanel, message: ChunkActionMessage): void;
+  /** The rows selected, staged, unstaged or reverted (`diff.select-lines`). */
+  linesAction(panel: DiffPanel, action: LinesAction, rows: RowSpan): void;
   navigateFile(panel: DiffPanel, direction: 'next' | 'prev'): void;
 }
 
@@ -164,6 +167,7 @@ export class DiffPanel implements DiffHost {
         collapseUnchanged: vscode.workspace.getConfiguration('gitardo').get<boolean>('flowDiff.collapseUnchanged', true),
         // the changed-files list only exists between HEAD, the index and the working tree
         fileNavigation: canStage(this.descriptor),
+        lines: linesOffered(this.descriptor),
       },
       syntaxTheme: await this.themes.resolveActive(),
     });
@@ -193,6 +197,9 @@ export class DiffPanel implements DiffHost {
       case 'stageChunk':
       case 'unstageChunk':
         this.handlers.chunkAction(this, message);
+        break;
+      case 'lines':
+        this.handlers.linesAction(this, message.action, message.rows);
         break;
       case 'edit':
         void this.applyWebviewEdit(message.text);

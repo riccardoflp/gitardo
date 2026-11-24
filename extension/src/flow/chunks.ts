@@ -1,9 +1,17 @@
 import * as vscode from 'vscode';
 import type { EngineRun } from '../engine/actions';
-import type { DiffChangeTarget, DiffSideTarget } from '../engine/messages';
+import type { DiffChangeTarget } from '../engine/messages';
+import { type RowSpan, type SideLines, hasChangedRow, revertedRows } from './diff/lineMap';
 import type { AlignedDiffModel, DiffChunk } from './diff/model';
+import type { LinesAction } from './diff/protocol';
 import type { DiffHost } from './panel';
-import { type DiffDescriptor, type Version, canStage, fileUri } from './sides';
+import { linesTarget, sideTarget } from './lineTargets';
+import { type DiffDescriptor, canStage, fileUri, linesOffered } from './sides';
+
+/** Said when the lines are no longer where the page showed them, as the engine says it. */
+const CHANGED = 'The file changed since the diff was shown. Try again.';
+/** Said when no line selected differs between the two sides (`diff.revert-lines`). */
+const AS_THE_LEFT_SIDE = 'These lines are as the left side has them.';
 
 export type ChunkActionKind = 'revertChunk' | 'stageChunk' | 'unstageChunk';
 
@@ -46,6 +54,48 @@ export class ChunkActions {
         `Flow Diff: ${actionLabel(action)} failed — ${String((error as Error).message ?? error)}`,
       );
     }
+  }
+
+  /**
+   * The rows selected of the page (`diff.select-lines`): **Stage lines** and **Unstage lines** send `diff.stage-lines`
+   * and `diff.unstage-lines` to the engine with the lines of each side in those rows, as a change is sent; **Revert
+   * lines** edits the document and saves it, as reverting a change does (`diff.revert-lines`).
+   */
+  async handleLines(panel: DiffHost, action: LinesAction, rows: RowSpan): Promise<void> {
+    const model = panel.currentModel;
+    if (!model || rows.start < 0 || rows.end > model.rows.length || rows.start >= rows.end) return;
+    if (!linesOffered(panel.descriptor).includes(action)) return; // the webview never offers it then
+    if (!hasChangedRow(model, rows)) return; // greyed out in the menu
+    try {
+      if (action === 'revert') {
+        await this.revertLines(panel, model, rows);
+      } else {
+        const feature = action === 'stage' ? 'diff.stage-lines' : 'diff.unstage-lines';
+        await this.runOp(panel.descriptor.repoRoot, [{ feature, target: linesTarget(panel.descriptor, model, rows) }]);
+      }
+      await this.refresh(panel);
+    } catch (error) {
+      void vscode.window.showWarningMessage(`Flow Diff: ${String((error as Error).message ?? error)}`);
+    }
+  }
+
+  /** Puts back in the working tree what the left side has in the rows selected, as one edit, and saves the file. */
+  private async revertLines(panel: DiffHost, model: AlignedDiffModel, rows: RowSpan): Promise<void> {
+    if (panel.descriptor.right.kind !== 'worktree') return;
+    const { right, text } = revertedRows(model, rows);
+    if (right.text.length === text.length && right.text.every((line, index) => line === text[index])) {
+      void vscode.window.showInformationMessage(AS_THE_LEFT_SIDE);
+      return;
+    }
+    const uri = fileUri(panel.descriptor);
+    const document = await vscode.workspace.openTextDocument(uri);
+    if (!hasLines(document, right)) throw new Error(CHANGED);
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(uri, linesRange(document, right), replacement(document, right, text));
+    if (!(await vscode.workspace.applyEdit(edit))) {
+      throw new Error('the edit could not be applied');
+    }
+    await document.save();
   }
 
   /** Restores the left side's version of the chunk in the working tree (undoable edit + save). */
@@ -105,20 +155,6 @@ export class ChunkActions {
   }
 }
 
-/** A side of a Flow Diff as the engine names it. */
-function sideTarget(version: Version): DiffSideTarget {
-  switch (version.kind) {
-    case 'worktree':
-      return { kind: 'workingTree' };
-    case 'index':
-      return { kind: 'index' };
-    case 'commit':
-      return version.ref === 'HEAD' ? { kind: 'head' } : { kind: 'commit', commit: version.ref };
-    case 'none':
-      return { kind: 'empty' };
-  }
-}
-
 /**
  * A change of a Flow Diff as the engine takes it: its lines on each side from 0, the end left out, and their text. A
  * change that has no lines on a side starts there after the line it follows, which the diff counts from 1.
@@ -138,6 +174,31 @@ export function changeTarget(descriptor: DiffDescriptor, model: AlignedDiffModel
     leftText: sideLines(model, chunk, 'left'),
     rightText: sideLines(model, chunk, 'right'),
   };
+}
+
+/** Whether the document still has these lines where the page showed them. */
+function hasLines(document: vscode.TextDocument, lines: SideLines): boolean {
+  if (lines.end > document.lineCount) return false;
+  return lines.text.every((text, index) => document.lineAt(lines.start + index).text === text);
+}
+
+/**
+ * Where the lines are in the document: from the start of the first to the start of the line after the last, or, when
+ * they reach the last line of a file with no line break at its end, to the end of that line.
+ */
+function linesRange(document: vscode.TextDocument, lines: SideLines): vscode.Range {
+  if (lines.end < document.lineCount) return new vscode.Range(lines.start, 0, lines.end, 0);
+  const last = document.lineCount - 1;
+  const end = new vscode.Position(last, document.lineAt(last).text.length);
+  // No line after: lines put back at the end follow the last line, after a line break.
+  return lines.start < document.lineCount ? new vscode.Range(new vscode.Position(lines.start, 0), end) : new vscode.Range(end, end);
+}
+
+/** The text that takes the place of the lines, each with its line break, or without one at the end of a file with none. */
+function replacement(document: vscode.TextDocument, lines: SideLines, text: string[]): string {
+  if (lines.end < document.lineCount) return text.map((line) => line + '\n').join('');
+  if (lines.start >= document.lineCount) return text.length ? '\n' + text.join('\n') : '';
+  return text.join('\n');
 }
 
 function sideLines(model: AlignedDiffModel, chunk: DiffChunk, side: 'left' | 'right'): string[] {

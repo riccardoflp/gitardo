@@ -6432,6 +6432,36 @@ place: the Diff and Merge pages
 show: show where
 Takes one change back out of the index.
 In VS Code: the unstage button in the gutter of the Flow Diff on a change already staged, drawn dimmed: as `diff.stage-change` says, `ChunkActions` sends `diff.unstage-change` with a `diffChange` target through, and the engine refuses a change of a file with unsaved edits; a change of a file that `HEAD` does not have is unstaged whole, `git restore --staged -- <file>`.
+@card extension diff.select-lines
+title: Select lines of a diff
+place: the Diff and Merge pages
+show: none
+Selects some lines of a Diff page, on either side, so that only those are staged, unstaged or reverted.
+In VS Code: the selection of either side of the Flow Diff, Monaco's own, mapped to the rows of the aligned model, a caret alone taking the row of its line; the context menu of both sides has **Stage lines**, **Unstage lines** and **Revert lines** where the page offers them, greyed out while no row of a change is selected. The keys are not bound. In VS Code's diff editor, the selection is VS Code's own, for its **Stage Selected Ranges**.
+@card extension diff.lines-patch
+title: The patch of the lines selected
+place: the Diff and Merge pages
+show: none
+The patch that takes into a version of a file only the lines selected of the differences between it and another, for `git apply --cached` on standard input.
+In VS Code: made by the engine from the rows the Flow Diff sends, as `diff.stage-lines`.
+@card extension diff.stage-lines
+title: Stage the lines selected
+place: the Diff and Merge pages
+show: show where
+Puts into the index only the lines selected of the changes of the working tree.
+In VS Code: **Stage lines** in the context menu of the Flow Diff sends `diff.stage-lines` to the engine with the lines of each side in the rows selected and their text, as the stage button of a change sends `diff.stage-change`. In VS Code's diff editor, **Stage Selected Ranges** of VS Code's Git does it.
+@card extension diff.unstage-lines
+title: Unstage the lines selected
+place: the Diff and Merge pages
+show: show where
+Takes only the lines selected back out of the index, the working tree unchanged.
+In VS Code: **Unstage lines** in the context menu of the Flow Diff, sending `diff.unstage-lines` as `diff.stage-lines` is sent. In VS Code's diff editor, **Unstage Selected Ranges** of VS Code's Git does it.
+@card extension diff.revert-lines
+title: Revert the lines selected
+place: the Diff and Merge pages
+show: show where
+Puts back in the working tree what the left side has in place of the lines selected.
+In VS Code: **Revert lines** in the context menu of the Flow Diff edits VS Code's document and saves it, as its button that reverts a change does (A5): the lines of the working tree in the rows selected take the text the left side has in the rows of a change. In VS Code's diff editor, **Revert Selected Ranges** of VS Code's Git does it.
 @card extension diff.edit
 title: Editing the working tree side
 place: the Diff and Merge pages

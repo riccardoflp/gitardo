@@ -2,6 +2,12 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- **Stage lines**, **Unstage lines** and **Revert lines** in the context menu of both sides of the Flow Diff stage, unstage or revert only the lines selected, or the line of the cursor, of the changes of a file: a line changed into another is taken whole. The first two run `git apply --cached` with Gitardo's engine, as staging a change does; **Revert lines** gives the lines the text of the left side and saves the file, and `Ctrl`+`Z` takes it back. With no changed line selected, the three are greyed out.
+
 ## 1.3.0 - 2026-11-24
 
 ### Added

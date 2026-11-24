@@ -2,6 +2,7 @@
 // They drive the extension through its commands and its controller, with VS Code's prompts answered by stubs.
 
 import * as assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
@@ -1456,6 +1457,46 @@ export async function run(): Promise<void> {
         right: { kind: 'worktree' },
         path: 'a.txt',
       });
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      answer = run;
+      await controller.action({ kind: 'discardAll' });
+    }
+  });
+
+  await step('stages, unstages and reverts the lines selected in the Flow Diff', async () => {
+    interface Panel {
+      currentModel: { rows: { right: { text?: string }; chunkId?: number }[]; chunks: unknown[] } | undefined;
+      initSent: boolean;
+      onMessage(message: { type: 'lines'; action: 'stage' | 'unstage' | 'revert'; rows: { start: number; end: number } }): void;
+    }
+    // Read at once, for `until` to wait on.
+    const index = () => execFileSync('git', ['show', ':a.txt'], { cwd: app, encoding: 'utf8' });
+    const rowOf = (panel: Panel, text: string) => panel.currentModel?.rows.findIndex((row) => row.right.text === text) ?? -1;
+    const idle = () => until('the operation to end', () => !(controller as unknown as { running: boolean }).running);
+    write('a.txt', 'one\ntwo\nA\nB\nC\nD\nE\n');
+    try {
+      await fromWebview({ type: 'openDiff', source: { kind: 'worktree' }, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
+      await vscode.commands.executeCommand('gitardo.openInFlowDiff');
+      const panel = await until('the Flow Diff', () => flowDiff.panels()[0] as unknown as Panel | undefined);
+      await until('the Flow Diff page to load', () => panel.initSent && rowOf(panel, 'B') >= 0);
+
+      // The second and third of the five lines added, B and C, selected and staged: the index has those two alone.
+      const rows = { start: rowOf(panel, 'B'), end: rowOf(panel, 'C') + 1 };
+      panel.onMessage({ type: 'lines', action: 'stage', rows });
+      await until('two lines staged', () => index() === 'one\ntwo\nB\nC\n');
+      assert.ok(logged.includes('> git apply --cached --unidiff-zero --whitespace=nowarn -'));
+      await idle();
+
+      panel.onMessage({ type: 'lines', action: 'unstage', rows: { start: rowOf(panel, 'B'), end: rowOf(panel, 'C') + 1 } });
+      await until('the two lines unstaged', () => index() === 'one\ntwo\n');
+      await idle();
+
+      // A line changed, reverted: the file has its old text again, saved.
+      write('a.txt', 'one\nTWO\n');
+      await until('the change of the line in the page', () => rowOf(panel, 'TWO') >= 0);
+      panel.onMessage({ type: 'lines', action: 'revert', rows: { start: rowOf(panel, 'TWO'), end: rowOf(panel, 'TWO') + 1 } });
+      await until('the line reverted', () => fs.readFileSync(path.join(app, 'a.txt'), 'utf8') === 'one\ntwo\n');
     } finally {
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
       answer = run;

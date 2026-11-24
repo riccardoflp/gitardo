@@ -19,6 +19,7 @@ import { initHighlighting } from './highlight';
 import { Navigation } from './navigation';
 import { type Layout, createLayout, setHeaderLabels, sideText } from './render';
 import { Columns } from './columns';
+import { LineSelection } from './lines';
 import { ScrollSync, sideExtent } from './scrollSync';
 import './styles.css';
 
@@ -40,6 +41,7 @@ let diffDecorLeft: monaco.editor.IEditorDecorationsCollection | undefined;
 let diffDecorRight: monaco.editor.IEditorDecorationsCollection | undefined;
 let activeDecorLeft: monaco.editor.IEditorDecorationsCollection | undefined;
 let activeDecorRight: monaco.editor.IEditorDecorationsCollection | undefined;
+let lineSelection: LineSelection | undefined;
 
 /** True while we copy host state into the editors (suppresses edit events). */
 let applyingRemote = false;
@@ -128,6 +130,7 @@ async function onInit(
 
   wireEditing(editors.right);
   wireKeys(editors);
+  lineSelection = new LineSelection(editors, s.lines ?? [], (action, rows) => post({ type: 'lines', action, rows }));
   refreshAll(m);
 }
 
@@ -170,6 +173,7 @@ function refreshAll(m: AlignedDiffModel): void {
   scrollSync.attach(editors.left, editors.right, m);
   connectors.attach(layout.gutter, editors.left, editors.right, m, chunkActions());
   navigation.setModel(m);
+  lineSelection?.setModel(m);
 }
 
 function setDiffDecorations(m: AlignedDiffModel): void {

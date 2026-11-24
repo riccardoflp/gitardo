@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { samePath } from '../shared/paths';
 import { reads } from '../engine/reads';
 import { INDEX, SCHEME, contentUri } from '../extension/content';
+import type { LinesAction } from './diff/protocol';
 
 /** A version of a file, on one side of a diff. */
 export type Version =
@@ -46,6 +47,20 @@ export function canStage(d: DiffDescriptor): boolean {
   if (d.oldPath && d.oldPath !== d.path) return false;
   if (d.right.kind === 'worktree') return isHead(d.left) || d.left.kind === 'index';
   return d.right.kind === 'index' && isHead(d.left);
+}
+
+/**
+ * What the lines selected offer, each where its card offers it (`diff.select-lines`): **Stage lines** for the working
+ * tree against HEAD or the index, **Unstage lines** for the index or the working tree against HEAD, neither for a
+ * renamed file; **Revert lines** for the working tree, against any version.
+ */
+export function linesOffered(d: DiffDescriptor): LinesAction[] {
+  const isRenamed = !!d.oldPath && d.oldPath !== d.path;
+  const actions: LinesAction[] = [];
+  if (!isRenamed && d.right.kind === 'worktree' && (isHead(d.left) || d.left.kind === 'index')) actions.push('stage');
+  if (!isRenamed && isHead(d.left) && (d.right.kind === 'index' || d.right.kind === 'worktree')) actions.push('unstage');
+  if (d.right.kind === 'worktree') actions.push('revert');
+  return actions;
 }
 
 /** Only against HEAD does a chunk of the file say whether it is in the index already. */

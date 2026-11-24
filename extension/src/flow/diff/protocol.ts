@@ -2,6 +2,7 @@
  * Message protocol between the extension host and the webview.
  * Must stay free of `vscode` imports (bundled into the webview).
  */
+import type { RowSpan } from './lineMap';
 import type { AlignedDiffModel } from './model';
 
 export interface DiffSettings {
@@ -19,7 +20,12 @@ export interface DiffSettings {
   collapseUnchanged: boolean;
   /** F7 past the last chunk moves to the next changed file (diffs of uncommitted changes only). */
   fileNavigation: boolean;
+  /** What the context menu offers for the lines selected, each where its card offers it (`diff.select-lines`). */
+  lines: LinesAction[];
 }
+
+/** What is done with the lines selected: **Stage lines**, **Unstage lines** or **Revert lines**. */
+export type LinesAction = 'stage' | 'unstage' | 'revert';
 
 /** The user's active color theme, resolved host-side and loadable by shiki. */
 export interface SyntaxTheme {
@@ -47,6 +53,8 @@ export type WebviewMessage =
   | { type: 'revertChunk'; chunkId: number }
   | { type: 'stageChunk'; chunkId: number }
   | { type: 'unstageChunk'; chunkId: number }
+  /** The rows selected, staged, unstaged or reverted (`diff.select-lines`). */
+  | { type: 'lines'; action: LinesAction; rows: RowSpan }
   /** Full right-side text after an in-place edit (LF line endings). */
   | { type: 'edit'; text: string }
   | { type: 'saveFile' };
