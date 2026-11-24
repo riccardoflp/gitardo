@@ -40,6 +40,8 @@ import {
   type WorkingTree,
 } from '../shared/protocol';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
+import { MARKED } from '../shared/rerere';
+import type { ResolvedAsBefore } from '../shared/state';
 import type { RangeDiffPairs, RangeDiffRanges } from '../shared/rangeDiff';
 import type { FolderSummary } from '../shared/summaries';
 import type { TagComparison } from '../shared/tagMarks';
@@ -258,6 +260,11 @@ export class Reads {
     return { hasBothSides, base: textOf(sides.base), ours: textOf(sides.current), theirs: textOf(sides.incoming), operation };
   }
 
+  /** The files in conflict git resolved as before, from a resolution it recorded (protocol 1.13, `rerere.read-resolved`). */
+  async resolvedAsBefore(repo: Repository): Promise<ResolvedAsBefore[]> {
+    return (await this.client().currentState(repo.root)).resolvedAsBefore ?? [];
+  }
+
   /** The operation under way, which stopped on the conflicts or for the user: none when nothing is under way. */
   async operation(repo: Repository): Promise<Operation | null> {
     return (await this.client().currentState(repo.root)).operation;
@@ -356,13 +363,18 @@ export class Reads {
   }
 
   /**
-   * The bytes of a file as a revision has it, or as the index has it for the revision `''` or `:0`, so that an image
-   * is given as it is; undefined when there is no such file.
+   * The bytes of a file as a revision has it, or as the index has it for the revision `''` or `:0`, or as git marked
+   * it when it stopped for `:marked` (`rerere.read-marked`), so that an image is given as it is; undefined when there
+   * is no such file.
    */
   async fileBytesAt(root: string, revision: string, file: string): Promise<Uint8Array | undefined> {
     const client = this.client();
     const stage = /^:([0-3])$/.exec(revision)?.[1];
     const raw = (bytes: Bytes) => new Uint8Array(Buffer.from(bytes.base64, 'base64'));
+    if (revision === MARKED) {
+      const { left } = await client.diffSides(root, { version: { kind: 'marked' }, path: file }, { version: { kind: 'absent' }, path: file });
+      return left ? raw(left) : undefined;
+    }
     if (revision === '' || stage === '0') {
       const { left } = await client.diffSides(root, { version: { kind: 'index' }, path: file }, { version: { kind: 'absent' }, path: file });
       return left ? raw(left) : undefined;

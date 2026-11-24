@@ -5461,6 +5461,12 @@ place: the Conflicts page
 show: none
 A file one side deleted and the other changed has no lines to choose between: only whether it stays, with the changes of the side that kept it, or goes.
 In VS Code: in, with `fileRows` from, and the data of `deletedConflicts` in (`DeletedConflict` in), from the sides the engine reads. Its two buttons run `conflicts.take-side` in the engine; the diff button opens VS Code's diff editor, as `conflicts.open-file` does for such a file.
+@card extension review.recorded
+title: A file git resolved as before
+place: the Conflicts page
+show: none
+A file in conflict that git resolved itself, from a resolution it recorded the last time the same conflict came (`rerere.read-resolved`), has no markers left and nothing to propose: the review shows what git wrote, to accept or to forget.
+In VS Code: a card of the review tab (`ConflictsApp`), headed **Resolved by git as before**, with the files listed under **Resolved as before** beside the others and shown with the conflicts that have nothing proposed, and *1 file resolved by git as before* in the head of the page. Its **Accept** stages the file at once, as the card of a file deleted on one side runs at once, rather than with **Write**; **Forget it…** runs `rerere.forget`; its last button opens the diff of **Show what git wrote**.
 @card extension ai.resolve-conflicts
 title: Resolve conflicts with AI
 place: the Conflicts page
@@ -5513,7 +5519,31 @@ title: Stop remembering how conflicts are resolved
 place: the Conflicts page
 show: quick search
 Turns git's recording of resolutions off for this repository; what it recorded stays, unused.
-In VS Code: **Remember how conflicts are resolved…**, ticked, in the same menu, and **Gitardo: Stop Remembering How Conflicts Are Resolved** in the Command Palette, sending `feature/run` of `rerere.turn-off`.
+In VS Code: **Remember how conflicts are resolved**, ticked, in the same menu, and **Gitardo: Stop Remembering How Conflicts Are Resolved** in the Command Palette, sending `feature/run` of `rerere.turn-off`.
+@card extension rerere.read-resolved
+title: The files git resolved as before
+place: the Conflicts page
+show: none
+Which files in conflict git resolved by itself from a recorded resolution, while an operation is stopped.
+In VS Code: read by the engine with the state of the repository, `resolvedAsBefore` in the state (protocol 1.13), each file with whether git staged it.
+@card extension rerere.read-marked
+title: A file as git marked it
+place: the Conflicts page
+show: none
+The text of a file in conflict as git marked it when it stopped, made again from the three versions of the index, to compare with what git wrote from a recorded resolution.
+In VS Code: read by the engine as the version `marked` of `read/diff.read-sides` (protocol 1.13), for the diff of **Show what git wrote** and the card of the review.
+@card extension rerere.resolved-as-before
+title: The files git resolved as before, where conflicts are shown
+place: the Conflicts page
+show: none
+Says, wherever the files in conflict are listed, which of them git resolved from a recorded resolution, and gives what can be done with each: look at what git wrote, mark it resolved, or forget the resolution.
+In VS Code: the same words in the banner of the **Gitardo Changes** and **Graph** views and in the message of an operation that stopped; the row of such a file in **Gitardo Changes** says **Resolved as before**, muted, with the buttons and the menu **Show what git wrote**, **Mark as resolved** and **Forget this resolution…** in place of the two sides, and a file git staged keeps the words and the first and last entries in the menu of its row among the changes. **Show what git wrote** opens VS Code's diff editor, titled with **As git marked it ↔ Working Tree**, or that of `HEAD` and the index for a file git staged.
+@card extension rerere.forget
+title: Forget a resolution git recorded
+place: the Conflicts page
+show: show where
+Has git forget the resolution it recorded for the conflicts of a file, and marks them again, for a resolution that was wrong and that git would otherwise write each time.
+In VS Code: **Forget this resolution…** in the menu and on the button of the row of such a file in **Gitardo Changes**, and **Forget it…** on its card in the review tab, sending `feature/run` of `rerere.forget`, whose warning VS Code asks.
 @card extension compare.resolve-revision
 title: Which commit a revision is
 place: the Compare page

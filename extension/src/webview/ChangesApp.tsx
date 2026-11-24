@@ -14,7 +14,8 @@ import { Icon } from './Icon';
 import { OperationBanner, resolvableConflicts } from './OperationBanner';
 import { RepoSelect } from './RepoSelect';
 import { WorktreeBanner } from './WorktreeBanner';
-import { act, changedFileMenu, hiddenFileMenu, hiddenGroupMenu, pathsOf } from './menus';
+import { act, changedFileMenu, hiddenFileMenu, hiddenGroupMenu, pathsOf, resolvedAsBeforeMenu } from './menus';
+import { RESOLVED_AS_BEFORE, resolvedAsBefore } from '../shared/rerere';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { receive } from './received';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
@@ -330,6 +331,26 @@ export function ChangesApp() {
           title="Conflicts"
           items={conflicts}
           row={(file) => {
+            // Git wrote a resolution it recorded: what it wrote is looked at, accepted or forgotten (`rerere.resolved-as-before`).
+            if (resolvedAsBefore(state, file.path)) {
+              const menu = resolvedAsBeforeMenu(file.path, false, busy);
+              return (
+                <FileRow
+                  key={file.path}
+                  file={file}
+                  mark="conflict"
+                  unsaved={isUnsaved.has(file.path)}
+                  extra={<span className="muted">{RESOLVED_AS_BEFORE}</span>}
+                  onOpen={() => post({ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file })}
+                  actions={[
+                    { icon: 'eye', title: 'Show what git wrote', run: () => post({ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file }) },
+                    { icon: 'discard', title: 'Forget this resolution…', run: () => act({ kind: 'forgetResolution', path: file.path }) },
+                    { icon: 'add', title: 'Mark as resolved', run: () => act({ kind: 'stage', paths: [file.path] }) },
+                  ]}
+                  onMenu={(event) => openMenu(event, menu)}
+                />
+              );
+            }
             const [resolvable, marked] = resolvableConflicts(state, file.path);
             const some = resolvable === marked ? (marked === 1 ? 'its conflict' : `its ${marked} conflicts`) : `${resolvable} of its ${marked} conflicts`;
             const actions: FileAction[] = [
@@ -422,12 +443,16 @@ export function ChangesApp() {
                 />
               );
             }
+            // A file git resolved as before and staged keeps its words and its menu until the operation ends.
+            const resolved = resolvedAsBefore(state, file.path);
+            const fileMenu = changedFileMenu({ file, staged: done, untracked: notTracked, unsaved: isUnsaved.has(file.path) }, busy);
             return (
               <FileRow
                 key={file.path}
                 file={file}
                 mark={notTracked ? 'untracked' : undefined}
                 depth={depth}
+                extra={resolved && <span className="muted">{RESOLVED_AS_BEFORE}</span>}
                 unsaved={isUnsaved.has(file.path)}
                 // The file, or its diff: as the settings say.
                 onOpen={() => post({ type: 'openChange', file })}
@@ -437,7 +462,7 @@ export function ChangesApp() {
                 mixed={done === 'some'}
                 pickVerb={done === 'all' ? 'Unstage' : 'Stage'}
                 pickTitle={PICK_TITLES[done]}
-                onMenu={(event) => openMenu(event, changedFileMenu({ file, staged: done, untracked: notTracked, unsaved: isUnsaved.has(file.path) }, busy))}
+                onMenu={(event) => openMenu(event, resolved ? [...resolvedAsBeforeMenu(file.path, true, busy), 'separator', ...fileMenu] : fileMenu)}
                 actions={[
                   ...(file.kind === 'deleted' ? [] : [{ icon: 'go-to-file', title: 'Open File', run: () => post({ type: 'openFile', file }) }]),
                   { icon: 'git-compare', title: 'Open Changes', run: () => post({ type: 'openDiff', source: SOURCE, file }) },

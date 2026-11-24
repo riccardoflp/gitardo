@@ -213,6 +213,19 @@ export function changedFileMenu({ file, staged, untracked, unsaved }: ChangedFil
   ];
 }
 
+/**
+ * The menu of a file git resolved as before (`rerere.resolved-as-before`), in place of the two sides: what git wrote,
+ * marking it resolved while it is still in conflict, and forgetting the resolution.
+ */
+export function resolvedAsBeforeMenu(path: string, isStaged: boolean, busy: boolean): MenuEntry[] {
+  const file: FileChange = { path, originalPath: null, kind: 'modified' };
+  return [
+    { label: 'Show what git wrote', run: () => post({ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file }) },
+    !isStaged && { label: 'Mark as resolved', disabled: busy, run: () => act({ kind: 'stage', paths: [path] }) },
+    { label: 'Forget this resolution…', disabled: busy, run: () => act({ kind: 'forgetResolution', path }) },
+  ];
+}
+
 /** The menu of a file of **Hidden from git** (`changes.skipped-list`): its diff, the file, and showing it to git again. */
 export function hiddenFileMenu(path: string, busy: boolean): MenuEntry[] {
   const file: FileChange = { path, originalPath: null, kind: 'modified' };
@@ -790,7 +803,7 @@ export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' 
           },
           // Ticked while git remembers how conflicts are resolved; unticked it asks how (`rerere.turn-on`, `rerere.turn-off`).
           {
-            label: 'Remember how conflicts are resolved…',
+            label: shown.rerere?.isOn ? 'Remember how conflicts are resolved' : 'Remember how conflicts are resolved…',
             checked: !!shown.rerere?.isOn,
             run: () => act({ kind: 'rememberResolutions', start: !shown.rerere?.isOn }),
           },

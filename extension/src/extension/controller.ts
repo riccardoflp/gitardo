@@ -22,6 +22,7 @@ import {
 import { submoduleFolder } from '../shared/submodules';
 import { subjectAndBody } from '../shared/message';
 import { checkedOutBranch, operationName, worktreeBranch } from '../shared/state';
+import { AS_GIT_MARKED_IT, MARKED, resolvedAsBefore, stopWords } from '../shared/rerere';
 import { checkedMarks, followMarks, type TagMarks } from '../shared/tagMarks';
 import { groupRepositories } from '../shared/repositoryGroups';
 import { pruneScope } from '../shared/scope';
@@ -3064,7 +3065,9 @@ export class Controller implements vscode.Disposable {
     const state = this.heldFor(repo.root);
     const on = this.groupShowing(repo.root);
     const conflicts = state?.workingTree.conflicted.length ?? 0;
-    if (state && conflicts) {
+    // Git may have resolved, and staged, every file in conflict from the resolutions it recorded: it stopped all the same.
+    const before = state && stopWords(state);
+    if (state && (conflicts || before)) {
       const { operation } = state;
       const files = conflicts === 1 ? '1 file has conflicts' : `${conflicts} files have conflicts`;
       // Without an operation to continue, as after a stash that did not apply cleanly, staging the files is all there is to do.
@@ -3077,7 +3080,8 @@ export class Controller implements vscode.Disposable {
       // The language model is offered for what the rules leave.
       const ai = this.resolveWithAI() && (!marked || resolvable < marked);
       const items = [...(resolvable ? ['Resolve Automatically'] : []), ...(ai ? ['Resolve with AI'] : []), 'Show Log'];
-      void vscode.window.showWarningMessage(`${op.title} stopped: ${files}. Resolve them, then ${then}.${offer}`, ...items).then((choice) => {
+      const said = conflicts ? `${op.title} stopped: ${files}. Resolve them, then ${then}.` : `${op.title} stopped.`;
+      void vscode.window.showWarningMessage(`${said}${before ? ` ${before}` : ''}${offer}`, ...items).then((choice) => {
         if (choice === 'Resolve Automatically') void this.action({ kind: 'resolveConflicts' }, on);
         if (choice === 'Resolve with AI') void this.reviewConflicts(undefined, true, on);
         if (choice === 'Show Log') this.log.show();
@@ -3132,6 +3136,10 @@ export class Controller implements vscode.Disposable {
         if (unstaged || !working) return this.sides(repo, { kind: 'unstaged' }, unstaged ?? file);
         return this.sides(repo, { kind: 'staged' }, working.staged.find((each) => each.path === file.path) ?? file);
       }
+      case 'resolvedAsBefore':
+        // What git wrote from a recorded resolution: beside the markers it would have left, or, staged, in the index.
+        if (held && resolvedAsBefore(held, file.path)?.isStaged) return this.sides(repo, { kind: 'staged' }, file);
+        return { left: at(MARKED), right: onDisk, label: `${AS_GIT_MARKED_IT} ↔ Working Tree` };
       case 'conflict':
         return null;
     }
@@ -3198,7 +3206,8 @@ export class Controller implements vscode.Disposable {
       case 'worktree':
       case 'staged':
       case 'unstaged':
-      case 'change': {
+      case 'change':
+      case 'resolvedAsBefore': {
         if (WORKING_SOURCES.has(source.kind)) await refreshVSCodeGit(repo.root);
         const sides = this.sides(repo, source, file);
         if (!sides) return;

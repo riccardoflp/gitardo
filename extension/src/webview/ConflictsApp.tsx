@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import type { Choice, ConflictRef, ConflictReview, DeletedConflict, ReviewConflict, ReviewFile } from '../shared/resolution';
-import { Conflict, DeletedFile } from './ConflictCard';
+import type { Choice, ConflictRef, ConflictReview, DeletedConflict, RecordedConflict, ReviewConflict, ReviewFile } from '../shared/resolution';
+import { Conflict, DeletedFile, RecordedFile } from './ConflictCard';
 import { widths, type Side } from './ConflictColumns';
 import { plural } from './conflictCode';
 import { FileIcon } from './FileIcon';
@@ -134,10 +134,12 @@ function FileList(props: {
   listed: (file: ReviewFile) => boolean;
   /** The files a side deleted that the filter shows. */
   deleted: DeletedConflict[];
+  /** The files git resolved as before that the filter shows. */
+  recorded: RecordedConflict[];
   onFilter(filter: Filter): void;
   onSelect(path: string | null): void;
 }) {
-  const { review, filter, selected, counts, accepted, listed, deleted, onFilter, onSelect } = props;
+  const { review, filter, selected, counts, accepted, listed, deleted, recorded, onFilter, onSelect } = props;
   const files = review.files.filter(listed);
   const total = counts[FILTERS.findIndex((each) => each.filter === filter)];
   return (
@@ -169,7 +171,7 @@ function FileList(props: {
             </button>
           );
         })}
-        {!files.length && !deleted.length && <p className="muted none">No file has a conflict to show here.</p>}
+        {!files.length && !deleted.length && !recorded.length && <p className="muted none">No file has a conflict to show here.</p>}
       </div>
       {deleted.length > 0 && (
         <div className="file-entries others">
@@ -186,6 +188,26 @@ function FileList(props: {
                   {slash > 0 && <span className="folder"> {file.path.slice(0, slash)}</span>}
                 </span>
                 <Icon name="trash" />
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {recorded.length > 0 && (
+        <div className="file-entries others">
+          <div className="others-label" title="Files git resolved from a resolution it recorded the last time: accept what it wrote, or forget it">
+            Resolved as before
+          </div>
+          {recorded.map((file) => {
+            const slash = file.path.lastIndexOf('/');
+            return (
+              <button key={file.path} className={`file-entry${selected === file.path ? ' on' : ''}`} aria-current={selected === file.path} title={file.path} onClick={() => onSelect(file.path)}>
+                <FileIcon path={file.path} />
+                <span className="grow name">
+                  {file.path.slice(slash + 1)}
+                  {slash > 0 && <span className="folder"> {file.path.slice(0, slash)}</span>}
+                </span>
+                <Icon name="history" />
               </button>
             );
           })}
@@ -296,8 +318,12 @@ export function ConflictsApp() {
   // The files a side deleted have nothing proposed, and are shown with the conflicts that have none.
   const deleted = filter === 'ai' ? [] : review.deleted;
   const currentDeleted = current ? undefined : deleted.find((file) => file.path === selected);
-  const files = currentDeleted ? [] : (current ? [current] : review.files).filter(listed);
+  const files = currentDeleted || (review.recorded ?? []).some((file) => file.path === selected) ? [] : (current ? [current] : review.files).filter(listed);
   const deletedShown = currentDeleted ? [currentDeleted] : current ? [] : deleted;
+  // The files git resolved as before have nothing proposed either, and are shown with them (`review.recorded`).
+  const recorded = filter === 'ai' ? [] : (review.recorded ?? []);
+  const currentRecorded = current || currentDeleted ? undefined : recorded.find((file) => file.path === selected);
+  const recordedShown = currentRecorded ? [currentRecorded] : current || currentDeleted ? [] : recorded;
   // A proposal with a warning is accepted only one by one, after it was looked at: never with the others.
   const unwarned = (file: ReviewFile) => file.conflicts.filter((conflict) => conflict.proposal && !conflict.warnings.length).map((conflict) => idOf(file.path, conflict.key));
   const allProposed = review.files.flatMap(unwarned);
@@ -321,6 +347,7 @@ export function ConflictsApp() {
   const said = [
     conflicts.length && `${plural(conflicts.length, 'conflict')} in ${plural(review.files.length, 'file')}${summary.length ? `: ${summary.join(', ')}` : ''}`,
     review.deleted.length && `${plural(review.deleted.length, 'file')} deleted on one side and changed on the other`,
+    review.recorded?.length && `${plural(review.recorded.length, 'file')} resolved by git as before`,
   ].filter(Boolean);
 
   return (
@@ -423,15 +450,16 @@ export function ConflictsApp() {
       <Report review={review} />
 
       <div className="conflicts-body">
-        {(review.files.length > 0 || review.deleted.length > 0 || review.others.length > 0) && (
+        {(review.files.length > 0 || review.deleted.length > 0 || !!review.recorded?.length || review.others.length > 0) && (
           <FileList
             review={review}
             filter={filter}
-            selected={current?.path ?? currentDeleted?.path ?? null}
+            selected={current?.path ?? currentDeleted?.path ?? currentRecorded?.path ?? null}
             counts={counts}
             accepted={isAccepted}
             listed={listed}
             deleted={deleted}
+            recorded={recorded}
             onFilter={choose}
             onSelect={setSelected}
           />
@@ -504,7 +532,11 @@ export function ConflictsApp() {
             <DeletedFile key={file.path} file={file} sides={sides} busy={busy} />
           ))}
 
-          {review.files.length > 0 && !files.length && !deletedShown.length && (
+          {recordedShown.map((file) => (
+            <RecordedFile key={file.path} file={file} busy={busy} />
+          ))}
+
+          {review.files.length > 0 && !files.length && !deletedShown.length && !recordedShown.length && (
             <div className="empty-filter">
               <p className="muted">No conflict is left to show here.</p>
               <button className="button" onClick={() => choose('all')}>
@@ -533,7 +565,7 @@ export function ConflictsApp() {
             </section>
           )}
 
-          {!review.files.length && !review.deleted.length && !review.others.length && !review.report && (
+          {!review.files.length && !review.deleted.length && !review.recorded?.length && !review.others.length && !review.report && (
             <div className="empty-review">
               <Icon name="pass" />
               <p>No file is in conflict{review.operation ? `: the ${operationName(review.operation)} can continue` : ''}.</p>

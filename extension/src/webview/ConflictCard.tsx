@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Hunk } from '../shared/protocol';
 import { linesOf, proposalLines, summarize, type LineOrigin, type ProposalShape, type ProposalSummary } from '../shared/proposalLines';
-import type { Asking, Choice, ConflictRef, DeletedConflict, Proposal, ProposalWarning, ReviewConflict, ReviewFile, SideChoice } from '../shared/resolution';
+import type { Asking, Choice, ConflictRef, DeletedConflict, Proposal, ProposalWarning, RecordedConflict, ReviewConflict, ReviewFile, SideChoice } from '../shared/resolution';
 import { ChangeLines, Changes, Code, fileRows, numbering, PART, plural } from './conflictCode';
 import { Columns, ORIGIN_CLASS, SideLabel, type Side } from './ConflictColumns';
 import { FileIcon } from './FileIcon';
@@ -568,6 +568,64 @@ export function DeletedFile({ file, sides, busy }: { file: DeletedConflict; side
             className="button icon"
             title="Show what it was beside what it is now, in the diff editor"
             onClick={() => post({ type: 'openConflict', path: file.path, line: 1, editor: 'mergeEditor' })}
+          >
+            <Icon name="diff" />
+          </button>
+        </footer>
+      </article>
+    </section>
+  );
+}
+
+/**
+ * A file git resolved itself from a resolution it recorded the last time the same conflict came (`review.recorded`):
+ * no markers are left and nothing is proposed, and the card shows what git wrote, to accept or to forget.
+ */
+export function RecordedFile({ file, busy }: { file: RecordedConflict; busy: boolean }) {
+  const hunks = useMemo<Hunk[]>(() => [file.marked, file.written].map((text) => ({ header: '', lines: linesOf(text).map((line) => ` ${line}`) })), [file.marked, file.written]);
+  const colors = useColors(file.path, hunks, true);
+  const lines = useMemo(() => sideChanges(file.marked, file.written), [file.marked, file.written]);
+  const rows = useMemo(() => lines && fileRows(lines, colors), [lines, colors]);
+  const act = (action: { kind: 'stage'; paths: string[] } | { kind: 'forgetResolution'; path: string }) => post({ type: 'action', action });
+  return (
+    <section className="conflict-file recorded" aria-label={file.path}>
+      <h2>
+        <FileIcon path={file.path} />
+        <span className="grow path" title={file.path}>
+          {file.path}
+        </span>
+        <span className="muted">Resolved by git as before</span>
+      </h2>
+      <article className="conflict">
+        <div className="side">
+          <p className="muted">Git recorded how this conflict was resolved the last time, and wrote the same resolution.</p>
+          {rows?.length ? (
+            <ChangeLines
+              rows={rows}
+              titles={{ removed: 'Marked by git when it stopped', added: 'Written by git from the resolution it recorded', around: 'Line of the file', skipped: 'Lines left out here' }}
+            />
+          ) : (
+            <p className="muted nothing">{rows ? 'Git wrote nothing in place of the markers.' : 'The changes are too many to show here.'}</p>
+          )}
+        </div>
+        <footer>
+          <button className="button primary" disabled={busy} title="Stage the file as git wrote it, and mark it as resolved" onClick={() => act({ kind: 'stage', paths: [file.path] })}>
+            <Icon name="check" />
+            Accept
+          </button>
+          <button
+            className="button"
+            disabled={busy}
+            title="Forget the resolution git recorded, and mark the conflicts of the file again"
+            onClick={() => act({ kind: 'forgetResolution', path: file.path })}
+          >
+            <Icon name="discard" />
+            Forget it…
+          </button>
+          <button
+            className="button icon"
+            title="Show what git wrote beside the file as git marked it, in the diff editor"
+            onClick={() => post({ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file: { path: file.path, originalPath: null, kind: 'modified' } })}
           >
             <Icon name="diff" />
           </button>

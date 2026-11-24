@@ -1504,6 +1504,65 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('remembers how a conflict is resolved, and says a merge met twice was resolved as before', async () => {
+    const refreshed = async () => vscode.commands.executeCommand('gitardo.refresh');
+    const start = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    // Its own configuration says it, whatever the user's says.
+    await git(app, ['config', '--local', 'rerere.enabled', 'false']);
+    await refreshed();
+    choose = byLabel(/leave the file for me to look at/);
+    answer = run;
+    try {
+      await vscode.commands.executeCommand('gitardo.rememberResolutions');
+      assert.equal((await git(app, ['config', '--local', '--get', 'rerere.enabled'])).stdout.trim(), 'true');
+      await until('the state to say git remembers them', () => state().rerere?.isOn);
+
+      await git(app, ['checkout', '-q', '-b', 'rerere-side']);
+      write('r.txt', 'one\ntheirs\n');
+      await git(app, ['add', 'r.txt']);
+      await git(app, ['commit', '-q', '-m', 'Theirs']);
+      await git(app, ['checkout', '-q', 'main']);
+      write('r.txt', 'one\nours\n');
+      await git(app, ['add', 'r.txt']);
+      await git(app, ['commit', '-q', '-m', 'Ours']);
+      await git(app, ['merge', 'rerere-side']).catch(() => undefined);
+      write('r.txt', 'one\nboth\n');
+      await git(app, ['add', 'r.txt']);
+      await git(app, ['commit', '-q', '--no-edit']);
+      await git(app, ['reset', '-q', '--hard', 'HEAD~1']);
+      // Met again: git writes what was resolved, and leaves the file in conflict.
+      await git(app, ['merge', 'rerere-side']).catch(() => undefined);
+      await refreshed();
+      await until('r.txt resolved as before', () => state().resolvedAsBefore?.some((file) => file.path === 'r.txt'));
+
+      // Show what git wrote: the markers on the left, what git wrote on the right.
+      await fromWebview({ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file: { kind: 'modified', path: 'r.txt', originalPath: null } });
+      const tab = await until('the diff of what git wrote', () =>
+        vscode.window.tabGroups.all.flatMap((group) => group.tabs).find((each) => each.input instanceof vscode.TabInputTextDiff),
+      );
+      const input = tab.input as vscode.TabInputTextDiff;
+      assert.match(input.original.query, /:marked/);
+      assert.match(Buffer.from(await vscode.workspace.fs.readFile(input.original)).toString('utf8'), /<<<<<<< /);
+      assert.equal(fs.readFileSync(input.modified.fsPath, 'utf8'), 'one\nboth\n');
+
+      // Forget this resolution…: it warns, then the file has its markers again.
+      answer = (_message, _detail, items) => items.find((item) => item !== 'Cancel');
+      await controller.action({ kind: 'forgetResolution', path: 'r.txt' });
+      assert.match(fs.readFileSync(path.join(app, 'r.txt'), 'utf8'), /<<<<<<< /);
+      answer = run;
+      await controller.action({ kind: 'abort' });
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      choose = () => undefined;
+      answer = run;
+      await git(app, ['merge', '--abort']).catch(() => undefined);
+      await git(app, ['reset', '-q', '--hard', start]).catch(() => undefined);
+      await git(app, ['branch', '-D', 'rerere-side']).catch(() => undefined);
+      await git(app, ['config', '--local', '--unset', 'rerere.enabled']).catch(() => undefined);
+      await refreshed();
+    }
+  });
+
   await step('answers the webviews: commit details and comparisons', async () => {
     const [newest, older] = state().rows;
     posted.length = 0;

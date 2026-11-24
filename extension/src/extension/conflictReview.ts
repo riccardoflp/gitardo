@@ -5,12 +5,12 @@ import { samePath } from '../shared/paths';
 import { fingerprint, reviewFiles } from '../shared/review';
 import { partialResolution, type ConflictAnswer } from '../shared/conflictPrompt';
 import type { EngineClient } from '../engine/client';
-import { conflictPlans, deletedConflicts } from '../engine/conflictPlans';
+import { conflictPlans, deletedConflicts, recordedConflicts } from '../engine/conflictPlans';
 import type { FileResolutions } from '../engine/messages';
 import { reads, type Repository } from '../engine/reads';
 import { engineResolutions } from '../engine/resolutions';
 import type { Operation, ToViews, ViewKind } from '../shared/protocol';
-import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
+import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Proposal, RecordedConflict, ReviewReport } from '../shared/resolution';
 import { conflictModelName } from './ai';
 import { proposalUri } from './content';
 import { answers, choices } from './answers';
@@ -42,6 +42,7 @@ export class ConflictReviewTab implements vscode.Disposable {
   readonly webview: vscode.Webview;
   private plans: ConflictPlan[] = [];
   private deleted: DeletedConflict[] = [];
+  private recorded: RecordedConflict[] = [];
   private others: string[] = [];
   private operation: Operation | null = null;
   private report: ReviewReport | null = null;
@@ -112,8 +113,16 @@ export class ConflictReviewTab implements vscode.Disposable {
     try {
       const conflicted = await reads.conflicted(this.repo);
       const files = this.paths ? conflicted.filter((file) => this.paths?.includes(file)) : conflicted;
-      this.plans = await conflictPlans(reads, this.repo, files);
-      const unmarked = files.filter((file) => !this.plans.some((plan) => plan.path === file));
+      // Git wrote a resolution it recorded in some of them, and left them in conflict without markers (`review.recorded`).
+      const resolved = await reads.resolvedAsBefore(this.repo).catch(() => []);
+      const recorded = files.filter((file) => resolved.some((each) => each.path === file && !each.isStaged));
+      this.recorded = await recordedConflicts(reads, this.repo, recorded);
+      this.plans = await conflictPlans(
+        reads,
+        this.repo,
+        files.filter((file) => !recorded.includes(file)),
+      );
+      const unmarked = files.filter((file) => !recorded.includes(file) && !this.plans.some((plan) => plan.path === file));
       this.deleted = await deletedConflicts(reads, this.repo, unmarked);
       this.others = unmarked.filter((file) => !this.deleted.some((each) => each.path === file));
       this.operation = await reads.operation(this.repo).catch(() => null);
@@ -147,6 +156,7 @@ export class ConflictReviewTab implements vscode.Disposable {
       theirsSubject: this.subjects[1],
       files: reviewFiles(this.plans, rules, asked),
       deleted: this.deleted,
+      recorded: this.recorded,
       others: this.others,
       rules,
       ai,

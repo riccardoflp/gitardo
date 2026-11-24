@@ -1411,8 +1411,11 @@ forget.
 - **Reads**: `rerere.read-marked`, the file as git marked it; the file on disk.
 - **Uses**: `rerere.read-resolved`, `rerere.read-marked`, `rerere.forget`, `review.write`, `diff.page`,
   `diff.line-diff`.
-- **Extension**: planned, in a later milestone: a card of the review tab of the extension (`ConflictsApp`) with the
-  same buttons.
+- **Extension**: a card of the review tab (`ConflictsApp`), headed **Resolved by git as before**, with the files listed
+  under **Resolved as before** beside the others and shown with the conflicts that have nothing proposed, and *1 file
+  resolved by git as before* in the head of the page. Its **Accept** stages the file at once, as the card of a file
+  deleted on one side runs at once, rather than with **Write**; **Forget it…** runs `rerere.forget`; its last button
+  opens the diff of **Show what git wrote**.
 
 - The heading says **Resolved by git as before**, with *Git recorded how this conflict was resolved the last time,
   and wrote the same resolution.* The card shows the lines git wrote in place of each conflict, as a diff of the file
@@ -1898,7 +1901,7 @@ Turns git's recording of resolutions off for this repository; what it recorded s
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: `rerere.turn-on` turns it on again, and the resolutions recorded are used again.
 - **Uses**: `rerere.read-state`.
-- **Extension**: **Remember how conflicts are resolved…**, ticked, in the same menu, and **Gitardo: Stop Remembering How
+- **Extension**: **Remember how conflicts are resolved**, ticked, in the same menu, and **Gitardo: Stop Remembering How
   Conflicts Are Resolved** in the Command Palette, sending `feature/run` of `rerere.turn-off`.
 
 Acceptance:
@@ -1919,7 +1922,8 @@ Which files in conflict git resolved by itself from a recorded resolution, while
   in conflict: they are the lines `Staged '<path>' using previous resolution.` that the operation that stopped printed
   (git runs in the C locale under Gitardo), kept with the operation under way until it ends.
 - **Uses**: `rerere.read-state`, `conflicts.read-files`, `repo.read-state`.
-- **Extension**: read by the engine with the state of the repository: planned.
+- **Extension**: read by the engine with the state of the repository, `resolvedAsBefore` in the state (protocol 1.13),
+  each file with whether git staged it.
 
 Acceptance:
 
@@ -1948,7 +1952,8 @@ compare with what git wrote from a recorded resolution.
   for nothing on its input without writing it. A file git staged has no versions in the index any more, and nothing
   is read: what git wrote in it is the diff of the last commit and the index.
 - **Uses**: `conflicts.side-names`, by `rerere.resolved-as-before` and `review.recorded`.
-- **Extension**: read by the engine for the diff the extension opens: planned.
+- **Extension**: read by the engine as the version `marked` of `read/diff.read-sides` (protocol 1.13), for the diff of
+  **Show what git wrote** and the card of the review.
 
 Acceptance:
 
@@ -1972,8 +1977,12 @@ can be done with each: look at what git wrote, mark it resolved, or forget the r
 - **Reads**: `rerere.read-resolved`.
 - **Uses**: `rerere.read-resolved`, `rerere.read-marked`, `rerere.forget`, `conflicts.mark-resolved`,
   `conflicts.banner`, `conflicts.stopped`, `changes.row-menu`, `review.recorded`, `diff.page`.
-- **Extension**: planned, in a later milestone: the same words in the banner, the message and the rows of the
-  **Gitardo Changes** view.
+- **Extension**: the same words in the banner of the **Gitardo Changes** and **Graph** views and in the message of an
+  operation that stopped; the row of such a file in **Gitardo Changes** says **Resolved as before**, muted, with the
+  buttons and the menu **Show what git wrote**, **Mark as resolved** and **Forget this resolution…** in place of the two
+  sides, and a file git staged keeps the words and the first and last entries in the menu of its row among the changes.
+  **Show what git wrote** opens VS Code's diff editor, titled with **As git marked it ↔ Working Tree**, or that of
+  `HEAD` and the index for a file git staged.
 
 - The banner adds **· git resolved 2 as before** after the count of the files in conflict; the message of an
   operation that stopped adds *Git resolved 2 files as it did before: look at them before you continue.*
@@ -2014,7 +2023,9 @@ wrong and that git would otherwise write each time.
 - **After**: the file is in conflict with its markers; the resolution made next is recorded in place of the one
   forgotten.
 - **Uses**: `changes.pathspec`, `rerere.read-resolved`, `conflicts.restore`.
-- **Extension**: planned, in a later milestone, with `rerere.resolved-as-before`.
+- **Extension**: **Forget this resolution…** in the menu and on the button of the row of such a file in **Gitardo
+  Changes**, and **Forget it…** on its card in the review tab, sending `feature/run` of `rerere.forget`, whose warning
+  VS Code asks.
 
 Acceptance:
 

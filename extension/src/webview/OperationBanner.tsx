@@ -1,6 +1,7 @@
 import type { Operation, RepoState } from '../shared/protocol';
 import { Icon } from './Icon';
 import { act } from './menus';
+import { bannerWords } from '../shared/rerere';
 import { post } from './vscode';
 
 const NAMES: Record<Operation, string> = { merge: 'Merge', rebase: 'Rebase', cherryPick: 'Cherry-pick', revert: 'Revert', patch: 'Patch (git am)' };
@@ -30,7 +31,9 @@ export function OperationBanner({ state, busy }: { state: RepoState; busy: boole
   const [resolvable, marked] = resolvableConflicts(state);
   // Nothing is counted while the rules are switched off.
   const leftByRules = !marked || resolvable < marked;
-  const files = `${conflicts} ${conflicts === 1 ? 'file has' : 'files have'} conflicts`;
+  // Git resolved some of them, or all, from the resolutions it recorded (`rerere.resolved-as-before`).
+  const before = bannerWords(state);
+  const files = [conflicts > 0 && `${conflicts} ${conflicts === 1 ? 'file has' : 'files have'} conflicts`, before].filter(Boolean).join(' · ');
   return (
     <div className="banner" role="status">
       <Icon name={rebaseStop ? 'edit' : 'warning'} />
@@ -40,7 +43,7 @@ export function OperationBanner({ state, busy }: { state: RepoState; busy: boole
           : rebaseStop
             ? `Stopped at "${rebaseStop.subject}" to edit it. Amend it or commit more, then Continue.`
             : operation
-              ? `${NAMES[operation]} in progress${conflicts > 0 ? ` · ${files}` : ''}`
+              ? `${NAMES[operation]} in progress${files ? ` · ${files}` : ''}`
               : files}
       </span>
       {resolvable > 0 && (

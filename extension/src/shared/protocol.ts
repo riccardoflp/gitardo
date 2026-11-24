@@ -426,7 +426,12 @@ export type DiffSource =
   | { kind: 'unstaged' }
   /** A file of the Changes view, as VS Code's list of changes opens it: `unstaged` when it has unstaged changes, else `staged`. */
   | { kind: 'change' }
-  | { kind: 'conflict' };
+  | { kind: 'conflict' }
+  /**
+   * A file git resolved as before (`rerere.resolved-as-before`): the file as git marked it against the working tree, or,
+   * once git staged it, HEAD against the index.
+   */
+  | { kind: 'resolvedAsBefore' };
 
 /** Something the user asked for in the UI. The extension asks for any missing input, then turns it into git commands. */
 export type Action =
@@ -535,6 +540,8 @@ export type Action =
   | { kind: 'writeCommitGraph' }
   /** Turns on, or off, git's recording of how conflicts are resolved (`rerere.turn-on`, `rerere.turn-off`). */
   | { kind: 'rememberResolutions'; start: boolean }
+  /** Has git forget the resolution it recorded for a file it resolved as before, and marks its conflicts again (`rerere.forget`). */
+  | { kind: 'forgetResolution'; path: string }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }

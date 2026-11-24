@@ -693,6 +693,14 @@ In the Changes view a file in conflict also has **Take the current side** and **
 
 Git can remember how each conflict was resolved and write the same resolution the next time the same conflict comes, as when a merge is undone and made again, or a branch is rebased again (`git rerere`). **Remember how conflicts are resolved…** in the context menu of the row of the repository in the **Gitardo Repositories** view, or **Gitardo: Remember How Conflicts Are Resolved…** in the Command Palette, turns it on for the repository, and asks whether git leaves the file it wrote for you to look at, or stages it at once. The entry is ticked while git remembers them: chosen again, or **Gitardo: Stop Remembering How Conflicts Are Resolved**, turns it off, and what git recorded stays, unused.
 
+When git writes a resolution it recorded, the banner says so after the count of the files in conflict, **· git resolved 1 as before**, and so does the message that says the operation stopped. The row of such a file in the Changes view says **Resolved as before**, and has, in place of the two sides:
+
+- **Show what git wrote**, which opens the file as git marked it beside what git wrote, in the diff editor;
+- **Mark as resolved**, once you have looked at it;
+- **Forget this resolution…**, for a resolution that was wrong: git forgets it and marks the conflicts of the file again, after a warning, and records the next resolution instead.
+
+A file git staged at once stays among the staged changes with the same words until the operation ends. The [review of the resolutions](#the-review-of-the-resolutions) lists such files under **Resolved as before**, each on a card that shows what git wrote in place of the markers, with **Accept**, which stages it, and **Forget it…**.
+
 ### Ask Gitardo
 
 Ask `@gitardo` in VS Code's Chat how to do something with Gitardo, in your own words and in any language: *how do I put my changes aside*, *how do I squash my last three commits?* It answers in a few steps, with the names of the controls as they are on screen and where they are, as the answer comes, and under it a button for each feature it names that has a command, such as **Stash Changes**. **Gitardo: Ask How To…** opens the Chat with `@gitardo ` typed.

@@ -3,6 +3,8 @@ import type { Branch, RepoState, Row, Submodule, Worktree } from '../src/shared/
 import type { ShownParts } from '../src/shared/repositories';
 import type { Hosting, HostingService } from '../src/shared/hosting';
 import { changesText, pullTitle, upstreamHint, worktreeOf, worktreeStatus } from '../src/shared/refs';
+import { engineRuns } from '../src/engine/actions';
+import { bannerWords, stopWords } from '../src/shared/rerere';
 import { branchAt, headAt, remoteAt, tagAt, upstreamOf, workingTreeOf } from './states';
 
 // The menus post what is chosen to the extension; here they are only read.
@@ -26,6 +28,7 @@ const {
   openRemoteBranch,
   remoteBranchMenu,
   repositoryRowMenu,
+  resolvedAsBeforeMenu,
   selectionMenu,
   tagMenu,
   trackingEntries,
@@ -546,7 +549,7 @@ describe('what git remembers of conflicts, in the menu of the row of the reposit
     return [...posted];
   };
   const entryOf = (menu: ReturnType<typeof repositoryRowMenu>) =>
-    menu.find((each) => each && each !== 'separator' && each.label === 'Remember how conflicts are resolved…');
+    menu.find((each) => each && each !== 'separator' && each.label.startsWith('Remember how conflicts are resolved'));
 
   it('rerere.turn-on: unticked while git does not remember them, it turns it on', () => {
     const off = repositoryRowMenu(row, { ...shown, rerere: { isOn: false, stages: false, setsStages: false } });
@@ -563,10 +566,41 @@ describe('what git remembers of conflicts, in the menu of the row of the reposit
     const on = repositoryRowMenu(row, { ...shown, rerere: { isOn: true, stages: false, setsStages: false } });
     const entry = entryOf(on);
     expect(entry && entry !== 'separator' && entry.checked).toBe(true);
-    expect(run(on, 'Remember how conflicts are resolved…')).toEqual([{ type: 'action', action: { kind: 'rememberResolutions', start: false } }]);
-    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown))).not.toContain(
-      'Remember how conflicts are resolved…',
+    // Ticked, it asks nothing: no ellipsis.
+    expect(run(on, 'Remember how conflicts are resolved')).toEqual([{ type: 'action', action: { kind: 'rememberResolutions', start: false } }]);
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown)).join()).not.toContain(
+      'Remember how conflicts are resolved',
     );
+  });
+});
+
+describe('the files git resolved as before (rerere.resolved-as-before, rerere.forget)', () => {
+  const run = (entries: ReturnType<typeof resolvedAsBeforeMenu>, label: string) => {
+    posted.length = 0;
+    for (const entry of entries) if (entry && entry !== 'separator' && entry.label === label) entry.run();
+    return [...posted];
+  };
+  const file = { path: 'm.txt', originalPath: null, kind: 'modified' };
+
+  it('has Show what git wrote, Mark as resolved and Forget this resolution… in place of the two sides', () => {
+    const menu = resolvedAsBeforeMenu('m.txt', false, false);
+    expect(labels(menu)).toEqual(['Show what git wrote', 'Mark as resolved', 'Forget this resolution…']);
+    expect(run(menu, 'Show what git wrote')).toEqual([{ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file }]);
+    expect(run(menu, 'Mark as resolved')).toEqual([{ type: 'action', action: { kind: 'stage', paths: ['m.txt'] } }]);
+    expect(run(menu, 'Forget this resolution…')).toEqual([{ type: 'action', action: { kind: 'forgetResolution', path: 'm.txt' } }]);
+    expect(engineRuns({ kind: 'forgetResolution', path: 'm.txt' }, { branches: [], remoteBranches: [], tags: [] })).toEqual([
+      { feature: 'rerere.forget', target: { kind: 'file', path: 'm.txt' } },
+    ]);
+    // A file git staged is resolved already.
+    expect(labels(resolvedAsBeforeMenu('m.txt', true, false))).toEqual(['Show what git wrote', 'Forget this resolution…']);
+  });
+
+  it('says how many git resolved as before in the banner and in the message of the stop, and nothing for none', () => {
+    const two = { resolvedAsBefore: [{ path: 'm.txt', isStaged: false }, { path: 'n.txt', isStaged: true }] };
+    expect(bannerWords(two)).toBe('git resolved 2 as before');
+    expect(stopWords(two)).toBe('Git resolved 2 files as it did before: look at them before you continue.');
+    expect(bannerWords({ resolvedAsBefore: [] })).toBeUndefined();
+    expect(stopWords({})).toBeUndefined();
   });
 });
 

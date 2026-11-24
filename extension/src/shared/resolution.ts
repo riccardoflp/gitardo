@@ -110,6 +110,18 @@ export interface DeletedConflict {
   changed: string;
 }
 
+/**
+ * A file in conflict git resolved by itself from a resolution it recorded (`review.recorded`): no markers are left, and
+ * what git wrote is shown as the changes from the file as git marked it to the file on disk.
+ */
+export interface RecordedConflict {
+  path: string;
+  /** The file as git marked it when it stopped (`rerere.read-marked`). */
+  marked: string;
+  /** The file on disk, as git wrote it. */
+  written: string;
+}
+
 export interface ReviewFile {
   path: string;
   conflicts: ReviewConflict[];
@@ -141,6 +153,8 @@ export interface ConflictReview {
   files: ReviewFile[];
   /** The files one side deleted and the other changed. */
   deleted: DeletedConflict[];
+  /** The files git resolved as before and left in conflict, to accept or to forget (protocol 1.13). */
+  recorded?: RecordedConflict[];
   /** The files in conflict without markers to look at here: binary ones, the very large ones, the ones both sides added or deleted. */
   others: string[];
   /** Whether the rules propose resolutions, and whether the language model can be asked: each has its setting. */

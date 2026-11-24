@@ -6,7 +6,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { resolveConflicts, type ConflictPlan } from '../shared/conflicts';
-import type { DeletedConflict } from '../shared/resolution';
+import type { DeletedConflict, RecordedConflict } from '../shared/resolution';
+import { MARKED } from '../shared/rerere';
 import type { Reads, Repository } from './reads';
 
 /** Larger files in conflict are left to the user. */
@@ -53,6 +54,25 @@ export async function deletedConflicts(reads: Reads, repo: Repository, files: st
     const changed = deletedBy === 'theirs' ? versions.ours : versions.theirs;
     if ([versions.base, changed].some((text) => text.includes('\0') || text.length > CONFLICT_BYTES)) continue;
     found.push({ path: file, deletedBy, base: versions.base, changed });
+  }
+  return found;
+}
+
+/**
+ * Of these files git resolved as before, what git marked when it stopped and what it wrote from the resolution it
+ * recorded (`review.recorded`). Left out are those that are not text, or too large to show.
+ */
+export async function recordedConflicts(reads: Reads, repo: Repository, files: string[]): Promise<RecordedConflict[]> {
+  const found: RecordedConflict[] = [];
+  for (const file of files.slice(0, CONFLICT_FILES)) {
+    try {
+      const marked = Buffer.from((await reads.fileBytesAt(repo.root, MARKED, file)) ?? new Uint8Array()).toString('utf8');
+      const written = await fs.promises.readFile(path.join(repo.root, file), 'utf8');
+      if ([marked, written].some((text) => text.includes('\0') || text.length > CONFLICT_BYTES)) continue;
+      found.push({ path: file, marked, written });
+    } catch {
+      // A file that cannot be read is one to look at in an editor.
+    }
   }
   return found;
 }

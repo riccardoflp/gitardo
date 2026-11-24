@@ -169,6 +169,8 @@ export function engineRuns(
     // What git remembers of conflicts (M46).
     case 'rememberResolutions':
       return [{ feature: action.start ? 'rerere.turn-on' : 'rerere.turn-off', target: { kind: 'head' } }];
+    case 'forgetResolution':
+      return [{ feature: 'rerere.forget', target: { kind: 'file', path: action.path } }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
     case 'merge':
       if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];

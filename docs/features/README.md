@@ -409,7 +409,7 @@ earns it.
 | [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Built | Built |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built | Built |
 | [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built | Built |
-| [`review.recorded`](09-conflicts.md#reviewrecorded--a-file-git-resolved-as-before) | A file git resolved as before | View | Built | Planned |
+| [`review.recorded`](09-conflicts.md#reviewrecorded--a-file-git-resolved-as-before) | A file git resolved as before | View | Built | Built |
 | [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Built | Built |
 | [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Built | Built |
 | [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Built | Built |
@@ -420,10 +420,10 @@ earns it.
 | [`rerere.read-state`](09-conflicts.md#rerereread-state--whether-git-remembers-resolutions) | Whether git remembers resolutions | Read | Built | Built |
 | [`rerere.turn-on`](09-conflicts.md#rerereturn-on--remember-how-conflicts-are-resolved) | Remember how conflicts are resolved | Operation | Built | Built |
 | [`rerere.turn-off`](09-conflicts.md#rerereturn-off--stop-remembering-how-conflicts-are-resolved) | Stop remembering how conflicts are resolved | Operation | Built | Built |
-| [`rerere.read-resolved`](09-conflicts.md#rerereread-resolved--the-files-git-resolved-as-before) | The files git resolved as before | Read | Built | Planned |
-| [`rerere.read-marked`](09-conflicts.md#rerereread-marked--a-file-as-git-marked-it) | A file as git marked it | Read | Built | Planned |
-| [`rerere.resolved-as-before`](09-conflicts.md#rerereresolved-as-before--the-files-git-resolved-as-before-where-conflicts-are-shown) | The files git resolved as before, where conflicts are shown | View | Built | Planned |
-| [`rerere.forget`](09-conflicts.md#rerereforget--forget-a-resolution-git-recorded) | Forget a resolution git recorded | Operation | Built | Planned |
+| [`rerere.read-resolved`](09-conflicts.md#rerereread-resolved--the-files-git-resolved-as-before) | The files git resolved as before | Read | Built | Built |
+| [`rerere.read-marked`](09-conflicts.md#rerereread-marked--a-file-as-git-marked-it) | A file as git marked it | Read | Built | Built |
+| [`rerere.resolved-as-before`](09-conflicts.md#rerereresolved-as-before--the-files-git-resolved-as-before-where-conflicts-are-shown) | The files git resolved as before, where conflicts are shown | View | Built | Built |
+| [`rerere.forget`](09-conflicts.md#rerereforget--forget-a-resolution-git-recorded) | Forget a resolution git recorded | Operation | Built | Built |
 
 ## Compare
 
