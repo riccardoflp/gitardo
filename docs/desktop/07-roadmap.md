@@ -1824,7 +1824,7 @@ with **Close** (Q1523); `retainContextWhenHidden` stays (Q1524). The suite of `t
 steps, its three new ones included (the reload is the serializer's, called by the step, not a reload of the window);
 the two that fail fail before M44 too.
 
-## M46 — The extension stages lines, remembers resolutions and loads more of a shallow history
+## M46 — The extension stages lines, remembers resolutions and loads more of a shallow history (done)
 
 The cards Gitardo Desktop built in M32, M33 and M39 for the lines selected, the resolutions git remembers and a shallow
 clone, built in the extension, where they are *Planned*
@@ -1868,7 +1868,13 @@ with two commits shows the last row, **Load more history** with `3` lists five a
 them all; **Copy message** on a commit with a body puts its whole message on the clipboard; every card of the
 milestone is Built in the extension and passes its tests.
 
-## M47 — Git LFS in the extension
+Built on 2026-11-24, in the five phases, each card of the milestone *Built* in the extension. **Revert lines**
+edits the document in the editor, as **Revert this change** does (A5). The steps of `test/e2e/suite.ts` for the
+lines, a merge met twice and the end of a shallow history pass in Xvfb; the step of rerere takes `.git/rr-cache`
+away after it, since that folder alone keeps git remembering, and the history of the suite's repository is made
+shallow again before **Load the whole history**, three more commits reaching its start.
+
+## M47 — Git LFS in the extension (done)
 
 The files stored with Git LFS shown by their content in what the extension opens, **Store with Git LFS…** in VS Code's
 Explorer, and the **Large files** page as an editor tab, with the locks
@@ -1904,7 +1910,11 @@ downloaded and which not, and the locks of a server of the tests that has them, 
 shows it locked and then not; every card of the milestone is Built in the extension and passes its tests, or is
 skipped saying Git LFS is missing.
 
-## M48 — The rows and the menus of the extension, and the differences left
+Built on 2026-11-24, in the five phases, the locks in the commit of the tab; every card of the milestone *Built*
+in the extension. The tests that need Git LFS skip here and say so, and run in the pipeline; Q1560 to Q1564 were
+asked while it was built, Q1560 a bug of both apps that waits for an answer.
+
+## M48 — The rows and the menus of the extension, and the differences left (done)
 
 The last cards *Planned* in the extension, the rows of the graph and the icons of its menus, and the seven cards that
 say *Differs* settled, so that no card waits in the extension
@@ -1950,7 +1960,13 @@ nothing more than its picks; saving what new worktrees get from the page is in t
 the place chosen; the index of the catalog has no card *Planned* or *Differs* in the extension, and every card of the
 milestone passes its tests.
 
-## M49 — The checks pass on every system, and the risks tried again
+Built on 2026-11-24, in the six phases, and with the four cards still *Differs* once they were done: the Flow
+Diff discards with `diff.discard-file`, which keeps what is staged (A4); reverting a change stays an edit in the
+editor (A5); closing the sign-in of GitHub says nothing (G4); and the log keeps what git printed under a step that
+succeeded and what a step was given on standard input, in both apps (D11, `log/line` kinds `input` and `output` of
+version 1.13). The index of the catalog has no card *Planned* or *Differs* in the extension. Q1620 was asked.
+
+## M49 — The checks pass on every system, and the risks tried again (done)
 
 No test fails on `main` before a change, on any system; the risks of the extension, written about its own code before
 the engine replaced it, are tried against what runs now; and the checks its roadmap planned are built
@@ -1988,6 +2004,13 @@ Exit: `cargo xtask check`, `npm test` and the end-to-end suite pass on `main` on
 failing, and each one skipped says why; every row of the risks is either gone or still true with a test that shows it;
 no file of the extension is over 1,000 lines; a card naming a test that does not exist, an import across folders the
 architecture forbids, and a read made twice as slow each fail their check.
+
+Built on 2026-11-24, in the five phases. Four of the known failures were already fixed on `main`; the step of the
+Repositories view closes the gone worktrees while it waits. RS2, RS7 to RS14, RS17, RS19 and RS20 are gone, RS15
+is narrowed, RS16 is accepted, RS1 is left to the stylesheet (Q1700); `controller.ts` is 959 lines and
+`CommitList.tsx` 591, and `test/fileLength.test.ts` keeps every file of the sources under 1,000. The suite of
+`test/e2e/suite.ts` passes every step in Xvfb, and `npm run test:ui` 36 of 36 with a `GIT_CONFIG_GLOBAL` holding
+only an identity and `LANGUAGE=en`; the job `performance` of the pipeline has not run yet. Q1590 was asked.
 
 ## Before a release
 

@@ -29,7 +29,7 @@ Exit: no open question older than this milestone; RS17 and RS19 removed or turne
 
 ## M2 — Nothing lost without asking (done by M49)
 
-Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tried
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again-done), which tried
 each of these against the engine that runs them now: RS2 and RS8 to RS11 are removed, each with a test of its own.
 
 The risks where the user's work can be lost, each fixed with a test that failed before:
@@ -44,11 +44,11 @@ Exit: the **Differs** lines of those cards are gone, and their status is *Docume
 
 ## M3 — What runs is what is shown (done by M49)
 
-Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tried
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again-done), which tried
 each of these against the engine that runs them now: RS7 and RS12 to RS14 are removed; RS15 is narrowed to the links a
 removal git refuses takes out, which are not put back; RS16 says why the revert of the Flow Diff and **Save** in
-**Gitardo Changes** are edits of a file in its editor, not operations, so that `log.record` and `diff.revert-change`
-stay *Differs* in the extension.
+**Gitardo Changes** are edits of a file in its editor, not operations; `diff.revert-change` is *Built* in the
+extension with that said on its card (A5), and `log.record` keeps what git printed under every step (D11, M48).
 
 - RS7: the files of an interactive rebase are written as `writes` of the operation, after the question, and logged; the
   question shows the todo list and the new messages; the reads take no lock.
@@ -62,7 +62,7 @@ Exit: the **Differs** lines of those cards are gone.
 
 ## M4 — The checks (done by M49)
 
-Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again-done), which
 built them, each made to fail once on purpose.
 
 - RS6: every test named in **Tested by** exists, checked by `npm run check:docs` and `cargo xtask check` (R2.6).
