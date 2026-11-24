@@ -117,7 +117,7 @@ Right-click a commit, a branch, a tag or a stash for the operations that apply t
 `Ctrl`+click (`Cmd` on macOS) adds a commit to the selection or removes it; `Shift`+click selects every commit between the selected one and the clicked one. A bar above the graph counts them, and offers what the context menu of the selection also does:
 
 - **Squash into one** makes one commit of them, when they follow one another before `HEAD`: see [Squash](#squash).
-- **Cherry-pick onto `<current branch>`** runs a single `git cherry-pick` with all of them, oldest first whatever the order you clicked them in. Git treats them as one operation: if one conflicts it stops there, and **Continue**, **Skip** and **Abort** in the banner apply to the whole series. It is not offered when the selection contains a merge commit, which can only be picked on its own.
+- **Cherry-pick onto `<current branch>`** runs a single `git cherry-pick` with all of them, oldest first whatever the order you clicked them in. Git treats them as one operation: if one conflicts it stops there, and **Continue**, **Skip** and **Abort** in the banner apply to the whole series. Gitardo works out first, each commit on top of the one before, whether the series will stop on a conflict, and if so asks first and names the files. It is not offered when the selection contains a merge commit, which can only be picked on its own.
 - **Compare these two commits**, when two are selected.
 - **Copy as patch** copies them as one patch, oldest first, as `git format-patch` makes it; **Save as patch…**, in the context menu, saves it to a file. Not offered when the selection contains a merge commit, of which git makes no patch.
 - **Copy hashes**.

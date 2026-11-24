@@ -124,6 +124,73 @@ fn picking(main_changes_b: bool) -> (Repository, [String; 2]) {
     (repository, [first, second])
 }
 
+/// The commits of a selection as the timeline gives them, newest first.
+fn selected([first, second]: &[String; 2]) -> Value {
+    json!({ "kind": "commits", "commits": [second, first] })
+}
+
+#[test]
+fn selection_cherry_pick__a_series_that_will_stop_on_a_conflict_says_so_naming_the_file() {
+    let (repository, commits) = picking(true);
+    let mut engine = opened(&repository);
+    let ran = run(
+        &mut engine,
+        &repository,
+        "selection.cherry-pick",
+        (&selected(&commits), &json!({})),
+    );
+    assert_eq!(ran.confirmed.len(), 1, "it asks first: {}", ran.answer);
+    assert_eq!(
+        ran.danger(),
+        &json!({ "kind": "confirm", "reason": "This will stop with conflicts in 1 file:\nf.txt" })
+    );
+}
+
+#[test]
+fn selection_cherry_pick__a_series_whose_later_pick_conflicts_only_without_the_one_before_runs_without_asking() {
+    let (repository, commits) = picking(false);
+    let mut engine = opened(&repository);
+    let ran = run(
+        &mut engine,
+        &repository,
+        "selection.cherry-pick",
+        (&selected(&commits), &json!({})),
+    );
+    assert_eq!(ran.kind(), &json!("ran"), "{}", ran.answer);
+    assert!(ran.confirmed.is_empty(), "{:?}", ran.confirmed);
+    assert_eq!(
+        std::fs::read_to_string(repository.path().join("f.txt")).unwrap(),
+        "a\nBB\nc\n"
+    );
+}
+
+#[test]
+fn cherry_pick_commit__a_merge_commit_that_will_stop_on_a_conflict_says_so() {
+    let (mut repository, _commits) = picking(true);
+    // `topic` merged into `side`, a branch from the first commit that changes nothing of `f.txt`.
+    let first = repository
+        .git(&["rev-list", "--max-parents=0", "HEAD"])
+        .trim()
+        .to_owned();
+    let _side = repository.git(&["checkout", "--quiet", "-b", "side", &first]);
+    let _own = repository.commit("Add h", &[("h.txt", "h\n")]);
+    let _merged = repository.git(&["merge", "--quiet", "--no-ff", "--no-edit", "topic"]);
+    let merge = repository.git(&["rev-parse", "HEAD"]).trim().to_owned();
+    repository.checkout("main");
+    let mut engine = opened(&repository);
+    let ran = run(
+        &mut engine,
+        &repository,
+        "cherry-pick.commit",
+        (&json!({ "kind": "commit", "commit": merge }), &json!({})),
+    );
+    assert_eq!(ran.confirmed.len(), 1, "it asks first: {}", ran.answer);
+    assert_eq!(
+        ran.danger(),
+        &json!({ "kind": "confirm", "reason": "This will stop with conflicts in 1 file:\nf.txt" })
+    );
+}
+
 /// A cherry-pick of `topic`'s commit stopped on a conflict in `f.txt`, which is then resolved and staged.
 fn picked_and_resolved() -> Repository {
     let (repository, [_, second]) = picking(true);

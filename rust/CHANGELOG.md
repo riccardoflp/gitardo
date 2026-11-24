@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Cherry-picking several commits, or a merge commit, works out first which files it will stop on, as picking one
+  commit does, and asks first naming them: each commit of a series on top of the one before it, a merge commit from its
+  first parent.
 - **Commit** with nothing staged refuses while a file is in conflict, where staging everything first would have taken
   the file as resolved and committed its markers.
 - **Skip** of a step of a cherry-pick, a revert, a rebase or a patch warns, where it asked a question, while what was

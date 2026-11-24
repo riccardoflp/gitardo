@@ -1570,7 +1570,7 @@ title: Predict the conflicts of a merge
 place: the timeline
 show: none
 Works out, without touching the index or the working tree, which files a merge would leave in conflict.
-Entry points: none: used by `merge.into-current`, `merge.choose-way` and `cherry-pick.commit`.
+Entry points: none: used by `merge.into-current`, `merge.choose-way`, `cherry-pick.commit` and `selection.cherry-pick`.
 @card desktop merge.into-current
 title: Merge into the current branch
 place: the timeline

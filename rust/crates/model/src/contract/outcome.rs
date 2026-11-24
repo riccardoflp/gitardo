@@ -116,6 +116,13 @@ pub enum Query {
         /// The base to merge from, for a cherry-pick: the parent of the commit picked; none lets git find it.
         base: Option<String>,
     },
+    /// The files the first pick of a series of cherry-picks to stop would leave in conflict, the commits oldest first,
+    /// each picked onto what the pick before it made (`merge.read-predicted-conflicts`). The answer is
+    /// [`super::Answer::Conflicts`].
+    PredictedSeriesConflicts {
+        /// The commits picked, oldest first.
+        commits: Vec<String>,
+    },
     /// Commits, each with its parents and its subject, in the order given
     /// (`git log --no-walk=unsorted <revision>… --`). The answer is [`super::Answer::Commits`].
     Commits {

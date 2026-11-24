@@ -108,9 +108,15 @@ operation to continue, skip or abort.
   `<current branch>`** in the context menu of the selection.
 - **Offered when**: two commits or more are selected, none of them is a merge, and no merge, rebase, cherry-pick,
   revert, patch or bisect is under way.
+- **Reads**: the commits, for their parents; then the conflicts the series would stop on, with
+  `merge.read-predicted-conflicts` for each commit, oldest first: merged from its parent into the tree the pick before
+  it wrote, the first into `HEAD`, until one would stop. With a Git older than 2.45, which merges into no tree, nothing
+  is predicted.
 - **Plan**: `git cherry-pick [-x] <hash>…`, the hashes oldest first whatever the order they were clicked in: the order
   of the timeline, reversed.
-- **Danger**: None. The dialog, when shown, says *In this order:* with the first 15 commits as `<short hash> <subject>`
+- **Danger**: None when no conflict is predicted; Confirm when one pick of the series is predicted to stop, *This will
+  stop with conflicts in N files:* and the files of the first pick that stops, as `cherry-pick.commit` says them. The
+  dialog, when shown, says *In this order:* with the first 15 commits as `<short hash> <subject>`
   and *…and N more* past them, then *If one of them conflicts, git stops there: resolve it and continue, skip that
   commit, or abort them all.*
 - **Undo**: right after it, all of its commits at once: the journal keeps the commit `HEAD` was at before, and
@@ -136,6 +142,8 @@ operation to continue, skip or abort.
 Acceptance:
 
 - [ ] Selecting `C`, then `A`, then `B` (`A` oldest) runs `git cherry-pick A B C`.
+- [ ] A series whose second commit would conflict asks first and names the file; a series whose second commit would
+      conflict only without the first runs without asking.
 - [ ] With `cherryPick.recordOrigin` on, the command is `git cherry-pick -x A B C`.
 - [ ] A selection with a merge commit is refused before git runs, with the message above.
 - [ ] After three commits picked without a conflict, one Undo runs `git reset --keep <HEAD before>` and the branch is
@@ -160,8 +168,8 @@ Applies the changes of one commit onto what is checked out, as a new commit, aft
 - **Entry points**: **Cherry-pick `<short hash>`** in the context menu of a commit; a commit dropped on the commit
   checked out (`drag.drop`); **Cherry-pick** in the menu of a reflog entry (`reflog.browse`).
 - **Offered when**: the commit is not the one checked out.
-- **Reads**: for a commit with one parent, `merge.read-predicted-conflicts` with `<hash>^` as the base, `HEAD` as ours
-  and `<hash>` as theirs: picking a commit is merging it into `HEAD` from its parent. A merge commit is not predicted.
+- **Reads**: `merge.read-predicted-conflicts` with `<hash>^` as the base, `HEAD` as ours and `<hash>` as theirs:
+  picking a commit is merging it into `HEAD` from its parent, the first parent of a merge commit, as `-m 1` picks it.
 - **Plan**: `git cherry-pick [-x] [-m 1] <hash>`: `-m 1` for a merge commit, which is picked against its first parent.
 - **Danger**: None when no conflict is predicted, and the dialog, when shown, says *No conflicts expected.* Confirm when
   conflicts are predicted, because the operation will stop: *This will stop with conflicts in N files:* and the first 15
@@ -183,7 +191,8 @@ Acceptance:
 - [ ] Picking a commit that conflicts in `a.txt` asks first, and the dialog names `a.txt`.
 - [ ] Picking a commit that does not conflict runs `git cherry-pick <hash>` without a dialog when `commandPreview` is
       `off`.
-- [ ] Picking a merge commit runs `git cherry-pick -m 1 <hash>` and predicts nothing.
+- [ ] Picking a merge commit runs `git cherry-pick -m 1 <hash>`, predicted from its first parent: one that conflicts
+      asks first and names the file.
 - [ ] With Git older than 2.40, the prediction is skipped and the pick runs as with no conflict predicted.
 - [ ] Undo after a pick resets the branch to the commit it was at before.
 - [ ] Extension: with `gitardo.cherryPick.recordOrigin` on, the new message ends with `(cherry picked from commit
@@ -296,10 +305,13 @@ Works out, without touching the index or the working tree, which files a merge w
 
 - **Kind**: Read
 - **Function**: `git::read::merge::read_predicted_conflicts(git, request) -> Result<Option<Vec<PathBuf>>, GitError>`
-- **Entry points**: none: used by `merge.into-current`, `merge.choose-way` and `cherry-pick.commit`.
+- **Entry points**: none: used by `merge.into-current`, `merge.choose-way`, `cherry-pick.commit` and
+  `selection.cherry-pick`.
 - **Reads**: `git merge-tree --write-tree --no-messages --name-only -z [--merge-base=<base>] <ours> <theirs>`, where
   `<ours>` is `HEAD` unless the request says otherwise, and `<base>` is given for a cherry-pick (the parent of the
-  commit picked).
+  commit picked). For a series of cherry-picks, oldest first (`git::read::merge::read_series_conflicts`), one such
+  merge for each commit into the tree the one before it wrote, the first into `HEAD`, until one gives conflicts: those
+  are the answer, and none is an empty list. A Git older than 2.45 takes no tree as `<ours>`, and cannot tell.
 - **Extension**: the engine reads it for the merges and the cherry-pick it runs; the extension does not read it.
 
 Rules:
@@ -318,6 +330,8 @@ Acceptance:
 - [ ] Output `<tree>\0` with exit code 0 gives an empty list.
 - [ ] Exit code 128 gives "cannot tell".
 - [ ] 20 paths are said as 15 lines and *…and 5 more*.
+- [ ] A series of two commits, whose second changes a line the first changed, gives no conflict, though the second
+      alone into `HEAD` gives one; with that line changed on `HEAD` too, it gives the file.
 - [ ] Extension: for a branch `other` that changes `a.txt` where `HEAD` changed it too, the prediction is `a.txt`, and
       the working tree, the index and `HEAD` are as they were.
 
