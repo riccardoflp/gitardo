@@ -276,7 +276,7 @@ impl Engine {
         context: &Context,
         asker: &mut dyn Asker,
     ) -> Result<Finished, EngineError> {
-        if needs_confirmation(&plan.danger, context.settings.command_preview) && !asker.confirm(&plan) {
+        if needs_confirmation(&plan, context.settings.command_preview) && !asker.confirm(&plan) {
             return Ok(Finished::NotConfirmed(plan));
         }
         let running = self

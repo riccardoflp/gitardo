@@ -582,8 +582,11 @@ Opens the same comparison on github.com, each side by the name it has there.
   *The two sides are the same commit.*, *The main remote of this repository is not on github.com.*
 - **Extension**: **Open on GitHub** in the Compare tab, shown when the main remote is on GitHub and neither side is
   the working tree; `Controller.openCompareOnService` runs `compare.open-on-service` on the engine, which is this one on
-  GitHub, with the target `comparison`, the tab's two sides, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. A comparison of a commit with
-  itself is refused (G5). When the engine's binary is missing, it says so (D49).
+  GitHub, with the target `comparison`, the tab's two sides, and opens the address of the follow-up `openUrl` with
+  `vscode.env.openExternal`. A comparison of a commit with itself is refused with the engine's warning, *The two sides
+  are the same commit.*, and opens nothing, where the extension opened GitHub's page anyway (G5, kept in M48 and said in
+  its CHANGELOG); with `gitardo.commandPreview` set to `all`, nothing is asked first, since nothing runs (G6). When the
+  engine's binary is missing, it says so (D49).
 
 How each side is named there: a followed local branch by the branch of its upstream when that upstream is on the GitHub
 remote and not gone, else by its commit; a followed remote branch of the GitHub remote by its name without the remote;

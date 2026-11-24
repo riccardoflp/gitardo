@@ -1695,15 +1695,16 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
   subscription, listed by its CLI, or **Auto** (`auto`, Copilot's choice for each question) when the subscription
   lists none, and no key is asked (`ai.copilot`).
 - **Asks**: **The model that resolves conflicts** (*Gitardo asks it about the conflicts the rules leave*): **The first
-  model of the provider** (with its name) or one of the models listed, the current choice ticked; then **How much the
+  model of the provider** (with its name), **The first model** under a host whose models they are, or one of the models
+  listed, the current choice ticked; then **How much the
   model thinks before it answers** (*More is slower, and often better on hard conflicts. A model without such a setting
   ignores it.*): **As the model is set up**, **Low**, **Medium**, **High**, **Extra high** or **Max**, the current
   choice ticked.
 - **Plan**: one `write <settings.json>` step that sets `ai.model` (removed for the first model) and `ai.effort`
   (`low`, `medium`, `high`, `xhigh`, `max`, or removed) in the user's settings file. Under a host whose models they are
   (`uses_host_models`, the extension): the host's models, no provider and no key needed, no step, and the two settings
-  left to the host with the follow-up `WriteSetting`.
-- **Danger**: None.
+  left to the host with the follow-up `WriteSetting`, in the user's settings.
+- **Danger**: None; under a host, Agreed: the picks are all that is asked, under `commandPreview` `all` too (G6).
 - **Undo**: Impossible with **Undo**: choosing again sets them back.
 - **Refuses**: when the provider lists no model: *No language model is available from the AI provider. Set one up in the
   settings.*; with GitHub Copilot signed out, *GitHub Copilot is not signed in.* with **Sign in**; without
@@ -1712,7 +1713,8 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
 - **Extension**: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the
   model's name at the top of the review, while `gitardo.conflicts.ai` is on. `Controller.chooseConflictModel()` runs
   `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with
-  the desktop's picks (G2); the extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and
+  the desktop's picks, the first saying **The first model** (G2, settled in M48); with `gitardo.commandPreview` set to
+  `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and
   `gitardo.conflicts.aiEffort` in the user settings of VS Code. Nothing changes in the repository, and **Undo** still
   takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code.
   Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so
@@ -1729,8 +1731,7 @@ Acceptance:
 - [ ] With `ai.provider` set to `copilot`, the models listed are those of the GitHub Copilot subscription, no key is
       asked or kept, and signed out or without the CLI it refuses with **Sign in** or **How to install**. A subscription
       that lists no model offers **Auto**, which is the one asked when no model is chosen.
-- [ ] Extension: with two models, the first pick offers **The first model of the provider**, **First model**,
-      **Chosen model**; the second **As the model is set up**, **Low**, **Medium**, **High**, **Extra high**, **Max**.
+- [ ] Extension: with two models, the first pick offers **The first model**, **First model**, **Chosen model**; the second **As the model is set up**, **Low**, **Medium**, **High**, **Extra high**, **Max**.
       Without the engine's binary, it says **Gitardo's engine is not available on this system.** with **Show the log**,
       and writes no setting.
 - [ ] Extension: choosing **Chosen model** and **High** writes `gitardo.conflicts.aiModel` and
@@ -1739,6 +1740,7 @@ Acceptance:
       `gitardo.conflicts.aiEffort` to `high`.
 - [ ] Extension: it changes nothing in the repository: nothing is written to the log, and it does not change what
       **Undo** does.
+- [ ] Extension: with `gitardo.commandPreview` set to `all`, choosing the model asks nothing more than its two picks.
 
 ### `ai.copilot` — GitHub Copilot as the AI provider
 

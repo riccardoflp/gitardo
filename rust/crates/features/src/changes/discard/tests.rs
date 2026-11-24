@@ -98,3 +98,14 @@ fn changes_discard__the_files_ticked_are_discarded_at_once_with_one_warning_that
     );
     assert_eq!(plan.title.as_str(), "Discard the changes of 3 files");
 }
+
+#[test]
+fn changes_discard__before_the_first_commit_the_warning_says_the_staged_file_is_deleted_from_disk() {
+    let mut state = state();
+    state.head.commit = None;
+    state.working_tree.staged.push(modified("a.txt"));
+    assert_eq!(
+        warning(&discarded(state, "a.txt")),
+        "One staged file will be deleted from disk."
+    );
+}

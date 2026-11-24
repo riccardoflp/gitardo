@@ -122,3 +122,20 @@ fn refuses_with_nothing_to_discard_and_removes_the_index_before_the_first_commit
         ["git rm -r --force --quiet -- a.txt"]
     );
 }
+
+#[test]
+fn changes_discard_all__before_the_first_commit_the_warning_counts_the_staged_files_deleted_from_disk() {
+    let mut state = state();
+    state.head.commit = None;
+    state.working_tree.staged.push(modified("a.txt"));
+    state.working_tree.staged.push(modified("b.txt"));
+    state.working_tree.untracked.push(String::from("new.txt"));
+    assert_eq!(
+        warning(&discarded(state.clone(), Target::Head)),
+        "2 staged files will be deleted from disk. One untracked file will be deleted from disk."
+    );
+    assert_eq!(
+        warning(&discarded(state, Target::Changes)),
+        "2 staged files will be deleted from disk. One untracked file will be deleted from disk."
+    );
+}

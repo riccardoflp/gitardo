@@ -3578,7 +3578,7 @@ export async function run(): Promise<void> {
         offered,
         internals.engine?.running
           ? [
-              ['The first model of the provider', 'First model', 'Chosen model'],
+              ['The first model', 'First model', 'Chosen model'],
               ['As the model is set up', 'Low', 'Medium', 'High', 'Extra high', 'Max'],
             ]
           : [
@@ -3588,6 +3588,18 @@ export async function run(): Promise<void> {
       );
       assert.equal(settings().get('conflicts.aiModel'), 'test-chosen');
       assert.equal(settings().get('conflicts.aiEffort'), 'high');
+      // With every plan shown first, the picks are all that is asked: nothing runs that was not chosen in them (G6).
+      if (internals.engine?.running) {
+        await set('commandPreview', 'all');
+        try {
+          asked.length = 0;
+          await vscode.commands.executeCommand('gitardo.chooseConflictModel');
+          assert.ok(!asked.some((question) => /^Resolve conflicts with/.test(question.message)), JSON.stringify(asked));
+          assert.equal(settings().get('conflicts.aiModel'), 'test-chosen');
+        } finally {
+          await set('commandPreview', undefined);
+        }
+      }
       asked.length = 0;
       answer = run;
       await controller.action({ kind: 'merge', ref: 'aside' });

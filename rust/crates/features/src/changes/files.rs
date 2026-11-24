@@ -125,6 +125,16 @@ pub(super) fn back_to_last_commit_warning(count: usize) -> String {
     }
 }
 
+/// "One staged file will be deleted from disk.", or as many as there are: before the first commit, a staged file has no
+/// last commit to go back to, so it is deleted.
+pub(super) fn staged_deleted_warning(count: usize) -> String {
+    if count == 1 {
+        String::from("One staged file will be deleted from disk.")
+    } else {
+        format!("{count} staged files will be deleted from disk.")
+    }
+}
+
 /// The warning of changes to tracked files that are not staged.
 pub(super) const UNSTAGED_WARNING: &str = "Unstaged changes to tracked files will be lost.";
 

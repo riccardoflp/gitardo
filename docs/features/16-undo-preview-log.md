@@ -24,7 +24,9 @@ user's answer.
 - **Settings**: `commandPreview` (`off` or `all`).
 
 The table of when it asks is in [04-feature-contract.md](../desktop/04-feature-contract.md#danger-and-confirmation). With
-`commandPreview` set to `off`, a plan is shown first when it is `Destructive` or `Confirm`. These are destructive, and
+`commandPreview` set to `off`, a plan is shown first when it is `Destructive` or `Confirm`; set to `all`, every plan
+is, but one with no danger that changes nothing itself, with no step and no setting for the host to write, which has
+nothing to show (G6, M48). These are destructive, and
 every card of them says so: force push, hard reset, discarding changes, applying, popping or dropping a stash,
 deleting a branch or a tag, deleting a remote branch, removing a remote, removing a worktree, aborting an operation,
 undo, interactive rebase, squash, split, fixup, branch cleanup, a merge, cherry-pick or patch predicted to conflict,
@@ -40,6 +42,8 @@ Acceptance:
 - [ ] **Cancel** runs nothing and logs nothing.
 - [ ] The steps shown are byte for byte the lines the log then has, in the same order.
 - [ ] Staging a change in the Diff page shows the patch given on standard input beside the command.
+- [ ] With `commandPreview` `all`, **Open on GitHub** of a comparison and loading the pull requests ask nothing, in
+      both apps: their plans have no step and no danger.
 
 ### `log.record` — Log every command that changes something
 

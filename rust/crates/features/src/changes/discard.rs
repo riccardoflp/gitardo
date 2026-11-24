@@ -5,13 +5,13 @@ use model::contract::{Answers, Context, Danger, Outcome, Refusal, Step, Target, 
 
 use super::files::{
     NEVER_COMMITTED, NOTHING_TO_DISCARD, UNSTAGED_WARNING, back_to_last_commit_warning, is_staged, is_unstaged,
-    is_untracked, plan, staged_names, target_file, untracked_warning, with_files,
+    is_untracked, plan, staged_deleted_warning, staged_names, target_file, untracked_warning, with_files,
 };
 
 /// Discards the changes of a file of the Changes page, after a warning that says what is lost: with nothing of it
 /// staged, `git restore -- <path>`, or `git clean -f -- <path>` for an untracked file; with some of it staged,
 /// `git restore --source=HEAD --staged --worktree -- <path>`, with the old name of a rename; before the first commit, a
-/// staged file is deleted with `git rm -r --force --quiet -- <path>`. The files ticked (`Target::Files`) are discarded
+/// staged file is deleted with `git rm -r --force --quiet -- <path>`, and the warning says so. The files ticked (`Target::Files`) are discarded
 /// at once, as **Discard all** discards the files of the list, with one warning that counts them.
 ///
 /// Feature: changes.discard
@@ -30,16 +30,14 @@ pub fn discard(context: &Context, _answers: &Answers) -> Outcome {
     let tree = &repository.working_tree;
     let folder = repository.folder.clone();
     let (step, warning): (Step, String) = if is_staged(tree, path) {
-        let step = if repository.has_commit() {
-            with_files(
-                folder,
-                &["restore", "--source=HEAD", "--staged", "--worktree"],
-                staged_names(tree, path),
-            )
+        if repository.has_commit() {
+            let names = staged_names(tree, path);
+            let arguments = ["restore", "--source=HEAD", "--staged", "--worktree"];
+            (with_files(folder, &arguments, names), back_to_last_commit_warning(1))
         } else {
-            with_files(folder, &["rm", "-r", "--force", "--quiet"], [path])
-        };
-        (step, back_to_last_commit_warning(1))
+            let step = with_files(folder, &["rm", "-r", "--force", "--quiet"], [path]);
+            (step, staged_deleted_warning(1))
+        }
     } else if is_unstaged(tree, path) {
         (with_files(folder, &["restore"], [path]), UNSTAGED_WARNING.to_owned())
     } else if is_untracked(tree, path) {

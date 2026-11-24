@@ -105,8 +105,13 @@ from `Plan::danger`:
 | `all` | asks, showing the steps | runs | asks | asks with the warning |
 
 `Danger::Agreed` is a plan nothing of which can be lost and that the user agreed to in the feature's own question,
-which said what it writes and runs: **Resolve** of `conflicts.resolve-automatically`, and `review.write` once it asked
-its plan with `commandPreview` set to `all`. It is not shown a second time.
+which said what it writes and runs: **Resolve** of `conflicts.resolve-automatically`, `review.write` once it asked
+its plan with `commandPreview` set to `all`, and `ai.choose-model` under a host, whose picks are all it does. It is not
+shown a second time.
+
+A plan with `Danger::None` that changes nothing itself, with no step and no setting for the host to write
+(`FollowUp::WriteSetting`), such as opening a comparison on GitHub or reading the pull requests, has nothing to show:
+it runs without asking under `all` too (G6, M48).
 
 The list of what is `Destructive` is in [16-undo-preview-log.md](../features/16-undo-preview-log.md). A card that marks an
 operation destructive says why.

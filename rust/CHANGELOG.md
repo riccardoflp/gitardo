@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Discarding a staged file before the first commit warns that it will be deleted from disk, "One staged file will be
+  deleted from disk.", or as many as there are, where the warning spoke of a last commit there is not.
+- With `commandPreview` set to `all`, a plan that changes nothing itself, with no step and no danger, such as **Open on
+  GitHub** of a comparison or loading the pull requests, runs without asking: there was nothing to show but its title.
+
 ## 1.3.0 - 2026-11-24
 
 - Once the history of a repository of 10,000 commits or more is read, and git keeps no commit-graph file of it, the

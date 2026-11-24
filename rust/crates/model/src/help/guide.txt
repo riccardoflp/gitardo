@@ -4573,6 +4573,18 @@ place: the draft and the Changes page
 show: show where
 Takes everything out of the index; the files on disk are not touched.
 In VS Code: unticking the ticked header box of **Changes** in the Changes view (titled *All staged: click to unstage all changes*) while no file is in conflict, and **Unstage all changes** in the context menu of the uncommitted changes row of the graph, offered while something is staged, also while files are in conflict, send `feature/run` of `changes.unstage-all` to Gitardo's engine on the changes (`engineRuns` in): neither ends a merge or a cherry-pick any more. While files are in conflict the header box sends `changes.unstage` with the files staged, both names of a rename. The plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, it says so.
+@card extension changes.discard
+title: Discard the changes of a file
+place: the draft and the Changes page
+show: show where
+Takes one file back to the last commit, staged changes included, or deletes it when it is untracked; several files given at once are discarded together.
+In VS Code: **Discard changes** on a file of the Changes view, which gives the file alone when nothing of it is staged and the file with both names of a rename otherwise; **Discard all changes in this file, staged too…** on a file of the uncommitted changes in the details of the graph; **Discard all changes in 1 selected file…** or **Discard all changes in N selected files…** above those files, once some are ticked. Each sends `feature/run` of `changes.discard` to Gitardo's engine, on the one file or on the files given (the actions `discard` and `discardChanges` in `engineRuns`); its warning is always asked, in a modal warning dialog (`VscodeAsker`). **Discard Changes** in the title of the Flow Diff sends `changes.discard` on its file, through. Before the first commit the warning says the staged file is deleted from disk, the extension's sentence, now the engine's in both apps (A3, settled in M48). When the engine's binary is missing, it says so.
+@card extension changes.discard-all
+title: Discard all changes
+place: the draft and the Changes page
+show: show where
+Takes every changed file back to the last commit, staged changes included, and deletes the untracked files.
+In VS Code: **Discard all changes…** in the context menu of the uncommitted changes row of the graph, and above the files of the uncommitted changes in the details while none is ticked, both offered while no operation is under way, send `feature/run` of `changes.discard-all` to Gitardo's engine on the whole working tree, as from the draft; **Discard all changes** on the header of **Changes** in the Changes view sends it on the files of the list when nothing is staged, and `changes.discard` with every file of the list, both names of a rename, when something is (the actions `discardChanges` and `discardAll` in `engineRuns`, run by). The warning is always asked, in a modal warning dialog (`VscodeAsker`). When the engine's binary is missing, it says so. Before the first commit the warning says the staged files are deleted from disk (A3, settled in M48).
 @card extension changes.save
 title: Save a file, or all of them
 place: the draft and the Changes page
@@ -4995,6 +5007,12 @@ place: the timeline
 show: show where
 Applies the changes of one commit onto what is checked out, as a new commit, after saying which files will conflict.
 In VS Code: **Cherry-pick `<short>`** in the context menu of a commit in the graph and the Gitardo Graph, also on a merge and while an operation is under way (`commitMenu` in); **Cherry-pick `<short>` onto `<current>`** for a commit dropped on the commit checked out or on the row of the uncommitted changes; **Cherry-pick** for a position chosen in the list of the reflog. The action `cherryPick` runs it on the commit. The setting is `gitardo.cherryPick.recordOrigin`. When the engine's binary is missing, it says so.
+@card extension cherry-pick.skip-empty
+title: Get past a commit that changes nothing
+place: the timeline
+show: show where
+When a cherry-pick or a revert stops on a commit whose changes are already there, or whose conflicts were resolved by keeping what `HEAD` has, git will not continue until that commit is skipped, and says so in words that read like a failure. Gitardo skips it, as a rebase would, and says so in the log.
+In VS Code: the same follow-up of the engine's `cherry-pick.commit`, `selection.cherry-pick`, `conflicts.continue-operation` and `conflicts.skip-step`, run by. The skip is a plan of its own, so with `gitardo.commandPreview` set to `all` it is shown and asked first, where the extension skipped inside the operation already confirmed (kept in M48 and said in its CHANGELOG).
 @card extension revert.commit
 title: Revert a commit
 place: the timeline
@@ -5491,6 +5509,12 @@ place: the Conflicts page
 show: none
 Small models often write the lines around the conflict again with their answer. Where those lines are as they were sent, only what stands in place of the conflict is kept.
 In VS Code: the engine's, through `ai.ask-conflict`; in makes the proposal of the lines it gives.
+@card extension ai.choose-model
+title: Choose the model that resolves conflicts
+place: the Conflicts page
+show: quick search
+Chooses which model of the AI provider is asked about conflicts, and how much it thinks before it answers.
+In VS Code: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the model's name at the top of the review, while `gitardo.conflicts.ai` is on. runs `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with the desktop's picks, the first saying **The first model** (G2, settled in M48); with `gitardo.commandPreview` set to `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` in the user settings of VS Code. Nothing changes in the repository, and **Undo** still takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so. The review then names **\<id\>, not available** when the chosen one is gone.
 @card extension ai.copilot
 title: GitHub Copilot as the AI provider
 place: the Conflicts page
@@ -5605,6 +5629,12 @@ show: show where
 Copies the changes of the comparison, as listed, as a patch that `git apply` takes, binary files included.
 Entry points: **Copy as patch** in the comparison page (**Copy the changes as a patch that git apply takes**).
 Offered when: files differ.
+@card extension compare.open-on-github
+title: Open the comparison on GitHub
+place: the Compare page
+show: show where
+Opens the same comparison on github.com, each side by the name it has there.
+In VS Code: **Open on GitHub** in the Compare tab, shown when the main remote is on GitHub and neither side is the working tree; runs `compare.open-on-service` on the engine, which is this one on GitHub, with the target `comparison`, the tab's two sides, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. A comparison of a commit with itself is refused with the engine's warning, *The two sides are the same commit.*, and opens nothing, where the extension opened GitHub's page anyway (G5, kept in M48 and said in its CHANGELOG); with `gitardo.commandPreview` set to `all`, nothing is asked first, since nothing runs (G6). When the engine's binary is missing, it says so.
 @card extension compare.open-on-service
 title: Open the comparison on another hosting service
 place: the Compare page

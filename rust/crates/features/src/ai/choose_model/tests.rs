@@ -225,3 +225,23 @@ fn ai_choose_model__github_copilot_signed_out_or_not_installed_refuses_with_sign
         Outcome::Read(MODELS, _)
     ));
 }
+
+#[test]
+fn ai_choose_model__under_a_host_the_first_choice_is_the_first_model_and_the_picks_are_all_that_is_asked() {
+    let mut context = context(state(), Target::Head);
+    context.settings.uses_host_models = true;
+    let models = Answers::new().with(MODELS, listed());
+    let asked = question(choose_model(&context, &models));
+    let QuestionKind::Pick { choices } = &asked.kind else {
+        panic!("a pick: {asked:?}");
+    };
+    assert_eq!(choices[0].label.as_str(), "The first model");
+    let chosen = models
+        .with(MODEL, Answer::Choice(String::from(FIRST_MODEL)))
+        .with(EFFORT, Answer::Choice(String::from(AS_SET_UP)));
+    // Agreed in its own picks, the plan is not shown again, under `commandPreview` `all` too (G6).
+    assert_eq!(
+        plan(choose_model(&context, &chosen)).danger,
+        model::contract::Danger::Agreed
+    );
+}

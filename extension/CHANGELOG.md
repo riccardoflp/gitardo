@@ -2,6 +2,19 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Changed
+
+- Choosing the model that resolves conflicts offers the models as Gitardo Desktop does: **The first model**, then each model by its name, then how much it thinks, **As the model is set up** first.
+- Opening on GitHub a comparison of a commit with itself says the two sides are the same commit, and opens nothing.
+- With `gitardo.commandPreview` set to `all`, skipping a cherry-picked commit that changes nothing is now shown and asked first.
+- With `gitardo.commandPreview` set to `all`, choosing the model that resolves conflicts asks nothing more than its picks, and **Open on GitHub** and loading the pull requests ask nothing: there is nothing to show.
+
+### Fixed
+
+- Discarding a staged file before the first commit warns again that it will be deleted from disk, "One staged file will be deleted from disk.", where it spoke of a last commit there is not.
+
 ## 1.3.0 - 2026-11-24
 
 ### Added

@@ -95,6 +95,9 @@ Four things cut across areas and are best decided once:
   text at `changes/files.rs:79-87`).
 - **Verdict**: **Bug (engine)**: the warning speaks of a last commit that does not exist and does not say the files
   are deleted. Take the extension's sentence.
+- **Settled in M48**: before the first commit the warning is "One staged file will be deleted from disk.", or "N staged
+  files will be deleted from disk.", in both apps (`staged_deleted_warning`, `rust/crates/features/src/changes/files.rs`),
+  with tests.
 
 ### A4. Discard on a Diff page with nothing unstaged
 
@@ -697,6 +700,8 @@ Four things cut across areas and are best decided once:
   (`engine/src/drive.rs:321-339`, `256`).
 - Verdict: **CHANGELOG**. "With commandPreview set to all, skipping a cherry-picked commit that changes nothing is now
   shown and asked first."
+- **Settled in M48**: the engine's way is kept (D90); the line is in the extension's CHANGELOG, and the card
+  `cherry-pick.skip-empty` says it.
 
 ## Worktrees and their setup
 
@@ -1185,6 +1190,8 @@ same answer; the model chosen and the effort reach the model the same. What diff
 - **Verdict**: **Choice**, decided: the engine's words, *to be confirmed by the maintainer*. Recommended later: under a
   host the first choice says **The first model**, without naming the provider. CHANGELOG: "Choosing the model that
   resolves conflicts offers the models as Gitardo Desktop does."
+- **Settled in M48**: the engine's picks are kept (D90), and under a host the first choice says **The first model**
+  (`model_question`, `rust/crates/features/src/ai/choose_model.rs`); the line is in the extension's CHANGELOG.
 
 ### G3. The model the draft of a commit message is asked of
 
@@ -1215,6 +1222,7 @@ same answer; the model chosen and the effort reach the model the same. What diff
   language model is available in VS Code…", the extension's words given by the host.
 - **Verdict**: **CHANGELOG**. "Opening on GitHub a comparison of a commit with itself says the two sides are the same
   commit."
+- **Settled in M48**: the engine's refusals are kept (D90); the line is in the extension's CHANGELOG.
 
 ### G6. Plans with no step confirmed under `gitardo.commandPreview` set to `all`
 
@@ -1225,6 +1233,10 @@ same answer; the model chosen and the effort reach the model the same. What diff
   shown (`all`), with an empty list of commands; with the default, it asks nothing.
 - **Verdict**: **Choice**, open. Recommended: a plan with no step and no danger is never confirmed, on both apps; an
   engine change, not an option.
+- **Settled in M48**, as recommended (D90): `needs_confirmation` takes the plan, and one with no danger, no step and no
+  setting for the host to write is never confirmed, under `all` too, in both apps (`rust/crates/engine/src/preview.rs`).
+  `ai.choose-model` under a host writes its two settings through follow-ups, so its plan is `Agreed`: its picks are the
+  agreement, and nothing more is asked.
 
 ## Stage 10 (`src/git` removed)
 
