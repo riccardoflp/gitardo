@@ -25,6 +25,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Fixed
 
+- **Undo** right after pushing a tag, deleting one from its remote, setting an upstream, fetching nothing new or another operation it cannot take back that changes only the remote or git's configuration says so, where it took back the operation before it.
 - **Copy message** in the context menu of a commit copies its whole message, body included, as git wrote it, not its subject alone.
 - Discarding a staged file before the first commit warns again that it will be deleted from disk, "One staged file will be deleted from disk.", where it spoke of a last commit there is not.
 

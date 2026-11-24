@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Undo** right after pushing a tag, deleting one from its remote, setting an upstream, fetching nothing new or
+  another operation it cannot take back that changes only the remote or git's configuration says so, where it took
+  back the operation before it.
 - With git's rerere turned on after a merge or a rebase stopped, the files in conflict are no longer said to be
   resolved by git as before: git took note of none of them, and **Resolve with AI** and the review show their conflicts.
 - Discarding a staged file before the first commit warns that it will be deleted from disk, "One staged file will be
