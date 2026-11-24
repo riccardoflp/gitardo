@@ -1773,7 +1773,7 @@ The suite of `test/e2e/suite.ts`, in Xvfb with `GIT_CONFIG_GLOBAL=/dev/null` and
 two that fail, the sentence of an operation refused and the kind of a file in the details of a commit, fail on the
 commit before M44 too.
 
-## M45 — A repository for each tab of the graph, in the extension
+## M45 — A repository for each tab of the graph, in the extension (done)
 
 Each tab of the graph in the editor shows a repository, a worktree or a submodule of its own, and keeps it; the panel
 and the side bar follow the tab last in focus
@@ -1807,6 +1807,22 @@ Exit: in VS Code, with `api` and `web` in the workspace, a tab on `api` and one 
 history and keep it; a click in either moves the panel and **Gitardo Changes** to its repository; choosing another
 repository in the panel moves no tab; two tabs on `api` keep their own filters and a file saved in `api` makes one
 read; after a reload both tabs come back on their repositories; every card of the milestone passes its tests.
+
+Built: phase 1, `RepositorySession` (`src/extension/repositorySession.ts`), the state, the read loop, the watchers,
+the hosting and the pull requests of one repository, and `Sessions` (`src/extension/sessions.ts`), which session each
+group of views is on; a group is the panel with the side bar, or one tab of the graph, and keeps its own filter, branches
+shown, number of commits and pages (its own `EngineGraph`). A session is made when a group first needs it and let go
+with its last group, or kept by `KeptRepositories` with `gitardo.repositories.keepOpen` on. A message for a group is
+sent once to its views. Phase 2, **Open in a new tab** in `repositoryRowMenu` and **Gitardo: Open Repository in a New
+Tab**, the title by `tabTitle`; two tabs on one repository have the same title (Q1520); opening a tab does not move
+the panel. Phase 3, `followTab` when a tab of the graph goes from out of focus to in focus, not when it is first
+shown, and not while an operation runs; `gitardo.repository` is written only by the list of the panel; tabs of a
+commit, a comparison or conflicts move nothing (Q1521), and the commands of the Command Palette act on the panel's
+repository (Q1522). Phase 4, the `WebviewPanelSerializer` and `onWebviewPanel:gitardo.graphEditor`, the page keeping
+`tab: { root, filter, scope }` (`TabKept`, [11-data.md](../extension/11-data.md)), and the page of a folder that is gone
+with **Close** (Q1523); `retainContextWhenHidden` stays (Q1524). The suite of `test/e2e/suite.ts`, in Xvfb, passes 88
+steps, its three new ones included (the reload is the serializer's, called by the step, not a reload of the window);
+the two that fail fail before M44 too.
 
 ## Before a release
 
