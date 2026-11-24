@@ -17,9 +17,9 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | --- | --- | --- | --- |
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | View | Documented |
 | [`repo.follow-source-control`](01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code) | Follow the Repositories view of VS Code | View | Documented |
-| [`repo.tab-repository`](01-repositories.md#repotab-repository--each-tab-of-the-graph-shows-a-repository-of-its-own) | Each tab of the graph shows a repository of its own | View | Specified |
-| [`repo.follow-tab`](01-repositories.md#repofollow-tab--the-panel-and-the-side-bar-follow-the-tab-in-focus) | The panel and the side bar follow the tab in focus | View | Specified |
-| [`repo.keep-tabs`](01-repositories.md#repokeep-tabs--the-tabs-of-the-graph-come-back-after-a-reload) | The tabs of the graph come back after a reload | View | Specified |
+| [`repo.tab-repository`](01-repositories.md#repotab-repository--each-tab-of-the-graph-shows-a-repository-of-its-own) | Each tab of the graph shows a repository of its own | View | Built |
+| [`repo.follow-tab`](01-repositories.md#repofollow-tab--the-panel-and-the-side-bar-follow-the-tab-in-focus) | The panel and the side bar follow the tab in focus | View | Built |
+| [`repo.keep-tabs`](01-repositories.md#repokeep-tabs--the-tabs-of-the-graph-come-back-after-a-reload) | The tabs of the graph come back after a reload | View | Built |
 
 
 

@@ -98,17 +98,21 @@ whatever the other views show
 ([D89](../../08-decisions.md#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed)).
 
 - **Kind**: View
-- **Function**: `Controller.attach(webview, 'graph', repository)`, which ties the view to the session of its
-  repository, and `RepositorySession` in `src/extension/repositorySession.ts`: the state, the reads, the watchers and
-  what each view was sent, for one repository; the list of the toolbar posts `selectRepo`, which moves its own view.
+- **Function**: `Controller.openTab(root, panel, shown)`, which makes the tab a group of views of its own
+  (`ViewGroup`) and puts it on the session of its repository (`Sessions` in `src/extension/sessions.ts`), and
+  `RepositorySession` in `src/extension/repositorySession.ts`: the state, the reads and the watchers of one repository;
+  the list of the toolbar posts `selectRepo`, which moves its own group; `tabTitle` names the tab.
 - **Entry points**: **Open in a new tab** in the context menu of a row of the **Gitardo Repositories** view (`repo.tabs`),
   on a repository, a worktree or a submodule; **Gitardo: Open Repository in a New Tab** in the Command Palette, a picker
   of the repositories, worktrees and submodules as **Gitardo: Select Repository** lists them; **Gitardo** in the status
   bar and **Gitardo: Open Graph in Editor**, on the repository the panel shows.
 - **Offered when**: the workspace has a repository.
 - **Uses**: `repo.select`, `worktree.show-in-gitardo`, `repo.keep-open`, `repo.follow-tab`.
-- **Implemented in**: not yet (M45).
-- **Tested by**: not yet (M45).
+- **Implemented in**: `src/extension/controller.ts` (`openTab`, `pickTab`, `point`, `groupOf`, `retitle`),
+  `src/extension/repositorySession.ts`, `src/extension/sessions.ts`, `src/webview/menus.ts` (`repositoryRowMenu`).
+- **Tested by**: `test/sessions.test.ts`; `test/menus.test.ts`, "repo.tab-repository: opens any row in a new tab of
+  the graph"; `test/e2e/suite.ts`, step "opens a tab of the graph on another repository, which its own toolbar moves
+  and its operations act on alone".
 
 The title of the tab is `Gitardo · <repository>`, with `› <worktree>` or `› <submodule>` after it, as the rows of the
 Repositories view name them (Q1520). Its toolbar, its menus, its keys and the banners in it act on its repository: an
@@ -134,13 +138,14 @@ The **Graph** view of the panel and the views of the side bar show the repositor
 focus, as they show the repository chosen.
 
 - **Kind**: View
-- **Function**: `Controller.followTab(panel)`, on `onDidChangeViewState` of a tab of the graph when it becomes
-  active; the session the panel and the side bar are on.
+- **Function**: `Controller.followTab(group)`, on `onDidChangeViewState` of a tab of the graph when it becomes
+  active, which puts the group of the panel and the side bar on the session of the tab's repository.
 - **Entry points**: a click in a tab of the graph, or any way to bring one into focus.
 - **Offered when**: a tab of the graph is open.
 - **Uses**: `repo.tab-repository`, `repo.select`, `repo.follow-source-control`.
-- **Implemented in**: not yet (M45).
-- **Tested by**: not yet (M45).
+- **Implemented in**: `src/extension/controller.ts` (`openTab`, `followTab`).
+- **Tested by**: `test/e2e/suite.ts`, step "shows in the panel and the side bar the repository of the tab of the graph
+  that comes into focus, and moves no tab from them".
 
 The panel and the views **Gitardo Changes**, **Commits**, **Gitardo Graph**, **Branches** and **Stashes** follow the
 tab of the graph that last came into focus; until one has, they show the repository chosen as before (`repo.select`),
@@ -164,12 +169,16 @@ A tab of the graph comes back when VS Code opens the workspace again, on what it
 
 - **Kind**: View
 - **Function**: a `WebviewPanelSerializer` of `gitardo.graphEditor`, registered in `activate`
-  (`src/extension/extension.ts`), which reattaches the page with the repository kept in its state.
+  (`src/extension/extension.ts`) with the activation event `onWebviewPanel:gitardo.graphEditor`, which reattaches the
+  page with what `keptTab` finds in its state; the page writes it there as `tab` (`TabKept`).
 - **Entry points**: opening the workspace, or reloading the window, with tabs of the graph open.
 - **Offered when**: a tab of the graph was open when the window closed.
 - **Uses**: `repo.tab-repository`.
-- **Implemented in**: not yet (M45).
-- **Tested by**: not yet (M45).
+- **Implemented in**: `src/extension/extension.ts`, `src/extension/sessions.ts` (`keptTab`),
+  `src/extension/controller.ts` (`openTab`, `goneTab`), `src/webview/App.tsx`, `src/webview/Placeholder.tsx` (`Gone`).
+- **Tested by**: `test/sessions.test.ts`, "what a tab of the graph comes back on after a reload"; `test/e2e/suite.ts`,
+  step "brings a tab of the graph back after a reload on what its page kept, and says so of a folder that is no longer
+  there".
 
 The page keeps, in its own state (`setState`), the root of its repository, its worktree or submodule, its filter and
 the branches shown. A tab whose folder is no longer there says **`<folder>` is no longer there.** with **Close** (Q1523).
