@@ -15,6 +15,10 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, in a repository that stores files with Git LFS already, asks how its files are named, all the files of its extension, this file, everything in its folder or a pattern typed, and has Git LFS write the pattern in the `.gitattributes` at the top. When files the pattern takes were committed before, the message after counts them and offers **Store them with Git LFS in the next commit**.
 - The **Large files** tab of a repository, opened by **Large files…** in the menu of its row in **Gitardo Repositories** or by **Gitardo: Large Files**, says whether Git LFS is installed and set up, with **Set up** when it is not, lists the patterns, with **Track a pattern…** and **Stop storing with Git LFS**, and the files of the commit checked out with their sizes and whether each is downloaded, with **Download** and **Download all**. It shows who locked each file, read from the server when the tab opens and on **Refresh**, and offers **Lock** and **Unlock**, someone else's lock after a warning; a server without locks is said so.
 
+### Changed
+
+- The labels of a commit that do not fit on its row are counted in `+N`, as in Gitardo Desktop: the row shows as many as fit whole, in their order, its message keeping up to three fifths of a line of its own and the author and the date up to a third of the line under the message. Resting the pointer on `+N`, or on any label of such a row, opens the list of all of them, each with its menu, its double click and its history brought out. Before, the wide graph cut each label to 180 pixels and to its icon in a narrow panel, and Gitardo Graph named two of them and the others in a tooltip.
+
 ### Fixed
 
 - **Copy message** in the context menu of a commit copies its whole message, body included, as git wrote it, not its subject alone.

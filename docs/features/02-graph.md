@@ -1159,9 +1159,14 @@ opens the list of all of them
 - **Entry points**: the pointer resting on `+N`, or on any label of a row that does not show all its labels whole.
 - **Uses**: `graph.labels`, `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `branch.checkout`,
   `ui.menu-scroll`.
-- **Extension**: planned (Q656): the labels come first on the one line of its wide Graph view already, and under the
-  message, before the author and the date, on the two lines of its rows in the side bar, all of them, with no list
-  under the pointer yet.
+- **Extension**: the same rule, `fitLabels` of `src/shared/labelFit.ts`, with the widths of the labels, the message,
+  the author and the date measured in the page with its fonts (`src/webview/labelWidths.ts`), first on the one line of
+  a compact row and starting the line under the message on two lines (D90, Q656). Resting 300 ms on `+N` or on a label
+  of a row that does not show all of them opens their list under it (`LabelList` of `CommitList.tsx`), drawn above the
+  page, and scrolling the commits closes it. A double click on a tag or a remote branch there opens the commit in a
+  tab, as on the row. Tested by `test/labelFit.test.ts`, "keeps room for the message and counts the labels that do not
+  fit, as Gitardo Desktop does", and `test/e2e/suite.ts`, "gives a commit with eight labels all of them in their order,
+  checks out the one chosen from their list, and turns compact rows off and on".
 
 - While the rows are of two lines, the labels start the line under the message, right after the cell of the graph, in
   the order of `graph.labels`, then the author and the date. The author and the date keep their width up to a third of

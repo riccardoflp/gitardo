@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import {
   memo,
   useCallback,
@@ -15,6 +16,7 @@ import { fitGraph, foldMerges, laneCount, laneTips, mergedBranch, mergedCommits,
 import { WORKTREE, type GraphColumn, type GraphRow, type Loading, type PullRequest, type Row } from '../shared/protocol';
 import { serviceName } from '../shared/hosting';
 import { pullBadgeText, pullTitle } from '../shared/refs';
+import { SHORTENED_LEAST, fitLabels, roomBesideAuthor, roomBesideMessage, type FittedLabels } from '../shared/labelFit';
 import { Icon } from './Icon';
 import { Progress } from './Progress';
 import { Sash } from './Sash';
@@ -23,6 +25,7 @@ import { datePeriods, fullDate, laneColor, relativeTime, shortHash } from './uti
 import { post } from './vscode';
 import { useKept } from './kept';
 import { held, type Held } from './pages';
+import { countWidth, labelWidth, rowFonts, textWidth, type RowFonts } from './labelWidths';
 
 export interface Label {
   /** `good`, `bad` and `skipped` are the marks of a bisect in progress. */
@@ -120,8 +123,26 @@ export const SHALLOW_LINE = 'The commits before this one were not fetched: this 
 /** What the last row of the commits of a shallow clone says, once they are all read (`graph.shallow-end`). */
 export const SHALLOW_END = 'The history ends here: this is a shallow clone.';
 
-/** How many labels a commit shows there, the last of which counts the others when there are more. */
-const TALL_LABELS = 3;
+/** How tall a label is, on one line and on the line under a message, as `styles.css` draws it. */
+const LABEL_HEIGHT = 18;
+const TALL_LABEL_HEIGHT = 16;
+/** The gap between the labels of a row, on one line and on the line under a message. */
+const LABEL_GAP = 4;
+const TALL_LABEL_GAP = 6;
+/** The room the row keeps after its message and at its right end, and between the cell of the graph and the message. */
+const ROW_PADDING = 8;
+const ROW_GAP = 8;
+/** The arrow that folds the commits of a merge, after its message, and the gap before it. */
+const FOLD_WIDTH = 18 + LABEL_GAP;
+/** The columns at the right end of a row on one line, and how narrow the list is when the author and the hash leave (`styles.css`). */
+const AUTHOR_WIDTH = 120;
+const DATE_WIDTH = 84;
+const HASH_WIDTH = 56;
+const NARROW_LIST = 560;
+/** How long the pointer rests on a label of a row that does not show all of them before their list opens (Q642). */
+const LIST_AFTER = 300;
+/** How long the list stays once the pointer left it and the labels, for the pointer to go from one to the other. */
+const LIST_CLOSE_AFTER = 120;
 /** How many rows are drawn above and below those in sight, so that scrolling a little shows no empty space. */
 export const OVERSCAN = 8;
 /**
@@ -354,6 +375,113 @@ interface RowActions {
   unfold(merge: string): void;
   /** The row a drag is over, which shows where it would be dropped. */
   setDropTarget(update: (current: string | null) => string | null): void;
+  /** The pointer came to a label of a row that does not show all of them, or to their list: it opens after a while. */
+  restOnLabels(hash: string, label: HTMLElement | null): void;
+  /** The pointer left a label of such a row, or their list: it closes unless the pointer comes back. */
+  leaveLabels(label: HTMLElement | null): void;
+  /** Closes the list of the labels of a row, after a label of it was opened or its menu. */
+  closeLabels(): void;
+}
+
+/** What a click with the keys held does to the selection. */
+const selectMode = (event: MouseEvent): SelectMode => (event.shiftKey ? 'range' : event.ctrlKey || event.metaKey ? 'toggle' : 'single');
+
+interface LabelChipProps {
+  label: Label;
+  row: Row;
+  actions: RowActions;
+  /** The width it is given when it is shortened beside `+N`. */
+  width?: number;
+  /** Whether the row does not show all its labels, and the pointer resting on this one opens their list. */
+  opensList: boolean;
+  /** In the list of all the labels of the commit, where a click selects the commit and a double click or a menu closes the list. */
+  inList?: boolean;
+}
+
+/** A label of a commit, on its row or in the list of all of them, with what the pointer does on it. */
+function LabelChip({ label, row, actions, width, opensList, inList }: LabelChipProps) {
+  return (
+    <span
+      role="listitem"
+      className={`label ${label.kind}${label.current ? ' current' : ''}`}
+      title={labelTitle(label)}
+      style={width === undefined ? undefined : { maxWidth: width }}
+      onContextMenu={(event) => {
+        actions.labelMenu(event, label, row);
+        if (inList) actions.closeLabels();
+      }}
+      onMouseEnter={(event) => {
+        actions.trace(row.hash);
+        if (opensList) actions.restOnLabels(row.hash, event.currentTarget);
+      }}
+      onMouseLeave={(event) => {
+        actions.trace(null);
+        if (opensList) actions.leaveLabels(event.currentTarget);
+      }}
+      onClick={inList ? (event) => actions.select(row.hash, selectMode(event)) : undefined}
+      onDoubleClick={(event) => {
+        const open = actions.labelOpen(label);
+        if (!open && !inList) return;
+        // Not the commit's own double click as well.
+        event.stopPropagation();
+        if (open) open();
+        else actions.open(row.hash);
+        if (inList) actions.closeLabels();
+      }}
+      {...dragProps(actions, label, row)}
+    >
+      <LabelIcons label={label} />
+      <span className="text">{label.name}</span>
+      {label.pull && <PullBadge {...label.pull} />}
+    </span>
+  );
+}
+
+interface LabelListProps {
+  row: Row;
+  labels: Label[];
+  /** The label the pointer rested on, which the list never covers. */
+  anchor: DOMRect;
+  actions: RowActions;
+}
+
+/**
+ * The list of all the labels of a commit whose row does not show them all, under the label the pointer rested on, or
+ * above it when there is no room under it and more above; taller than the room, it scrolls (`graph.label-overflow`).
+ */
+function LabelList({ row, labels, anchor, actions }: LabelListProps) {
+  const element = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<CSSProperties>({ left: anchor.left, top: anchor.bottom + 2, visibility: 'hidden' });
+  useLayoutEffect(() => {
+    const list = element.current!;
+    const below = window.innerHeight - anchor.bottom - 6;
+    const above = anchor.top - 6;
+    const height = list.scrollHeight;
+    const under = height <= below || below >= above;
+    const room = under ? below : above;
+    setPlace({
+      left: Math.max(0, Math.min(anchor.left, window.innerWidth - list.offsetWidth - 4)),
+      top: under ? anchor.bottom + 2 : anchor.top - 2 - Math.min(height, room),
+      maxHeight: room,
+    });
+  }, [anchor]);
+  return (
+    <div
+      ref={element}
+      className="label-list"
+      role="list"
+      aria-label="Labels"
+      style={{ ...place, '--lane': laneColor(row.graph.color) } as CSSProperties}
+      onMouseEnter={() => actions.restOnLabels(row.hash, null)}
+      onMouseLeave={() => actions.leaveLabels(null)}
+    >
+      {labels.map((label) => (
+        <div key={`${label.kind}:${label.name}`} className="message">
+          <LabelChip label={label} row={row} actions={actions} opensList={false} inList />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /** What makes a row or one of its labels draggable, and what it carries. */
@@ -396,7 +524,39 @@ interface CommitRowProps {
   showDate: boolean;
   showHash: boolean;
   oneLane: boolean;
+  /** How wide the row is but for the cell of the graph: where its message, its labels and its columns go. None before the list is measured. */
+  lineWidth: number;
+  /** How wide the columns at the right end of a row on one line are, with their gaps. */
+  columnsWidth: number;
+  /** The fonts the labels and the words are measured in. */
+  fonts: RowFonts | null;
   actions: RowActions;
+}
+
+/**
+ * Which labels of a commit its row shows whole (`graph.label-overflow`): on one line, in the room the message leaves,
+ * which keeps up to three fifths of it; on two lines, in the room the author and the date leave on the line under the
+ * message, which keep up to a third of it. All of them while the row is not measured yet.
+ */
+function rowLabels(props: CommitRowProps, labels: Label[], foldable: boolean): FittedLabels | null {
+  const { row, tall, fonts } = props;
+  if (!labels.length || !fonts || props.lineWidth <= 0) return null;
+  const worktree = row.hash === WORKTREE;
+  let room: number;
+  if (tall) {
+    const words = worktree ? ['Not committed yet'] : [props.showAuthor ? row.author : '', props.showDate ? relativeTime(row.date) : ''].filter(Boolean);
+    const kept = words.reduce((sum, word) => sum + textWidth(word, fonts.small), 0) + Math.max(0, words.length - 1) * TALL_LABEL_GAP;
+    room = roomBesideAuthor(props.lineWidth, kept);
+  } else {
+    const line = props.lineWidth - (worktree ? 0 : props.columnsWidth) - (foldable ? FOLD_WIDTH : 0);
+    room = roomBesideMessage(line, textWidth(row.subject, fonts.text));
+  }
+  const height = tall ? TALL_LABEL_HEIGHT : LABEL_HEIGHT;
+  return fitLabels(
+    labels.map((label) => labelWidth(label, fonts)),
+    (count) => countWidth(count, fonts),
+    { width: room, least: SHORTENED_LEAST * height, gap: tall ? TALL_LABEL_GAP : LABEL_GAP },
+  );
 }
 
 /** The button of a merge that folds the commits it brought in into one row, or shows them again. */
@@ -431,39 +591,36 @@ const CommitRow = memo(function CommitRow(props: CommitRowProps) {
   if (trace && !trace.node) classes.push('unreached');
   if (props.dropTarget) classes.push('drop-target');
   const all = props.labels ?? [];
-  // Squeezed side by side, many labels would be left with a letter each: a few keep their names, what is
-  // checked out before the others, and the rest are counted.
-  const named = tall && all.length > TALL_LABELS ? [...all].sort((one, other) => Number(!!other.current) - Number(!!one.current)).slice(0, TALL_LABELS - 1) : all;
-  const counted = all.filter((label) => !named.includes(label));
-  const chips = named.map((label) => (
-    <span
-      key={`${label.kind}:${label.name}`}
-      className={`label ${label.kind}${label.current ? ' current' : ''}`}
-      title={labelTitle(label)}
-      onContextMenu={(event) => actions.labelMenu(event, label, row)}
-      onMouseEnter={() => actions.trace(row.hash)}
-      onMouseLeave={() => actions.trace(null)}
-      onDoubleClick={(event) => {
-        const open = actions.labelOpen(label);
-        if (!open) return;
-        // Not the commit's own double click as well.
-        event.stopPropagation();
-        open();
-      }}
-      {...dragProps(actions, label, row)}
-    >
-      <LabelIcons label={label} />
-      <span className="text">{label.name}</span>
-      {label.pull && <PullBadge {...label.pull} />}
+  // As many as fit whole, in their order, then `+N` for the others, whose list opens under the pointer.
+  const fitted = rowLabels(props, all, !!fold);
+  const opensList = !!fitted?.hidesSome;
+  const shown = fitted ? all.slice(0, fitted.named) : all;
+  const chips = all.length > 0 && (
+    <span className="labels" role="list" aria-label="Labels">
+      {shown.map((label, place) => (
+        <LabelChip
+          key={`${label.kind}:${label.name}`}
+          label={label}
+          row={row}
+          actions={actions}
+          // Shortened beside `+N` when not even the first fits whole.
+          width={fitted?.shortened && place === 0 ? fitted.widths[0] : undefined}
+          opensList={opensList}
+        />
+      ))}
+      {fitted && fitted.counted > 0 && (
+        // No tooltip: the list names them (Q646).
+        <span
+          role="listitem"
+          className="label more"
+          onMouseEnter={(event) => actions.restOnLabels(row.hash, event.currentTarget)}
+          onMouseLeave={(event) => actions.leaveLabels(event.currentTarget)}
+        >
+          <span className="text">+{fitted.counted}</span>
+        </span>
+      )}
     </span>
-  ));
-  if (counted.length) {
-    chips.push(
-      <span key="more" className="label more" title={counted.map((label) => label.name).join(', ')}>
-        +{counted.length}
-      </span>,
-    );
-  }
+  );
   const foldButton = fold && <FoldButton hash={row.hash} folded={fold === 'folded'} actions={actions} />;
   return (
     <div
@@ -505,11 +662,13 @@ const CommitRow = memo(function CommitRow(props: CommitRowProps) {
       />
       {tall ? (
         <div className="lines">
-          <span className="subject">{row.subject}</span>
-          {/* Under the message the labels have the room to keep their names. */}
+          <div className="subject-line">
+            <span className="subject">{row.subject}</span>
+            {foldButton}
+          </div>
+          {/* The labels start the line under the message, before the author and the date (D86). */}
           <div className="message" style={{ '--lane': laneColor(row.graph.color) } as CSSProperties}>
             {chips}
-            {foldButton}
             {worktree ? (
               <span className="who">Not committed yet</span>
             ) : (
@@ -621,9 +780,33 @@ export function CommitList(props: Props) {
       fold: (merge) => latest.current.onFold?.(merge),
       unfold: (merge) => latest.current.onUnfold(merge),
       setDropTarget,
+      restOnLabels: (hash, label) => labelsHover.current.rest(hash, label),
+      leaveLabels: (label) => labelsHover.current.leave(label),
+      closeLabels: () => labelsHover.current.close(false),
     }),
     [],
   );
+  // The list of all the labels of a commit whose row does not show them all, under the label the pointer rested on.
+  const [labelList, setLabelList] = useState<{ hash: string; anchor: DOMRect } | null>(null);
+  const labelsHover = useRef(labelListHover(setLabelList));
+  useEffect(() => () => labelsHover.current.dispose(), []);
+  useEffect(() => {
+    if (!labelList) return;
+    // `Escape` or a press elsewhere closes it, and it does not open again while the pointer stays on its label.
+    const escape = (event: globalThis.KeyboardEvent) => event.key === 'Escape' && labelsHover.current.close(true);
+    const press = (event: Event) => {
+      if (!(event.target as Element | null)?.closest?.('.label-list')) labelsHover.current.close(true);
+    };
+    const blur = () => labelsHover.current.close(false);
+    window.addEventListener('keydown', escape, true);
+    window.addEventListener('mousedown', press, true);
+    window.addEventListener('blur', blur);
+    return () => {
+      window.removeEventListener('keydown', escape, true);
+      window.removeEventListener('mousedown', press, true);
+      window.removeEventListener('blur', blur);
+    };
+  }, [labelList]);
   // Where each commit shown is in the list, and each commit loaded, so that none is looked for row by row.
   const shownAt = useMemo(() => new Map(rows.map((row, index) => [row.hash, index])), [rows]);
   const loadedByHash = useMemo(() => new Map(props.rows.map((row) => [row.hash, row])), [props.rows]);
@@ -636,9 +819,15 @@ export function CommitList(props: Props) {
     setScrollTop(top);
   });
 
+  // The fonts of the page, which the labels, the messages and the authors are measured in; they change with the zoom of VS Code.
+  const [fonts, setFonts] = useState<RowFonts | null>(null);
   useLayoutEffect(() => {
     const element = scroller.current!;
-    const measure = () => setSize({ width: element.clientWidth, height: element.clientHeight });
+    const measure = () => {
+      setSize({ width: element.clientWidth, height: element.clientHeight });
+      const now = rowFonts(element);
+      setFonts((before) => (before && before.text === now.text && before.small === now.small ? before : now));
+    };
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     measure();
@@ -664,6 +853,11 @@ export function CommitList(props: Props) {
   const before = useRef<ShownRow[]>(rows);
   if (!awaited) before.current = rows;
   const fit = fitGraph(kept.current.lanes, props.graphWidth, width);
+  // Where the message, the labels and the columns of a row go, and how wide those columns are, as `styles.css` lays them out.
+  const lineWidth = width > 0 ? width - ROW_PADDING - fit.width - ROW_GAP : 0;
+  const narrow = width <= NARROW_LIST;
+  const columnsWidth =
+    (showAuthor && !narrow ? AUTHOR_WIDTH + ROW_GAP : 0) + (showDate ? DATE_WIDTH + ROW_GAP : 0) + (showHash && !narrow ? HASH_WIDTH + ROW_GAP : 0);
   const matchSet = useMemo(() => (matches ? new Set(matches) : null), [matches]);
   const periods = useMemo(() => (props.dateSeparators ? datePeriods(rows) : null), [rows, props.dateSeparators]);
   // The branches whose tips are above the top of the list, on the lines that go on down it.
@@ -779,6 +973,11 @@ export function CommitList(props: Props) {
     else if (current < 0) go(0);
   };
 
+  // The commit of the list of labels, and its labels, as they are now.
+  const listedAt = labelList ? shownAt.get(labelList.hash) : undefined;
+  const listedRow = listedAt === undefined ? undefined : rows[listedAt];
+  const listedLabels = labelList && listedRow && labels.get(labelList.hash) ? { row: listedRow, labels: labels.get(labelList.hash)!, anchor: labelList.anchor } : null;
+
   const listClasses = ['commits'];
   if (fit.cut) listClasses.push('cut');
   // The commits of the filter before stay until those of the new one come, but they are no longer what is asked for.
@@ -793,7 +992,11 @@ export function CommitList(props: Props) {
       role="listbox"
       aria-label="Commits"
       aria-multiselectable="true"
-      onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+      onScroll={(event) => {
+        setScrollTop(event.currentTarget.scrollTop);
+        // The list of the labels of a row would no longer be under it.
+        labelsHover.current.close(false);
+      }}
       onKeyDown={onKeyDown}
     >
       {loading && <Progress label={loading === 'more' ? 'Loading more commits' : 'Loading commits'} />}
@@ -885,6 +1088,9 @@ export function CommitList(props: Props) {
               showDate={showDate}
               showHash={showHash}
               oneLane={props.oneLane}
+              lineWidth={lineWidth}
+              columnsWidth={columnsWidth}
+              fonts={fonts}
               actions={actions}
             />
           );
@@ -941,6 +1147,46 @@ export function CommitList(props: Props) {
           </div>
         )}
       </div>
+      {listedLabels && createPortal(<LabelList {...listedLabels} actions={actions} />, document.body)}
     </div>
   );
+}
+
+/** What the list of the labels of a row is: where it opens, and when it closes, from where the pointer rests (`graph.label-overflow`). */
+function labelListHover(show: (list: { hash: string; anchor: DOMRect } | null) => void) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let open: string | null = null;
+  // The label the pointer is on, and the one the list was closed on with `Escape` or a press: that one opens nothing until the pointer leaves it.
+  let over: HTMLElement | null = null;
+  let blocked: HTMLElement | null = null;
+  const set = (list: { hash: string; anchor: DOMRect } | null) => {
+    open = list?.hash ?? null;
+    show(list);
+  };
+  return {
+    rest(hash: string, label: HTMLElement | null) {
+      clearTimeout(timer);
+      // On the list itself, or on another label of the row it is of, it stays.
+      if (!label || open === hash) return;
+      over = label;
+      if (open) set(null);
+      if (label !== blocked) timer = setTimeout(() => set({ hash, anchor: label.getBoundingClientRect() }), LIST_AFTER);
+    },
+    leave(label: HTMLElement | null) {
+      clearTimeout(timer);
+      if (label) {
+        over = null;
+        if (label === blocked) blocked = null;
+      }
+      if (open) timer = setTimeout(() => set(null), LIST_CLOSE_AFTER);
+    },
+    close(blocking: boolean) {
+      clearTimeout(timer);
+      if (blocking) blocked = over;
+      if (open) set(null);
+    },
+    dispose() {
+      clearTimeout(timer);
+    },
+  };
 }

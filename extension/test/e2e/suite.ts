@@ -18,6 +18,7 @@ import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMes
 import type { Hosting } from '../../src/shared/hosting';
 import type { ConflictReview } from '../../src/shared/resolution';
 import { subjectAndBody } from '../../src/shared/message';
+import { buildLabels } from '../../src/webview/labels';
 import { recentBranches } from '../../src/shared/refs';
 import { CHANGE_LETTERS, type ChangeKind, checkedOutBranch, type FileChange } from '../../src/shared/state';
 
@@ -1607,6 +1608,60 @@ export async function run(): Promise<void> {
       assert.equal(await vscode.env.clipboard.readText(), 'Add a body\n\nThe first line of the body\nand the second.');
     } finally {
       await git(app, ['reset', '-q', '--hard', start]);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
+  await step('gives a commit with eight labels all of them in their order, checks out the one chosen from their list, and turns compact rows off and on', async () => {
+    const start = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    const branches = ['labels/one', 'labels/two', 'labels/three', 'labels/four'];
+    const tags = ['labels-1', 'labels-2', 'labels-3', 'labels-4'];
+    const settings = () => vscode.workspace.getConfiguration('gitardo');
+    answer = run;
+    try {
+      for (const branch of branches) await git(app, ['branch', branch]);
+      for (const tag of tags) await git(app, ['tag', tag]);
+      await vscode.commands.executeCommand('gitardo.refresh');
+      await until('the eight labels', () => tags.every((tag) => state().tags.some((each) => each.name === tag)) && branches.every((branch) => state().branches.some((each) => each.name === branch)));
+
+      // The narrow Graph view of the side bar is sent every one of them, which its row fits and counts in `+N`, and its
+      // list under the pointer names in their order: the branches, then the tags.
+      const side = view('sideGraph');
+      const sent: Extract<HostMessage, { type: 'state' }>[] = [];
+      const postMessage = side.postMessage.bind(side);
+      side.postMessage = (outgoing: HostMessage) => {
+        if (outgoing.type === 'state') sent.push(outgoing);
+        return postMessage(outgoing);
+      };
+      try {
+        await internals.onMessage(side, { type: 'ready' });
+        const told = (await until('the state of the side bar', () => sent.find((outgoing) => outgoing.state?.branches))).state as RepoState;
+        assert.equal(told.compactRows, true, 'compact rows are on by default');
+        const labels = buildLabels({ ...state(), ...told }).get(start) ?? [];
+        const ours = labels.filter((label) => label.name.startsWith('labels'));
+        assert.deepEqual(
+          ours.map((label) => `${label.kind} ${label.name}`),
+          [...branches.map((branch) => `branch ${branch}`).sort(), ...tags.map((tag) => `tag ${tag}`)],
+        );
+        assert.ok(labels.length >= 9, `main and the eight: ${labels.map((label) => label.name).join(', ')}`);
+      } finally {
+        side.postMessage = postMessage;
+      }
+
+      // The menu of a label of the list, and its double click, check that branch out.
+      await fromWebview({ type: 'action', action: { kind: 'checkout', target: 'branch', ref: 'labels/four' } });
+      await until('labels/four checked out', () => checkedOutBranch(state()) === 'labels/four');
+
+      // Compact rows off writes the user's settings, and every view of the graph is told; on again, as by default.
+      await fromWebview({ type: 'setCompactRows', compact: false });
+      await until('compact rows off', () => settings().inspect('graph.compactRows')?.globalValue === false && state().compactRows === false);
+      await fromWebview({ type: 'setCompactRows', compact: true });
+      await until('compact rows on', () => state().compactRows === true);
+    } finally {
+      await settings().update('graph.compactRows', undefined, vscode.ConfigurationTarget.Global);
+      await git(app, ['checkout', '-q', 'main']);
+      await git(app, ['branch', '-D', ...branches]);
+      await git(app, ['tag', '-d', ...tags]);
       await vscode.commands.executeCommand('gitardo.refresh');
     }
   });

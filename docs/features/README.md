@@ -119,7 +119,7 @@ earns it.
 | [`graph.resize-panes`](02-graph.md#graphresize-panes--resize-the-branch-rail-and-the-inspector) | Resize the branch rail and the inspector | View | Built | Built |
 | [`graph.toggle-references`](02-graph.md#graphtoggle-references--put-the-branch-rail-away) | Put the branch rail away | View | Built | Built |
 | [`graph.labels`](02-graph.md#graphlabels--the-labels-of-each-commit) | The labels of each commit | Derivation | Built | Built |
-| [`graph.label-overflow`](02-graph.md#graphlabel-overflow--all-the-labels-of-a-commit-under-the-pointer) | All the labels of a commit, under the pointer | View | Built | Planned |
+| [`graph.label-overflow`](02-graph.md#graphlabel-overflow--all-the-labels-of-a-commit-under-the-pointer) | All the labels of a commit, under the pointer | View | Built | Built |
 | [`graph.combine-upstream`](02-graph.md#graphcombine-upstream--a-branch-and-its-upstream-on-one-label) | A branch and its upstream on one label | Derivation | Built | Built |
 | [`graph.pull-request-badge`](02-graph.md#graphpull-request-badge--pull-request-on-a-label) | Pull request on a label | View | Built | Built |
 | [`graph.unpushed`](02-graph.md#graphunpushed--commits-not-pushed-yet) | Commits not pushed yet | Derivation | Built | Built |
