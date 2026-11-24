@@ -6079,6 +6079,11 @@ planned; each is built as it says until the maintainer answers otherwise.
   with the features `worktree-setup.*`; `worktree.create` and the others read the settings sent at `initialize`, those
   of the workspace, not of a folder of it. Should every `feature/run` send it, so that a new worktree of a repository in
   another folder of a workspace of several gets that folder's settings?
+- **Q1700** — D91: `test/fileLength.test.ts` keeps every file of TypeScript of the extension's `src` under 1,000 lines
+  (R5.2), and leaves the stylesheets out: `src/webview/styles.css`, the one stylesheet of every view and tab, is 4,664
+  lines. Should it be split by view, one stylesheet beside each component of `src/webview` and imported by it, which
+  esbuild bundles into the same `dist/webview/index.css`, and then checked as the TypeScript is? Until answered, it
+  stays one file, and RS1 says so.
 
 ### Of Git LFS in the extension, from Q1560
 

@@ -22,8 +22,7 @@ in the commit that fixes it, which says so in its message; the [roadmap](07-road
 
 | | Kind | What it is | What happens if it bites | How likely | What we do |
 | --- | --- | --- | --- | --- | --- |
-| RS1 | Debt | Four files are over 1,000 lines: `controller.ts` (2,600), `actions.ts` (1,500), `ops.ts` (1,300), `repo.ts` (1,100). R5.2. | Changes there are slower to review and collide between parallel branches. | Certain | Split along a seam when a change touches one anyway; no rewrite |
+| RS1 | Debt | One file of `src` is over 1,000 lines: `src/webview/styles.css` (4,664), the one stylesheet of every view and tab. No file of TypeScript is, since M49 split `controller.ts` (3,387) into its parts and `CommitList.tsx` (1,192) into its labels and its rows; `test/fileLength.test.ts` fails on one that is. R5.2, Q1700. | Changes to the stylesheet are slower to review and collide between parallel branches. | Certain | Split the stylesheet by view once Q1700 is answered; no rewrite |
 | RS4 | Risk | Several windows of the same workspace share its workspace state; the last to write a key wins. | Favorites marked in one window are lost when another writes its own. | Low | Accepted |
 | RS5 | Risk | The maintainer works on Windows; macOS and Linux are exercised only by whoever runs the tests there. | A path, a link or a case-sensitivity problem ships unnoticed. | Medium | Run `npm test` on the other two before a release, when a machine is at hand |
 | RS18 | Debt | QA4 of [12-quality.md](12-quality.md), typing a message, gives no time, so `test/perf/vscode.mjs` prints it and fails on QA1 to QA3 only. Q1590. | Typing gets slower on large repositories without anyone noticing. | Low | A time for QA4, once Q1590 is answered |
-| RS20 | Debt | Ten areas have no cards yet (D33). | A change there has no acceptance list to be checked against. | Certain | Their cards are written when they are next changed |

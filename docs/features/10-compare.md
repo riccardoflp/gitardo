@@ -580,8 +580,8 @@ Opens the same comparison on github.com, each side by the name it has there.
   with `..` in place of `...` in **Everything that differs**; each part of a name between `/` is encoded for a URL.
 - **Refuses**: when it is not offered: *GitHub does not have the working tree: compare two commits that are pushed.*,
   *The two sides are the same commit.*, *The main remote of this repository is not on github.com.*
-- **Extension**: **Open on GitHub** in the Compare tab, shown when the main remote is on GitHub and neither side is
-  the working tree; `Controller.openCompareOnService` runs `compare.open-on-service` on the engine, which is this one on
+- **Extension**: **Open on GitHub** in the Compare tab, shown when the main remote is on GitHub and neither side is the
+  working tree; `CompareTabs.openCompareOnService` runs `compare.open-on-service` on the engine, which is this one on
   GitHub, with the target `comparison`, the tab's two sides, and opens the address of the follow-up `openUrl` with
   `vscode.env.openExternal`. A comparison of a commit with itself is refused with the engine's warning, *The two sides
   are the same commit.*, and opens nothing, where the extension opened GitHub's page anyway (G5, kept in M48 and said in
@@ -610,7 +610,7 @@ comparison on the hosting service of the main remote, each side by the name it h
 - **Entry points**: **Open on `<service>`** in the comparison page, `<service>` the name of the service (**Open on
   GitLab**, **Open on Azure DevOps**), where **Open on GitHub** is for GitHub.
 - **Extension**: **Open on `<service>`** in the Compare tab, where **Open on GitHub** is, and only in **Since they
-  diverged** on Bitbucket, Gitea and Forgejo; `Controller.openCompareOnService` runs it on the engine with the target
+  diverged** on Bitbucket, Gitea and Forgejo; `CompareTabs.openCompareOnService` runs it on the engine with the target
   `comparison`, on GitHub too, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. When the
   engine's binary is missing, it says so (D49).
 - **Offered when**: the main remote is on one of those services (`hosting.detect-remote`), neither side is the working tree,

@@ -182,7 +182,7 @@ Applies the changes of one commit onto what is checked out, as a new commit, aft
 - **Extension**: **Cherry-pick `<short>`** in the context menu of a commit in the graph and the Gitardo Graph, also on a
   merge and while an operation is under way (`commitMenu` in `src/webview/menus.ts`); **Cherry-pick `<short>` onto
   `<current>`** for a commit dropped on the commit checked out or on the row of the uncommitted changes; **Cherry-pick**
-  for a position chosen in the list of the reflog (`Controller.browseReflog`). The action `cherryPick` runs it on the
+  for a position chosen in the list of the reflog (`Commands.browseReflog`). The action `cherryPick` runs it on the
   commit. The setting is `gitardo.cherryPick.recordOrigin`. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
@@ -362,7 +362,7 @@ when one is possible, otherwise a merge commit.
   `integrate` in `src/webview/menus.ts`). The action `merge` with no way, or the way `default`, runs it (`engineRuns` in
   `src/engine/actions.ts`); when it stops on conflicts, the message is *Merge `<name>` into `<current>` stopped: N files
   have conflicts. Resolve them, then continue or abort the merge.* (`reportEngineFailure` in
-  `src/extension/controller.ts`). When the engine's binary is missing, it says so (D49).
+  `src/extension/runFollowUps.ts`). When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -1434,10 +1434,10 @@ someone else's force push replaced.
     **See what changed**; and **What the force push changed** in the context menu of that remote branch.
 - **Extension**: the same entries in the menus of the graph and the references (`branchMenu` and `remoteBranchMenu` in
   `src/webview/menus.ts`), in **More push options** beside **Push**, and on the messages the extension says after an
-  operation (`Controller.afterSync`, `Controller.say`); each sends `feature/run` of `range-diff.compare` to Gitardo's
-  engine (`Controller.runOnEngine` in `src/extension/controller.ts`), whose follow-up opens the tab of `range-diff.page`.
-  The warning of a force push is VS Code's modal dialog, which gets **Compare First**. When the engine's binary is
-  missing, it says so (D49).
+  operation (`Commands.afterSync`, `RunFollowUps.say`); each sends `feature/run` of `range-diff.compare` to Gitardo's
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`), whose follow-up opens the tab of
+  `range-diff.page`. The warning of a force push is VS Code's modal dialog, which gets **Compare First**. When the
+  engine's binary is missing, it says so (D49).
 - **Reads**: `range-diff.read-last-rewrite` for the branch, or for the remote branch; the upstream, from the state of the
   repository.
 - **Plan**: no step; it changes nothing.

@@ -13,7 +13,7 @@ one too (R14.2 in the [code rules](03-code-rules.md)).
 
 | Key | Holds | Written by | Read by | May it be lost? |
 | --- | --- | --- | --- | --- |
-| `gitardo.repository` | The root of the repository shown last, a path. | Choosing a repository (`Controller.selectRepo`) | Opening the workspace (`findRepos`) | Yes: the first repository is shown. |
+| `gitardo.repository` | The root of the repository shown last, a path. | Choosing a repository (`RepositoriesShown.selectRepo`) | Opening the workspace (`findRepos`) | Yes: the first repository is shown. |
 | `gitardo.scope` | For each repository root, the branches shown (`Scope`): a kind or a list of reference names. | Choosing the branches shown (`settleScope`) | Opening a repository | Yes: every branch is shown. |
 | `gitardo.branchesListed` | For each repository root, what the references list by their own filter (`Scope`), apart from the branches shown: a preset, the kinds listed or the full names ticked; none for a repository whose references list everything. | The funnel at the top of the references, and **Show all** under it (`setListed`) | Every read of the state (`listedIn`), which leaves out the names gone without writing it again | Yes: every branch is listed. |
 | `gitardo.favorites` | For each repository root, the names of the favorite branches. | **Add to favorites**, **Remove from favorites** (`setFavorite`) | Every read of the state | Yes, but the user marked them by hand. |
@@ -68,8 +68,8 @@ Gitardo writes VS Code settings only when the user changes the same thing from i
 
 | Setting | Target | Written by |
 | --- | --- | --- |
-| `gitardo.graph.showStashes`, `gitardo.graph.dateSeparators`, `gitardo.graph.combineUpstream`, `gitardo.graph.oneLane`, `gitardo.graph.compactRows`, `gitardo.branches.sortOrder` | User settings | The toggles of the **View** menu of the toolbar and of the references (`Controller.onMessage`) |
-| `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles`, `gitardo.worktrees.setupCommands` | The settings of the workspace folder or the user's, as chosen | The page of what new worktrees get, and **Link into New Worktrees** and **Copy into New Worktrees** in the Explorer, from the engine's `writeSetting` (`Controller.writeSetting`, M48) |
+| `gitardo.graph.showStashes`, `gitardo.graph.dateSeparators`, `gitardo.graph.combineUpstream`, `gitardo.graph.oneLane`, `gitardo.graph.compactRows`, `gitardo.branches.sortOrder` | User settings | The toggles of the **View** menu of the toolbar and of the references (`ViewMessages.onMessage`) |
+| `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles`, `gitardo.worktrees.setupCommands` | The settings of the workspace folder or the user's, as chosen | The page of what new worktrees get, and **Link into New Worktrees** and **Copy into New Worktrees** in the Explorer, from the engine's `writeSetting` (`RunFollowUps.writeSetting`, M48) |
 | `git.worktreeSymlinkFolders`, `git.worktreeIncludeFiles` | The same | The same page, when the user asks for VS Code's worktrees to get the same |
 
 ### Files
@@ -85,11 +85,11 @@ Gitardo writes VS Code settings only when the user changes the same thing from i
 
 ## Versions
 
-None of the stored formats has a version number. Each is read as what it is today, with defaults for what is missing:
-a key that cannot be read as expected is ignored for the favorites (`Controller.favorites` checks the shape), and taken
+None of the stored formats has a version number. Each is read as what it is today, with defaults for what is missing: a
+key that cannot be read as expected is ignored for the favorites (`HistoryShown.favorites` checks the shape), and taken
 as written for the others, which only Gitardo writes. A damaged value cannot crash the extension's activation: each is
-read when it is needed, not at start. When a format has to change, the change adds a version or a new key, reads the
-old one, and says so on this page.
+read when it is needed, not at start. When a format has to change, the change adds a version or a new key, reads the old
+one, and says so on this page.
 
 ## Migrations
 

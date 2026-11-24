@@ -1,8 +1,9 @@
 # Repositories
 
 Which repository the views show: the list of the repositories of the workspace, and how the one shown follows the one
-selected in VS Code's Repositories view. How the repositories are found, reading them and the identities have no cards
-yet ([D33](../../08-decisions.md#d33--cards-first-for-the-areas-where-a-mistake-costs)); the README describes them.
+selected in VS Code's Repositories view. How the repositories are found, reading them and the identities are the
+desktop's cards, in [../01-repositories.md](../01-repositories.md), each with a status for the extension
+([D44](../../08-decisions.md#d44--one-catalog-the-desktops-with-a-status-for-each-app)).
 
 ### `repo.select` — Choose the repository shown
 
@@ -10,8 +11,8 @@ The list of the repositories of the workspace, which points every view at the on
 workspace.
 
 - **Kind**: View
-- **Function**: `RepoSelect` in `src/webview/RepoSelect.tsx`, which posts `selectRepo`; `Controller.selectRepo(root)`
-  in `src/extension/controller.ts`.
+- **Function**: `RepoSelect` in `src/webview/RepoSelect.tsx`, which posts `selectRepo`;
+  `RepositoriesShown.selectRepo(root)` in `src/extension/repositoriesShown.ts`.
 - **Entry points**: the list at the start of the toolbar of the graph and at the top of the Changes view; **Gitardo:
   Select Repository** in the Command Palette and **Select repository…** in the **…** of the toolbar (`pickRepo`), a
   picker titled `Repository shown in Gitardo`; a click on a row of the Repositories view (`repo.tabs`), which posts
@@ -20,10 +21,11 @@ workspace.
   show a worktree that is not in the workspace.
 - **Uses**: `worktree.show-in-gitardo`, `repo.follow-source-control`.
 - **Implemented in**: `RepoSelect`, used by `Toolbar` (`src/webview/Toolbar.tsx`) and `ChangesApp`
-  (`src/webview/ChangesApp.tsx`); `selectRepo`, `pickRepo` and `open` in `src/extension/controller.ts`. The choice is
-  kept in the workspace state under `gitardo.repository`. The order of the list and how far each is indented are
-  `groupRepositories` of `src/shared/repositoryGroups.ts`, from what `repository/discover` says of each repository
-  (`RepoInfo.depth`). What a repository left keeps, with `gitardo.repositories.keepOpen` on, is `repo.keep-open`'s.
+  (`src/webview/ChangesApp.tsx`); `selectRepo` and `pickRepo` in `src/extension/repositoriesShown.ts`, `open` in
+  `src/extension/controller.ts`. The choice is kept in the workspace state under `gitardo.repository`. The order of the
+  list and how far each is indented are `groupRepositories` of `src/shared/repositoryGroups.ts`, from what
+  `repository/discover` says of each repository (`RepoInfo.depth`). What a repository left keeps, with
+  `gitardo.repositories.keepOpen` on, is `repo.keep-open`'s.
 - **Tested by**: `test/e2e/suite.ts`, steps "narrows the graph to the history of a file, switching repository if
   needed", "follows the repository selected in VS Code's Repositories view, selects there the one shown, and
   shows a worktree of another", "lists the worktrees of a repository of the workspace under it in the list of the
@@ -51,8 +53,8 @@ selected there too.
 
 - **Kind**: View
 - **Function**: `SourceControlSelection` in `src/extension/sourceControlSelection.ts`, with `follow` for the view to
-  Gitardo and `select` for Gitardo to the view; `Controller.followSourceControl(root)` and the event
-  `Controller.onDidChooseRepo` in `src/extension/controller.ts`.
+  Gitardo and `select` for Gitardo to the view; `RepositoriesShown.followSourceControl(root)` in
+  `src/extension/repositoriesShown.ts` and the event `Controller.onDidChooseRepo` in `src/extension/controller.ts`.
 - **Entry points**: a click on a repository in the Repositories view, or on the changes of one; whatever chooses the
   repository shown in Gitardo (`repo.select`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`,
   **Show File History** of a file of another repository), a click on a row of Gitardo's own Repositories view
@@ -65,7 +67,8 @@ selected there too.
   `workbench.scm.action.toggleRepositoryVisibility.scm<n>`: VS Code gives extensions no other way to select there.
 - **Uses**: `repo.select`, `worktree.show-in-gitardo`.
 - **Implemented in**: `SourceControlSelection`, made and started in `activate` (`src/extension/extension.ts`);
-  `followSourceControl`, `worktreeOwner` and `onDidChooseRepo` in `src/extension/controller.ts`.
+  `followSourceControl` and `worktreeOwner` in `src/extension/repositoriesShown.ts`, `onDidChooseRepo` in
+  `src/extension/controller.ts`.
 - **Tested by**: `test/e2e/suite.ts`, step "follows the repository selected in VS Code's Repositories view, selects
   there the one shown, and shows a worktree of another".
 
@@ -98,7 +101,7 @@ whatever the other views show
 ([D89](../../08-decisions.md#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed)).
 
 - **Kind**: View
-- **Function**: `Controller.openTab(root, panel, shown)`, which makes the tab a group of views of its own
+- **Function**: `RepositoriesShown.openTab(root, panel, shown)`, which makes the tab a group of views of its own
   (`ViewGroup`) and puts it on the session of its repository (`Sessions` in `src/extension/sessions.ts`), and
   `RepositorySession` in `src/extension/repositorySession.ts`: the state, the reads and the watchers of one repository;
   the list of the toolbar posts `selectRepo`, which moves its own group; `tabTitle` names the tab.
@@ -108,8 +111,9 @@ whatever the other views show
   bar and **Gitardo: Open Graph in Editor**, on the repository the panel shows.
 - **Offered when**: the workspace has a repository.
 - **Uses**: `repo.select`, `worktree.show-in-gitardo`, `repo.keep-open`, `repo.follow-tab`.
-- **Implemented in**: `src/extension/controller.ts` (`openTab`, `pickTab`, `point`, `groupOf`, `retitle`),
-  `src/extension/repositorySession.ts`, `src/extension/sessions.ts`, `src/webview/menus.ts` (`repositoryRowMenu`).
+- **Implemented in**: `src/extension/repositoriesShown.ts` (`openTab`, `pickTab`, `point`, `retitle`),
+  `src/extension/controller.ts` (`groupOf`), `src/extension/repositorySession.ts`, `src/extension/sessions.ts`,
+  `src/webview/menus.ts` (`repositoryRowMenu`).
 - **Tested by**: `test/sessions.test.ts`; `test/menus.test.ts`, "repo.tab-repository: opens any row in a new tab of
   the graph"; `test/e2e/suite.ts`, step "opens a tab of the graph on another repository, which its own toolbar moves
   and its operations act on alone".
@@ -138,12 +142,12 @@ The **Graph** view of the panel and the views of the side bar show the repositor
 focus, as they show the repository chosen.
 
 - **Kind**: View
-- **Function**: `Controller.followTab(group)`, on `onDidChangeViewState` of a tab of the graph when it becomes
+- **Function**: `RepositoriesShown.followTab(group)`, on `onDidChangeViewState` of a tab of the graph when it becomes
   active, which puts the group of the panel and the side bar on the session of the tab's repository.
 - **Entry points**: a click in a tab of the graph, or any way to bring one into focus.
 - **Offered when**: a tab of the graph is open.
 - **Uses**: `repo.tab-repository`, `repo.select`, `repo.follow-source-control`.
-- **Implemented in**: `src/extension/controller.ts` (`openTab`, `followTab`).
+- **Implemented in**: `src/extension/repositoriesShown.ts` (`openTab`, `followTab`).
 - **Tested by**: `test/e2e/suite.ts`, step "shows in the panel and the side bar the repository of the tab of the graph
   that comes into focus, and moves no tab from them".
 
@@ -175,7 +179,8 @@ A tab of the graph comes back when VS Code opens the workspace again, on what it
 - **Offered when**: a tab of the graph was open when the window closed.
 - **Uses**: `repo.tab-repository`.
 - **Implemented in**: `src/extension/extension.ts`, `src/extension/sessions.ts` (`keptTab`),
-  `src/extension/controller.ts` (`openTab`, `goneTab`), `src/webview/App.tsx`, `src/webview/Placeholder.tsx` (`Gone`).
+  `src/extension/repositoriesShown.ts` (`openTab`), `src/extension/controller.ts` (`goneTab`), `src/webview/App.tsx`,
+  `src/webview/Placeholder.tsx` (`Gone`).
 - **Tested by**: `test/sessions.test.ts`, "what a tab of the graph comes back on after a reload"; `test/e2e/suite.ts`,
   step "brings a tab of the graph back after a reload on what its page kept, and says so of a folder that is no longer
   there".

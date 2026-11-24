@@ -186,7 +186,7 @@ Opens the pull request of a branch in the browser, or GitHub's page to create on
   that upstream has on its remote is the name looked up. For a remote branch: only when a pull request is known for its
   name without its remote; there is no **Create pull request…** on a remote branch.
 - **Uses**: `github.read-pull-requests`, `github.detect-remote`.
-- **Extension**: the same entries in the graph's menus and its badges; `Controller.openPullRequest` opens the address
+- **Extension**: the same entries in the graph's menus and its badges; `Commands.openPullRequest` opens the address
   of the pull request the engine read, or asks the engine for the page that creates one (`read/hosting.web-link`,
   `hosting.web-links`), and opens it with `vscode.env.openExternal`. It changes nothing and runs no git.
 
@@ -216,7 +216,7 @@ The first push of a branch is when a pull request is usually wanted: Gitardo off
 - **Function**: `model::github::offer_after_push(input: &PushOutcome) -> Option<Notice>`
 - **Entry points**: after `sync.push`, `sync.push-force-with-lease` or `sync.push-force`.
 - **Uses**: `github.open-pull-request`, `github.detect-remote`.
-- **Extension**: `Controller.afterSync` derives it in TypeScript once a push of the engine gave the branch its upstream,
+- **Extension**: `Commands.afterSync` derives it in TypeScript once a push of the engine gave the branch its upstream,
   and says **Pushed \<branch\>.** with **Create Pull Request**, which opens the address of `github.open-pull-request`.
 
 Rules:
@@ -338,7 +338,7 @@ the page of the service that creates a pull request for it.
   **Open merge request** when one is known for its name.
 - **Uses**: `hosting.detect-remote`, `hosting.web-links`, `hosting.read-merge-requests`, `github.open-pull-request`.
 - **Extension**: the same entries in the menus of the branches (`pullEntry` in `src/webview/menus.ts`) and on the labels
-  of the graph; `Controller.openPullRequest` opens the address of the merge request known, or asks the engine for the
+  of the graph; `Commands.openPullRequest` opens the address of the merge request known, or asks the engine for the
   page that creates one (`read/hosting.web-link`), and opens it with `vscode.env.openExternal`.
 
 Rules:
@@ -365,9 +365,9 @@ What `github.offer-after-push` does for GitHub, on the other services.
 - **Function**: `model::hosting::offer_after_push(input: &HostingPushOutcome) -> Option<Notice>`
 - **Entry points**: after `sync.push`, `sync.push-force-with-lease` or `sync.push-force`.
 - **Uses**: `hosting.open-pull-request`, `hosting.detect-remote`, `github.offer-after-push`.
-- **Extension**: `Controller.afterSync` offers **Create Merge Request** on GitLab, **Create Pull Request** elsewhere,
+- **Extension**: `Commands.afterSync` offers **Create Merge Request** on GitLab, **Create Pull Request** elsewhere,
   after the first push of a branch with none known, on every service the engine found, and opens what
-  `Controller.openPullRequest` opens.
+  `Commands.openPullRequest` opens.
 
 Rules: those of `github.offer-after-push`, the main remote being on GitLab, Bitbucket, Azure DevOps, Gitea or Forgejo:
 "Pushed `<branch>`." with **Create merge request** on GitLab and **Create pull request** on the others, which opens

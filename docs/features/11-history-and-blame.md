@@ -737,7 +737,7 @@ While a bisect is under way, marks any commit of the timeline.
 - **Uses**: `bisect.read`, `bisect.end`.
 - **Extension**: **Bisect: mark as good** and **Bisect: mark as bad** in the context menu of any commit during a bisect.
   The message that names the first bad commit, with **Show in the graph** and **End bisect**, is shown by
-  `Controller.reportBisect` (`src/extension/controller.ts`) once the repository is read again.
+  `RunFollowUps.reportBisect` (`src/extension/runFollowUps.ts`) once the repository is read again.
 
 Acceptance:
 

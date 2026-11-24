@@ -128,7 +128,7 @@ Sets every change aside, staged or not, untracked files included, and leaves the
   **Stash Changes** on the title of the Stashes view; **Gitardo: Stash Changes** in the Command Palette; **Stash All
   Changes…** on the **Changes** group of VS Code's own list of changes in the Source Control view, as a button and in
   its context menu, while `gitardo.scm.stashButtons` is on, run in the repository of the first file of the group, which
-  the views then show (`Controller.stashFromScm`). Each sends `feature/run` of `stash.push` to Gitardo's engine
+  the views then show (`Commands.stashFromScm`). Each sends `feature/run` of `stash.push` to Gitardo's engine
   (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`); the message is
   asked in VS Code's input box, and the plan shown in a modal dialog when `gitardo.commandPreview` is `all`
   (`VscodeAsker` in `src/engine/vscode.ts`). When the engine's binary is missing, it says so (D49).
@@ -172,7 +172,7 @@ Sets aside only what is staged; the rest stays where it is.
 - **Extension**: **Stash staged changes…** in the context menu of the uncommitted changes row of the graph; **Stash only
   the staged changes…** on the header of **Changes** in the Changes view; **Stash Only the Staged Changes…** on the
   **Staged Changes** group of VS Code's own list of changes, as a button and in its context menu, while
-  `gitardo.scm.stashButtons` is on (`Controller.stashFromScm`). Each sends `feature/run` of `stash.push-staged` to
+  `gitardo.scm.stashButtons` is on (`Commands.stashFromScm`). Each sends `feature/run` of `stash.push-staged` to
   Gitardo's engine (`Controller.runOnEngine`, `engineRuns`), its message asked in VS Code's input box (`VscodeAsker`).
   When the engine's binary is missing, it says so (D49).
 - **Offered when**: there is a commit and something is staged.
@@ -207,7 +207,7 @@ Sets aside every change to one file, or to the files chosen, staged or not.
   **Stash 1 selected file…** or **Stash N selected files…** above the files of the uncommitted changes in the details,
   while some are ticked; **Stash This File…** on each file of the **Staged Changes**, **Changes** and **Untracked
   Changes** groups of VS Code's own list of changes, as a button and in the context menu, for every file selected there,
-  while `gitardo.scm.stashButtons` is on (`Controller.stashFromScm`, which leaves out files outside the repository and
+  while `gitardo.scm.stashButtons` is on (`Commands.stashFromScm`, which leaves out files outside the repository and
   runs in the repository of the first file, which the views then show). Each sends `feature/run` of `stash.push-file` to
   Gitardo's engine on the files given, a renamed file with both its names (`engineRuns`, run by
   `Controller.runOnEngine`), its message asked in VS Code's input box (`VscodeAsker`). When the engine's binary is

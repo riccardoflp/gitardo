@@ -15,7 +15,11 @@ quality, risks), the cards of the areas where a mistake costs (`changes`, `commi
 Exit: `npm run check:docs` says *no problems*; every card's status in the [index](../features/extension/README.md) is *Documented*
 or *Differs*.
 
-## M1 — The open questions
+## M1 — The open questions (partly done by M49)
+
+M49 removed RS17, the README read again against the code, and RS19: `npm test` runs `npm run check:docs` when Python 3
+is there, as Q378 proposed. Left: the open questions themselves, Q375 to Q379 and those the cards raised, each built as
+it says until the maintainer answers it.
 
 Answer Q375 to Q379 and the questions the cards raised (Q380 onwards). Each answer is a decision, a change to a card, or a
 change to the README; where the README and the code disagree (RS17), one of them is fixed. Decide whether
@@ -23,10 +27,10 @@ change to the README; where the README and the code disagree (RS17), one of them
 
 Exit: no open question older than this milestone; RS17 and RS19 removed or turned into decisions.
 
-## M2 — Nothing lost without asking
+## M2 — Nothing lost without asking (done by M49)
 
-Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tries
-each of these against the engine that runs them now.
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tried
+each of these against the engine that runs them now: RS2 and RS8 to RS11 are removed, each with a test of its own.
 
 The risks where the user's work can be lost, each fixed with a test that failed before:
 
@@ -38,10 +42,13 @@ The risks where the user's work can be lost, each fixed with a test that failed 
 
 Exit: the **Differs** lines of those cards are gone, and their status is *Documented*.
 
-## M3 — What runs is what is shown
+## M3 — What runs is what is shown (done by M49)
 
-Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tries
-each of these against the engine that runs them now.
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tried
+each of these against the engine that runs them now: RS7 and RS12 to RS14 are removed; RS15 is narrowed to the links a
+removal git refuses takes out, which are not put back; RS16 says why the revert of the Flow Diff and **Save** in
+**Gitardo Changes** are edits of a file in its editor, not operations, so that `log.record` and `diff.revert-change`
+stay *Differs* in the extension.
 
 - RS7: the files of an interactive rebase are written as `writes` of the operation, after the question, and logged; the
   question shows the todo list and the new messages; the reads take no lock.
@@ -66,12 +73,13 @@ built them, each made to fail once on purpose.
 
 Exit: each check runs in a command of [06-testing.md](06-testing.md) and fails on purpose once.
 
-## Along the way — the other areas
+## Along the way — the other areas (done by M49)
 
-The areas without cards (RS20) get theirs the first time one of their features changes, in that commit: repositories
-and identities, the graph, search and filter, the tab of a commit and the side bar, comparisons, history and blame,
-patches, GitHub, the Flow Diff and the Flow Merge. When an area is written, its row in
-[04-feature-contract.md](04-feature-contract.md#the-areas) says *Written*.
+The areas without cards of their own (RS20), repositories and identities, the graph, search and filter, the tab of a
+commit and the side bar, comparisons, history and blame, patches, GitHub, the Flow Diff and the Flow Merge, have the
+desktop's cards, each with a status for the extension (D44); M49 checked them against what the extension does today,
+and their rows in [04-feature-contract.md](04-feature-contract.md#the-areas) say where. RS1, the files over 1,000 lines,
+is down to the stylesheet of the views (Q1700), and `test/fileLength.test.ts` keeps every file of TypeScript under it.
 
 ## Before a release
 

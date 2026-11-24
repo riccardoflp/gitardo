@@ -2006,12 +2006,13 @@ What the branch rail lists from the choice of its own filter, and that choice ke
 - **Kind**: Derivation
 - **Function**: `model::filter::rail::listed(choice: &Choice, references: &References) -> Listed`
 - **Uses**: `filter.preset`, `filter.tick`, `filter.kinds`, `filter.remember`.
-- **Extension**: `listedRefs` of `src/shared/scope.ts`, the rules of `model::filter::rail::listed` ported to
-  TypeScript, over the `Scope` the branches shown are made of. The choice is kept for each repository in the workspace
-  state under `gitardo.branchesListed` (`Controller.setListed`), and is sent to the views as `RepoState.listed` without
-  the references gone since (`Controller.listedIn`), which is not written again then (Q414). Tested by
-  `test/scope.test.ts`, the tests that start "refs.listed:"; `test/e2e/suite.ts`, step "lists in the references what their own filter chooses, kept for each repository, and
-  the branches shown in the graph and it never change each other".
+- **Extension**: `listedRefs` of `src/shared/scope.ts`, the rules of `model::filter::rail::listed` ported to TypeScript,
+  over the `Scope` the branches shown are made of. The choice is kept for each repository in the workspace state under
+  `gitardo.branchesListed` (`HistoryShown.setListed`), and is sent to the views as `RepoState.listed` without the
+  references gone since (`HistoryShown.listedIn`), which is not written again then (Q414). Tested by
+  `test/scope.test.ts`, the tests that start "refs.listed:"; `test/e2e/suite.ts`, step "lists in the references what
+  their own filter chooses, kept for each repository, and the branches shown in the graph and it never change each
+  other".
 
 - **All** lists every branch, remote branch and tag; **Current** the branch checked out and its upstream; **Upstream**
   the branch checked out, its upstream and the branch it was made from when git says so, as `filter.preset` says;
@@ -2095,8 +2096,8 @@ listed with the others.
   **Add `origin/feature` to favorites** too (`graph.combine-upstream`).
 - **Extension**: **Add to favorites** and **Remove from favorites** in the context menu of a local or a remote branch,
   and **Add `<remote branch>` to favorites** under the entries of a label that stands for its upstream too; the full
-  names of each repository are kept in the workspace state under `gitardo.favorites` (`Controller.setFavorite`), and the
-  **Favorites** sections of the references tree and of the Branches view list them. No git command runs.
+  names of each repository are kept in the workspace state under `gitardo.favorites` (`HistoryShown.setFavorite`), and
+  the **Favorites** sections of the references tree and of the Branches view list them. No git command runs.
 - **Uses**: by `refs.tree`.
 
 The favorites are kept for each repository of the workspace, by the full names of the branches, in Gitardo's storage,

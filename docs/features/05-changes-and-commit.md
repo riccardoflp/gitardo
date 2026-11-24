@@ -29,7 +29,7 @@ commit checked out, the draft is not there, and this page is where one commits.
   Gitardo's engine as the cards of the operations say. **View as tree** or **View as list**, and the message of the
   commit box, are kept in the view's state (`loadUiState` and `saveUiState` in `src/webview/vscode.ts`), the layout as
   `changesFiles`. The placeholder of the message is `Message (Ctrl+Enter to commit on main)`, or `on detached HEAD`;
-  a click on the identity under it runs `Controller.switchIdentity` (`src/extension/controller.ts`), still in
+  a click on the identity under it runs `Commands.switchIdentity` (`src/extension/commands.ts`), still in
   TypeScript. Before the repository is read the view says *Loading repository…*.
 - **Uses**: `changes.list`, `changes.unsaved`, `changes.open`, `changes.stage`, `changes.unstage`, `changes.stage-all`,
   `changes.unstage-all`, `conflicts.mark-resolved`, `changes.discard`, `changes.discard-all`, `changes.save`,
@@ -183,7 +183,7 @@ editable sides of the Diff and Merge pages.
   with code 1 when none of them is ignored, which means none is.
 - **Uses**: `file-view.page`, `diff.page`, `merge-view.page`.
 - **Extension**: the files of VS Code's text documents with edits not saved, worked out by the extension itself
-  (`Controller.checkUnsaved` and `Controller.unsavedIn` in `src/extension/controller.ts`) by the same rules, with
+  (`UnsavedFiles.check` and `UnsavedFiles.unsavedIn` in `src/extension/unsavedFiles.ts`) by the same rules, with
   the files git ignores asked of the engine (`reads.ignored` in `src/engine/reads.ts`), and told to the Changes
   view with an `unsaved` message. It is worked out again at each edit, at each editor closed or saved and at each read
   of the repository, and sent only when the list changed.
@@ -226,7 +226,7 @@ file** of its menu (`changes.row-menu`), opens.
 - **Extension**: a click on a file of the Changes view, its buttons **Open File** and **Open Changes**, **Open all
   changes in one editor** on the header of **Changes**, and **Compare with the saved file** on a file only an editor
   has changed, done by the extension itself (the messages `openChange`, `openFile`, `openDiff`, `openChanges` and
-  `compareWithSaved` in `Controller.onMessage`, and `sides` in `src/extension/controller.ts`), with VS Code's editors
+  `compareWithSaved` in `ViewMessages.onMessage`, and `sides` in `src/extension/fileDiffs.ts`), with VS Code's editors
   in place of the pages. The diff opens in VS Code's diff editor, titled `a.txt (Working Tree)` or `a.txt (Index)`;
   when VS Code's Git extension has the repository open, its two sides are that extension's own `git:` documents, so
   that **Stage Selected Ranges**, **Unstage Selected Ranges** and **Revert Selected Ranges** work in it. **Open all
@@ -730,8 +730,8 @@ Writes to disk the edits typed in Gitardo's editors and not saved yet, so that g
   in a File page. **Save** in the menu of a row of the Changes page (`changes.row-menu`) saves that file through
   `file-view.save`, which asks before writing over a file another program changed.
 - **Extension**: **Save** on the row of a file with edits not saved, and **Save all** on the header of **Changes** in
-  the Changes view, have VS Code save its own editors of those files (`Controller.save` in
-  `src/extension/controller.ts`), as `Ctrl+S` would: no git command runs, and nothing is written to the log.
+  the Changes view, have VS Code save its own editors of those files (`UnsavedFiles.save` in
+  `src/extension/unsavedFiles.ts`), as `Ctrl+S` would: no git command runs, and nothing is written to the log.
 - **Offered when**: the file has edits not saved (`changes.unsaved`).
 - **Plan**: `write <path>` for each file, with the text of its buffer.
 - **Danger**: None.
@@ -784,7 +784,7 @@ Makes a commit of what is staged, with the message of the commit box.
   dialog with **Stage all and commit** (`VscodeAsker` in `src/engine/vscode.ts`), and the plan is shown in a modal
   dialog when `gitardo.commandPreview` is `all`; once it ran, the engine's follow-up `emptyCommitMessage` empties the
   commit box (the message `committed`). The message the box starts from comes from the engine's follow-ups, posted as
-  `commitMessage` by `Controller.followUpsBeforeRead` (`src/extension/controller.ts`): after a squash merge,
+  `commitMessage` by `RunFollowUps.beforeRead` (`src/extension/runFollowUps.ts`): after a squash merge,
   `preparedMessage`, for which the extension reads what `.git/SQUASH_MSG` says (`reads.squashMessage`,
   `commit.prepared-message`); after a split, `fillCommitMessage`, with the message of the commit split. When the
   engine's binary is missing, it says so (D49).
@@ -1080,7 +1080,7 @@ Asks the AI provider to write the commit message from the changes, and puts its 
 - **Entry points**: the sparkle button beside **Commit** in the Changes page, and not in the draft, whose tooltip says
   **Draft a message from the changes with the AI provider**.
 - **Extension**: the sparkle button of the commit box of the Changes view, titled *Draft a message from the changes
-  with the language model set up in VS Code*. `Controller.draftMessage` in `src/extension/controller.ts` asks the
+  with the language model set up in VS Code*. `Commands.draftMessage` in `src/extension/commands.ts` asks the
   engine `read/commit.draft-message` with the subjects of the graph: the engine reads the changes and the diff
   (`commit.read-draft-diff`), writes the request and cleans the answer, and asks VS Code's language models in place of
   the AI provider with `host/languageModel`, which `answerLanguageModel` in `src/extension/ai.ts` sends to the first
@@ -1189,7 +1189,7 @@ Sets the name and email that commits are made with in this repository, from a pr
 - **Extension**: **Gitardo: Switch Identity** in the Command Palette, **Switch identity…** in the **…** menu of the
   toolbar of the graph, and a click on the identity under the commit box of the Changes view. Each sends `feature/run`
   of `identity.switch` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
-  `Controller.switchIdentity`); the pick is a quick pick, and the name and email input boxes. **Edit the list of
+  `Commands.switchIdentity`); the pick is a quick pick, and the name and email input boxes. **Edit the list of
   identities…** is added to the pick by the extension, which opens the settings at `gitardo.identities` and runs nothing
   (`HostHooks.choices`, B9). When the engine's binary is missing, it says so (D49).
 - **Asks**:

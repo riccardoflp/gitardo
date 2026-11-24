@@ -86,8 +86,8 @@ flowchart TB
 | --- | --- |
 | `src/engine` | Gitardo's engine, which reads and changes the repository for the extension: finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process, its restarts and the features it runs (`client.ts`), the features an action of a view becomes (`actions.ts`, `engineRuns`) and their target (`target.ts`), every read a view makes (`reads.ts`, with the engine's answer in the view's shape by `shapes.ts`), the graph's rows (`graph.ts`), what the **Large files** tab runs (`lfs.ts`), the files in conflict as the review works on them (`conflictPlans.ts`), the resolutions it writes (`resolutions.ts`), and the engine of a window, with VS Code's settings, output channel, and the input boxes, picks and dialogs its features ask with (`vscode.ts`). |
 | `src/shared` | What the extension and the webviews both use, none of it running git: the messages between them (`protocol.ts`), the engine's state and details of a commit (`state.ts`), the lanes of the graph (`graph.ts`), which labels of a commit its row shows whole (`labelFit.ts`), the tree of files (`tree.ts`), how references are named (`refs.ts`) and messages shown (`message.ts`), the branches shown (`scope.ts`), the blame's format (`blameFormat.ts`) and the blame of lines kept for each version of a document (`blameCache.ts`), the conflicts that need no choice (`conflicts.ts`) and the review of the others (`review.ts`, `resolution.ts`, `proposalLines.ts`, `conflictPrompt.ts`), what new worktrees get (`worktreeSetup.ts`), the files stored with Git LFS and what the **Large files** tab shows of them (`lfs.ts`), the rows of the changes (`changes.ts`), paths (`paths.ts`), GitHub URLs (`github.ts`), submodules' status, file icons, JSON with comments. |
-| `src/extension` | VS Code: activation and commands (`extension.ts`), the `Controller` that owns every webview and which repository each shows (`controller.ts`), the session of each repository shown and the groups of views on it (`repositorySession.ts`, `sessions.ts`), what an action asks and which operation it becomes (`actions.ts`), blame of the line and of the file (`blame.ts`, `fileBlame.ts`), the content of the diffs (`content.ts`), what is running (`activity.ts`), the review of conflicts (`conflictReview.ts`), the **Large files** tabs (`largeFiles.ts`), GitHub sign-in (`github.ts`), the language model (`ai.ts`), the participant `@gitardo` of the Chat (`help.ts`, what it writes in `src/engine/help.ts`), file icons, the worktree settings and Explorer commands. |
-| `src/webview` | The React UI of every view and tab, in one bundle. `main.tsx` picks the component from the `data-view` the host writes on the page. `menus.ts` has every context menu and `act()`, `menuIcons.ts` the icon of each of their items. |
+| `src/extension` | VS Code: activation and commands (`extension.ts`), the `Controller` that owns every webview and which repository each shows (`controller.ts`), and its parts, each given what it uses of the controller as a `ControllerHost` (`controllerHost.ts`): the messages of the views (`viewMessages.ts`), which repository each group shows and the tabs of the graph (`repositoriesShown.ts`), what the graph shows and selects (`historyShown.ts`), the commands that ask in VS Code (`commands.ts`), what VS Code does around each operation (`runFollowUps.ts`), the tabs of a commit, of a comparison and of what new worktrees get (`commitTabs.ts`, `compareTabs.ts`, `revisions.ts`, `worktreeSetupTab.ts`), the diffs and files opened in an editor (`fileDiffs.ts`), the unsaved files (`unsavedFiles.ts`), the changes seen (`changesSeen.ts`) and what the menus of VS Code are told (`menuContext.ts`); the session of each repository shown and the groups of views on it (`repositorySession.ts`, `sessions.ts`), what an action asks and which operation it becomes (`actions.ts`), blame of the line and of the file (`blame.ts`, `fileBlame.ts`), the content of the diffs (`content.ts`), what is running (`activity.ts`), the review of conflicts (`conflictReview.ts`), the **Large files** tabs (`largeFiles.ts`), GitHub sign-in (`github.ts`), the language model (`ai.ts`), the participant `@gitardo` of the Chat (`help.ts`, what it writes in `src/engine/help.ts`), file icons, the worktree settings and Explorer commands. |
+| `src/webview` | The React UI of every view and tab, in one bundle. `main.tsx` picks the component from the `data-view` the host writes on the page. `menus.ts` has every context menu and `act()`, `menuIcons.ts` the icon of each of their items. The graph's list of commits is `CommitList.tsx`, the drawing of its rows `CommitRows.tsx` and its labels `CommitLabels.tsx`. |
 | `src/webview/highlight` | The colors of the code in the changes of a commit or a comparison, with shiki: a bundle of its own, imported only when changes are shown. |
 | `src/flow` | The Flow Diff and the Flow Merge: host side (`flowDiff.ts`, `merge.ts`, `panel.ts`), the worker that computes diffs (`worker.ts`, `diff/`), and their own webview under `src/flow/webview`. |
 | `src/dev` | The preview server: the webviews in a browser, against a real repository, read-only. |
@@ -131,12 +131,13 @@ marks.
 1. The webview posts a `WebviewMessage` (`src/shared/protocol.ts`). An operation on the repository is
    `{ type: 'action', action }`, posted by `act()` in `src/webview/menus.ts`. A command of the Command Palette calls the
    `Controller` directly from `extension.ts`.
-2. `Controller.onMessage` handles it. An action goes to `Controller.action`. What is VS Code's alone, such as opening a
-   worktree in a window, a terminal or the Explorer, is done there by `hostAction` (`src/extension/actions.ts`), and
-   runs no git. Any other action becomes the features of the engine that run it, with their `Target`
-   (`engineRuns` in `src/engine/actions.ts`, `targetOf` in `src/engine/target.ts`); an action that is none of them runs
-   nothing. With no engine running (no binary, or stopped for good), the command says **Gitardo's engine is not
-   available on this system.** with **Show the log** (`sayEngineMissing`, D49), and nothing runs.
+2. `ViewMessages.onMessage` (`src/extension/viewMessages.ts`) hands it to the part of the controller that answers it. An
+   action goes to `Controller.action`. What is VS Code's alone, such as opening a worktree in a window, a terminal or
+   the Explorer, is done there by `hostAction` (`src/extension/actions.ts`), and runs no git. Any other action becomes
+   the features of the engine that run it, with their `Target` (`engineRuns` in `src/engine/actions.ts`, `targetOf` in
+   `src/engine/target.ts`); an action that is none of them runs nothing. With no engine running (no binary, or stopped
+   for good), the command says **Gitardo's engine is not available on this system.** with **Show the log**
+   (`sayEngineMissing`, D49), and nothing runs.
 3. `Controller.runOnEngine` runs them one at a time: `EngineClient.runFeature` sends `feature/run`. While it runs,
    the engine asks with `feature/ask` and `feature/confirm`, and `VscodeAsker` (`src/engine/vscode.ts`) answers with VS Code's input boxes, quick picks and
    dialogs; an input box checks its text with `question/validate` as it is typed. What only VS Code can add is given
@@ -145,11 +146,11 @@ marks.
    branches** removes.
 4. The engine runs the plan and logs each step, which comes back as `log/line` and goes to the **Gitardo** output
    channel, `> ` before a command; a failure, a warning or a read has `[engine]` before it. `feature/followUps` comes
-   before the answer, and `runOnEngine` carries out the follow-ups that are the extension's: a message, the inputs of
-   the format remembered in `worktreeInputs`, the new `HEAD` selected in the graph once the repository is read again,
-   the pull requests read again after a fetch, a pull or a push. An operation offered with the failure of a step, such
-   as **Delete anyway**, is a button on the error, which sends `feature/run` with the feature, target and answers the
-   engine gave (`offerRun`).
+   before the answer, and `runOnEngine` carries out the follow-ups that are the extension's (`RunFollowUps` in
+   `src/extension/runFollowUps.ts`): a message, the inputs of the format remembered in `worktreeInputs`, the new `HEAD`
+   selected in the graph once the repository is read again, the pull requests read again after a fetch, a pull or a
+   push. An operation offered with the failure of a step, such as **Delete anyway**, is a button on the error, which
+   sends `feature/run` with the feature, target and answers the engine gave (`offerRun`).
 5. The repository is read again and a `HostMessage` of type `state` goes to the views, in parts (`StatePart`: where
    the repository is and what is checked out, the references, the stashes, the worktrees, the working tree, the
    submodules, the pull requests, the commits, the row of the uncommitted changes, and the rest). Each kind of view is
@@ -242,11 +243,11 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
   it once. `Controller.groupOf` says which group a view is in; what a view asks acts on its group's repository, and a
   tab of a commit or a comparison stays with the repository it was opened for, sent what the group showing it reads.
 - **Which repository each group shows**: the followers show the repository chosen in the toolbar's list, remembered
-  under `gitardo.repository`, and follow the tab of the graph that last came into focus (`Controller.followTab`,
-  `repo.follow-tab`). A tab shows the repository it was opened on (`Controller.openTab`, `repo.tab-repository`), moved
-  by its own toolbar alone, and keeps it in the state of its page, from which the serializer of `gitardo.graphEditor`
-  brings it back after a reload (`repo.keep-tabs`). The commands of the Command Palette act on the followers'
-  repository.
+  under `gitardo.repository`, and follow the tab of the graph that last came into focus (`RepositoriesShown.followTab`,
+  `repo.follow-tab`). A tab shows the repository it was opened on (`RepositoriesShown.openTab`, `repo.tab-repository`),
+  moved by its own toolbar alone, and keeps it in the state of its page, from which the serializer of
+  `gitardo.graphEditor` brings it back after a reload (`repo.keep-tabs`). The commands of the Command Palette act on the
+  followers' repository.
 - **One operation at a time**, in the whole window: while `Controller.runOnEngine` runs one (`operation`), another,
   from any tab, is refused, with
   "Gitardo: `<title>` is running in `<repository>`. Try again once it ends." as in Gitardo Desktop, and nothing is
@@ -265,10 +266,10 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
 
 ## Adding to the UI
 
-- A new message is a case in `HostMessage` or `WebviewMessage`, a case in `Controller.onMessage`, and, for the
+- A new message is a case in `HostMessage` or `WebviewMessage`, a case in `ViewMessages.onMessage`, and, for the
   preview, a case in `handle` of `src/dev/server.ts`, which logs the messages it does not know.
 - A new view kind is a `ViewKind`, an entry in `VIEWS` of `src/webview/main.tsx`, and its registration in
-  `extension.ts` or its tab in the controller.
+  `extension.ts` or its tab in a part of the controller.
 - The webviews use VS Code's CSS variables and the Codicons (`<Icon name="…" />`); `src/webview/styles.css` is the one
   stylesheet. Check a change in a dark and a light theme.
 - The pages of a commit and of a comparison share `FileChanges`: a change there is a change to both.
@@ -298,7 +299,7 @@ is. Nothing a user starts can be cancelled once its commands run; a question can
 | The rules for conflicts, and the review | `src/shared/conflicts.ts`, `src/shared/review.ts`, `src/engine/conflictPlans.ts` |
 | A command of the Command Palette, a setting | `package.json` (`contributes`) and `src/extension/extension.ts` |
 | The look of a view | the component in `src/webview`, and `src/webview/styles.css` |
-| Which repository is shown, and VS Code's Repositories view | `Controller.selectRepo` in `src/extension/controller.ts`, `src/extension/sourceControlSelection.ts` |
+| Which repository is shown, and VS Code's Repositories view | `RepositoriesShown.selectRepo` in `src/extension/repositoriesShown.ts`, `src/extension/sourceControlSelection.ts` |
 | What is read and watched of a repository shown, and which group of views is on it | `RepositorySession` and `ViewGroup` in `src/extension/repositorySession.ts`, `Sessions` in `src/extension/sessions.ts` |
-| The tabs of the graph: their repository, their title, following the one in focus, coming back after a reload | `Controller.openTab`, `followTab` in `src/extension/controller.ts`, `tabTitle` and `keptTab` in `src/extension/sessions.ts` |
+| The tabs of the graph: their repository, their title, following the one in focus, coming back after a reload | `RepositoriesShown.openTab`, `followTab` in `src/extension/repositoriesShown.ts`, `tabTitle` and `keptTab` in `src/extension/sessions.ts` |
 | The rows of the Repositories view, what each is on, and what its watchers tell the engine | `src/shared/repositories.ts`, `src/shared/summaries.ts`, `RepositoriesView` in `src/extension/repositoriesView.ts`, `src/webview/RepositoriesApp.tsx` |

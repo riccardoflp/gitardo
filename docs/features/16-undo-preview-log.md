@@ -102,7 +102,7 @@ before it. It always shows what it is about to do first. With nothing in the jou
   state of the last `repo.read-state` instead of reading the repository again, and reads it only when no state was
   read since the last operation (M15)); **Gitardo: Undo Last Operation** in the
   Command Palette and in the **…** of the headers of the Commits view and the Gitardo Graph; the **Undo** of the
-  message after resolving conflicts automatically (`Controller.say`). Each sends `feature/run` of `undo.last` to
+  message after resolving conflicts automatically (`RunFollowUps.say`). Each sends `feature/run` of `undo.last` to
   Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`), its plan always shown in a modal dialog
   first (`VscodeAsker` in `src/engine/vscode.ts`). Every operation is the engine's, so its journal has them all. When
   the engine's binary is missing, it says so (D49).

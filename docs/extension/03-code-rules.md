@@ -60,7 +60,7 @@ A change that needs to break a rule changes this page first, in its own commit, 
 ## R4 — Errors
 
 - **R4.1** What git prints when it fails reaches the user: the error message says the engine's words, and the log has
-  the whole output. *Source: `Controller.reportEngineFailure`, `Controller.reportFailure`. Followed.*
+  the whole output. *Source: `RunFollowUps.reportEngineFailure`, `RunFollowUps.reportFailure`. Followed.*
 - **R4.2** Errors are `Error` objects with a sentence for the user (`EngineError` for the engine's); no string is
   thrown. *Source: project choice. Followed: no `throw` of a string in `src`.*
 - **R4.3** What follows an operation in VS Code (its follow-ups, a message, a read again) must not throw once the
@@ -73,7 +73,8 @@ A change that needs to break a rule changes this page first, in its own commit, 
 - **R5.1** A module does what its name says; no `utils` grows into a second home. *Source: project choice. Followed,
   but for `src/webview/util.ts`, which is small.*
 - **R5.2** A file over about 1,000 lines is split along a line the reader sees, when it is changed anyway.
-  *Source: project choice. Target: `controller.ts` (2,700 lines) is over it; see [RS1](13-risks.md).*
+  *Source: project choice. Enforced by `test/fileLength.test.ts`, which fails on a file of TypeScript of `src` over
+  1,000 lines; the stylesheets are left out (Q1700), see [RS1](13-risks.md).*
 - **R5.3** Types carry meaning: unions of string literals (`MergeMode`, `ResetMode`, `Operation`), not bare strings or
   booleans that switch behavior. *Source: project choice. Followed.*
 - **R5.4** A `switch` on a union handles every case. *Source: project choice. Review: `tsc` checks it only where the
@@ -197,7 +198,7 @@ Each rule answers a threat of the [security page](10-security.md).
 | Command | Checks | Rules |
 | --- | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` with `strict`, over `src` and `test` | R11.4 |
-| `npm test` | Vitest: parsers, derivations, operations against real repositories; the imports between the folders (`test/imports.test.ts`); `npm run check:docs` when Python 3 is there (`test/docs.test.ts`) | R1.4, R1.5, R8.3, R10.1, R10.2, R10.4 |
+| `npm test` | Vitest: parsers, derivations, operations against real repositories; the imports between the folders (`test/imports.test.ts`); the length of the files (`test/fileLength.test.ts`); `npm run check:docs` when Python 3 is there (`test/docs.test.ts`) | R1.4, R1.5, R5.2, R8.3, R10.1, R10.2, R10.4 |
 | `npm run test:e2e`, `npm run test:vsix` | The suite inside a real VS Code; on the packed extension | R1.3, R2.1 |
 | `npm run test:ui` | A real window, five themes, errors logged by the webviews | R9.2, R9.4 |
 | `npm run check:docs` | `docs/catalog.py`: cards, identifiers, glossary words, the tests named after **Tested by** | R6.2, R2.5 |

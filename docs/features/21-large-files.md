@@ -318,7 +318,7 @@ Has Git LFS store the files that a pattern takes, from their next commit on.
 - **Uses**: `lfs.read-status`, `lfs.set-up`, `lfs.untrack`, `lfs.store-committed`, `changes.row-menu`.
 - **Extension**: built: **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, in a repository
   that stores files with Git LFS already, as the Files page offers it, sends `feature/run` of `lfs.track` with the
-  target `file` (`Controller.storeWithLfsFromExplorer`), its questions asked with VS Code's picks and input boxes; it is
+  target `file` (`Commands.storeWithLfsFromExplorer`), its questions asked with VS Code's picks and input boxes; it is
   not offered on a folder, for which **Everything in `<folder>`** of a file of it, or a pattern typed, does (Q1527).
   **Track a pattern…** is on the **Large files** tab.
 

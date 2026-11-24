@@ -1238,21 +1238,21 @@ What a repository keeps while another is shown, so that coming back to it finds 
 - **Settings**: `repositories.keepOpen`: `true` in Gitardo Desktop; `gitardo.repositories.keepOpen`, `false`, in the
   extension.
 - **Uses**: by `repo.switch-tab`, `repo.group-tabs` and, in the extension, `repo.select`; `repo.watch-hidden`.
-- **Extension**: with `gitardo.repositories.keepOpen` on, the repository left by the list of `repo.select`, by VS
-  Code's Repositories view (`repo.follow-source-control`) or by **Show in Gitardo** keeps, in memory, the scroll of
-  the graph, the commit selected and its details, the search, the branch filter, the references with their sections
-  open or closed, and the message of the Changes view; the engine keeps its state as last read. Coming back shows that
-  at once, and reads again behind it when it changed meanwhile. The list of `repo.select` puts the worktrees and the
-  submodules of a repository under it, indented, as `repo.group-tabs` groups them. With the setting off, choosing
-  another repository is as it was before it. Each view keeps what it showed of each repository in the memory of its
-  page, by folder (`useKept` of `src/webview/kept.ts`), and the extension host keeps the state the views were last sent,
-  what the graph was narrowed to and how far it was read, and the message of the Changes view
-  (`src/extension/keptRepositories.ts`, `Controller.leave` and `Controller.comeBack`), as Q412 recommends. A repository
-  that kept nothing, as one shown for the first time, is shown as choosing a repository did before. Tested by
-  `test/e2e/ui.mjs`, step "with keeping repositories open on, a repository chosen again in the list shows the commit it
-  had selected, at the same scroll"; `test/e2e/suite.ts`, the steps that start "with keeping repositories open" and
-  "turning keeping repositories open off", and "lists the worktrees of a repository of the workspace under it in the
-  list of the repositories"; `test/kept.test.ts` and `test/repositoryGroups.test.ts`.
+- **Extension**: with `gitardo.repositories.keepOpen` on, the repository left by the list of `repo.select`, by VS Code's
+  Repositories view (`repo.follow-source-control`) or by **Show in Gitardo** keeps, in memory, the scroll of the graph,
+  the commit selected and its details, the search, the branch filter, the references with their sections open or closed,
+  and the message of the Changes view; the engine keeps its state as last read. Coming back shows that at once, and
+  reads again behind it when it changed meanwhile. The list of `repo.select` puts the worktrees and the submodules of a
+  repository under it, indented, as `repo.group-tabs` groups them. With the setting off, choosing another repository is
+  as it was before it. Each view keeps what it showed of each repository in the memory of its page, by folder (`useKept`
+  of `src/webview/kept.ts`), and the extension host keeps the state the views were last sent, what the graph was
+  narrowed to and how far it was read, and the message of the Changes view (`src/extension/keptRepositories.ts`,
+  `Controller.leave` and `RepositoriesShown.comeBack`), as Q412 recommends. A repository that kept nothing, as one shown
+  for the first time, is shown as choosing a repository did before. Tested by `test/e2e/ui.mjs`, step "with keeping
+  repositories open on, a repository chosen again in the list shows the commit it had selected, at the same scroll";
+  `test/e2e/suite.ts`, the steps that start "with keeping repositories open" and "turning keeping repositories open
+  off", and "lists the worktrees of a repository of the workspace under it in the list of the repositories";
+  `test/kept.test.ts` and `test/repositoryGroups.test.ts`.
 
 With the setting on, a repository keeps everything it showed: the commits read, with their pages; the scroll of the
 timeline; the commit selected and the inspector; the search and the branch filter; the branch rail, its lists open or
@@ -1360,7 +1360,7 @@ How the repositories of the tabs not shown follow their changes without reading 
 - **Extension**: with `gitardo.repositories.keepOpen` on, the repositories the extension keeps follow these rules, the
   window of VS Code taking the place of the tab shown. The repositories it keeps are those left since the window
   opened: none is read in the background, so the rule of the reads one after the other once the workspace opens has
-  nothing to read there. Their watchers stay, and a change marks them out of date (`Controller.changedIn`). Tested by
+  nothing to read there. Their watchers stay, and a change marks them out of date (`ChangesSeen.changedIn`). Tested by
   `test/e2e/suite.ts`, steps "with keeping repositories open on, a commit made in a terminal in a repository not shown
   reads nothing, and showing it reads it once" and "with keeping repositories open on, shows a repository chosen again
   at once as it was left, and reads nothing for it when nothing changed". What the rows of its Repositories view say of

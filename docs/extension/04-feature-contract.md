@@ -60,29 +60,34 @@ for code that is changed anyway (R7.4 in the [code rules](03-code-rules.md)).
 ## The areas
 
 Each area has a file in `features/`, the prefixes of its identifiers, and whether its cards are written. Which areas
-have cards, and why the others do not yet, is [D33](../08-decisions.md#d33--cards-first-for-the-areas-where-a-mistake-costs).
-An area without cards is still described for users in the [README](../../extension/README.md); its cards are written the first time
-the area is changed after this page.
+had cards first is [D33](../08-decisions.md#d33--cards-first-for-the-areas-where-a-mistake-costs). Since every area
+moved to the engine, each card is the desktop's, in `../features/`, with a status for the extension
+([D44](../08-decisions.md#d44--one-catalog-the-desktops-with-a-status-for-each-app)): an area *Later* here, whose cards
+were never written in `features/extension/`, has its cards there, and needs none of its own. Checked against what the
+extension does today in M49: the side bar's views (`branch.read-log` for **Commits**), the walkthrough
+(`welcome.page`, *Host only*), the blame beside the lines (`blame.*`), the Flow Diff and the Flow Merge (`diff.*`,
+`merge-view.*`, `file-view.*`), Ask Gitardo (`help.*`), the tasks (`tasks.*`) and the **Large files** tab (`lfs.*`)
+each have theirs.
 
 | File | Area | Prefixes | Cards |
 | --- | --- | --- | --- |
-| `01-repositories.md` | Repositories, reading and identities | `repo`, `identity` | Some: `repo.select`, `repo.follow-source-control` |
-| `02-graph.md` | The graph and its toolbar, labels, folds, keys, drag and drop | `graph`, `refs`, `details` | Later |
-| `03-search-and-filter.md` | Search, go to a commit, branches shown | `search`, `filter` | Later |
-| `04-commit-tab.md` | A commit in an editor tab, the side bar views | `commit-tab`, `side` | Later |
+| `01-repositories.md` | Repositories, reading and identities | `repo`, `identity` | Some: `repo.select`, `repo.follow-source-control`; the others in the desktop's |
+| `02-graph.md` | The graph and its toolbar, labels, folds, keys, drag and drop | `graph`, `refs`, `details` | In the desktop's |
+| `03-search-and-filter.md` | Search, go to a commit, branches shown | `search`, `filter` | In the desktop's |
+| `04-commit-tab.md` | A commit in an editor tab, the side bar views | `commit-tab`, `side` | In the desktop's (`commit-page`, `details`, `commits`) |
 | `05-changes-and-commit.md` | Staging, discarding, committing, the Changes view | `changes`, `commit` | Written |
 | `06-branches-tags-remotes.md` | Branches, tags, remotes, fetch, pull, push, branch cleanup | `branch`, `tag`, `remote`, `sync` | Written |
 | `07-merge-and-rewrite.md` | Merge, rebase, cherry-pick, revert, reset, rewording, squash, split, fixup, bisect | `merge`, `rebase`, `cherry-pick`, `revert`, `reset`, `rewrite`, `bisect` | Written |
 | `08-stashes.md` | Stashes | `stash` | Written |
 | `09-conflicts.md` | Conflicts, the operation under way, the review of resolutions, AI | `conflict`, `operation` | Written |
-| `10-compare.md` | Comparisons | `compare` | Later |
-| `11-history-and-blame.md` | File, folder and line history, blame, reflog | `history`, `blame`, `reflog` | Later |
+| `10-compare.md` | Comparisons | `compare` | In the desktop's |
+| `11-history-and-blame.md` | File, folder and line history, blame, reflog | `history`, `blame`, `reflog` | In the desktop's (`file-history`, `blame`, `reflog`) |
 | `12-worktrees.md` | Worktrees and what new worktrees get | `worktree`, `setup` | Written |
 | `13-submodules.md` | Submodules | `submodule` | Written |
-| `14-patches.md` | Copying, saving and applying patches | `patch` | Later |
-| `15-github.md` | GitHub sign-in, pull requests | `github` | Later |
+| `14-patches.md` | Copying, saving and applying patches | `patch` | In the desktop's |
+| `15-github.md` | GitHub sign-in, pull requests | `github` | In the desktop's |
 | `16-undo-preview-log.md` | Undo, the command preview, the log, what is running | `undo`, `preview`, `log`, `activity` | Written |
-| `17-flow.md` | The Flow Diff and the Flow Merge | `flow-diff`, `flow-merge` | Later |
+| `17-flow.md` | The Flow Diff and the Flow Merge | `flow-diff`, `flow-merge` | In the desktop's `17-diff-and-merge-views.md` (`diff`, `merge-view`, `file-view`) |
 | `18-settings.md` | Every setting, with the cards that read it | `settings` | Written |
 
 ## The card

@@ -576,10 +576,10 @@ the worktrees that have them.
 - **Entry points**: **Clean up branches** in Quick search; **Clean up branches…** in the **…** menu of the header.
 - **Extension**: **Gitardo: Clean Up Branches** in the Command Palette and in the **…** of the Branches view; **Clean up
   branches…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `branch.clean-up` to Gitardo's
-  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.cleanupBranches`); the pick is a quick
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Commands.cleanupBranches`); the pick is a quick
   pick of several, the merged branches ticked. Once the plan is confirmed, and before its steps, VS Code's Git extension
   is told to close each worktree the plan removes (`git.close`), which Windows would not let git delete otherwise
-  (`HostHooks.confirmed`, `Controller.closeRemoved`). When the engine's binary is missing, it says so (D49).
+  (`HostHooks.confirmed`, `Commands.closeRemoved`). When the engine's binary is missing, it says so (D49).
 - **Reads**: the branches merged into what is checked out, `git branch --merged HEAD --format=%(refname:short)`; the
   branches whose upstream is gone, and the worktrees with how many files each has not committed, from the state of the
   repository (`repo.read-state`).
@@ -1190,7 +1190,7 @@ another.
 - **Entry points**: **Manage remotes** in Quick search; **Manage remotes…** in the **…** menu of the header.
 - **Extension**: **Gitardo: Manage Remotes** in the Command Palette and in the **…** of the Branches view; **Manage
   remotes…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `remote.manage` to Gitardo's
-  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`); its picks are quick
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Commands.manageRemotes`); its picks are quick
   picks, the remotes searched by name and URL. Once something ran, the remote that pull requests are read from is found
   again (`Controller.detectHosting`). When the engine's binary is missing, it says so (D49).
 - **Reads**: `remote.read-remotes`.
@@ -1300,7 +1300,7 @@ Acceptance:
   no remote.", which fetch, pull and push show in a repository without any remote instead of failing.
 - **Extension**: **Add remote…** in the pick of **Gitardo: Manage Remotes**; **Add remote…** on the warning that the
   repository has no remote, after a fetch, a pull, a push or **Sync**. Each sends `feature/run` of `remote.add` to
-  Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`); the name and
+  Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Commands.manageRemotes`); the name and
   URL are asked in input boxes. When the engine's binary is missing, it says so (D49).
 - **Asks**:
   1. The name, in an input box titled **Add remote** with the prompt **Name of the remote**, starting from `origin`
@@ -1367,7 +1367,7 @@ Brings what every remote has, and forgets the remote branches deleted there.
 - **Extension**: **Fetch** in the toolbar of the graph (tooltip **Fetch: git fetch --all --prune**); **Gitardo: Fetch**
   in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run`
   of `sync.fetch` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
-  `src/engine/actions.ts`) through `Controller.sync` and `syncRuns`; the pull requests are read again after it
+  `src/engine/actions.ts`) through `Commands.sync` and `syncRuns`; the pull requests are read again after it
   (`readPullRequests`). When the engine's binary is missing, it says so (D49).
 - **Plan**: `git fetch --all --prune`.
 - **Danger**: None.
@@ -1459,9 +1459,9 @@ Brings what the upstream has into the branch checked out, the way the settings c
   command the settings make, as **Pull: git pull --rebase --autostash**; **Gitardo: Pull** in the Command Palette and as
   a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.pull` to Gitardo's
   engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through
-  `Controller.sync` and `syncRuns`. The settings are `gitardo.pull.rebase` and `gitardo.pull.autostash`. The warning
+  `Commands.sync` and `syncRuns`. The settings are `gitardo.pull.rebase` and `gitardo.pull.autostash`. The warning
   that the changes set aside do not fit on what came in, with **Show Stashes**, is said by the extension from the
-  stashes read after the pull (`Controller.afterSync`), on both paths. When the engine's binary is missing, it says so
+  stashes read after the pull (`Commands.afterSync`), on both paths. When the engine's binary is missing, it says so
   (D49).
 - **Plan**: `git pull`, with `--rebase` when `pull.rebase` is on and `--autostash` when `pull.autostash` is on:
   `git pull --rebase --autostash` with both on, as they are by default.
@@ -1536,9 +1536,9 @@ upstream.
   branch is ahead; **Push** in the menu **More push options** beside it, marked **default**; **Gitardo: Push** in the
   Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of
   `sync.push` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
-  `src/engine/actions.ts`) through `Controller.sync`. After the first push of a branch, when the main remote is on
+  `src/engine/actions.ts`) through `Commands.sync`. After the first push of a branch, when the main remote is on
   GitHub and the branch has no pull request, **Pushed `<branch>`.** offers **Create Pull Request**
-  (`Controller.afterSync`). When the engine's binary is missing, it says so (D49).
+  (`Commands.afterSync`). When the engine's binary is missing, it says so (D49).
 - **Plan**:
   - With an upstream of the same name: `git push <remote> <branch>`.
   - With an upstream of another name: `git push <remote> <branch>:<upstream branch>`.
@@ -1578,7 +1578,7 @@ counts on **Sync** promise.
 - **Extension**: **Sync: fetch, pull, push** in the menu **More push options** beside **Push** in the toolbar of the
   graph; **Gitardo: Sync** (`gitardo.sync`) in the Command Palette and in the **…** of the Commits and Gitardo Graph
   views. Each sends `feature/run` of `sync.sync` to Gitardo's engine (`Controller.runOnEngine` in
-  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through `Controller.sync` and `syncRuns`.
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through `Commands.sync` and `syncRuns`.
   When the engine's binary is missing, it says so (D49), and runs nothing.
 - **Asks**: when the branch has no upstream, a confirmation, "`<branch>` has no upstream. Publish it to `<remote>`?",
   with **Publish branch**, `<remote>` being the one of `remote.default`.

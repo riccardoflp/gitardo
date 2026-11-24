@@ -52,8 +52,8 @@ worktree with changes.
 
 - **Kind**: Operation
 - **Function**: the operations the engine offers when a step of its plan fails (the follow-ups `offerRun` of the
-  failure), shown as buttons of the error message by `Controller.reportEngineFailure` in
-  `src/extension/controller.ts`, and the one it offers with a refusal, shown by `Controller.offerAfterRefusal`.
+  failure), shown as buttons of the error message by `RunFollowUps.reportEngineFailure` in
+  `src/extension/runFollowUps.ts`, and the one it offers with a refusal, shown by `RunFollowUps.offerAfterRefusal`.
 - **Entry points**: every feature of the engine that offers one, such as **Delete anyway** for a branch not merged.
 - **Offered when**: the engine says so: git refused the first plan in a way the feature foresaw.
 - **Asks**: the offered operation runs on the engine as any operation does, asked as `preview.ask` says, with its own
@@ -63,7 +63,7 @@ worktree with changes.
 - **Undo**: what the offered operation's own card says.
 - **Refuses**: when nothing is offered, the failure is reported as any failure (`log.report-failure`).
 - **Uses**: `preview.ask`, `log.report-failure`.
-- **Implemented in**: `Controller.reportEngineFailure` and `Controller.offerAfterRefusal`, after
+- **Implemented in**: `RunFollowUps.reportEngineFailure` and `RunFollowUps.offerAfterRefusal`, after
   `Controller.runOnEngine`.
 - **Tested by**: `test/e2e/suite.ts`, the steps that delete a branch that is not merged; *none* for the matching itself.
 
@@ -113,7 +113,7 @@ Acceptance:
 - **Function**: the `gitardo.showLog` command in `src/extension/extension.ts`, which calls `log.show()`.
 - **Entry points**: **Gitardo: Show Command Log** in the Command Palette; **Show Log** on the message of a failure;
   **Show the commands Gitardo runs** in the list of what is running.
-- **Implemented in**: `src/extension/extension.ts`; `Controller.reportFailure`; `Activity`.
+- **Implemented in**: `src/extension/extension.ts`; `RunFollowUps.reportFailure`; `Activity`.
 - **Tested by**: `test/e2e/suite.ts`, *registers every command it contributes*.
 
 Acceptance:
@@ -126,8 +126,8 @@ When an operation fails, Gitardo says so in one line with what git said that mat
 conflicts, how many files have them and what to do next.
 
 - **Kind**: View
-- **Function**: `Controller.reportEngineFailure(failure, title, repo)` in `src/extension/controller.ts`, which hands a
-  step that failed with files left in conflict to `Controller.reportFailure(op, error)`.
+- **Function**: `RunFollowUps.reportEngineFailure(failure, title, repo)` in `src/extension/runFollowUps.ts`, which hands
+  a step that failed with files left in conflict to `RunFollowUps.reportFailure(op, error)`.
 - **Entry points**: the end of every operation that failed.
 - **After**:
   - With files in conflict: a warning *`<title>` stopped: 1 file has conflicts. Resolve them, then continue or abort
@@ -139,7 +139,7 @@ conflicts, how many files have them and what to do next.
     the engine offers in its place and **Show Log**.
 - **Settings**: `gitardo.conflicts.autoResolve`, `gitardo.conflicts.ai`.
 - **Uses**: `conflict.resolve-rules`, `conflict.resolve-ai`, `log.show`.
-- **Implemented in**: `Controller.reportEngineFailure` and `Controller.reportFailure`.
+- **Implemented in**: `RunFollowUps.reportEngineFailure` and `RunFollowUps.reportFailure`.
 - **Tested by**: `test/e2e/suite.ts`, the steps of a merge that stops on conflicts with the automatic resolution on.
 
 Acceptance:

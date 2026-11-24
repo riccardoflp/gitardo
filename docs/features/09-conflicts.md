@@ -218,10 +218,10 @@ Says that an operation stopped on conflicts, what to do next, and offers the res
 - **Settings**: `conflicts.autoResolve`, `conflicts.ai`.
 - **Uses**: `conflicts.resolve-automatically`, `ai.resolve-conflicts`, `log.`, `rerere.resolved-as-before` (*Git
   resolved 2 files as it did before: look at them before you continue.* after its text).
-- **Extension**: `Controller.reportFailure(op, error)` in `src/extension/controller.ts`, shown by
-  `Controller.reportEngineFailure` when a step of the engine fails and, once the repository is read again, a file is
-  in conflict. It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and **Show
-  Log**; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
+- **Extension**: `RunFollowUps.reportFailure(op, error)` in `src/extension/runFollowUps.ts`, shown by
+  `RunFollowUps.reportEngineFailure` when a step of the engine fails and, once the repository is read again, a file is
+  in conflict. It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and
+  **Show Log**; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
 
 Its text is *\<title of the operation\> stopped: 2 files have conflicts. Resolve them, then continue or abort the
 merge.* With no operation left to continue, *then stage the files.* When the rules resolve some conflicts it adds
@@ -342,13 +342,13 @@ Opens a file in conflict where it can be resolved by hand, which depends on what
 - **Offered when**: the file is in conflict (`conflicts.read-files`); a file no longer in conflict is not opened.
 - **Reads**: `conflicts.read-files` for its stages.
 - **Uses**: `merge-view.page`, `diff.page`, `file-view.page`, `conflicts.side-names`.
-- **Extension**: a click on a file of the **Conflicts** group of the Changes view (`Controller.openDiff({ kind:
-  'conflict' }, file)` in `src/extension/controller.ts`), the diff button of `review.deleted-card`, and the line of a
-  card in the review (`Controller.openConflict`). A file with stages 1, 2 and 3 opens in VS Code's merge editor
+- **Extension**: a click on a file of the **Conflicts** group of the Changes view (`FileDiffs.openDiff({ kind:
+  'conflict' }, file)` in `src/extension/fileDiffs.ts`), the diff button of `review.deleted-card`, and the line of a
+  card in the review (`FileDiffs.openConflict`). A file with stages 1, 2 and 3 opens in VS Code's merge editor
   (`openMergeEditor(root, file, operation)` in `src/flow/merge.ts`, VS Code's internal `_open.mergeEditor` command),
   titled **Merging: \<name\>**, with the base from `:1`, **Current** from `:2` and **Incoming** from `:3`; never the
   Flow Merge, which is reached from the button of the merge editor. A file one side deleted opens in VS Code's diff
-  editor (`Controller.openDeletedConflict`), `:1:<file>` on the left and the file on disk on the right; any other file
+  editor (`FileDiffs.openDeletedConflict`), `:1:<file>` on the left and the file on disk on the right; any other file
   in a plain editor, with its markers. The stages are read by the engine (`reads.conflictStages` in
   `src/engine/reads.ts`).
 
@@ -797,9 +797,9 @@ accepted or not, and written. Nothing is written until the user writes what was 
   `review.proposal-warnings`, `review.choose`, `review.accept`, `review.accept-file`, `review.accept-all`, `review.clear`, `review.write`, `review.report`, `review.show-result`,
   `review.deleted-card`, `ai.resolve-conflicts`, `ai.choose-model`.
 - **Extension**: an editor tab, `ConflictsApp()` in `src/webview/ConflictsApp.tsx`, with the host side
-  `ConflictReviewTab` in `src/extension/conflictReview.ts`, opened by `Controller.reviewConflicts(paths?, ai?)`; its
-  data is made by `reviewFiles(plans, rules, asked)` in `src/shared/review.ts`. It is opened by **Gitardo: Review the
-  Resolutions of the Conflicts** and **Gitardo: Resolve Conflicts with AI** in the Command Palette, the wand and
+  `ConflictReviewTab` in `src/extension/conflictReview.ts`, opened by `ConflictReviews.reviewConflicts(paths?, ai?)`;
+  its data is made by `reviewFiles(plans, rules, asked)` in `src/shared/review.ts`. It is opened by **Gitardo: Review
+  the Resolutions of the Conflicts** and **Gitardo: Resolve Conflicts with AI** in the Command Palette, the wand and
   sparkle buttons of the banner and of a file in the Changes view, **Review** in the question of
   `conflicts.resolve-automatically`, and **Resolve with AI** in the message of `conflicts.stopped`. The review and its
   proposals stay in the extension, in TypeScript; what it reads is read by the engine (`ConflictReviewTab.read`, with
@@ -901,7 +901,7 @@ from beside the buttons that decide.
   `src/webview/ConflictCard.tsx`; `Code`, `Changes`, `numbering` and `PART` in `src/webview/conflictCode.tsx`;
   `conflictChanges(lines, conflict)`, `rulesProposal(conflict)` and the `region` of `reviewFiles` in
   `src/shared/review.ts`; `sideChanges` in `src/webview/sideChanges.ts`. **Line 2** opens the file at that line
-  (`Controller.openConflict(repo, file, line, editor)`); **Resolve by hand** opens the file in the Flow Merge, and the
+  (`FileDiffs.openConflict(repo, file, line, editor)`); **Resolve by hand** opens the file in the Flow Merge, and the
   button beside it opens it in VS Code's merge editor. Where the proposal comes from reads **AI · Chosen model · high
   confidence**, with the name of the language model of VS Code.
 
@@ -1714,13 +1714,13 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
   its CLI, *The GitHub Copilot CLI is not installed. Install it, then try again.* with **How to install**.
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Extension**: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the
-  model's name at the top of the review, while `gitardo.conflicts.ai` is on. `Controller.chooseConflictModel()` runs
+  model's name at the top of the review, while `gitardo.conflicts.ai` is on. `Commands.chooseConflictModel()` runs
   `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with
   the desktop's picks, the first saying **The first model** (G2, settled in M48); with `gitardo.commandPreview` set to
-  `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and
-  `gitardo.conflicts.aiEffort` in the user settings of VS Code, each a line of the command log, as every setting the
-  engine has VS Code write (M48). Nothing changes in the repository, and **Undo** still
-  takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code.
+  `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as
+  `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` in the user settings of VS Code, each a line of the
+  command log, as every setting the engine has VS Code write (M48). Nothing changes in the repository, and **Undo**
+  still takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code.
   Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so
   (D49). The review then names **\<id\>, not available** when the chosen one is gone.
 

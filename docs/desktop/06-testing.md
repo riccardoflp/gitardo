@@ -216,6 +216,10 @@ as `npm run check:docs` checks it too. A change to a view also runs `cargo xtask
 images that changed. A change to the engine that the extension uses also runs the extension's `npm run test:e2e`
 against the debug binary.
 
+A change to the extension runs its `npm test`, which also checks that no file of TypeScript of `extension/src` is over
+1,000 lines (`extension/test/fileLength.test.ts`, the extension's rule R5.2 and risk RS1); Gitardo Desktop has no such
+check, and `cargo xtask check` does not run it ([the extension's testing](../extension/06-testing.md)).
+
 ## What no test reaches
 
 Signing in to GitHub with a real account, a real language model, and the dialogs of the operating system (choosing a

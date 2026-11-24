@@ -214,11 +214,11 @@ Points this window at the submodule, as a repository of its own, without opening
 - **Kind**: Operation
 - **Function**: `features::submodule::show_in_gitardo(context, answers) -> Outcome`
 - **Entry points**: **Show in Gitardo** in the context menu of a submodule.
-- **Extension**: stays in the extension, in TypeScript: `Controller.selectRepo(root)` in `src/extension/controller.ts`,
-  from the `selectRepo` message. A submodule that is one of the repositories of the workspace is shown as when it is
-  chosen in the list of repositories; another is shown with the banner of `worktree.banner` (`WorktreeBanner` in
-  `src/webview/WorktreeBanner.tsx`), **Showing the worktree `<name>`** with **Back to `<repository>`**. Nothing happens
-  while an operation runs.
+- **Extension**: stays in the extension, in TypeScript: `RepositoriesShown.selectRepo(root)` in
+  `src/extension/repositoriesShown.ts`, from the `selectRepo` message. A submodule that is one of the repositories of
+  the workspace is shown as when it is chosen in the list of repositories; another is shown with the banner of
+  `worktree.banner` (`WorktreeBanner` in `src/webview/WorktreeBanner.tsx`), **Showing the worktree `<name>`** with
+  **Back to `<repository>`**. Nothing happens while an operation runs.
 - **Offered when**: it is initialized.
 - **Plan**: no steps.
 - **Danger**: None.
@@ -399,8 +399,8 @@ Empties the submodule's folder and forgets it locally; it stays in `.gitmodules`
 - **Entry points**: **Deinitialize…** in the context menu of a submodule.
 - **Extension**: **Deinitialize…**, marked as an entry that loses work, in the context menu of a submodule in the
   Submodules section. First the extension has VS Code's Git extension close the submodule, and each initialized one
-  inside it, that it has open, since Windows refuses to empty a folder it watches (`Controller.letGoInVSCodeGit` in
-  `src/extension/controller.ts`, `closeInVSCodeGit` in `src/extension/actions.ts`, which runs `git.close` and logs
+  inside it, that it has open, since Windows refuses to empty a folder it watches (`RunFollowUps.letGoInVSCodeGit` in
+  `src/extension/runFollowUps.ts`, `closeInVSCodeGit` in `src/extension/actions.ts`, which runs `git.close` and logs
   `> git.close <folder>`); then it sends `feature/run` of `submodule.deinitialize` to Gitardo's engine on the submodule
   by its path (`submoduleDeinit` in `engineRuns`, run by `Controller.runOnEngine`), its question always asked in a modal
   dialog (`VscodeAsker`), and the forced variant, **Deinitialize `<folder>`, losing its changes**, asked at once with a
@@ -447,7 +447,7 @@ directory; the removal is staged, ready to commit.
 - **Entry points**: **Remove…** in the context menu of a submodule.
 - **Extension**: **Remove…**, marked as an entry that loses work, in the context menu of a submodule in the Submodules
   section, initialized or not. First VS Code's Git extension closes it, and each initialized one inside it, as for
-  `submodule.deinitialize` (`Controller.letGoInVSCodeGit`, `closeInVSCodeGit`); then it sends `feature/run` of
+  `submodule.deinitialize` (`RunFollowUps.letGoInVSCodeGit`, `closeInVSCodeGit`); then it sends `feature/run` of
   `submodule.remove` to Gitardo's engine on the submodule by its path (`submoduleRemove` in `engineRuns`, run by
   `Controller.runOnEngine`), its warning always asked in a modal warning dialog (`VscodeAsker`). The engine deletes the
   clone once the plan succeeded, and a clone it cannot delete is only said in the log; on Windows it runs a command
@@ -495,7 +495,7 @@ Puts the submodule's folder, from the root of the repository, on the clipboard.
 - **Function**: `features::submodule::copy_path(context, answers) -> Outcome`
 - **Entry points**: **Copy path** in the context menu of a submodule.
 - **Extension**: stays in the extension, in TypeScript: `copy(text)` in `src/webview/menus.ts` posts `copy`, which
-  `Controller.onMessage` in `src/extension/controller.ts` writes to the clipboard; no git runs.
+  `ViewMessages.onMessage` in `src/extension/viewMessages.ts` writes to the clipboard; no git runs.
 - **Plan**: no steps.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
@@ -515,7 +515,7 @@ Puts the URL `.gitmodules` gives the submodule on the clipboard.
 - **Function**: `features::submodule::copy_url(context, answers) -> Outcome`
 - **Entry points**: **Copy URL** in the context menu of a submodule.
 - **Extension**: stays in the extension, in TypeScript, as `submodule.copy-path` does: `copy(text)` in
-  `src/webview/menus.ts`, written to the clipboard by `Controller.onMessage`.
+  `src/webview/menus.ts`, written to the clipboard by `ViewMessages.onMessage`.
 - **Offered when**: `.gitmodules` gives it a URL.
 - **Plan**: no steps.
 - **Danger**: None.
