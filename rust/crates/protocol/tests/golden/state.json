@@ -122,5 +122,11 @@
   "commitGraph": {
     "hasFile": false,
     "isIgnored": false
-  }
+  },
+  "rerere": {
+    "isOn": false,
+    "stages": false,
+    "setsStages": false
+  },
+  "resolvedAsBefore": []
 }

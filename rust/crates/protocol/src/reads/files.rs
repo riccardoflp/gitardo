@@ -48,6 +48,9 @@ pub enum FileVersionJson {
         #[serde(default)]
         unsaved: Option<BytesJson>,
     },
+    /// A file in conflict as git marked it when it stopped, made again from the versions of the index, its sides named
+    /// as the Merge page names them (`rerere.read-marked`, since 1.13).
+    Marked,
 }
 
 /// One side of a Diff page: a version of a file, by its path.
@@ -93,6 +96,7 @@ impl TryFrom<&VersionJson> for VersionRequest {
                 FileVersion::Commit(commit_of(commit).map_err(|not| not.to_string())?)
             }
             FileVersionJson::Base => FileVersion::Base,
+            FileVersionJson::Marked => FileVersion::Marked,
             FileVersionJson::WorkingTree { unsaved } => FileVersion::WorkingTree {
                 unsaved: unsaved
                     .as_ref()

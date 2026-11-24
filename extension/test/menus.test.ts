@@ -513,7 +513,7 @@ describe('the menu of a row of the Repositories view', () => {
 
   it('upkeep.clean-up and upkeep.start-background: the row of the repository shown alone cleans up and has git look after it', () => {
     const own = repositoryRowMenu({ folder: 'C:/prj/app', isShown: true, kind: 'repository' }, shown);
-    expect(labels(own).slice(-2)).toEqual(['Clean up…', 'Look after it in the background…']);
+    expect(labels(own).slice(-3)).toEqual(['Clean up…', 'Look after it in the background…', 'Remember how conflicts are resolved…']);
     expect(run(own, 'Clean up…')).toEqual([{ type: 'action', action: { kind: 'cleanUp' } }]);
     expect(run(own, 'Look after it in the background…')).toEqual([{ type: 'action', action: { kind: 'lookAfter', start: true } }]);
     // Ticked while git looks after it, it stops.
@@ -534,6 +534,39 @@ describe('the menu of a row of the Repositories view', () => {
     expect(labels(repositoryRowMenu(row, { ...shown, commitGraph: { hasFile: true, isIgnored: false } }))).not.toContain('Speed up reading the history');
     expect(labels(repositoryRowMenu(row, { ...shown, commitGraph: { hasFile: false, isIgnored: true } }))).not.toContain('Speed up reading the history');
     expect(labels(repositoryRowMenu(row, shown))).not.toContain('Speed up reading the history');
+  });
+});
+
+describe('what git remembers of conflicts, in the menu of the row of the repository shown (rerere.turn-on, rerere.turn-off)', () => {
+  const row = { folder: 'C:/prj/app', isShown: true, kind: 'repository' } as const;
+  const shown: ShownParts = { root: 'C:\\prj\\app', home: null, agentsWindow: false, worktrees: [], submodules: [] };
+  const run = (entries: ReturnType<typeof repositoryRowMenu>, label: string) => {
+    posted.length = 0;
+    for (const entry of entries) if (entry && entry !== 'separator' && entry.label === label) entry.run();
+    return [...posted];
+  };
+  const entryOf = (menu: ReturnType<typeof repositoryRowMenu>) =>
+    menu.find((each) => each && each !== 'separator' && each.label === 'Remember how conflicts are resolved…');
+
+  it('rerere.turn-on: unticked while git does not remember them, it turns it on', () => {
+    const off = repositoryRowMenu(row, { ...shown, rerere: { isOn: false, stages: false, setsStages: false } });
+    const entry = entryOf(off);
+    expect(entry && entry !== 'separator' && entry.checked).toBe(false);
+    expect(run(off, 'Remember how conflicts are resolved…')).toEqual([{ type: 'action', action: { kind: 'rememberResolutions', start: true } }]);
+    // Before the state says anything, it is off, as git has it.
+    expect(run(repositoryRowMenu(row, shown), 'Remember how conflicts are resolved…')).toEqual([
+      { type: 'action', action: { kind: 'rememberResolutions', start: true } },
+    ]);
+  });
+
+  it('rerere.turn-off: ticked while git remembers them, it turns it off; another row has no such entry', () => {
+    const on = repositoryRowMenu(row, { ...shown, rerere: { isOn: true, stages: false, setsStages: false } });
+    const entry = entryOf(on);
+    expect(entry && entry !== 'separator' && entry.checked).toBe(true);
+    expect(run(on, 'Remember how conflicts are resolved…')).toEqual([{ type: 'action', action: { kind: 'rememberResolutions', start: false } }]);
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown))).not.toContain(
+      'Remember how conflicts are resolved…',
+    );
   });
 });
 

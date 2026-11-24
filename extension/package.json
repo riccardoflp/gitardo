@@ -439,6 +439,16 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.rememberResolutions",
+        "title": "Remember How Conflicts Are Resolved…",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.stopRememberingResolutions",
+        "title": "Stop Remembering How Conflicts Are Resolved",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.setUpstream",
         "title": "Set Upstream of the Current Branch…",
         "category": "Gitardo"

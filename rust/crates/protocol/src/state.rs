@@ -62,6 +62,35 @@ pub struct StateJson {
     /// Whether git keeps its commit-graph file of the repository and reads it (`upkeep.read-commit-graph`, since 1.12).
     #[serde(default)]
     pub commit_graph: CommitGraphJson,
+    /// Whether git remembers how conflicts are resolved (`rerere.read-state`, since 1.13).
+    #[serde(default)]
+    pub rerere: RerereJson,
+    /// The files in conflict git resolved by itself from a resolution it recorded, while an operation is stopped
+    /// (`rerere.read-resolved`, since 1.13).
+    #[serde(default)]
+    pub resolved_as_before: Vec<ResolvedAsBeforeJson>,
+}
+
+/// Whether git records the resolutions of conflicts and writes them again (`rerere.read-state`, since 1.13).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RerereJson {
+    /// Whether it is on: `rerere.enabled`, or, while that is not set, a folder `rr-cache` in the git folder.
+    pub is_on: bool,
+    /// Whether git stages what it writes from a recorded resolution: `rerere.autoUpdate`.
+    pub stages: bool,
+    /// Whether the configuration sets `rerere.autoUpdate`, to `true` or `false`.
+    pub sets_stages: bool,
+}
+
+/// A file in conflict git resolved from a resolution it recorded (`rerere.read-resolved`, since 1.13).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolvedAsBeforeJson {
+    /// Its path from the top of the working tree, with `/`.
+    pub path: String,
+    /// Whether git staged it, as it does with `rerere.autoUpdate`: it is no longer in conflict.
+    pub is_staged: bool,
 }
 
 /// Whether git keeps its commit-graph file of a repository and reads it (`upkeep.read-commit-graph`, since 1.12).

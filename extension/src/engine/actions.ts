@@ -166,6 +166,9 @@ export function engineRuns(
       return [{ feature: action.start ? 'upkeep.start-background' : 'upkeep.stop-background', target: { kind: 'head' } }];
     case 'writeCommitGraph':
       return [{ feature: 'upkeep.write-commit-graph', target: { kind: 'head' } }];
+    // What git remembers of conflicts (M46).
+    case 'rememberResolutions':
+      return [{ feature: action.start ? 'rerere.turn-on' : 'rerere.turn-off', target: { kind: 'head' } }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
     case 'merge':
       if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];

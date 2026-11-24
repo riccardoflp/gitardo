@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.12** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.13** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -128,6 +128,16 @@ needed: `commitGraph` in `RepositoryState`, whether git keeps its commit-graph f
 (`upkeep.read-commit-graph`), for the notice and the entry of the row menu that run `upkeep.write-commit-graph` with
 `feature/run`. An older extension leaves the field aside.
 
+Version 1.13 adds what milestone M46
+([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed))
+needed: `rerere` in `RepositoryState`, whether git remembers how conflicts are resolved (`rerere.read-state`), for the
+entry of the row menu and the commands that run `rerere.turn-on` and `rerere.turn-off` with `feature/run`;
+`resolvedAsBefore`, the files in conflict git resolved from a resolution it recorded (`rerere.read-resolved`), for the
+words of the banner, the rows of **Gitardo Changes** and the review, and `rerere.forget`; and the version `marked` of
+`Version`, a file in conflict as git marked it (`rerere.read-marked`), for **Show what git wrote**. An older extension
+leaves the fields aside; an older engine refuses the version `marked` as parameters it cannot read. Other milestones
+built at the same time may add to 1.13 too.
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -186,7 +196,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.12",
+  protocol: "1.13",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -804,7 +814,10 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `notes: { reference, tip: CommitId | null, commits: CommitId[] }` (1.11), the reference of notes git uses, the
   commit it is at and the commits with a note (`note.read`), `commitGraph: { hasFile, isIgnored }` (1.12), whether git
   keeps its commit-graph file, alone or as a chain, and whether `core.commitGraph` is `false`
-  (`upkeep.read-commit-graph`).
+  (`upkeep.read-commit-graph`), `rerere: { isOn, stages, setsStages }` (1.13), whether git records how conflicts are
+  resolved, whether it stages what it writes from a recorded resolution (`rerere.autoUpdate`) and whether the
+  configuration sets that key (`rerere.read-state`), `resolvedAsBefore: { path, isStaged }[]` (1.13), the files in
+  conflict git resolved as before while an operation is stopped, and whether it staged each (`rerere.read-resolved`).
 - **`Branch`**: `name`, `commit`, `upstream: { reference, remote, remoteBranch, ahead, behind, isGone } | null`,
   `isCheckedOut`, `date`. **`RemoteBranch`**: `name`, `remote`, `commit`, `date`. **`Tag`**: `name`, `commit`, `date`.
   **`Stash`**: `commit`, `index`, `message`, `date`. **`Worktree`**: `folder`, `commit`, `branch`, `isMain`,
@@ -867,7 +880,9 @@ The shapes of the reads (`protocol/src/reads/`), each from the engine's type it 
 
 - **`Bytes`**: `{ base64: string }`, padded with `=`.
 - **`Version`** (`FileVersion` of `git::read::diff`): `{ version: { kind: "absent" } | { kind: "index" } | { kind:
-  "commit", commit } | { kind: "base" } | { kind: "workingTree", unsaved: Bytes | null }, path }`.
+  "commit", commit } | { kind: "base" } | { kind: "workingTree", unsaved: Bytes | null } | { kind: "marked" }, path }`;
+  `marked` (1.13) is a file in conflict as git marked it when it stopped, made again from the versions of the index,
+  its sides named as the Merge page names them (`rerere.read-marked`).
 - **`MergeSides`**: `{ base, current, incoming, result: Bytes, operation: Operation | null, hasBothSides: boolean }`,
   each side empty when its stage has no file.
 - **`ConflictFile`**: `{ path, base, current, incoming }`, each stage `{ mode, object } | null`.

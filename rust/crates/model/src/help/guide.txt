@@ -5496,6 +5496,24 @@ title: GitHub Copilot as the AI provider
 place: the Conflicts page
 show: none
 Done by VS Code itself.
+@card extension rerere.read-state
+title: Whether git remembers resolutions
+place: the Conflicts page
+show: none
+Whether git records and writes again the resolutions of conflicts in this repository, and whether it also stages what it writes.
+In VS Code: read by the engine with the state of the repository, `rerere` in the state (protocol 1.13), which ticks the entry of the menu of the row of the repository in the **Gitardo Repositories** view.
+@card extension rerere.turn-on
+title: Remember how conflicts are resolved
+place: the Conflicts page
+show: quick search
+Turns on, for this repository, git's recording of the resolutions of conflicts and their use the next time.
+In VS Code: **Remember how conflicts are resolved…** in the context menu of the row of the repository shown in the **Gitardo Repositories** view, unticked while it is off, and **Gitardo: Remember How Conflicts Are Resolved…** in the Command Palette, sending `feature/run` of `rerere.turn-on` to the engine, whose question VS Code asks. The command is in the Command Palette at all times, and refuses with the engine's words while git remembers them already.
+@card extension rerere.turn-off
+title: Stop remembering how conflicts are resolved
+place: the Conflicts page
+show: quick search
+Turns git's recording of resolutions off for this repository; what it recorded stays, unused.
+In VS Code: **Remember how conflicts are resolved…**, ticked, in the same menu, and **Gitardo: Stop Remembering How Conflicts Are Resolved** in the Command Palette, sending `feature/run` of `rerere.turn-off`.
 @card extension compare.resolve-revision
 title: Which commit a revision is
 place: the Compare page

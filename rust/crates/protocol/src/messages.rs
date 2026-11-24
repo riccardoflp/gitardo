@@ -76,8 +76,10 @@ pub mod methods {
 /// worktree, the files hidden from git and the reason a worktree is locked; whether git's maintenance looks after the
 /// repository, `notes` in the state, the commits with a note, and `note` in the details of a commit; 1.12 what
 /// milestone M44 needs: `commitGraph` in the state, whether git keeps its commit-graph file of the repository and reads
-/// it.
-pub const VERSION: &str = "1.12";
+/// it; 1.13 what milestone M46 needs: `rerere` and `resolvedAsBefore` in the state, whether git remembers how conflicts
+/// are resolved and the files it resolved as before, and the version `marked` of `read/diff.read-sides`, a file in
+/// conflict as git marked it.
+pub const VERSION: &str = "1.13";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

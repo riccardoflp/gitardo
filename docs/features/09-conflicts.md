@@ -1832,7 +1832,8 @@ it writes.
 - **Reads**: `git config --type=bool --get rerere.enabled` and `git config --type=bool --get rerere.autoUpdate`; when
   the first is not set, whether the folder `git rev-parse --git-path rr-cache` gives exists, which git takes as on.
 - **Uses**: `repo.read-state`, with which it runs, again only when the configuration changed (`repo.watch-changes`).
-- **Extension**: read by the engine with the state of the repository: planned.
+- **Extension**: read by the engine with the state of the repository, `rerere` in the state (protocol 1.13), which ticks
+  the entry of the menu of the row of the repository in the **Gitardo Repositories** view.
 
 Acceptance:
 
@@ -1866,9 +1867,10 @@ Turns on, for this repository, git's recording of the resolutions of conflicts a
 - **After**: says **Git now records how you resolve conflicts in `<repository>`, and resolves the same conflicts the
   same way.**
 - **Uses**: `rerere.read-state`, `rerere.turn-off`.
-- **Extension**: planned: the same entry in the context menu of a row of the **Gitardo Repositories** view, and
-  **Gitardo: Remember How Conflicts Are Resolved…** in the Command Palette, sending `feature/run` of `rerere.turn-on`
-  to the engine.
+- **Extension**: **Remember how conflicts are resolved…** in the context menu of the row of the repository shown in the
+  **Gitardo Repositories** view, unticked while it is off, and **Gitardo: Remember How Conflicts Are Resolved…** in the
+  Command Palette, sending `feature/run` of `rerere.turn-on` to the engine, whose question VS Code asks. The command is
+  in the Command Palette at all times, and refuses with the engine's words while git remembers them already.
 
 Acceptance:
 
@@ -1896,7 +1898,8 @@ Turns git's recording of resolutions off for this repository; what it recorded s
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: `rerere.turn-on` turns it on again, and the resolutions recorded are used again.
 - **Uses**: `rerere.read-state`.
-- **Extension**: planned, with `rerere.turn-on`.
+- **Extension**: **Remember how conflicts are resolved…**, ticked, in the same menu, and **Gitardo: Stop Remembering How
+  Conflicts Are Resolved** in the Command Palette, sending `feature/run` of `rerere.turn-off`.
 
 Acceptance:
 

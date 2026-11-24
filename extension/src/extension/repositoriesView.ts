@@ -242,6 +242,7 @@ export class RepositoriesView implements vscode.Disposable {
       submodules: state.submodules,
       isLookedAfter: state.isLookedAfter,
       commitGraph: state.commitGraph,
+      rerere: state.rerere,
     };
     return { type: 'repositories', rows, shown };
   }

@@ -689,6 +689,10 @@ What the rules leave, a language model can propose. **Resolve with AI** in the b
 
 In the Changes view a file in conflict also has **Take the current side** and **Take the incoming side**, for when one side is simply right: `git checkout --ours` or `--theirs` followed by `git add`, or `git rm` when that side deleted the file. Gitardo asks first and says what each side is in the operation that stopped, with a warning when the file has lines neither side has, typed in it since git stopped, which would be lost too. Undo marks the conflicts again, except in a file one side deleted, which git cannot mark again.
 
+#### Conflicts git resolved before
+
+Git can remember how each conflict was resolved and write the same resolution the next time the same conflict comes, as when a merge is undone and made again, or a branch is rebased again (`git rerere`). **Remember how conflicts are resolved…** in the context menu of the row of the repository in the **Gitardo Repositories** view, or **Gitardo: Remember How Conflicts Are Resolved…** in the Command Palette, turns it on for the repository, and asks whether git leaves the file it wrote for you to look at, or stages it at once. The entry is ticked while git remembers them: chosen again, or **Gitardo: Stop Remembering How Conflicts Are Resolved**, turns it off, and what git recorded stays, unused.
+
 ### Ask Gitardo
 
 Ask `@gitardo` in VS Code's Chat how to do something with Gitardo, in your own words and in any language: *how do I put my changes aside*, *how do I squash my last three commits?* It answers in a few steps, with the names of the controls as they are on screen and where they are, as the answer comes, and under it a button for each feature it names that has a command, such as **Stash Changes**. **Gitardo: Ask How To…** opens the Chat with `@gitardo ` typed.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Version 1.13 of the protocol of `gitardo-engine --stdio`, for the extension: the state of a repository says whether
+  git remembers how conflicts are resolved (`rerere`) and which files in conflict it resolved as before
+  (`resolvedAsBefore`), and `read/diff.read-sides` reads the version `marked`, a file in conflict as git marked it,
+  for **Show what git wrote**.
+
 ## 1.3.0 - 2026-11-24
 
 - Once the history of a repository of 10,000 commits or more is read, and git keeps no commit-graph file of it, the

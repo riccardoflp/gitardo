@@ -154,5 +154,16 @@
   "commitGraph": {
     "hasFile": true,
     "isIgnored": false
-  }
+  },
+  "rerere": {
+    "isOn": true,
+    "stages": true,
+    "setsStages": true
+  },
+  "resolvedAsBefore": [
+    {
+      "path": "src/merged.rs",
+      "isStaged": true
+    }
+  ]
 }

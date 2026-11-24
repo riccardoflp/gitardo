@@ -226,6 +226,7 @@ fn each_version_of_a_file_has_its_kind_and_the_bytes_not_saved_travel_in_base64(
         FileVersionJson::WorkingTree {
             unsaved: Some(BytesJson::of(b"edited\n")),
         },
+        FileVersionJson::Marked,
     ];
     let kinds: Vec<Value> = versions
         .iter()
@@ -238,7 +239,8 @@ fn each_version_of_a_file_has_its_kind_and_the_bytes_not_saved_travel_in_base64(
             json!("index"),
             json!("commit"),
             json!("base"),
-            json!("workingTree")
+            json!("workingTree"),
+            json!("marked")
         ]
     );
     for version in versions {

@@ -788,6 +788,12 @@ export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' 
             checked: !!shown.isLookedAfter,
             run: () => act({ kind: 'lookAfter', start: !shown.isLookedAfter }),
           },
+          // Ticked while git remembers how conflicts are resolved; unticked it asks how (`rerere.turn-on`, `rerere.turn-off`).
+          {
+            label: 'Remember how conflicts are resolved…',
+            checked: !!shown.rerere?.isOn,
+            run: () => act({ kind: 'rememberResolutions', start: !shown.rerere?.isOn }),
+          },
         ]
       : [];
   // Any row, in a tab of the graph of its own that keeps it whatever the other views show (`repo.tab-repository`).

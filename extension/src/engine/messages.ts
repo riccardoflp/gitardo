@@ -26,9 +26,11 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * (milestone M36), the validation of the number of a pull request and the host question of the token of a GitLab
  * (milestone M37), the files hidden from git and the locks of worktrees (milestone M38), whether git's maintenance
  * looks after the repository and the notes of commits (milestone M40); 1.12 has `commitGraph` in the state, whether
- * git keeps its commit-graph file of the repository (milestone M44).
+ * git keeps its commit-graph file of the repository (milestone M44); 1.13 has `rerere` and `resolvedAsBefore` in the
+ * state, whether git remembers how conflicts are resolved and the files it resolved as before, and the version `marked`
+ * of a side of `read/diff.read-sides`, a file in conflict as git marked it (milestone M46).
  */
-export const PROTOCOL = '1.12';
+export const PROTOCOL = '1.13';
 
 /** The names of the methods. */
 export const Method = {
@@ -370,9 +372,15 @@ export interface CompareView {
   merge: { kind: 'notAsked' } | { kind: 'clean' } | { kind: 'conflicts'; files: string[] } | { kind: 'unknown' };
 }
 
-/** A version of a file, for a side of a Diff page. */
+/** A version of a file, for a side of a Diff page; `marked`, a file in conflict as git marked it (1.13, `rerere.read-marked`). */
 export interface Version {
-  version: { kind: 'absent' } | { kind: 'index' } | { kind: 'commit'; commit: string } | { kind: 'base' } | { kind: 'workingTree'; unsaved: Bytes | null };
+  version:
+    | { kind: 'absent' }
+    | { kind: 'index' }
+    | { kind: 'commit'; commit: string }
+    | { kind: 'base' }
+    | { kind: 'workingTree'; unsaved: Bytes | null }
+    | { kind: 'marked' };
   path: string;
 }
 

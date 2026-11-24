@@ -112,9 +112,24 @@ fn repository() -> RepositoryState {
         commit_graph: WRITTEN,
         notes: notes(),
         lfs: model::lfs::LfsStatus::default(),
-        rerere: model::rerere::RerereState::default(),
-        resolved_as_before: Vec::new(),
+        rerere: REMEMBERS,
+        resolved_as_before: resolved_as_before(),
     }
+}
+
+/// Git remembers how conflicts are resolved, and stages what it writes from a recorded resolution.
+const REMEMBERS: model::rerere::RerereState = model::rerere::RerereState {
+    is_on: true,
+    stages: true,
+    sets_stages: true,
+};
+
+/// One file git resolved as before, and staged.
+fn resolved_as_before() -> Vec<model::rerere::ResolvedAsBefore> {
+    vec![model::rerere::ResolvedAsBefore {
+        path: String::from("src/merged.rs"),
+        is_staged: true,
+    }]
 }
 
 /// One file hidden from git, skipped in the working tree.

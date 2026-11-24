@@ -247,6 +247,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.setUpstream', () => controller.action({ kind: 'setUpstream', name: '' })),
     command('gitardo.pushTags', () => controller.action({ kind: 'pushTags' })),
     command('gitardo.checkTags', () => controller.action({ kind: 'checkTags' })),
+    command('gitardo.rememberResolutions', () => controller.action({ kind: 'rememberResolutions', start: true })),
+    command('gitardo.stopRememberingResolutions', () => controller.action({ kind: 'rememberResolutions', start: false })),
     command('gitardo.createWorktree', () => controller.action({ kind: 'worktreeAdd' })),
     command('gitardo.switchWorktree', () => controller.command('switchWorktree')),
     command('gitardo.worktreeSetup', () => controller.command('worktreeSetup')),

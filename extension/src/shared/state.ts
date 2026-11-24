@@ -285,6 +285,29 @@ export interface RepositoryState {
   notes?: Notes;
   /** Whether git keeps its commit-graph file of the repository and reads it (protocol 1.12, `upkeep.read-commit-graph`). */
   commitGraph?: CommitGraph;
+  /** Whether git remembers how conflicts are resolved (protocol 1.13, `rerere.read-state`). */
+  rerere?: Rerere;
+  /**
+   * The files in conflict git resolved by itself from a resolution it recorded, while an operation is stopped (protocol
+   * 1.13, `rerere.read-resolved`); none while git does not remember resolutions.
+   */
+  resolvedAsBefore?: ResolvedAsBefore[];
+}
+
+/** Whether git records the resolutions of conflicts and writes them again the next time (`rerere.read-state`). */
+export interface Rerere {
+  isOn: boolean;
+  /** Git stages what it writes from a recorded resolution: `rerere.autoUpdate`. */
+  stages: boolean;
+  /** The configuration sets `rerere.autoUpdate`, to `true` or `false`. */
+  setsStages: boolean;
+}
+
+/** A file in conflict git resolved as before, from a resolution it recorded (`rerere.read-resolved`). */
+export interface ResolvedAsBefore {
+  path: string;
+  /** Git staged it, as it does with `rerere.autoUpdate`: it is no longer in conflict, and is listed with the staged files. */
+  isStaged: boolean;
 }
 
 /** Whether git keeps its commit-graph file of a repository, alone or as a chain, and whether git reads it. */

@@ -15,8 +15,8 @@ use model::submodule::{Checkout, Distance, Submodule};
 use super::{
     BisectJson, BranchJson, ChangeKindJson, CheckoutJson, CommitGraphJson, ConflictKindJson, ConflictedFileJson,
     DistanceJson, FileChangeJson, HeadJson, IdentityJson, NotesJson, OperationJson, RebaseStopJson, RemoteBranchJson,
-    SigningJson, SigningKindJson, SkippedFileJson, StashJson, StateJson, StopKindJson, SubmoduleJson, TagJson,
-    UpstreamJson, WorkingTreeJson, WorktreeJson,
+    RerereJson, ResolvedAsBeforeJson, SigningJson, SigningKindJson, SkippedFileJson, StashJson, StateJson,
+    StopKindJson, SubmoduleJson, TagJson, UpstreamJson, WorkingTreeJson, WorktreeJson,
 };
 
 /// A path as the system gives it, as a string.
@@ -81,6 +81,19 @@ impl From<&RepositoryState> for StateJson {
                 has_file: state.commit_graph.has_file,
                 is_ignored: state.commit_graph.is_ignored,
             },
+            rerere: RerereJson {
+                is_on: state.rerere.is_on,
+                stages: state.rerere.stages,
+                sets_stages: state.rerere.sets_stages,
+            },
+            resolved_as_before: state
+                .resolved_as_before
+                .iter()
+                .map(|file| ResolvedAsBeforeJson {
+                    path: file.path.clone(),
+                    is_staged: file.is_staged,
+                })
+                .collect(),
         }
     }
 }
