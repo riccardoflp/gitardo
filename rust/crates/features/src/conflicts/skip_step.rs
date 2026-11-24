@@ -6,7 +6,7 @@ use model::state::Operation;
 use super::{command, in_progress, noun, refuse};
 
 /// Skips the step the operation stopped on: `git <operation> --skip`. A merge has no steps; a rebase stopped to edit
-/// or split a commit is not skipped, which would throw away what is not committed and keep the commit anyway. It asks
+/// or split a commit is not skipped, which would throw away what is not committed and keep the commit anyway. It warns
 /// first while files are staged, changed or in conflict, since git throws away what was resolved in the step.
 ///
 /// Feature: conflicts.skip-step
@@ -38,7 +38,7 @@ pub fn skip_step(context: &Context, _answers: &Answers) -> Outcome {
     let has_changes =
         !(working_tree.staged.is_empty() && working_tree.unstaged.is_empty() && working_tree.conflicted.is_empty());
     let danger = if has_changes {
-        Danger::Confirm(Text::from("What was resolved in this step is thrown away."))
+        Danger::Destructive(Text::from("What was resolved in this step is thrown away."))
     } else {
         Danger::None
     };
@@ -80,7 +80,7 @@ mod tests {
     }
 
     #[test]
-    fn conflicts_skip_step__it_asks_first_while_what_was_resolved_in_the_step_would_be_thrown_away() {
+    fn conflicts_skip_step__it_warns_first_while_what_was_resolved_in_the_step_would_be_thrown_away() {
         let clean = plan(skip_step(&during(Operation::Rebase), &Answers::new()));
         assert_eq!(clean.danger, Danger::None);
         let mut resolved = state();
@@ -89,7 +89,7 @@ mod tests {
         let asked = plan(skip_step(&context(resolved, Target::Head), &Answers::new()));
         assert_eq!(
             asked.danger,
-            Danger::Confirm("What was resolved in this step is thrown away.".into())
+            Danger::Destructive("What was resolved in this step is thrown away.".into())
         );
         let mut in_conflict = state();
         in_conflict.operation = Some(Operation::Patch);
@@ -99,7 +99,7 @@ mod tests {
         });
         assert!(matches!(
             plan(skip_step(&context(in_conflict, Target::Head), &Answers::new())).danger,
-            Danger::Confirm(_)
+            Danger::Destructive(_)
         ));
     }
 

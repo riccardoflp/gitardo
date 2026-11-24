@@ -1087,7 +1087,7 @@ show: show where
 Makes a commit of what is staged, with the message of the commit box.
 Entry points: **Commit** in the draft and under the message in the Changes page; `Ctrl+Enter` (`Cmd+Enter` on macOS) in the message box.
 Offered when: **Amend last commit** is not ticked, the message is not empty and something is changed; otherwise the button is disabled.
-Refuses: "Enter a commit message." with an empty message; "There are no changes to commit." when nothing is staged and nothing else is changed.
+Refuses: "Enter a commit message." with an empty message; "There are no changes to commit." when nothing is staged and nothing else is changed; "Resolve the conflicts first: staging all changes would commit the files in conflict with their markers." when nothing is staged and a file is in conflict, which `git add --all` would take as resolved.
 @card desktop commit.amend
 title: Amend the last commit
 place: the draft and the Changes page

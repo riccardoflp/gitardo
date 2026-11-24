@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Commit** with nothing staged refuses while a file is in conflict, where staging everything first would have taken
+  the file as resolved and committed its markers.
+- **Skip** of a step of a cherry-pick, a revert, a rebase or a patch warns, where it asked a question, while what was
+  resolved in the step would be thrown away.
 - **Undo** right after pushing a tag, deleting one from its remote, setting an upstream, fetching nothing new or
   another operation it cannot take back that changes only the remote or git's configuration says so, where it took
   back the operation before it.

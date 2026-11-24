@@ -154,9 +154,9 @@ Leaves out the commit or patch the operation stopped on and goes on with the nex
 - **Offered when**: a rebase, cherry-pick, revert or `git am` is in progress, and the rebase did not stop to edit or
   split a commit (skipping there would throw away what is not committed and keep the commit anyway).
 - **Plan**: `git <operation> --skip`. Title: **Skip this step of the \<operation\>**.
-- **Danger**: Confirm whenever the working tree has staged, unstaged or conflicted files, because `--skip` throws away
-  the changes of the step, conflicts already resolved included: *What was resolved in this step is thrown away.* None
-  when the working tree is clean: then nothing is lost.
+- **Danger**: Destructive whenever the working tree has staged, unstaged or conflicted files, because `--skip` throws
+  away the changes of the step, conflicts already resolved included: the warning *What was resolved in this step is
+  thrown away.* None when the working tree is clean: then nothing is lost.
 - **Undo**: by the reflog. What the skipped step had resolved is not brought back.
 - **Refuses**: during a merge: *A merge has no steps to skip.*
 - **Extension**: **Skip** in the banner sends `feature/run` of `conflicts.skip-step` to Gitardo's engine
@@ -169,7 +169,7 @@ Acceptance:
       picked.
 - [ ] During a merge, no **Skip** is offered and the function refuses with *A merge has no steps to skip.*
 - [ ] At a stop to edit a commit in an interactive rebase, **Skip** is not offered.
-- [ ] With a file of the step staged as resolved, **Skip** asks first with *What was resolved in this step is thrown
+- [ ] With a file of the step staged as resolved, **Skip** warns first with *What was resolved in this step is thrown
       away.*, whatever `commandPreview` says; with the working tree clean it runs without a question.
 - [ ] Extension: a rebase of `main` onto `other` stopped on its only commit, skipped, ends with no operation, `main`
       checked out and at the commit of `other`.
