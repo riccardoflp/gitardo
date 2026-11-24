@@ -14,6 +14,7 @@ mod conflicts;
 mod files;
 mod graph;
 mod hosting;
+mod lfs;
 mod repository;
 mod tags;
 
@@ -43,6 +44,10 @@ pub use graph::{
     ParentsJson, PositionParams, PositionResult, RowJson, SearchModeJson, TimelineJson,
 };
 pub use hosting::{HostingJson, HostingPageJson, HostingServiceJson, WebLinkParams, WebLinkResult};
+pub use lfs::{
+    LfsContentJson, LfsContentParams, LfsFileJson, LfsFilesJson, LfsFilesParams, LfsLockJson, LfsLocksJson,
+    LfsLocksParams, LfsPatternJson, LfsStatusJson, StoredPointerJson,
+};
 pub use repository::{
     ChecksJson, CommandProposalJson, CommandsResult, CommonFolderResult, GitHubTokenParams, GitHubTokenResult,
     IdentityKeysJson, IgnoredEntryJson, IgnoredHowJson, IgnoredKindJson, PathStatusJson, PathsParams, PathsResult,
@@ -140,11 +145,20 @@ pub mod methods {
     pub const COMMIT_AUTHORS: &str = "read/commit.read-authors";
     /// `tag.read-remote-tags`: the tags of a remote, compared with those of the repository (version 1.11).
     pub const TAG_REMOTE_TAGS: &str = "read/tag.read-remote-tags";
+    /// `lfs.read-status`: whether Git LFS is there, its version, whether the repository is set up and its patterns
+    /// (version 1.13).
+    pub const LFS_STATUS: &str = "read/lfs.read-status";
+    /// `lfs.read-files`: the files of the commit checked out stored with Git LFS (version 1.13).
+    pub const LFS_FILES: &str = "read/lfs.read-files";
+    /// `lfs.read-locks`: the locks of the server, asked over the network (version 1.13).
+    pub const LFS_LOCKS: &str = "read/lfs.read-locks";
+    /// `lfs.read-content`: a file of a commit or of the index with the content in place of its pointer (version 1.13).
+    pub const LFS_CONTENT: &str = "read/lfs.read-content";
     /// The notification of a page of `read/graph.read-commits` asked with `stream`, as it is read (version 1.8).
     pub const GRAPH_ROWS: &str = "read/graph.rows";
 
-    /// Every read of version 1.11, in the order of the table of the protocol.
-    pub const ALL: [&str; 41] = [
+    /// Every read of version 1.13, in the order of the table of the protocol.
+    pub const ALL: [&str; 45] = [
         GRAPH_COMMITS,
         GRAPH_POSITION,
         SEARCH_MATCHES,
@@ -186,6 +200,10 @@ pub mod methods {
         DETAILS_SIGNATURE,
         COMMIT_AUTHORS,
         TAG_REMOTE_TAGS,
+        LFS_STATUS,
+        LFS_FILES,
+        LFS_LOCKS,
+        LFS_CONTENT,
     ];
 
     /// The host question `read/github.read-pull-requests` asks: the token of GitHub that VS Code keeps.

@@ -69,6 +69,10 @@ pub struct StateJson {
     /// (`rerere.read-resolved`, since 1.13).
     #[serde(default)]
     pub resolved_as_before: Vec<ResolvedAsBeforeJson>,
+    /// Whether Git LFS is there and set up, and the patterns of the files the repository stores with it
+    /// (`lfs.read-status`, since 1.13); the version only once the repository has patterns or is set up.
+    #[serde(default)]
+    pub lfs: crate::reads::LfsStatusJson,
 }
 
 /// Whether git records the resolutions of conflicts and writes them again (`rerere.read-state`, since 1.13).

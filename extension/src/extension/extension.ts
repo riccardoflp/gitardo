@@ -45,6 +45,9 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   context.subscriptions.push(engine);
   reads.use(() => engine.running);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
+  // A version stored with Git LFS and not downloaded offers **Download**, after which the tabs read it again.
+  const fileSystem = new GitFileSystem((side) => controller.sayNotDownloaded(side));
+  controller.readAgainAfterDownload = (root) => fileSystem.readAgain(root);
   controller.useEngine(engine);
   controller.useTokenForgetting((host) => Promise.resolve(context.secrets.delete(hostingTokenKey(host))));
   const blameSource = new BlameSource(log);
@@ -254,6 +257,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.createWorktree', () => controller.action({ kind: 'worktreeAdd' })),
     command('gitardo.switchWorktree', () => controller.command('switchWorktree')),
     command('gitardo.worktreeSetup', () => controller.command('worktreeSetup')),
+    command('gitardo.largeFiles', () => controller.command('largeFiles')),
     ...(
       [
         ['gitardo.linkIntoWorktrees', 'link'],
@@ -266,9 +270,11 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ...(['ignore', 'stopTracking', 'hideFromGit', 'showToGit'] as const).map((kind) =>
       command(`gitardo.${kind}`, (uri) => controller.leaveAloneFromExplorer(kind, uri instanceof vscode.Uri ? uri : undefined)),
     ),
+    // Git LFS, on the file the Explorer's menu was opened on (`lfs.track`).
+    command('gitardo.storeWithLfs', (uri) => controller.storeWithLfsFromExplorer(uri instanceof vscode.Uri ? uri : undefined)),
     command('gitardo.addSubmodule', () => controller.action({ kind: 'submoduleAdd' })),
     command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
-    vscode.workspace.registerFileSystemProvider(SCHEME, new GitFileSystem(), { isReadonly: true, isCaseSensitive: true }),
+    vscode.workspace.registerFileSystemProvider(SCHEME, fileSystem, { isReadonly: true, isCaseSensitive: true }),
     vscode.window.registerWebviewViewProvider(GRAPH_VIEW, graphProvider, webviewOptions),
     // The tabs of the graph come back after a reload, on what their pages kept (`repo.keep-tabs`).
     vscode.window.registerWebviewPanelSerializer(GRAPH_TAB, {

@@ -128,5 +128,10 @@
     "stages": false,
     "setsStages": false
   },
-  "resolvedAsBefore": []
+  "resolvedAsBefore": [],
+  "lfs": {
+    "version": null,
+    "isSetUp": false,
+    "patterns": []
+  }
 }

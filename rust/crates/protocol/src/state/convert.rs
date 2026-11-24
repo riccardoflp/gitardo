@@ -94,6 +94,7 @@ impl From<&RepositoryState> for StateJson {
                     is_staged: file.is_staged,
                 })
                 .collect(),
+            lfs: crate::reads::LfsStatusJson::from(&state.lfs),
         }
     }
 }

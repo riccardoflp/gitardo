@@ -811,7 +811,10 @@ export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' 
       : [];
   // Any row, in a tab of the graph of its own that keeps it whatever the other views show (`repo.tab-repository`).
   const tab: MenuEntry[] = [{ label: 'Open in a new tab', run: () => post({ type: 'openInTab', root: row.folder }) }, 'separator'];
-  return [...tab, ...rowEntries(row, shown), ...upkeep];
+  // What a repository stores with Git LFS, in a tab of its own, the row shown first (`lfs.page`).
+  const largeFiles: MenuEntry[] =
+    row.kind === 'repository' ? ['separator', { label: 'Large files…', run: () => post({ type: 'openLargeFiles', root: row.folder }) }] : [];
+  return [...tab, ...rowEntries(row, shown), ...largeFiles, ...upkeep];
 }
 
 /** What a row has before the upkeep: the menu of a worktree or a submodule of the repository shown, or what asks for a folder. */

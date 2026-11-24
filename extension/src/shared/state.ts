@@ -8,6 +8,8 @@
  * unless the field says it is a full one (`refs/heads/main`).
  */
 
+import type { LfsStatus } from './lfs';
+
 /** How a file changed. */
 export type ChangeKind = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'typeChanged';
 
@@ -292,6 +294,11 @@ export interface RepositoryState {
    * 1.13, `rerere.read-resolved`); none while git does not remember resolutions.
    */
   resolvedAsBefore?: ResolvedAsBefore[];
+  /**
+   * Whether Git LFS is there and set up, and the patterns of the files the repository stores with it (protocol 1.13,
+   * `lfs.read-status`); the version only once the repository has patterns or is set up.
+   */
+  lfs?: LfsStatus;
 }
 
 /** Whether git records the resolutions of conflicts and writes them again the next time (`rerere.read-state`). */

@@ -40,6 +40,12 @@ pub enum AnswerJson {
         /// Yes or no.
         value: bool,
     },
+    /// Names an operation offered is given, read before it was offered (1.13): the files that
+    /// **Store them with Git LFS in the next commit** stores, which `lfs.track` read.
+    Names {
+        /// The names.
+        names: Vec<String>,
+    },
 }
 
 impl From<AnswerJson> for Answer {
@@ -51,6 +57,7 @@ impl From<AnswerJson> for Answer {
             AnswerJson::Confirmed => Answer::Confirmed,
             AnswerJson::Path { path } => Answer::Path(PathBuf::from(path)),
             AnswerJson::Flag { value } => Answer::Flag(value),
+            AnswerJson::Names { names } => Answer::Names(names),
         }
     }
 }
@@ -72,6 +79,7 @@ impl AnswerJson {
                 path: path.to_string_lossy().into_owned(),
             },
             Answer::Flag(value) => AnswerJson::Flag { value: *value },
+            Answer::Names(names) => AnswerJson::Names { names: names.clone() },
             _ => return None,
         })
     }

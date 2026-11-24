@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use git::read::file_view::{RevisionFileRequest, read_revision};
 use git::{CancelToken, Git};
 use model::CommitId;
-use model::lfs::{LfsContent, LfsContentRequest, LfsPointer, SideOfPage, StoredSide, StoredWithLfs};
+use model::lfs::{LfsContent, LfsPointer, SideOfPage, StoredSide, StoredWithLfs};
 use views::file_view::FilePageId;
 
 /// How many pixels the picture of an SVG has for each logical pixel: two, so that it stays sharp on a screen that has
@@ -80,18 +80,10 @@ pub fn read_shown(folder: &Path, job: &FileJob, cancel: &CancelToken) -> ShownRe
 }
 
 /// The pointer some bytes are and the content it stands for in the store, when they are a pointer of Git LFS at a path
-/// the repository stores with it; none for any other file, or when git cannot say.
+/// the repository stores with it; none for any other file, or when git cannot say (`git::read::lfs::stored_content`).
 #[must_use]
 pub fn stored_content(git: &Git, path: &str, bytes: &[u8]) -> Option<(LfsPointer, LfsContent)> {
-    let pointer = model::lfs::pointer(bytes)?;
-    // A file git cannot say the attributes of is shown as it is, as a file that only looks like a pointer is.
-    if !git::read::lfs::read_is_stored(git, path).ok()? {
-        return None;
-    }
-    let request = LfsContentRequest { pointer };
-    // A store that cannot be found holds nothing: the content is said not downloaded.
-    let content = git::read::lfs::read_content(git, &request).unwrap_or(LfsContent::NotDownloaded);
-    Some((request.pointer, content))
+    git::read::lfs::stored_content(git, path, bytes)
 }
 
 /// Reads an image of the repository and draws it (`file-view.read-image`); none when it is not there, is not an image or

@@ -8,7 +8,16 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { EngineClient } from './client';
-import type { Bytes, ComparisonSide, DiscoveredRepository, HostingPage, PathStatus, SetupPreview as EngineSetupPreview, TakeRequest } from './messages';
+import type {
+  Bytes,
+  StoredPointer,
+  ComparisonSide,
+  DiscoveredRepository,
+  HostingPage,
+  PathStatus,
+  SetupPreview as EngineSetupPreview,
+  TakeRequest,
+} from './messages';
 import type { Hosting, HostingService } from '../shared/hosting';
 import {
   type ComparedSides,
@@ -39,6 +48,7 @@ import {
   type RepoParts,
   type WorkingTree,
 } from '../shared/protocol';
+import { notDownloadedText } from '../shared/lfs';
 import type { MermaidAnswer, MermaidTheme } from '../shared/mermaid';
 import { MARKED } from '../shared/rerere';
 import type { ResolvedAsBefore } from '../shared/state';
@@ -61,6 +71,16 @@ const FULL_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 const HASH = /^[0-9a-f]{7,64}$/;
 /** Past this many commits on the two sides of a comparison together, they are not matched with each other. */
 const MATCHED_COMMITS = 2000;
+
+/** A file of a commit or of the index as the views open it, with the pointer of Git LFS it is, if it is one. */
+export interface ShownFile {
+  /** The bytes shown; undefined when there is no such file. */
+  bytes: Uint8Array | undefined;
+  /** The pointer, at a path the repository stores with Git LFS; null for any other file. */
+  stored: StoredPointer | null;
+  /** The commit the revision named, by its full id; null for the index and the sides of a conflict. */
+  commit: string | null;
+}
 
 /** A repository or a worktree the extension reads, by its folder. */
 export interface Repository {
@@ -365,26 +385,34 @@ export class Reads {
   /**
    * The bytes of a file as a revision has it, or as the index has it for the revision `''` or `:0`, or as git marked
    * it when it stopped for `:marked` (`rerere.read-marked`), so that an image is given as it is; undefined when there
-   * is no such file.
+   * is no such file. A file stored with Git LFS is its content when the store of the repository has it, and otherwise
+   * the text that says it is not downloaded, never the lines of its pointer (`lfs.show-in-pages`).
    */
   async fileBytesAt(root: string, revision: string, file: string): Promise<Uint8Array | undefined> {
+    return (await this.fileShownAt(root, revision, file)).bytes;
+  }
+
+  /**
+   * A file as `fileBytesAt` gives it, with the pointer it is when it is stored with Git LFS and the commit the revision
+   * named, for **Download** (`lfs.read-content`).
+   */
+  async fileShownAt(root: string, revision: string, file: string): Promise<ShownFile> {
     const client = this.client();
     const stage = /^:([0-3])$/.exec(revision)?.[1];
     const raw = (bytes: Bytes) => new Uint8Array(Buffer.from(bytes.base64, 'base64'));
     if (revision === MARKED) {
       const { left } = await client.diffSides(root, { version: { kind: 'marked' }, path: file }, { version: { kind: 'absent' }, path: file });
-      return left ? raw(left) : undefined;
+      return { bytes: left ? raw(left) : undefined, stored: null, commit: null };
     }
-    if (revision === '' || stage === '0') {
-      const { left } = await client.diffSides(root, { version: { kind: 'index' }, path: file }, { version: { kind: 'absent' }, path: file });
-      return left ? raw(left) : undefined;
-    }
-    if (stage) {
+    if (stage && stage !== '0') {
       const sides = await client.mergeSides(root, file, null);
-      return raw(stage === '1' ? sides.base : stage === '2' ? sides.current : sides.incoming);
+      return { bytes: raw(stage === '1' ? sides.base : stage === '2' ? sides.current : sides.incoming), stored: null, commit: null };
     }
-    const bytes = await client.fileRevision(root, file, revision);
-    return bytes ? raw(bytes) : undefined;
+    const read = await client.lfsContent(root, file, revision === '' || stage === '0' ? null : revision);
+    if (read.stored && !read.stored.isDownloaded) {
+      return { bytes: new Uint8Array(Buffer.from(notDownloadedText(file, read.stored), 'utf8')), stored: read.stored, commit: read.commit };
+    }
+    return { bytes: read.bytes ? raw(read.bytes) : undefined, stored: read.stored, commit: read.commit };
   }
 
   /** The message git prepared for the commit of a squash merge, without the newlines at its end (R3); null otherwise. */

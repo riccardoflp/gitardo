@@ -470,7 +470,14 @@ describe('the menu of a row of the Repositories view', () => {
 
   it('reveals the folder of a row of another repository, copies its path, opens a terminal there and shows it', () => {
     const menu = repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown);
-    expect(labels(menu)).toEqual(['Open in a new tab', 'Open in terminal', expect.stringMatching(/^Reveal in|^Open containing folder$/), 'Show in Gitardo', 'Copy path']);
+    expect(labels(menu)).toEqual([
+      'Open in a new tab',
+      'Open in terminal',
+      expect.stringMatching(/^Reveal in|^Open containing folder$/),
+      'Show in Gitardo',
+      'Copy path',
+      'Large files…',
+    ]);
     expect(run(menu, 'Open in terminal')).toEqual([{ type: 'action', action: { kind: 'worktreeTerminal', path: 'C:/prj/web' } }]);
     expect(run(menu, /^Reveal in|^Open containing folder$/)).toEqual([{ type: 'action', action: { kind: 'worktreeReveal', path: 'C:/prj/web' } }]);
     expect(run(menu, 'Show in Gitardo')).toEqual([{ type: 'selectRepo', root: 'C:/prj/web' }]);
@@ -516,6 +523,17 @@ describe('the menu of a row of the Repositories view', () => {
       expect(labels(menu)[0]).toBe('Open in a new tab');
       expect(run(menu, 'Open in a new tab')).toEqual([{ type: 'openInTab', root: row.folder }]);
     }
+  });
+
+  it('lfs.page: the row of a repository opens its Large files tab, shown first; a worktree or a submodule has no such entry', () => {
+    for (const row of [
+      { folder: 'C:/prj/web', isShown: false, kind: 'repository' },
+      { folder: 'C:/prj/app', isShown: true, kind: 'repository' },
+    ] as const) {
+      expect(run(repositoryRowMenu(row, shown), 'Large files…')).toEqual([{ type: 'openLargeFiles', root: row.folder }]);
+    }
+    expect(labels(repositoryRowMenu({ folder: 'c:\\prj\\app-login', isShown: false, kind: 'worktree' }, shown))).not.toContain('Large files…');
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/app/lib/core', isShown: false, kind: 'submodule' }, shown))).not.toContain('Large files…');
   });
 
   it('upkeep.clean-up and upkeep.start-background: the row of the repository shown alone cleans up and has git look after it', () => {

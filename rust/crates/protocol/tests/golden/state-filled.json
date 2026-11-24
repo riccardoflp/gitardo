@@ -165,5 +165,16 @@
       "path": "src/merged.rs",
       "isStaged": true
     }
-  ]
+  ],
+  "lfs": {
+    "version": "3.7.1",
+    "isSetUp": true,
+    "patterns": [
+      {
+        "pattern": "*.psd",
+        "file": ".gitattributes",
+        "line": 1
+      }
+    ]
+  }
 }
