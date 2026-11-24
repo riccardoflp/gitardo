@@ -444,6 +444,10 @@ async function main() {
       case 'save':
       case 'compareWithSaved':
         return [];
+      // Nor tabs of the graph: the page is the one view there is.
+      case 'openInTab':
+      case 'closeTab':
+        return [];
       case 'ready':
         return [...(await state()), ...(await comparison()), ...(reviewing ? await review() : [])];
       case 'getReview':
