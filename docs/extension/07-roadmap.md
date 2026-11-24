@@ -25,6 +25,9 @@ Exit: no open question older than this milestone; RS17 and RS19 removed or turne
 
 ## M2 — Nothing lost without asking
 
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tries
+each of these against the engine that runs them now.
+
 The risks where the user's work can be lost, each fixed with a test that failed before:
 
 - RS2: **Undo** right after an operation it cannot take back says so instead of taking back the one before, and
@@ -37,6 +40,9 @@ Exit: the **Differs** lines of those cards are gone, and their status is *Docume
 
 ## M3 — What runs is what is shown
 
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tries
+each of these against the engine that runs them now.
+
 - RS7: the files of an interactive rebase are written as `writes` of the operation, after the question, and logged; the
   question shows the todo list and the new messages; the reads take no lock.
 - RS12: a series of cherry-picks, and a cherry-pick of a merge commit, have the conflict preview.
@@ -48,6 +54,9 @@ Exit: the **Differs** lines of those cards are gone, and their status is *Docume
 Exit: the **Differs** lines of those cards are gone.
 
 ## M4 — The checks
+
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tries
+each of these against the engine that runs them now.
 
 - RS6: a check that every test named in **Tested by** exists.
 - RS3: a check of the imports between folders, as the architecture draws them (R1.4).

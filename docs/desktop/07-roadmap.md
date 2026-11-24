@@ -1824,6 +1824,171 @@ with **Close** (Q1523); `retainContextWhenHidden` stays (Q1524). The suite of `t
 steps, its three new ones included (the reload is the serializer's, called by the step, not a reload of the window);
 the two that fail fail before M44 too.
 
+## M46 — The extension stages lines, remembers resolutions and loads more of a shallow history
+
+The cards Gitardo Desktop built in M32, M33 and M39 for the lines selected, the resolutions git remembers and a shallow
+clone, built in the extension, where they are *Planned*
+([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed),
+Q1525–Q1526). Asked by the maintainer on 2026-11-24, after M45. The engine already does each of them: the extension
+adds its entries, its views and its words, and sends `feature/run` as its other operations do.
+
+Built in five phases, each one commit or more, each ending with its cards built and their tests passing.
+
+1. **The lines selected, in the Flow Diff.** The selection of either side of the Flow Diff, Monaco's own, mapped to the
+   rows of the aligned model (`src/flow/diff/lineMap.ts`); **Stage lines**, **Unstage lines** and **Revert lines** in
+   its context menu, greyed out with no changed row selected; the first two send `diff.stage-lines` and
+   `diff.unstage-lines` with the rows, as `src/flow/chunks.ts` sends `diff.stage-change`, and **Revert lines** edits
+   the document and saves it, as reverting a change does. Unit tests of the mapping of a selection to rows; a step of
+   `test/e2e/suite.ts` that stages two of five lines added. Cards: `diff.select-lines`, `diff.lines-patch`,
+   `diff.stage-lines`, `diff.unstage-lines`, `diff.revert-lines`.
+2. **Remembering resolutions.** Whether git remembers them, and the files it resolved as before, in the state the
+   engine sends (a minor version of the protocol if a part is added); **Remember how conflicts are resolved…** in
+   `repositoryRowMenu`, ticked while it is on, and in the Command Palette. Cards: `rerere.read-state`,
+   `rerere.turn-on`, `rerere.turn-off`.
+3. **What git resolved as before.** *Resolved as before* in `OperationBanner.tsx`, in the rows of **Gitardo Changes**
+   and in the message of the stop; **Show what git wrote**, which opens the diff of `rerere.read-marked`, and **Forget
+   this resolution…**, in the menu of such a row and on its card in the review tab (`ConflictCard.tsx`). A step of the
+   suite with a merge met twice. Cards: `rerere.read-resolved`, `rerere.read-marked`, `rerere.resolved-as-before`,
+   `rerere.forget`, `review.recorded`.
+4. **A shallow clone, and the whole message.** Where the history of a shallow clone ends, from the state; the line
+   under the dot of the oldest commits fetched and the last row of `CommitList.tsx`, **The history ends here: this is a
+   shallow clone.**, with **Load more history** and **Load the whole history**, in the **Graph** view, its tabs and
+   **Gitardo Graph**; **Gitardo: Load More History** and **Gitardo: Load the Whole History** in the Command Palette.
+   **Copy message** in `menus.ts` copies the whole message, body included. Cards: `repo.read-shallow`,
+   `graph.shallow-end`, `sync.deepen`, `sync.unshallow`, `commits.copy-message`.
+5. **Said.** The README of the extension where the Flow Diff, the conflicts and the graph are described; its CHANGELOG
+   under **Unreleased**; the cards Built in the extension.
+
+Exit: in VS Code, in the Flow Diff of a file with five lines added, the second and third selected and **Stage lines**
+leave `git diff --cached` with those two lines, and **Unstage lines** takes them out again; **Revert lines** on a line
+changed gives it back its old text; with **Remember how conflicts are resolved** ticked from the row of the repository,
+a merge resolved, committed, undone and met again says *Resolved as before* in **Gitardo Changes**, **Show what git
+wrote** shows the markers beside what git wrote, and **Forget this resolution…** marks the conflict again; a clone
+with two commits shows the last row, **Load more history** with `3` lists five and **Load the whole history** lists
+them all; **Copy message** on a commit with a body puts its whole message on the clipboard; every card of the
+milestone is Built in the extension and passes its tests.
+
+## M47 — Git LFS in the extension
+
+The files stored with Git LFS shown by their content in what the extension opens, **Store with Git LFS…** in VS Code's
+Explorer, and the **Large files** page as an editor tab, with the locks
+([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed),
+Q1197, Q1527–Q1528). Asked by the maintainer on 2026-11-24, with M46, beside which it can be built: it touches the
+sides of the diffs, VS Code's Explorer and a tab of its own, none of which M46 changes. Its tests need Git LFS, which
+the runners of the pipeline have; where it is missing they are skipped and say so (Q1198).
+
+Built in five phases, each one commit or more, each ending with its cards built and their tests passing.
+
+1. **The content, not the pointer.** The sides of the diffs and the files the extension opens come from the engine,
+   which gives the content of a file stored with Git LFS when it is in the store of the repository; a side not
+   downloaded opens as a text that says so, with its size, and VS Code's message offers **Download**, which sends
+   `feature/run` of `lfs.download`. Whether Git LFS is there and set up, and the patterns, come with the state. Cards:
+   `lfs.read-status`, `lfs.read-files`, `lfs.pointer`, `lfs.read-content`, `lfs.show-in-pages`, `lfs.download`.
+2. **Store with Git LFS.** **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, asking the
+   pattern; **Store them with Git LFS in the next commit** where the files of that pattern are already committed.
+   Cards: `lfs.track`, `lfs.store-committed`.
+3. **The Large files tab.** `gitardo.largeFiles`, an editor tab (`LargeFilesApp.tsx`), opened from
+   `repositoryRowMenu` and from **Gitardo: Large Files** in the Command Palette, one for each repository, as the page
+   of what new worktrees get is: Git LFS and whether it is set up, the patterns, the files and whether each is
+   downloaded, **Download all**, **Set up**, **Stop storing with Git LFS**. Cards: `lfs.page`, `lfs.set-up`,
+   `lfs.untrack`.
+4. **Locks.** The locks read when the tab opens and on **Refresh**, a server without them said so, **Lock** and
+   **Unlock**, someone else's after the warning. Cards: `lfs.read-locks`, `lfs.lock`, `lfs.unlock`.
+5. **Said.** The README of the extension, a section on large files; its CHANGELOG under **Unreleased**; the cards
+   Built in the extension; [11-data.md](../extension/11-data.md) if the tab keeps anything across a reload.
+
+Exit: in VS Code, in a clone of a repository that stores `*.psd` with Git LFS, made without downloading, the diff of a
+`.psd` says it is not downloaded, with its size, and **Download** shows its content after; **Store with Git LFS…** on a
+`.bin` in the Explorer adds its pattern to `.gitattributes`; the **Large files** tab lists the files, which are
+downloaded and which not, and the locks of a server of the tests that has them, and **Lock** then **Unlock** a file
+shows it locked and then not; every card of the milestone is Built in the extension and passes its tests, or is
+skipped saying Git LFS is missing.
+
+## M48 — The rows and the menus of the extension, and the differences left
+
+The last cards *Planned* in the extension, the rows of the graph and the icons of its menus, and the seven cards that
+say *Differs* settled, so that no card waits in the extension
+([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed),
+Q619, Q655, Q656, Q399, Q1529–Q1530). Asked by the maintainer on 2026-11-24. After M46, whose last row of a shallow
+history its rows lay out with the others. Phases 4 and 5 change the engine, and so Gitardo Desktop too.
+
+Built in six phases, each one commit or more, each ending with its cards built and their tests passing.
+
+1. **Compact rows.** `gitardo.graph.compactRows`, on by default, with the desktop's name and meaning: on, the wide
+   **Graph** view is one line, as it is today, and the narrow one keeps its two lines; off, every view has the
+   desktop's two lines, the message then the labels, the author and the date. Kept in
+   [11-data.md](../extension/11-data.md). Cards: `graph.compact-rows`.
+2. **The labels that do not fit.** The desktop's rule (the message keeps three fifths, whole labels, then `+N`)
+   ported to `src/shared` with its tests, the widths measured in the page; `+N` lists every label under the pointer
+   in `CommitList.tsx`, each with its menu; on two lines the labels start the line under the message. A step of the
+   suite on a commit with eight labels. Cards: `graph.label-overflow`.
+3. **Icons in the menus.** The codicon nearest to each icon of the desktop's table, in a table of the extension
+   beside it (`src/webview/menuIcons.ts`), drawn by `ContextMenu.tsx` before each item; a unit test that every entry of
+   `menus.ts` with an icon in the desktop has one; the screenshots of `npm run test:ui` looked at. Cards:
+   `ui.menu-icons`.
+4. **The differences of the engine.** Discarding before the first commit says the files are deleted from disk, with
+   the extension's sentence, in both apps (A3); `preview::needs_confirmation` confirms no plan with no step and no
+   danger, under `all` too, in both apps (G6); under a host the first choice of the model says **The first model**
+   (G2); the comparison of a commit with itself and the skip of an empty pick keep the engine's ways (G5, D12), each
+   said in the CHANGELOG of the extension. The entries of [04-differences.md](../transition/04-differences.md) say
+   *Settled in M48*. Cards: `changes.discard`, `changes.discard-all`, `ai.choose-model`, `compare.open-on-github`,
+   `cherry-pick.skip-empty`.
+5. **Settings written by the engine's plans.** `FollowUp::WriteSetting` gets a `target`, the workspace folder, the
+   workspace file or the user (Q399); under the extension `worktree-setup.save` and the entries of the Explorer plan
+   follow-ups in place of the steps that write a file, which the window keeps; the extension carries them out with
+   `WorkspaceConfiguration.update` under `gitardo.worktrees.*`, and `saveSetup` of `src/extension/worktreeSettings.ts`
+   goes. Saving is then shown first under `all` and logged, as RS16 asks. Cards: `worktree-setup.save`,
+   `worktree-setup.remove-from`.
+6. **Said.** The README and the CHANGELOG of each app it reaches; the cards Built; the index of the catalog with no
+   card *Planned* or *Differs* in the extension.
+
+Exit: in VS Code, `gitardo.graph.compactRows` off gives the wide **Graph** view two lines a commit, and on gives it
+one again; a commit with eight labels in a narrow view shows those that fit and `+N`, whose list under the pointer
+names the others and opens their menus; every menu of the graph shows its icons; discarding a staged file before the
+first commit says it is deleted, in both apps; with `gitardo.commandPreview` set to `all`, choosing the model asks
+nothing more than its picks; saving what new worktrees get from the page is in the Command log, and the setting is in
+the place chosen; the index of the catalog has no card *Planned* or *Differs* in the extension, and every card of the
+milestone passes its tests.
+
+## M49 — The checks pass on every system, and the risks tried again
+
+No test fails on `main` before a change, on any system; the risks of the extension, written about its own code before
+the engine replaced it, are tried against what runs now; and the checks its roadmap planned are built
+([D91](../08-decisions.md#d91--the-checks-pass-on-every-system-and-what-was-found-weak-is-checked-again-proposed),
+Q378, Q1519, Q1531–Q1532). Asked by the maintainer on 2026-11-24. It takes up M2 to M4 of the
+[roadmap of the extension](../extension/07-roadmap.md), and can be built beside M47 and M48, apart from phase 2,
+which changes the engine where M48 does too.
+
+Built in five phases, each one commit or more, each ending with its tests passing.
+
+1. **The known failures.** Each fixed, or skipped where it cannot pass with its reason in its own code: the steps of
+   the end-to-end suite of the Flow Diff that say *is running in* on Linux, the kind *modified* or *added* of the
+   files in the details of a commit, `archive.save` in the Vitest tests of the notes of the engine, rule R2.6 of
+   `cargo xtask check` on `repo.switch-tab`, and the step of the **Gitardo Repositories** view that fails now and then.
+   The suite run three times in a row in Xvfb passes every step.
+2. **The risks tried against the engine.** RS2 and RS7 to RS15 of [13-risks.md](../extension/13-risks.md), each with
+   a test of the engine or of the suite that fails while it is true: fixed in the engine where it still is, with a
+   line in the CHANGELOG of each app; the row removed in the commit that says why. RS16, what is left after M48 (the
+   revert of the Flow Diff, **Save** in **Gitardo Changes**), logged or said not to be an operation; RS17, the README
+   of the extension read again against the code.
+3. **The debt measured again.** RS1 with the files of today (`controller.ts` is 3,272 lines), each split along a seam
+   it already has, the follow-ups, the tabs and the commands, into files under 1,000 lines, with no change a user
+   sees; RS20, the areas that still have no card in [features/extension/](../features/extension/README.md).
+4. **The checks.** A check that every test a card names in **Tested by** exists, in the check of the catalog of
+   `cargo xtask check` (`rust/xtask/src/check/catalog.rs`) and in `docs/catalog.py`, which `npm run check:docs` runs
+   (RS6); a test of the imports between the folders of the extension, as
+   [02-architecture.md](../extension/02-architecture.md) draws them (RS3); `npm test` runs `check:docs` when Python is
+   there and says it skipped it when not (RS19, Q378); `test/perf/vscode.mjs` fails above the times of
+   [12-quality.md](../extension/12-quality.md) times one and a half, run by the pipeline on Linux (RS18, Q1519). Each
+   check made to fail once on purpose.
+5. **Said.** [13-risks.md](../extension/13-risks.md) with the rows left; the roadmap of the extension with M2 to M4
+   done by M49; [06-testing.md](../extension/06-testing.md) and [06-testing.md](06-testing.md) with the new checks.
+
+Exit: `cargo xtask check`, `npm test` and the end-to-end suite pass on `main` on Windows, Linux and macOS with no test
+failing, and each one skipped says why; every row of the risks is either gone or still true with a test that shows it;
+no file of the extension is over 1,000 lines; a card naming a test that does not exist, an import across folders the
+architecture forbids, and a read made twice as slow each fail their check.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

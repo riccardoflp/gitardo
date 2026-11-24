@@ -2345,6 +2345,96 @@ asked to avoid); the side bar following the tab in sight rather than in focus (a
 would move the side bar at every click in the editor); the same change in Gitardo Desktop (one repository shown at a
 time is the shape of its window, D50).
 
+## D90 — The extension does what Gitardo Desktop does, and the differences left are settled (proposed)
+
+*Asked by the maintainer on 2026-11-24 for milestones M46 to M48: after M45, the cards Planned in the extension
+are built there and the cards that say Differs are settled, so that no card waits in the extension. The details
+proposed while planning, with the answers this decision proposes to Q619, Q655, Q656, Q1197 and Q399.*
+
+Forty-six cards are *Built* in Gitardo Desktop and *Planned* in the extension, and seven say *Differs* there, which
+[D39](#d39--desktop-first-and-a-status-for-each-app) allows for a time, not for good. The engine already does all of
+them: what is left is the extension's part, its entries, its views and its words, and a few changes of the engine
+where the two apps should not differ.
+
+- **Every card *Built* or *Host only* in the extension.** When M48 is done, the index of the
+  [catalog](features/README.md) has no card *Planned* or *Differs* in the extension. A card that VS Code does for the
+  extension is *Host only*, as today; a difference that stays becomes a line of the card's **Extension** entry, said
+  in its CHANGELOG, and the card *Built*.
+- **The lines selected, in the Flow Diff.** **Stage lines**, **Unstage lines** and **Revert lines** in the context
+  menu of either side of the Flow Diff, sending `diff.stage-lines` and `diff.unstage-lines` to the engine with the rows
+  selected, as its button of a change sends `diff.stage-change`; **Revert lines** edits VS Code's document and saves
+  it, as reverting a change does there
+  ([A5](transition/04-differences.md#a5-revert-one-change-in-a-diff)). The selection is Monaco's own, mapped to the rows
+  of the aligned model. VS Code's own diff editor keeps its **Stage Selected Ranges**.
+- **What git remembers of conflicts, where the extension shows them.** **Remember how conflicts are resolved…** in the
+  menu of a row of the **Gitardo Repositories** view and in the Command Palette; *Resolved as before* in the banner
+  and the rows of **Gitardo Changes** and in the message of the stop; the card of such a file in the review tab
+  (`ConflictsApp`), with **Show what git wrote** and **Forget this resolution…**.
+- **A shallow clone, in the graph.** The line under the dot of the oldest commits fetched, the last row with **Load
+  more history** and **Load the whole history**, in the **Graph** view, its tabs and **Gitardo Graph**, and the two
+  commands in the Command Palette.
+- **Git LFS: the pages, then a tab of its own.** The diffs and the files the extension opens show a file stored with
+  Git LFS by its content, or as a text that says it is not downloaded, with **Download** in a message of VS Code;
+  **Store with Git LFS…** in the context menu of a file of VS Code's Explorer. The **Large files** page is an editor
+  tab, `gitardo.largeFiles`, opened from the menu of a row of the **Gitardo Repositories** view and from the Command
+  Palette, as the page of what new worktrees get is (Q1197): a view of the side bar would sit beside four others for a
+  page opened now and then.
+- **The rows of the graph.** `gitardo.graph.compactRows` keeps the desktop's name and meaning and is on by default in
+  the extension, where the wide view has always been one line: off gives every view the two lines of the desktop, in
+  any width (Q655). The labels that do not fit end in `+N`, which lists them all under the pointer, with the
+  desktop's rule ported to `src/shared` and its tests; on two lines they start the line under the message, as
+  [D86](#d86--on-two-lines-the-labels-of-a-commit-start-the-line-under-its-message-proposed) says for the desktop
+  (Q656).
+- **Icons in the menus.** The menus the extension draws in its webviews show, beside each item, the codicon nearest to
+  the icon the desktop shows, from a table kept beside the desktop's (Q619).
+- **Copy message copies the message.** The whole message, body included, not its first line alone
+  (`commits.copy-message`).
+- **The differences left.** Discarding before the first commit says that the files are deleted, in both apps
+  ([A3](transition/04-differences.md#a3-discard-before-the-first-commit-the-warning)); a plan with no step and no
+  danger is never confirmed, also under `commandPreview` `all`, in both apps
+  ([G6](transition/04-differences.md#g6-plans-with-no-step-confirmed-under-gitardocommandpreview-set-to-all)); the
+  engine's words for choosing the model and for a comparison of a commit with itself are kept, under a host the first
+  choice saying **The first model** ([G2](transition/04-differences.md#g2-the-choices-of-the-model-that-resolves-conflicts),
+  [G5](transition/04-differences.md#g5-refusals-of-the-engine-around-github-and-the-models)); the skip of an empty
+  pick asked under `all` is kept ([D12](transition/04-differences.md#d12-the-automatic-skip-of-an-empty-pick-is-asked-first-under-commandpreview-all)).
+- **Settings written by the engine's plans.** `FollowUp::WriteSetting` takes a `target`, the workspace folder, the
+  workspace file or the user (Q399); saving what new worktrees get, from the page or from the Explorer, is the engine's
+  plan, shown and logged like any other, and the extension carries out its follow-ups with
+  `WorkspaceConfiguration.update` in the place asked, under the keys `gitardo.worktrees.*` it always had
+  ([W4](transition/04-differences.md#w4-where-the-settings-of-new-worktrees-are-read-and-saved),
+  [W12](transition/04-differences.md#w12-saving-what-new-worktrees-get-is-now-a-logged-plan)).
+
+Rejected: leaving these cards *Planned* until a user asks (D39 lets the extension lag, not stay behind); building line
+staging over VS Code's diff editor (its selection and its **Stage Selected Ranges** are VS Code's, and Gitardo's
+diff is the Flow Diff); a view of the side bar for the large files; a `gitardo.graph.compactRows` off by default in the
+extension (it would change what every user of the wide view sees today).
+
+## D91 — The checks pass on every system, and what was found weak is checked again (proposed)
+
+*Asked by the maintainer on 2026-11-24 for milestone M49. The details proposed while planning, with the answers this
+decision proposes to Q378 and Q1519.*
+
+A few tests fail on Linux before any change and are run past by everyone who builds there; the
+[risks](extension/13-risks.md) of the extension were written about its own code, most of which the engine replaced in
+stage 10; and some checks the roadmap of the extension planned (M2 to M4 there) were never built.
+
+- **A known failure is fixed, or it is not a failure.** No test of `cargo xtask check`, `npm test` or the end-to-end
+  suite fails on `main` on any system. A test that cannot pass on a system says why and is skipped there, in its own
+  code, not by whoever runs it.
+- **Each risk checked against the engine.** Every row of the risks is tried against what runs now, with a test in the
+  engine or in the extension: a risk still true is fixed in the engine, so that both apps get the fix; one no longer
+  true leaves the table, in the commit that says why. The rows of debt are measured again (the files over 1,000 lines,
+  the areas without cards).
+- **The checks the roadmap planned.** Every test named in a card's **Tested by** exists; the imports between the
+  folders of the extension follow its architecture; `npm test` runs the check of the documents when Python is there
+  and says so when it is not (Q378); `test/perf/vscode.mjs` fails above the times of
+  [12-quality.md](extension/12-quality.md) times one and a half, on the large repository, and the pipeline runs it on
+  Linux alone, whose machines are the steadiest (Q1519).
+
+Rejected: running past the failures until they are looked at one by one (they hide new ones); fixing a risk in the
+extension's code where the engine runs the operation (the desktop would keep it); a threshold on every system (the
+times of the runners of macOS and Windows vary too much to fail on).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -5949,3 +6039,32 @@ planned; each is built as it says until the maintainer answers otherwise.
 - **Q1524** — D89: the tabs of the graph in the editor are made with `retainContextWhenHidden`, as every view now. Ten
   tabs open keep ten pages in memory. Should a tab out of sight let its page go, and draw again from its state when it
   comes back?
+
+### Of the extension doing what the desktop does, and of the checks, from Q1525
+
+Questions of milestones M46 to M48
+([D90](#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed)) and M49
+([D91](#d91--the-checks-pass-on-every-system-and-what-was-found-weak-is-checked-again-proposed)), asked while they are
+planned; each is built as it says until the maintainer answers otherwise.
+
+- **Q1525** — `diff.stage-lines`: the desktop stages, unstages and reverts the lines selected with `Alt+S`, `Alt+U`
+  and `Alt+R`. In the Flow Diff, which is a page of VS Code, should the same keys be bound while it has the focus, or
+  only the context menu offered, leaving the keys to VS Code and to the user's own bindings?
+- **Q1526** — `rerere.turn-on`: in the extension it is in the menu of a row of the **Gitardo Repositories** view and in
+  the Command Palette. Should the message of an operation that stopped on conflicts offer it too, while it is off, as
+  Q1199 asks for the desktop?
+- **Q1527** — `lfs.track`: **Store with Git LFS…** in the context menu of a file of VS Code's Explorer asks a pattern
+  from its extension. On a folder, should it offer the pattern of the folder (`assets/**`), or not be offered?
+- **Q1528** — `lfs.page`: the desktop reads the locks when the page opens and on **Refresh**. The tab of the extension
+  stays open while hidden: should it read them again when it comes back into sight, or only on **Refresh**?
+- **Q1529** — `graph.compact-rows`: with `gitardo.graph.compactRows` off, the wide **Graph** view gets two lines, as
+  the desktop does. Should **Compact rows** be in a menu of the toolbar of the graph, as the desktop has it in the menu
+  of its view (`graph.view-menu`), or only in VS Code's settings?
+- **Q1530** — `worktree-setup.save`: when the engine plans the settings of new worktrees under the extension, the
+  place they are written is the one the page chose (the workspace folder, the workspace file or the user). Should a
+  workspace with a single folder still offer the workspace file, which VS Code writes only when one is open?
+- **Q1531** — D91: a test that cannot pass on a system is skipped there with its reason. Should the pipeline list the
+  tests skipped in the summary of its run, so that one skipped by mistake is seen?
+- **Q1532** — D91: the risks of the extension that are still true once tried against the engine are fixed in the
+  engine. Should their rows move to a page of risks of both apps, in `docs/transition/` or beside the decisions, since
+  they are no longer the extension's alone?
