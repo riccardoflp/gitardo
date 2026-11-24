@@ -42,7 +42,12 @@ fn two_files_changed_on_both_sides() -> Repository {
 
 /// The git commands the operations ran, as the Command log has them.
 fn logged(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 /// Gives the intents to the window, saying yes to every plan shown and the default to every question, until the

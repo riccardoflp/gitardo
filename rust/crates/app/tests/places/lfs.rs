@@ -109,7 +109,11 @@ pub(super) fn run_clicked(window: &mut Window, state: &mut State, name: &str) ->
             Message::FeatureConfirms(_) => driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true))),
             Message::FeatureEnded { ended, log } => {
                 assert!(matches!(ended, app::store::feature::Ended::Ran { .. }), "{ended:?}");
-                return log.into_iter().map(|entry| entry.line).collect();
+                return log
+                    .into_iter()
+                    .filter(super::support::is_ran)
+                    .map(|entry| entry.line)
+                    .collect();
             }
             _ => {}
         }

@@ -1,5 +1,6 @@
-//! The command log: every step of every plan, written before it starts, with what went wrong under a step that
-//! failed; and, at the debug level, the reads with how long each took.
+//! The command log: every step of every plan, written before it starts with what it is given on its standard input,
+//! then what git printed under a step that succeeded or what went wrong under a step that failed; and, at the debug
+//! level, the reads with how long each took.
 
 use std::collections::VecDeque;
 use std::time::Duration;
@@ -27,6 +28,10 @@ pub enum LogKind {
     Step,
     /// What git or the system said when the step above failed.
     Failure,
+    /// A line of what the step above was given on its standard input, indented as the preview shows it.
+    Input,
+    /// A line of what git printed under the step above, which succeeded: a hint of a push, what a pull did.
+    Output,
     /// A warning a plan writes about the steps after it.
     Warning,
     /// A read, at the debug level, with how long it took.
@@ -74,7 +79,7 @@ impl CommandLog {
         self.level
     }
 
-    /// Writes a step, before it starts.
+    /// Writes a step, before it starts, and under it what it is given on its standard input, as the preview shows it.
     ///
     /// Feature: log.record
     pub fn record(&mut self, time: Timestamp, step: &Step) {
@@ -87,6 +92,25 @@ impl CommandLog {
             kind,
             line: step.log_line(),
         });
+        for line in step.input_lines() {
+            self.push(LogEntry {
+                time,
+                kind: LogKind::Input,
+                line,
+            });
+        }
+    }
+
+    /// Writes what git printed under the step that succeeded, a line each, as a terminal would leave it: of a line
+    /// that git wrote again and again, such as its progress, the last of it; lines with nothing on them are left out.
+    pub fn record_output(&mut self, time: Timestamp, printed: &str) {
+        for line in printed_lines(printed) {
+            self.push(LogEntry {
+                time,
+                kind: LogKind::Output,
+                line,
+            });
+        }
     }
 
     /// Writes what git or the system said, under the step that failed.
@@ -174,6 +198,18 @@ impl CommandLog {
     }
 }
 
+/// The lines git printed as a terminal would leave them: what follows the last carriage return of each line, without
+/// the spaces at its end, and none that is empty.
+fn printed_lines(printed: &str) -> Vec<String> {
+    printed
+        .split('\n')
+        .filter_map(|line| {
+            let shown = line.trim_end().rsplit('\r').next().unwrap_or_default().trim_end();
+            (!shown.is_empty()).then(|| shown.to_owned())
+        })
+        .collect()
+}
+
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
@@ -215,6 +251,44 @@ mod tests {
         log.got_past_failure();
         let kinds: Vec<&LogKind> = log.entries().map(|entry| &entry.kind).collect();
         assert_eq!(kinds, vec![&LogKind::Step, &LogKind::Warning, &LogKind::Step]);
+    }
+
+    #[test]
+    fn log_record__a_step_has_its_standard_input_under_it_as_the_preview_shows_it() {
+        let step = Step::Git {
+            arguments: ["apply", "--cached", "-"].into_iter().map(Into::into).collect(),
+            directory: PathBuf::from("."),
+            input: Some(b"--- a/a.rs\n+++ b/a.rs\n".to_vec()),
+        };
+        let mut log = CommandLog::new(LogLevel::Info);
+        log.record(Timestamp(1), &step);
+        let lines: Vec<(&LogKind, &str)> = log.entries().map(|entry| (&entry.kind, entry.line.as_str())).collect();
+        assert_eq!(
+            lines,
+            vec![
+                (&LogKind::Step, "git apply --cached -"),
+                (&LogKind::Input, "  --- a/a.rs"),
+                (&LogKind::Input, "  +++ b/a.rs"),
+            ]
+        );
+    }
+
+    #[test]
+    fn log_record__what_git_printed_is_written_a_line_each_as_a_terminal_leaves_it() {
+        let mut log = CommandLog::new(LogLevel::Info);
+        log.record_output(
+            Timestamp(1),
+            "To /remote.git\r\n   1a2b3c4..5d6e7f8  main -> main\n\nWriting objects:  50% (1/2)\rWriting objects: 100% (2/2), done.\n",
+        );
+        let lines: Vec<(&LogKind, &str)> = log.entries().map(|entry| (&entry.kind, entry.line.as_str())).collect();
+        assert_eq!(
+            lines,
+            vec![
+                (&LogKind::Output, "To /remote.git"),
+                (&LogKind::Output, "   1a2b3c4..5d6e7f8  main -> main"),
+                (&LogKind::Output, "Writing objects: 100% (2/2), done."),
+            ]
+        );
     }
 
     #[test]

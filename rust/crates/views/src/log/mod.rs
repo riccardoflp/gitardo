@@ -21,6 +21,9 @@ pub struct LogLine {
     pub text: String,
     /// Whether it is what git or the system said when the step above it failed.
     pub is_failure: bool,
+    /// Whether it is what the step above it was given on its standard input, or what git printed under it once it
+    /// succeeded, rather than a step: drawn muted.
+    pub is_printed: bool,
 }
 
 /// What the Command log shows.
@@ -78,7 +81,8 @@ pub fn log_view(state: &LogState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     Vec::new()
 }
 
-/// The lines, in a list that follows the last one, each with its time; what git or the system said in red.
+/// The lines, in a list that follows the last one, each with its time; what git or the system said in red, and what a
+/// step was given or printed muted.
 fn lines_list(state: &LogState<'_>, ui: &mut Ui<'_>, inside: Rect) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
@@ -115,6 +119,8 @@ fn lines_list(state: &LogState<'_>, ui: &mut Ui<'_>, inside: Rect) {
         });
         let color = if line.is_failure {
             Tone::Error.color(&theme)
+        } else if line.is_printed && !row.is_selected {
+            theme.colors.muted_foreground
         } else {
             row.foreground
         };

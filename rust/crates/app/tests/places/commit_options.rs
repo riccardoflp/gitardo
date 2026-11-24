@@ -85,7 +85,12 @@ pub(super) fn commit(driver: &OperationsDriver, state: &mut State, message: &str
     driver.intent(state, Intent::Changes(ChangesIntent::Commit));
     for _ in 0..8 {
         if matches!(driver.next(state), Message::FeatureEnded { .. }) {
-            let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+            let lines: Vec<String> = state
+                .log
+                .entries()
+                .filter(|entry| super::support::is_ran(entry))
+                .map(|entry| entry.line.clone())
+                .collect();
             let mut commits = lines.iter().filter(|line| line.starts_with("git commit"));
             return commits.next_back().cloned().unwrap_or_default();
         }

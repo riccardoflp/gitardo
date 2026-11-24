@@ -13,12 +13,15 @@ pub fn log_lines(log: &CommandLog) -> Vec<LogLine> {
         .map(|entry| {
             let text = match &entry.kind {
                 LogKind::Read(took) => format!("{} ({} ms)", entry.line, took.as_millis()),
-                LogKind::Step | LogKind::Failure | LogKind::Warning => entry.line.clone(),
+                LogKind::Step | LogKind::Failure | LogKind::Warning | LogKind::Input | LogKind::Output => {
+                    entry.line.clone()
+                }
             };
             LogLine {
                 time: views::text::activity::time_of_day(entry.time.0),
                 text,
                 is_failure: entry.kind == LogKind::Failure,
+                is_printed: matches!(entry.kind, LogKind::Input | LogKind::Output),
             }
         })
         .collect()

@@ -463,3 +463,9 @@ impl AiDriver {
         }
     }
 }
+
+/// Whether a line of the log says what ran or what went wrong, rather than what a step was given on its standard input
+/// or what git printed under it once it succeeded (`log.record`), which the tests of the steps run leave aside.
+pub(super) fn is_ran(entry: &engine::LogEntry) -> bool {
+    !matches!(entry.kind, engine::LogKind::Input | engine::LogKind::Output)
+}

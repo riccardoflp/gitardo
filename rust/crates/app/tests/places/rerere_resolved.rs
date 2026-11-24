@@ -57,7 +57,13 @@ fn choose_on_m(state: &mut State, driver: &OperationsDriver, item: &str) -> (Opt
                 driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true)));
             }
             Message::FeatureEnded { log, .. } => {
-                return (warning, log.into_iter().map(|entry| entry.line).collect());
+                return (
+                    warning,
+                    log.into_iter()
+                        .filter(super::support::is_ran)
+                        .map(|entry| entry.line)
+                        .collect(),
+                );
             }
             _ => {}
         }

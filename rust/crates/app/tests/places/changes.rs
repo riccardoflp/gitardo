@@ -155,7 +155,12 @@ fn commit_create__after_the_commit_the_message_box_is_empty() {
     let mut window = Window::new(ThemeName::Dark, WIDE);
     click(&driver, &mut state, &mut window, (Role::Button, "Commit"));
     until_ended(&driver, &mut state);
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(lines, ["git commit -m \"Fix the parser\""]);
     let (_, tree) = window.draw(&state, &[]);
     let message = find(&tree, Role::TextInput, "Message (Ctrl+Enter to commit on main)");
@@ -298,7 +303,12 @@ fn changes_stage_all__with_no_conflict_ticking_the_header_box_runs_git_add_all_u
     let mut window = Window::new(ThemeName::Dark, WIDE);
     click(&driver, &mut state, &mut window, (Role::CheckBox, "Changes 2"));
     until_ended(&driver, &mut state);
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(lines, ["git add --all"]);
     let (_, tree) = window.draw(&state, &[]);
     assert_eq!(ticked(&tree, "new.txt"), Some(Toggled::True));
@@ -389,7 +399,12 @@ fn identity_use_global__unsets_the_name_and_email_of_the_repository_and_the_glob
         )),
     );
     until_ended(&driver, &mut state);
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(
         lines,
         ["git config --unset-all user.name", "git config --unset-all user.email"]

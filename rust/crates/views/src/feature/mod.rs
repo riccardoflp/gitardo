@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests;
 
-use model::contract::{Answer, Answers, FeatureId, Plan, Question, QuestionKind, Step, Target};
+use model::contract::{Answer, Answers, FeatureId, Plan, Question, QuestionKind, Target};
 use ui::layout::{Area, Insets, inset};
 use ui::{
     Choice, ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogButton, DialogRole, InputBox, Label, Message,
@@ -394,9 +394,7 @@ pub fn plan_lines(plan: &Plan) -> Vec<String> {
     let mut lines = Vec::new();
     for step in &plan.steps {
         lines.push(step.log_line());
-        if let Step::Git { input: Some(input), .. } = step {
-            lines.extend(String::from_utf8_lossy(input).lines().map(|line| format!("  {line}")));
-        }
+        lines.extend(step.input_lines());
     }
     lines
 }

@@ -61,7 +61,12 @@ fn branch_checkout__double_clicking_feature_in_the_branch_rail_checks_it_out_and
         matches!(driver.next(&mut state), app::store::Message::FeatureEnded { .. }),
         "a checkout shows no plan"
     );
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(lines.first().map(String::as_str), Some("git checkout feature"));
     assert_eq!(repository.git(&["branch", "--show-current"]).trim(), "feature");
     assert!(is_filled(&state, "feature"), "the label of feature is filled after");
@@ -81,7 +86,12 @@ fn branch_checkout_detached__the_header_says_detached_at_the_short_hash_after() 
         &mut state,
         ("branch.checkout-detached", Target::Commit(commit)),
     );
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(lines.first(), Some(&format!("git checkout --detach {parent}")));
     let short = parent.get(..7).unwrap();
     let (_, tree) = window.draw(&state, &[]);
@@ -108,7 +118,12 @@ fn undo_last__after_deleting_a_branch_in_gitardo_undo_creates_it_again_at_the_sa
         "the branch is deleted"
     );
     run_to_the_end(&driver, &mut state, ("undo.last", Target::Head));
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert!(
         lines.contains(&format!("git branch feature {}", commit.trim())),
         "{lines:?}"

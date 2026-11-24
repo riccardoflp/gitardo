@@ -123,7 +123,11 @@ fn lfs_lock__lock_on_art_logo_psd_runs_git_lfs_lock_json_and_the_page_then_shows
             _ => {}
         }
     };
-    let lines: Vec<String> = log.into_iter().map(|entry| entry.line).collect();
+    let lines: Vec<String> = log
+        .into_iter()
+        .filter(super::support::is_ran)
+        .map(|entry| entry.line)
+        .collect();
     assert_eq!(lines, ["git lfs lock --json art/logo.psd"]);
     let tree = drawn(&mut window, &state);
     assert!(says(&tree, words::YOU), "{:?}", lock_requests(&server));

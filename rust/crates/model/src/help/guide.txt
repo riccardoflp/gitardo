@@ -3080,7 +3080,7 @@ Entry points: every operation, through the engine, which decides with.
 title: Log every command that changes something
 place: the header and the bottom panel
 show: none
-Every step of every plan is written to the command log before it starts, and its result after.
+Every step of every plan is written to the command log before it starts, with what it is given on its standard input, and its result after: what git printed once it succeeded, or what went wrong.
 @card desktop log.show
 title: Show the command log
 place: the header and the bottom panel
@@ -6502,6 +6502,12 @@ place: the header and the bottom panel
 show: none
 Before a plan runs, the engine decides from `commandPreview` and the plan's danger whether to show it, and waits for the user's answer.
 Entry points: every operation, through the engine, which decides with.
+@card extension log.record
+title: Log every command that changes something
+place: the header and the bottom panel
+show: none
+Every step of every plan is written to the command log before it starts, with what it is given on its standard input, and its result after: what git printed once it succeeded, or what went wrong.
+In VS Code: the engine sends each line in `log/line` (protocol 1.13 for the kinds `input` and `output`), and the extension writes it in the **Gitardo** output channel (in): a step as `> <command>`, then what it was given and what git printed as they are, at info; a failure as an error and a warning as a warning. The desktop's Command log draws what a step was given and printed muted, under it.
 @card extension log.show
 title: Show the command log
 place: the header and the bottom panel

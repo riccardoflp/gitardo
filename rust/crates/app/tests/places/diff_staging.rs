@@ -63,7 +63,13 @@ fn run(state: &mut State, intents: Vec<Intent>) -> (Ended, Vec<String>) {
         match driver.next(state) {
             Message::FeatureConfirms(_) => driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true))),
             Message::FeatureEnded { ended, log } => {
-                return (ended, log.into_iter().map(|entry| entry.line).collect());
+                return (
+                    ended,
+                    log.into_iter()
+                        .filter(super::support::is_ran)
+                        .map(|entry| entry.line)
+                        .collect(),
+                );
             }
             _ => {}
         }

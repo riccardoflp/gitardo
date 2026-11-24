@@ -65,7 +65,12 @@ fn until_over(runner: &Runner, state: &mut State) {
 
 /// The lines of the Command log.
 fn logged(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 /// The run of a command of the worktree `fix`, by the name its row has.

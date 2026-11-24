@@ -33,7 +33,12 @@ fn mark_resolved(driver: &OperationsDriver, state: &mut State) -> Message {
 
 /// The lines of the Command log.
 fn logged(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 #[test]

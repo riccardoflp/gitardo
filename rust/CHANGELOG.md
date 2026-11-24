@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The Command log has, under a git command that succeeded, what git printed, a line each and muted, such as the hint
+  of a push and the link to open a pull request or what a pull did; and under a command given something on its
+  standard input, such as the message of a commit or the patch of a change staged, that input, indented, as the
+  preview shows it.
 - The question of editing the message of an older commit shows the new message, and that of squashing commits the
   message of the commit they become, which the rebase reads from a file the plan writes.
 - **Clean up branches** deletes the branches ticked in one `git branch -D`, after their worktrees: a branch merged into
@@ -33,7 +37,9 @@
   an operation offered carries the files `lfs.track` read for **Store them with Git LFS in the next commit**. `feature/run` also takes `setup`, what
   VS Code sets for new worktrees in the repository's folder, the follow-up `writeSetting` says where it is written
   (`target`), and the tab of what new worktrees get saves with the target `setupSettings`. Saving what new worktrees
-  get, from the page or the Files page, still writes Gitardo's files in the window.
+  get, from the page or the Files page, still writes Gitardo's files in the window. A line of the log may also be of
+  the kind `input`, what a step was given on its standard input, or `output`, what git printed under a step that
+  succeeded.
 
 ## 1.3.0 - 2026-11-24
 

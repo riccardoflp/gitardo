@@ -68,7 +68,12 @@ fn branch_create__branch_in_the_more_menu_asks_the_name_and_whether_to_check_it_
     assert_eq!(next_kind(&driver, &mut state), "ended");
     let branches = repository.git(&["branch", "--list", "topic"]);
     assert!(branches.contains("topic"), "the branch is made: {branches}");
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(lines, ["git branch topic HEAD"]);
     let (_, tree) = window.draw(&state, &[]);
     assert!(says(&tree, "Create branch topic at HEAD: done."));
@@ -170,7 +175,12 @@ fn preview_confirm__the_steps_shown_are_byte_for_byte_the_lines_the_log_then_has
         driver.intent(&mut state, intent);
     }
     assert_eq!(next_kind(&driver, &mut state), "ended");
-    let logged: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let logged: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(logged, shown);
     assert_eq!(
         repository.git(&["log", "-1", "--format=%s"]).trim(),

@@ -77,7 +77,12 @@ fn press(repository: &Repository, button: &str) -> (State, bool) {
 
 /// The git commands the operations ran, as the Command log has them.
 fn logged(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 #[test]

@@ -1,5 +1,6 @@
-//! Running the steps of a plan, one by one, each written to the log before it starts. A step that fails stops the
-//! plan (rule R4.5), and so does cancelling it: the process of the step running is killed, and no step after it starts.
+//! Running the steps of a plan, one by one, each written to the log before it starts, and what git printed under it once
+//! it succeeded. A step that fails stops the plan (rule R4.5), and so does cancelling it: the process of the step
+//! running is killed, and no step after it starts.
 
 use std::fmt;
 use std::fs;
@@ -94,7 +95,8 @@ impl StepRunner<'_> {
             }
             self.log.record(self.clock.now(), step);
             let (said, cancelled) = match run_step(self.git, step, (self.cancel, self.progress)) {
-                Ok(()) => {
+                Ok(printed) => {
+                    self.log.record_output(self.clock.now(), &printed);
                     ran.push(step.log_line());
                     continue;
                 }
@@ -149,7 +151,7 @@ impl StepRunner<'_> {
             &mut crate::held::Attempts {
                 is_windows: cfg!(windows),
                 again: &mut || match run_step(&git, step, (cancel, None)) {
-                    Ok(()) => Ok(()),
+                    Ok(_printed) => Ok(()),
                     Err(StepError::Failed(said)) => Err(said),
                     Err(StepError::Cancelled) => Err(String::from("Cancelled.")),
                 },
@@ -162,13 +164,14 @@ impl StepRunner<'_> {
     }
 }
 
-/// Runs one step; what went wrong, in the words of git or of the system, when it fails. A git step that asks git for
-/// its progress says the last line of it as git prints it (`activity.describe-task`).
+/// Runs one step: what git printed, on its output then on its error output, when it succeeds (nothing for a step that
+/// is not git's); what went wrong, in the words of git or of the system, when it fails. A git step that asks git for its
+/// progress says the last line of it as git prints it (`activity.describe-task`).
 fn run_step(
     git: &Git,
     step: &Step,
     (cancel, progress): (&CancelToken, Option<&crate::ProgressReporter>),
-) -> Result<(), StepError> {
+) -> Result<String, StepError> {
     match step {
         Step::Git {
             arguments,
@@ -189,7 +192,12 @@ fn run_step(
                 Err(error) => return Err(StepError::failed(&error)),
             };
             if output.is_success() {
-                return Ok(());
+                let mut printed = String::from_utf8_lossy(&output.stdout).into_owned();
+                if !printed.is_empty() && !printed.ends_with('\n') {
+                    printed.push('\n');
+                }
+                printed.push_str(&String::from_utf8_lossy(&output.stderr));
+                return Ok(printed);
             }
             // Git says most failures on its standard error, but some, such as "nothing to commit", on its output.
             let said = if output.stderr.iter().all(u8::is_ascii_whitespace) {
@@ -199,6 +207,13 @@ fn run_step(
             };
             Err(StepError::Failed(String::from_utf8_lossy(said).into_owned()))
         }
+        _ => run_other(step, cancel).map(|()| String::new()), // The others print nothing the log keeps.
+    }
+}
+
+/// Runs a step that is not git's.
+fn run_other(step: &Step, cancel: &CancelToken) -> Result<(), StepError> {
+    match step {
         Step::Write { path, contents } => write(path, contents).map_err(|error| StepError::failed(&error)),
         Step::Link { from, to } => setup::link(from, to).map_err(|error| StepError::failed(&error)),
         Step::Copy { from, to } => setup::copy(from, to).map_err(|error| StepError::failed(&error)),
@@ -210,8 +225,8 @@ fn run_step(
         Step::Run { command, directory } | Step::Task { command, directory, .. } => {
             run_command(command, directory, cancel)
         }
-        // A warning is written to the log before it "runs", and does nothing.
-        Step::Warn { .. } => Ok(()),
+        // A warning is written to the log before it "runs", and does nothing; a git step is run by `run_step`.
+        Step::Warn { .. } | Step::Git { .. } => Ok(()),
     }
 }
 
@@ -331,4 +346,40 @@ fn run_command(command: &str, directory: &Path, cancel: &CancelToken) -> Result<
     }
     let said = said.join().unwrap_or_default();
     Err(StepError::Failed(String::from_utf8_lossy(&said).into_owned()))
+}
+
+#[cfg(test)]
+#[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
+mod tests {
+    use std::path::PathBuf;
+
+    use git::{CancelToken, Git};
+    use model::contract::Step;
+
+    use super::run_step;
+
+    #[test]
+    fn log_record__a_git_step_that_succeeded_gives_what_git_printed_on_both_outputs() {
+        let repository = testkit::Repository::new();
+        let folder = repository.path().to_path_buf();
+        let git = Git::new(&folder);
+        let cancel = CancelToken::new();
+        // `git hash-object --stdin` prints the id of what it reads on its output.
+        let hashed = Step::Git {
+            arguments: ["hash-object", "--stdin"].into_iter().map(Into::into).collect(),
+            directory: folder.clone(),
+            input: Some(b"hello\n".to_vec()),
+        };
+        let printed = run_step(&git, &hashed, (&cancel, None)).ok().unwrap();
+        assert_eq!(printed, "ce013625030ba8dba906f756967f9e9ca394464a\n");
+        // `git checkout -b` says what it did on its error output, in the user's language.
+        let branched = Step::git(folder.clone(), ["checkout", "-b", "topic"]);
+        let printed = run_step(&git, &branched, (&cancel, None)).ok().unwrap();
+        assert!(printed.contains("'topic'") && printed.ends_with('\n'), "{printed:?}");
+        let written = Step::Write {
+            path: PathBuf::from(&folder).join("a.txt"),
+            contents: b"a".to_vec(),
+        };
+        assert_eq!(run_step(&git, &written, (&cancel, None)).ok().unwrap(), "");
+    }
 }

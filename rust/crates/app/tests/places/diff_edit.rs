@@ -104,7 +104,15 @@ pub(super) fn run_operation(window: &mut Window, state: &mut State, events: &[In
     loop {
         match driver.next(state) {
             Message::FeatureConfirms(_) => driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true))),
-            Message::FeatureEnded { ended, log } => return (ended, log.into_iter().map(|entry| entry.line).collect()),
+            Message::FeatureEnded { ended, log } => {
+                return (
+                    ended,
+                    log.into_iter()
+                        .filter(super::support::is_ran)
+                        .map(|entry| entry.line)
+                        .collect(),
+                );
+            }
             _ => {}
         }
     }

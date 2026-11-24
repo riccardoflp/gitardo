@@ -148,3 +148,34 @@ fn log_record__a_step_that_fails_has_its_error_under_it_and_the_steps_after_it_a
     assert!(logged[1].1.contains("no-such-branch"), "{logged:?}");
     assert!(!folder.join("after.txt").exists());
 }
+
+#[test]
+fn log_record__what_git_printed_under_a_step_that_succeeded_is_kept_and_the_input_beside_the_step() {
+    let mut repository = Repository::new();
+    let _first = repository.commit("Add a", &[("a.txt", "a")]);
+    let folder = repository.path().to_path_buf();
+    std::fs::write(folder.join("b.txt"), "b").unwrap();
+    let mut engine = engine(&repository, LogLevel::Info);
+    let steps = vec![
+        Step::git(folder.clone(), ["add", "--", "b.txt"]),
+        Step::Git {
+            arguments: ["commit", "--quiet", "-F", "-"].into_iter().map(Into::into).collect(),
+            directory: folder.clone(),
+            input: Some(b"Add b\n\nWith its body\n".to_vec()),
+        },
+        Step::git(folder.clone(), ["log", "-1", "--format=%s"]),
+    ];
+    let _ran = engine.run_plan(&plan(steps)).unwrap();
+    assert_eq!(
+        lines(&engine),
+        [
+            (LogKind::Step, String::from("git add -- b.txt")),
+            (LogKind::Step, String::from("git commit --quiet -F -")),
+            (LogKind::Input, String::from("  Add b")),
+            (LogKind::Input, String::from("  ")),
+            (LogKind::Input, String::from("  With its body")),
+            (LogKind::Step, String::from("git log -1 --format=%s")),
+            (LogKind::Output, String::from("Add b")),
+        ]
+    );
+}

@@ -83,10 +83,11 @@ channel as it happens, so that the user can see and repeat it.
 - **Function**: `EngineClient.logLine` in `src/engine/client.ts`, which writes the lines the engine logs to the
   `LogOutputChannel` made in `src/extension/extension.ts`.
 - **Entry points**: every operation.
-- **Plan**: for each step of a plan, a line `> <step>` as the engine writes it: `> git <arguments>`, then *standard
-  input:* and the input when the command reads one, `> write <path>` for a file written, and the steps that are not
-  git (`symlink`, `copy`, `run`, `unlink`, `delete`); the other lines of the engine after `[engine]`; what git printed
-  when a step failed, and an error as an error line; `> git.close <folder>` when VS Code's Git extension lets go of a
+- **Plan**: for each step of a plan, a line `> <step>` as the engine writes it: `> git <arguments>`, then the input
+  when the command reads one, each line indented by two spaces as the preview shows it (`input`), `> write <path>` for
+  a file written, and the steps that are not git (`symlink`, `copy`, `run`, `unlink`, `delete`); what git printed under
+  a step that succeeded, a line each, at info (`output`, D11, M48); the other lines of the engine after `[engine]`;
+  what git printed when a step failed, and an error as an error line; `> git.close <folder>` when VS Code's Git extension lets go of a
   folder (`closeInVSCodeGit` in `src/extension/actions.ts`).
 - **Danger**: None: it changes nothing.
 - **Undo**: Nothing to undo.
@@ -95,12 +96,14 @@ channel as it happens, so that the user can see and repeat it.
 - **Implemented in**: `EngineClient.logLine`; `WindowEngine.start` (`src/engine/vscode.ts`) tells the engine the level
   of the channel, so that it logs the reads only at the debug level; `Activity` writes there too.
 - **Tested by**: `test/e2e/suite.ts`, the steps that compare the logged lines with the commands shown, for instance
-  `> git pull --autostash` and `> git fetch origin refs/heads/lagging:refs/heads/lagging`.
+  `> git pull --autostash` and `> git fetch origin refs/heads/lagging:refs/heads/lagging`; `test/engineChanges.test.ts`,
+  "writes in the log what git printed under a commit that succeeded, after the command (D11)".
 
 Acceptance:
 
 - [ ] Each command run by an operation appears in the channel as `> git …`, before its output.
-- [ ] A command fed a patch on its standard input is followed by *standard input:* and the patch.
+- [ ] A command fed a patch on its standard input is followed by the patch, each line indented by two spaces.
+- [x] A command that succeeded is followed by what git printed, at info.
 - [ ] Files written by the operation appear as `> write <path>` before the commands.
 - [ ] When a command fails, what git printed is written as an error, and no later command of the operation runs.
 - [ ] A read never appears at the default level of the channel.

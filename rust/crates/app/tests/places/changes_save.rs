@@ -57,7 +57,12 @@ fn until_ended(driver: &OperationsDriver, state: &mut State) {
 
 /// The git commands and the writes the operations ran, as the Command log has them.
 fn logged(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 /// The file on disk.

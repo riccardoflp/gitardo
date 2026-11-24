@@ -124,7 +124,12 @@ fn sync_pull_with__a_way_chosen_in_the_menu_of_sync_pulls_that_way_without_askin
     let chosen = window.click(&state, Role::MenuItem, words::PULL_REBASE);
     give(&driver, &mut state, chosen);
     let _ended = confirm_until_ended(&driver, &mut state);
-    let lines: Vec<String> = state.log.entries().map(|entry| entry.line.clone()).collect();
+    let lines: Vec<String> = state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect();
     assert_eq!(lines, ["git pull --rebase"]);
     let subjects = repository.git(&["log", "--format=%s", "-6"]);
     assert_eq!(

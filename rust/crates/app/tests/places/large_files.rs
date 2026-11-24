@@ -110,7 +110,11 @@ fn run_answering(window: &mut Window, state: &mut State, name: &str, answers: &[
             Message::FeatureConfirms(_) => driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true))),
             Message::FeatureEnded { ended, log } => {
                 assert!(matches!(ended, app::store::feature::Ended::Ran { .. }), "{ended:?}");
-                return log.into_iter().map(|entry| entry.line).collect();
+                return log
+                    .into_iter()
+                    .filter(super::support::is_ran)
+                    .map(|entry| entry.line)
+                    .collect();
             }
             _ => {}
         }
@@ -209,7 +213,11 @@ fn lfs_untrack__stop_storing_on_star_psd_takes_the_line_out_of_gitattributes() {
             _ => {}
         }
     };
-    let lines: Vec<String> = log.into_iter().map(|entry| entry.line).collect();
+    let lines: Vec<String> = log
+        .into_iter()
+        .filter(super::support::is_ran)
+        .map(|entry| entry.line)
+        .collect();
     assert_eq!(lines, ["git lfs untrack *.psd"]);
     let attributes = std::fs::read_to_string(repository.path().join(".gitattributes")).unwrap();
     assert!(!attributes.contains("*.psd"), "{attributes}");

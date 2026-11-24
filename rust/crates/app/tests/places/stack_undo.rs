@@ -74,7 +74,12 @@ fn read_again(state: &mut State) {
 
 /// The lines of the command log.
 fn log_lines(state: &State) -> Vec<String> {
-    state.log.entries().map(|entry| entry.line.clone()).collect()
+    state
+        .log
+        .entries()
+        .filter(|entry| super::support::is_ran(entry))
+        .map(|entry| entry.line.clone())
+        .collect()
 }
 
 #[test]

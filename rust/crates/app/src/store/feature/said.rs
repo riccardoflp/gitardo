@@ -59,8 +59,8 @@ impl Said {
 }
 
 /// Adds the lines of an operation to the Command log, and gives the line of the command that says what it did, counted
-/// from the first line the log recorded: the step that failed, the line before what git said of it, or else the first
-/// line of the operation; none when it recorded no line.
+/// from the first line the log recorded: the step that failed, above what git said of it and what the step was given on
+/// its standard input, or else the first line of the operation; none when it recorded no line.
 pub(super) fn append_log(state: &mut crate::store::state::State, log: Vec<engine::LogEntry>) -> Option<usize> {
     let before = state.log.dropped() + state.log.entries().count();
     state.log.append(log);
@@ -73,9 +73,17 @@ pub(super) fn append_log(state: &mut crate::store::state::State, log: Vec<engine
         .filter(|(line, _)| *line >= before)
         .collect();
     let (first, _) = added.first()?;
+    // The step is the newest line before what git said that is not what the step was given on its standard input.
     let failed = added
         .iter()
-        .find(|(_, entry)| entry.kind == engine::LogKind::Failure)
-        .map(|(line, _)| line.saturating_sub(1).max(*first));
+        .position(|(_, entry)| entry.kind == engine::LogKind::Failure)
+        .and_then(|failure| added.get(..failure))
+        .map(|before| {
+            before
+                .iter()
+                .rev()
+                .find(|(_, entry)| entry.kind != engine::LogKind::Input)
+                .map_or(*first, |(line, _)| *line)
+        });
     Some(failed.unwrap_or(*first))
 }

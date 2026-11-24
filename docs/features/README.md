@@ -608,7 +608,7 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`preview.confirm`](16-undo-preview-log.md#previewconfirm--show-the-commands-before-they-run) | Show the commands before they run | View | Built | Built |
-| [`log.record`](16-undo-preview-log.md#logrecord--log-every-command-that-changes-something) | Log every command that changes something | Operation | Built | Differs (D11) |
+| [`log.record`](16-undo-preview-log.md#logrecord--log-every-command-that-changes-something) | Log every command that changes something | Operation | Built | Built |
 | [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Built | Host only |
 | [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Built | Built |
 | [`undo.journal`](16-undo-preview-log.md#undojournal--remember-what-undo-needs) | Remember what Undo needs | Derivation | Built | Built |

@@ -90,6 +90,37 @@ fn branch_create_on_a_commit_asks_the_name_and_whether_to_check_it_out_runs_its_
 }
 
 #[test]
+fn what_git_printed_under_a_step_that_succeeded_is_sent_as_output_lines_after_it() {
+    let repository = repository();
+    let mut engine = opened(&repository, &json!({}));
+    let id = engine.send(
+        "feature/run",
+        &json!({ "repository": folder(&repository), "feature": "branch.create", "target": { "kind": "head" } }),
+    );
+    let finished = engine.answer_asked(id, answering("topic", "checkout"));
+    assert_eq!(finished["result"]["kind"], json!("ran"), "{finished}");
+    let entries: Vec<(Value, String)> = engine
+        .notifications("log/line", Duration::from_millis(300))
+        .iter()
+        .map(|line| {
+            let entry = &line["params"]["entry"];
+            (
+                entry["kind"].clone(),
+                entry["line"].as_str().unwrap_or_default().to_owned(),
+            )
+        })
+        .collect();
+    let step = entries
+        .iter()
+        .position(|(kind, line)| *kind == json!("step") && line.starts_with("git checkout -b topic"))
+        .unwrap_or_else(|| panic!("{entries:?}"));
+    // `git checkout -b` says on its error output that it switched to the new branch, in the user's language.
+    let (kind, line) = &entries[step + 1];
+    assert_eq!(*kind, json!("output"), "{entries:?}");
+    assert!(line.contains("'topic'"), "{entries:?}");
+}
+
+#[test]
 fn the_answers_given_with_feature_run_are_not_asked() {
     let repository = repository();
     let mut engine = opened(&repository, &json!({}));

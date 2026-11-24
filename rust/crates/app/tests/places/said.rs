@@ -354,3 +354,29 @@ fn activity_said__no_bar_is_drawn_between_the_header_and_the_timeline_after_an_o
         "Undo is in the status bar: {undo:?}"
     );
 }
+
+#[test]
+fn activity_said__a_step_given_a_patch_that_failed_opens_the_command_log_at_the_step_not_at_its_patch() {
+    let (_kept, _clones, mut state) = three_clones();
+    let log = vec![
+        logged("git fetch origin", LogKind::Step),
+        logged("From /remote", LogKind::Output),
+        logged("git apply --cached -", LogKind::Step),
+        logged("  --- a/a.txt", LogKind::Input),
+        logged("  +++ b/a.txt", LogKind::Input),
+        logged("error: patch failed: a.txt:1", LogKind::Failure),
+    ];
+    let failed = Ended::Failed {
+        title: String::from("Stage a change of a.txt"),
+        said: String::from("patch failed"),
+        plan: String::from("Stage a change of a.txt"),
+        on_failure: Vec::new(),
+    };
+    let _effects = reduce(&mut state, Message::FeatureEnded { ended: failed, log });
+    let said = state.operations.said.as_ref().unwrap();
+    assert_eq!(
+        said.log_at,
+        Some(2),
+        "the step that failed, above its patch and what git said of it"
+    );
+}

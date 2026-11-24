@@ -102,6 +102,7 @@ fn log_lines(count: usize) -> Vec<LogLine> {
             time: format!("14:02:0{}", index % 10),
             text: format!("git fetch --prune origin {index}"),
             is_failure: false,
+            is_printed: false,
         })
         .collect()
 }

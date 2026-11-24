@@ -182,12 +182,29 @@ fn a_line_of_the_log_is_a_word_or_a_read_with_how_long_it_took() {
         kind: LogKind::Read(Duration::from_millis(12)),
         line: String::from("git status"),
     };
-    let entries = [LogEntryJson::from(&step), LogEntryJson::from(&read)];
+    let input = LogEntry {
+        time: Timestamp(7),
+        kind: LogKind::Input,
+        line: String::from("  Fix the parser"),
+    };
+    let output = LogEntry {
+        time: Timestamp(8),
+        kind: LogKind::Output,
+        line: String::from("Switched to a new branch 'fix/login'"),
+    };
+    let entries = [
+        LogEntryJson::from(&step),
+        LogEntryJson::from(&read),
+        LogEntryJson::from(&input),
+        LogEntryJson::from(&output),
+    ];
     assert_eq!(
         serde_json::to_value(&entries).unwrap(),
         json!([
             { "time": 5, "kind": "step", "line": "git checkout -b fix/login HEAD" },
-            { "time": 6, "kind": { "kind": "read", "milliseconds": 12 }, "line": "git status" }
+            { "time": 6, "kind": { "kind": "read", "milliseconds": 12 }, "line": "git status" },
+            { "time": 7, "kind": "input", "line": "  Fix the parser" },
+            { "time": 8, "kind": "output", "line": "Switched to a new branch 'fix/login'" }
         ])
     );
     for entry in &entries {

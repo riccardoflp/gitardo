@@ -696,6 +696,11 @@ Four things cut across areas and are best decided once:
   autostash did, rebase messages). Recommend the engine log git's output under a successful step too (a new
   `LogKind`), at least at `debug`, and the standard input beside the step that took it, as `preview.confirm` already
   shows it. An engine change, not an option.
+- **Settled in M48**, as recommended (D90): the engine logs what git printed under a git step that succeeded, a line
+  each as a terminal leaves it, as the new kind `Output`, and what a step is given on its standard input under it,
+  each line indented as the preview shows it, as `Input`, both at `info` (`rust/crates/engine/src/log.rs`, `steps.rs`;
+  `Step::input_lines` in `model`). Version 1.13 of the protocol sends them as the kinds `output` and `input` of
+  `log/line`; the extension writes them at info under `> <command>`, and the desktop's Command log draws them muted.
 
 ### D12. The automatic skip of an empty pick is asked first under `commandPreview` `all`
 
