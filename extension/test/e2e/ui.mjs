@@ -395,7 +395,8 @@ try {
     let dialog = await stage();
     await shot('command-preview');
     assert(dialog.text.includes('Stage new.txt?') && /git add -- new\.txt\s*$/.test(dialog.text), `dialog: ${JSON.stringify(dialog)}`);
-    assert(dialog.buttons.join() === 'Run,Cancel', `buttons: ${dialog.buttons}`);
+    // VS Code puts Cancel first on Linux and last elsewhere.
+    assert([...dialog.buttons].sort().join() === 'Cancel,Run', `buttons: ${dialog.buttons}`);
     await clickText('.monaco-dialog-box .monaco-button', 'Cancel');
     await sleep(800);
     assert(git(app, 'status', '--porcelain').toString().trim() === '?? new.txt', 'nothing was staged');
@@ -2083,7 +2084,12 @@ try {
       await sleep(600);
       assert(fs.readFileSync(file, 'utf8').includes('<<<<<<<'), 'a choice is not saved');
       await shot('flow-merge-accepted');
-      await flow.click('.editor-host.fm-result-host .view-line');
+      // A line of Monaco is as wide as the widest line, so its middle may be outside the result: the click is near its start.
+      const line = await flow.evaluate(`(() => {
+        const rect = document.querySelector('.editor-host.fm-result-host .view-line').getBoundingClientRect();
+        return { x: rect.x + 10, y: rect.y + rect.height / 2 };
+      })()`);
+      await mouse(flow.frame.x + line.x, flow.frame.y + line.y);
       await sleep(300);
       await key('Z', CTRL);
       await until('the conflict back', () => flow.evaluate(`document.querySelector('.fm-conflicts')?.textContent === '1 conflict left'`));

@@ -1418,7 +1418,9 @@ export async function run(): Promise<void> {
       // One operation runs at a time: another one asked meanwhile is refused, and that is said, as Gitardo Desktop says it.
       panel.onMessage({ type: 'unstageChunk', chunkId: 0 });
       await until('the refusal to be said', () => errors.length > 0);
-      assert.deepEqual(errors, ['Gitardo: diff.stage-change is running in app. Try again once it ends.']);
+      // The repository is named from the folder of the workspace around it, where its path is seen inside that folder.
+      assert.equal(errors.length, 1, errors.join('\n'));
+      assert.match(errors[0], /^Gitardo: diff\.stage-change is running in (workspace\/)?app\. Try again once it ends\.$/);
       await until('the change to show as staged', () => panel.currentModel?.chunks[0]?.staged === true);
       assert.equal(await index(), 'one\ntwo\nthree\n');
       // As Gitardo's own operations: in its log, exactly as it ran.
