@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { ThemeService } from '../flow/theme';
@@ -247,6 +248,8 @@ export class Controller implements vscode.Disposable {
   private readonly sessions: Sessions<RepositorySession, ViewGroup>;
   /** The group each view that shows a repository is in; the tabs of a commit, a comparison and the like are in none. */
   private readonly groups = new Map<vscode.Webview, ViewGroup>();
+  /** The tabs of the graph brought back on a folder that is no longer there, which only say so (`repo.keep-tabs`). */
+  private readonly goneTabs = new Map<vscode.Webview, vscode.WebviewPanel>();
   /** The rows of the Repositories view, and what the engine follows for them while the view is open (`repo.tabs`). */
   readonly repositoriesView: RepositoriesView;
   /** Whether this VS Code has the Agents window, which is looked up once: it comes and goes with VS Code itself. */
@@ -2503,6 +2506,7 @@ export class Controller implements vscode.Disposable {
    */
   async openTab(root?: string, panel?: vscode.WebviewPanel, shown: TabShown = {}): Promise<void> {
     await this.whenLocated();
+    if (panel && root && !fs.existsSync(root)) return this.goneTab(panel, root);
     const tab =
       panel ??
       vscode.window.createWebviewPanel(GRAPH_TAB, 'Gitardo', vscode.ViewColumn.Active, {
@@ -2526,6 +2530,23 @@ export class Controller implements vscode.Disposable {
     // A choice of the panel's is the panel's: the tab starts with the history as the panel shows it, read for itself.
     await this.point(group, root, false, shown);
     this.retitle(group);
+  }
+
+  /**
+   * A tab of the graph brought back on a folder that is no longer there, such as a worktree removed while VS Code was
+   * closed: it says so, with **Close**, and reads nothing (`repo.keep-tabs`, Q1523).
+   */
+  private goneTab(panel: vscode.WebviewPanel, root: string): void {
+    const webview = panel.webview;
+    webview.options = { enableScripts: true, localResourceRoots: this.roots };
+    webview.html = this.html(webview, vscode.Uri.joinPath(this.extensionUri, 'dist'), { view: 'graph', tab: 'graph', gone: root });
+    panel.title = tabTitle(root, this.repos, undefined);
+    this.goneTabs.set(webview, panel);
+    const listener = webview.onDidReceiveMessage((message: WebviewMessage) => this.onMessage(webview, message));
+    panel.onDidDispose(() => {
+      listener.dispose();
+      this.goneTabs.delete(webview);
+    });
   }
 
   /**
@@ -2970,6 +2991,8 @@ export class Controller implements vscode.Disposable {
         return this.selectRepo(message.root, on);
       case 'openInTab':
         return typeof message.root === 'string' ? this.openTab(message.root) : undefined;
+      case 'closeTab':
+        return void (this.goneTabs.get(webview) ?? on.panel)?.dispose();
       case 'keepMessage':
         return this.keepMessage(webview, message.root, message.message, message.shown);
       case 'openDiff':

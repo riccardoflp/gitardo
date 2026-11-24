@@ -1,5 +1,5 @@
 import { samePath } from '../shared/paths';
-import type { RepoInfo } from '../shared/protocol';
+import type { Filter, RepoInfo, Scope } from '../shared/protocol';
 
 /**
  * Which repository each group of views shows, and the session of each repository shown (D89, `repo.tab-repository`):
@@ -104,4 +104,22 @@ export function tabTitle(root: string | undefined, repos: readonly RepoInfo[], h
   const owner = at >= 0 ? repos.slice(0, at).findLast((repo) => repo.depth === 0) : home && !samePath(home.root, root) ? home : undefined;
   if (!owner) return `Gitardo · ${at >= 0 ? repos[at].name : lastName(root)}`;
   return `Gitardo · ${owner.name} › ${memberName(owner.root, root)}`;
+}
+
+/**
+ * What a tab of the graph brought back after a reload is to show, from the state its page kept (`repo.keep-tabs`): the
+ * folder it showed, with its filter and the branches it showed; nothing of what is not there or not of the right kind,
+ * as from a page kept before tabs kept what they show, which opens on the repository the panel shows.
+ */
+export function keptTab(kept: unknown): { root?: string; filter?: Filter; scope?: Scope | null } {
+  const tab = typeof kept === 'object' && kept !== null ? (kept as { tab?: unknown }).tab : undefined;
+  if (typeof tab !== 'object' || tab === null) return {};
+  const { root, filter, scope } = tab as { root?: unknown; filter?: unknown; scope?: unknown };
+  if (typeof root !== 'string' || !root) return {};
+  const kind = (value: unknown) => (typeof value === 'object' && value !== null ? (value as { kind?: unknown }).kind : undefined);
+  return {
+    root,
+    ...(typeof kind(filter) === 'string' ? { filter: filter as Filter } : {}),
+    ...(scope === null || typeof kind(scope) === 'string' ? { scope: scope as Scope | null } : {}),
+  };
 }

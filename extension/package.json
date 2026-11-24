@@ -32,7 +32,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onWebviewPanel:gitardo.graphEditor"
   ],
   "contributes": {
     "markdown.markdownItPlugins": true,

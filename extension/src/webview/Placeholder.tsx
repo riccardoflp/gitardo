@@ -34,3 +34,17 @@ export function Placeholder({ loaded }: { loaded: Loaded }) {
     </div>
   );
 }
+
+/** A tab of the graph brought back after a reload on a folder that is no longer there (`repo.keep-tabs`, Q1523). */
+export function Gone({ folder }: { folder: string }) {
+  return (
+    <div className="empty">
+      <p>
+        <code>{folder}</code> is no longer there.
+      </p>
+      <button className="button" onClick={() => post({ type: 'closeTab' })}>
+        Close
+      </button>
+    </div>
+  );
+}

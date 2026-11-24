@@ -94,6 +94,16 @@ export type Loading = 'filter' | 'more';
 export type Search = Extract<Filter, { query: string }>;
 
 /** One of the repositories of the workspace. */
+/**
+ * What a tab of the graph keeps in the state of its page, to come back on after a reload (`repo.keep-tabs`): the folder of
+ * the repository, the worktree or the submodule it shows, what narrows its graph and the branches it shows.
+ */
+export interface TabKept {
+  root: string;
+  filter: Filter | null;
+  scope: Scope | null;
+}
+
 export interface RepoInfo {
   root: string;
   name: string;
@@ -725,6 +735,8 @@ export type WebviewMessage =
   | { type: 'selectRepo'; root: string }
   /** Opens a tab of the graph in the editor on a repository, a worktree or a submodule (`repo.tab-repository`). */
   | { type: 'openInTab'; root: string }
+  /** Closes the tab of the graph that asks, one whose folder is no longer there (`repo.keep-tabs`). */
+  | { type: 'closeTab' }
   /**
    * The commit box was pointed at another repository: the message it had in the one left, to keep, and the one shown,
    * whose message it asks for (`repo.keep-open`).

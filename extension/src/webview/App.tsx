@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { mergedCommits } from '../shared/graph';
-import { WORKTREE, type CommitDetail, type Comparison, type Loading, type Row, type Search } from '../shared/protocol';
+import { WORKTREE, type CommitDetail, type Comparison, type Filter, type Loading, type Row, type Search, type TabKept } from '../shared/protocol';
 import { checkedOutBranch, stashName } from '../shared/state';
 import type { ShownState } from '../shared/stateParts';
 import { BisectBanner } from './BisectBanner';
@@ -66,6 +66,16 @@ interface Find {
   /** Git refused it: asking again would only be refused again. */
   failed?: boolean;
 }
+
+/** Whether the page is a tab of the graph in the editor, which VS Code brings back after a reload. */
+const IN_TAB = document.body.dataset.tab === 'graph';
+
+/** A filter as a tab keeps it: the names a file had before are found again when it is read. */
+const withoutRenames = (filter: Filter | null): Filter | null => {
+  if (filter?.kind !== 'path' || !filter.renamedFrom) return filter;
+  const { renamedFrom: _found, ...kept } = filter;
+  return kept;
+};
 
 const sameSearch = (one: Search, other: Search) => one.kind === other.kind && one.query === other.query;
 
@@ -220,6 +230,16 @@ export function App({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     saveUiState({ refsWidth, detailWidth, graphWidth, detailHeight, refsHidden });
   }, [refsWidth, detailWidth, graphWidth, detailHeight, refsHidden]);
+
+  // A tab of the graph keeps what it shows in the state of its page, which VS Code gives back after a reload (`repo.keep-tabs`).
+  const keptRoot = state?.root;
+  const keptFilter = state?.filter;
+  const keptScope = state?.scope;
+  useEffect(() => {
+    if (!IN_TAB || !keptRoot) return;
+    const tab: TabKept = { root: keptRoot, filter: withoutRenames(keptFilter ?? null), scope: keptScope ?? null };
+    saveUiState({ tab });
+  }, [keptRoot, keptFilter, keptScope]);
 
   // The folds stay while the view is hidden, when it is loaded again and after VS Code restarts.
   useEffect(() => {

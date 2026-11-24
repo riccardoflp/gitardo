@@ -11,6 +11,7 @@ import { reads } from '../../src/engine/reads';
 import type { GitardoApi } from '../../src/extension/extension';
 import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
 import { git } from '../git';
+import { keptTab } from '../../src/extension/sessions';
 import { samePath } from '../../src/shared/paths';
 import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type SentState, type ToViews, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
 import type { Hosting } from '../../src/shared/hosting';
@@ -4620,6 +4621,56 @@ export async function run(): Promise<void> {
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
       await until('the tabs of the graph to close', () => graphTabs().length === 0);
       if (!samePath(state().root, app)) await controller.selectRepo(app);
+    }
+  });
+
+  await step('brings a tab of the graph back after a reload on what its page kept, and says so of a folder that is no longer there', async () => {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    if (!samePath(state().root, app)) await controller.selectRepo(app);
+    // What VS Code gives the serializer of the tabs of the graph after a reload: a tab, and the state its page kept.
+    const restore = (kept: unknown) => {
+      const panel = vscode.window.createWebviewPanel('gitardo.graphEditor', 'Gitardo', vscode.ViewColumn.Active, { retainContextWhenHidden: true });
+      const { root, ...shown } = keptTab(kept);
+      return { panel, opened: controller.openTab(root, panel, shown) };
+    };
+    try {
+      const filter = { kind: 'message', query: 'lib' } as const;
+      const back = restore({ refsWidth: 240, tab: { root: lib, filter, scope: null } });
+      await back.opened;
+      const tab = await until('the tab back on lib', () => tabShowing(lib));
+      assert.equal(tab.panel, back.panel);
+      assert.equal(back.panel.title, 'Gitardo · workspace/lib');
+      assert.deepEqual(tab.filter, filter);
+      await until('the filter read', () => tab.state?.filter?.kind === 'message');
+      assert.deepEqual(
+        tab.state!.rows.map((row) => row.subject),
+        ['Add lib'],
+      );
+      // The panel shows what it showed.
+      assert.ok(samePath(state().root, app));
+      assert.equal(internals.filter, null);
+      back.panel.dispose();
+
+      // A page kept before tabs kept what they show opens on the repository the panel shows.
+      const older = restore({ refsWidth: 240 });
+      await older.opened;
+      await until('the older tab on app', () => tabShowing(app));
+      older.panel.dispose();
+
+      // A worktree removed while VS Code was closed: the tab says so, reads nothing, and Close closes it.
+      const folder = path.join(workspace, 'app.worktrees', 'removed');
+      const gone = restore({ tab: { root: folder, filter: null, scope: null } });
+      await gone.opened;
+      assert.ok(gone.panel.webview.html.includes('data-gone='), 'the page says the folder is no longer there');
+      assert.equal(gone.panel.title, 'Gitardo · removed');
+      assert.deepEqual(sessionNames(), ['app']);
+      let closed = false;
+      gone.panel.onDidDispose(() => (closed = true));
+      await internals.onMessage(gone.panel.webview, { type: 'closeTab' });
+      assert.ok(closed, 'Close closes the tab');
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      await until('the tabs of the graph to close', () => graphTabs().length === 0);
     }
   });
 

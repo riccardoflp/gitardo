@@ -6,7 +6,7 @@ import type { ViewKind } from '../shared/protocol';
 import { MenuProvider } from './ContextMenu';
 
 // What the extension wrote on the page for the view it is.
-const { view: kind, commit = '', root = '', files } = document.body.dataset;
+const { view: kind, commit = '', root = '', files, gone } = document.body.dataset;
 
 // Each view imports only its own page: the Changes view never loads the graph, nor the graph the review of conflicts.
 const VIEWS: Record<ViewKind, () => Promise<ReactNode>> = {
@@ -60,6 +60,11 @@ const VIEWS: Record<ViewKind, () => Promise<ReactNode>> = {
     return <RangeDiffApp />;
   },
 };
-const view = await (VIEWS[kind as ViewKind] ?? VIEWS.graph)();
+// A tab of the graph whose folder is no longer there says so, and reads nothing.
+const goneView = async () => {
+  const { Gone } = await import('./Placeholder');
+  return <Gone folder={gone!} />;
+};
+const view = await (gone ? goneView : (VIEWS[kind as ViewKind] ?? VIEWS.graph))();
 
 createRoot(document.getElementById('root')!).render(<MenuProvider>{view}</MenuProvider>);

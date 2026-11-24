@@ -4,7 +4,7 @@
  * its folder.
  */
 import { describe, expect, it } from 'vitest';
-import { Sessions, tabTitle } from '../src/extension/sessions';
+import { Sessions, keptTab, tabTitle } from '../src/extension/sessions';
 import type { RepoInfo } from '../src/shared/protocol';
 
 /** A session as the registry sees it: its folder, and whether it was let go and by which group last. */
@@ -112,5 +112,23 @@ describe('the title of a tab of the graph', () => {
 
   it('say only Gitardo while it shows no repository', () => {
     expect(tabTitle(undefined, repos, api)).toBe('Gitardo');
+  });
+});
+
+describe('what a tab of the graph comes back on after a reload', () => {
+  it('take the folder, the filter and the branches shown the page kept', () => {
+    const kept = { refsWidth: 200, tab: { root: '/work/web', filter: { kind: 'author', query: 'Ada' }, scope: { kind: 'current' } } };
+    expect(keptTab(kept)).toEqual({ root: '/work/web', filter: { kind: 'author', query: 'Ada' }, scope: { kind: 'current' } });
+  });
+
+  it('keep every branch shown, and no filter', () => {
+    expect(keptTab({ tab: { root: '/work/web', filter: null, scope: null } })).toEqual({ root: '/work/web', scope: null });
+  });
+
+  it('take nothing from a page that kept no folder, or not of the right kind', () => {
+    expect(keptTab(undefined)).toEqual({});
+    expect(keptTab({ refsWidth: 200 })).toEqual({});
+    expect(keptTab({ tab: { root: 42 } })).toEqual({});
+    expect(keptTab({ tab: { root: '/work/web', filter: 'author', scope: [] } })).toEqual({ root: '/work/web' });
   });
 });
