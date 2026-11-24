@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 - 2026-11-24
 
 - Once the history of a repository of 10,000 commits or more is read, and git keeps no commit-graph file of it, the
   status bar says that git can read its history about twice as fast with one, with **Write it**, which runs
