@@ -4572,6 +4572,57 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('shows in the panel and the side bar the repository of the tab of the graph that comes into focus, and moves no tab from them', async () => {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    if (!samePath(state().root, app)) await controller.selectRepo(app);
+    /** Whether the Changes view of the side bar was sent the state of a repository. */
+    const changesShow = (root: string) => () => {
+      const changes = view('changes');
+      for (let at = posted.length - 1; at >= 0; at--) {
+        const outgoing = posted[at];
+        if (outgoing.type === 'state' && (addressed[at] === changes || addressed[at] === undefined)) return !!outgoing.state && samePath(outgoing.state.root, root);
+      }
+      return false;
+    };
+    const chosen: string[] = [];
+    const listening = controller.onDidChooseRepo((root) => chosen.push(root));
+    try {
+      await controller.openTab(lib);
+      const onLib = await until('a tab on lib', () => tabShowing(lib));
+      await controller.openTab(app);
+      const onApp = await until('a tab on app', () => tabShowing(app, onLib));
+      // Opened, a tab moves nothing: the panel shows what it showed.
+      assert.ok(samePath(state().root, app));
+
+      onLib.panel!.reveal();
+      await until('the panel to show lib', () => samePath(state().root, lib));
+      await until('the Changes view to show lib', changesShow(lib));
+      assert.ok(chosen.some((root) => samePath(root, lib)), "VS Code's Repositories view is told to select lib");
+      onApp.panel!.reveal();
+      await until('the panel to show app again', () => samePath(state().root, app));
+      await until('the Changes view to show app', changesShow(app));
+
+      // Choosing in the panel moves the panel and the side bar, and neither tab.
+      await internals.onMessage(view('graph'), { type: 'selectRepo', root: lib });
+      await until('the panel to show lib', () => samePath(state().root, lib));
+      assert.ok(onApp.state && samePath(onApp.state.root, app));
+      assert.ok(onLib.state && samePath(onLib.state.root, lib));
+
+      // A tab of a commit does not move them (Q1521).
+      await internals.onMessage(view('graph'), { type: 'selectRepo', root: app });
+      await until('the panel to show app', () => samePath(state().root, app));
+      await controller.openCommit(state().head.commit!);
+      await until('the tab of the commit', () => [...internals.views.values()].includes('commit'));
+      await sleep(500);
+      assert.ok(samePath(state().root, app));
+    } finally {
+      listening.dispose();
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      await until('the tabs of the graph to close', () => graphTabs().length === 0);
+      if (!samePath(state().root, app)) await controller.selectRepo(app);
+    }
+  });
+
   await step('logged no unexpected errors', async () => {
     // The conflicting merge is the one failure the tests provoke on purpose.
     assert.deepEqual(

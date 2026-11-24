@@ -2510,6 +2510,10 @@ export class Controller implements vscode.Disposable {
       });
     const group = new ViewGroup(this.groupHost, tab);
     const attachment = this.attach(tab.webview, 'graph', { tab: 'graph' }, group);
+    // The panel and the side bar follow the tab that comes into focus, not one opened (`repo.follow-tab`).
+    tab.onDidChangeViewState(({ webviewPanel }) => {
+      if (webviewPanel.active) void this.followTab(group);
+    });
     tab.onDidDispose(() => {
       attachment.dispose();
       this.sessions.leave(group);
@@ -2522,6 +2526,20 @@ export class Controller implements vscode.Disposable {
     // A choice of the panel's is the panel's: the tab starts with the history as the panel shows it, read for itself.
     await this.point(group, root, false, shown);
     this.retitle(group);
+  }
+
+  /**
+   * The panel and the side bar show the repository of a tab of the graph that came into focus, as if it were chosen
+   * there, and VS Code's Repositories view selects it (`repo.follow-tab`). The repository chosen stays the one kept in
+   * the workspace state, which they show again when the window opens; while an operation runs they stay where they are,
+   * as choosing would.
+   */
+  private async followTab(group: ViewGroup): Promise<void> {
+    const root = group.session?.root;
+    if (!root || this.running || (this.followers.session && samePath(this.followers.session.root, root))) return;
+    this.followers.home = group.home;
+    await this.point(this.followers, root);
+    this.chose(this.followers, root);
   }
 
   /** Says in the title of the tab of a group what it shows: `Gitardo · api`, `Gitardo · api › feature/login` (Q1520). */
