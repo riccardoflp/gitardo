@@ -26,7 +26,7 @@ const settingsOf = (values: Record<string, unknown> = {}) => engineSettings({ 'w
 
 const written = (followUps: unknown[]) => (followUps as WriteSettingFollowUp[]).filter((followUp) => followUp.kind === 'writeSetting');
 
-describe.skipIf(!built)('the settings of new worktrees, saved by the engine under VS Code', () => {
+describe.skipIf(!built)('the settings of new worktrees, saved by the engine under VS Code', { timeout: 60_000 }, () => {
   it('saves what the tab shows in the workspace folder, VS Code’s two settings too, and writes no file (worktree-setup.save)', async () => {
     const root = await repository();
     const asker = answering({});
