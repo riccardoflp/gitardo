@@ -4048,9 +4048,8 @@ export async function run(): Promise<void> {
       await vscode.commands.executeCommand('gitardo.toggleBlameEveryFile');
     }
     assert.equal(setting('fileBlame.everyFile'), false);
-    // The ones that were asked for keep their blame.
-    await sleep(500);
-    assert.ok(fileBlame.linesOf(uri) && fileBlame.linesOf(other));
+    // The ones that were asked for keep their blame, which a slow runner takes a while to read again.
+    await until('the blame of the files it was asked for', () => fileBlame.linesOf(uri) && fileBlame.linesOf(other));
 
     // Whitespace: git is asked again, and the file still has its blame.
     await vscode.commands.executeCommand('gitardo.toggleBlameWhitespace');
