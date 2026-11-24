@@ -6068,3 +6068,25 @@ planned; each is built as it says until the maintainer answers otherwise.
 - **Q1532** — D91: the risks of the extension that are still true once tried against the engine are fixed in the
   engine. Should their rows move to a page of risks of both apps, in `docs/transition/` or beside the decisions, since
   they are no longer the extension's alone?
+
+### Of Git LFS in the extension, from Q1560
+
+Questions of milestone M47, asked while it was built; each is built as it says until the maintainer answers otherwise.
+
+- **Q1560** — `lfs.track`: the state of a repository has the version of Git LFS only once the repository has patterns
+  or is set up (`read_repository_status`), so that a repository that stores nothing starts no process of Git LFS. In
+  such a repository **Track a pattern…** of the **Large files** page and tab, which read the version themselves and
+  offer it, is refused with **Git LFS is not installed**, in both apps. Should the operations of Git LFS read the version
+  when the state has none, or should the state always have it? Until answered, the tab offers it and the engine refuses.
+- **Q1561** — `lfs.show-in-pages`: in the extension, each version not downloaded that a tab opens says so once in its
+  own message with **Download**, so a diff of a commit with ten such files gives ten messages. Should the messages of
+  one repository be said as one, **10 files stored with Git LFS are not downloaded** with **Download all**?
+- **Q1562** — `lfs.page`: the **Large files** tab of the extension keeps nothing across a reload of the window and is
+  not opened again, as the tab of what new worktrees get is not. Should it come back after a reload, as the tabs of the
+  graph do (`repo.keep-tabs`)?
+- **Q1563** — `lfs.read-locks`: the note of the locks names the remote of `remote.default`, while Git LFS asks the
+  server of the remote it chooses itself (`lfs.url`, then the upstream's remote, then `origin`). Should the engine ask
+  the locks of the remote it names, so that the name and the server are always the same one?
+- **Q1564** — `lfs.page`: the menu of a file of the tab has **Reveal in Explorer View** in place of the desktop's
+  **Show in the Files page**, and a double-click opens the file. Should it also have **Open the file at this revision**
+  and **Show history** of Gitardo, as the files of a commit have?

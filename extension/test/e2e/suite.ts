@@ -2,6 +2,7 @@
 // They drive the extension through its commands and its controller, with VS Code's prompts answered by stubs.
 
 import * as assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
@@ -4677,6 +4678,55 @@ export async function run(): Promise<void> {
     } finally {
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
       await until('the tabs of the graph to close', () => graphTabs().length === 0);
+    }
+  });
+
+  await step('shows the files stored with Git LFS in the Large files tab, and stores a file of the Explorer with Git LFS', async () => {
+    // Milestone M47. Without Git LFS the tab says it is not installed and lists the patterns all the same; with it, the
+    // file committed shows Downloaded and Store with Git LFS… writes its pattern. Lock and Unlock need a server of locks,
+    // which this suite does not start: the tests of the engine and of the extension check them (Q1198).
+    const hasLfs = spawnSync('git', ['lfs', 'version']).status === 0;
+    const head = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    type Large = Extract<HostMessage, { type: 'largeFiles' }>;
+    const shown = (check: (info: NonNullable<Large['info']>) => boolean) =>
+      until('what the Large files tab shows', () => posted.find((message): message is Large => message.type === 'largeFiles' && !!message.info && check(message.info)));
+    try {
+      write('.gitattributes', '*.psd filter=lfs diff=lfs merge=lfs -text\n');
+      if (hasLfs) {
+        await git(app, ['lfs', 'install', '--local']);
+        write('logo.psd', 'the layers of the logo\n');
+        await git(app, ['add', '--', '.gitattributes', 'logo.psd']);
+        await git(app, ['commit', '--quiet', '-m', 'Store the drawings with Git LFS']);
+      }
+      await vscode.commands.executeCommand('gitardo.refresh');
+      posted.length = 0;
+      await vscode.commands.executeCommand('gitardo.largeFiles');
+      const tab = (await until('the tab', () => [...internals.views].find(([, kind]) => kind === 'largeFiles')))[0];
+      const first = await shown(() => true);
+      assert.deepEqual(first.info!.status.patterns, [{ pattern: '*.psd', file: '.gitattributes', line: 1 }]);
+      if (!hasLfs) {
+        assert.equal(first.info!.status.version, null);
+        assert.deepEqual(first.info!.files, []);
+        return;
+      }
+      const read = await shown((info) => info.files.length > 0);
+      assert.deepEqual(read.info!.files.map((file) => [file.path, file.isDownloaded]), [['logo.psd', true]]);
+
+      // Store with Git LFS… on a file of the Explorer: all the files of its extension.
+      write('data.bin', 'some data\n');
+      choose = byLabel('All .bin files');
+      answer = () => undefined;
+      await vscode.commands.executeCommand('gitardo.storeWithLfs', vscode.Uri.file(path.join(app, 'data.bin')));
+      assert.match(fs.readFileSync(path.join(app, '.gitattributes'), 'utf8'), /^\*\.bin filter=lfs diff=lfs merge=lfs -text$/m);
+      posted.length = 0;
+      await internals.onMessage(tab, { type: 'largeFiles', ask: { kind: 'refresh' } });
+      await shown((info) => info.status.patterns.some((pattern) => pattern.pattern === '*.bin'));
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      if (hasLfs) await git(app, ['lfs', 'uninstall', '--local']);
+      await git(app, ['reset', '--quiet', '--hard', head]);
+      for (const file of ['.gitattributes', 'data.bin']) fs.rmSync(path.join(app, file), { force: true });
+      await vscode.commands.executeCommand('gitardo.refresh');
     }
   });
 
