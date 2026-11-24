@@ -9,7 +9,8 @@ import { answerLanguageModel, languageModels } from './ai';
 import { SHOW_ACTIVITY } from './activity';
 import { BlameAnnotator, BlameSource } from './blame';
 import { GitFileSystem, SCHEME } from './content';
-import { Controller, GRAPH_TAB } from './controller';
+import { Controller } from './controller';
+import { GRAPH_TAB } from './repositoriesShown';
 import { keptTab } from './sessions';
 import { FileBlame } from './fileBlame';
 import { hostingTokenKey, tokenOfHost } from './github';
@@ -52,15 +53,15 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   controller.useTokenForgetting((host) => Promise.resolve(context.secrets.delete(hostingTokenKey(host))));
   const blameSource = new BlameSource(log);
   const fileBlame = new FileBlame(blameSource, {
-    open: (hash, repo) => controller.openCommit(hash, repo),
-    reveal: (hash) => controller.reveal(hash),
+    open: (hash, repo) => controller.commitTabs.openCommit(hash, repo),
+    reveal: (hash) => controller.history.reveal(hash),
   });
   const lineBlame = new BlameAnnotator(blameSource);
   const heads = new HeadsSeen();
   // What it stages and unstages runs as Gitardo's own operations, and what Gitardo reads again may have moved it.
   const flowDiff = new FlowDiff(context.extensionUri, (root, runs) => controller.runIn(root, runs));
   // The repository shown and the one selected in VS Code's Repositories view follow each other.
-  const sourceControl = new SourceControlSelection((root) => controller.followSourceControl(root), log);
+  const sourceControl = new SourceControlSelection((root) => controller.repositories.followSourceControl(root), log);
   void sourceControl.start();
   context.subscriptions.push(
     sourceControl,
@@ -105,7 +106,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   };
 
   /** A tab of the graph in the editor, on the repository the panel shows, which it keeps (`repo.tab-repository`). */
-  const openInEditor = () => controller.openTab();
+  const openInEditor = () => controller.repositories.openTab();
 
   /** Turns a setting that is on or off into the other, for the user wherever they work. */
   const toggleSetting = (name: string) => () => {
@@ -205,15 +206,15 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     shown,
     lineBlame,
     fileBlame,
-    command('gitardo.fileHistory', (uri) => controller.fileHistory(uri instanceof vscode.Uri ? uri : undefined)),
-    command('gitardo.folderHistory', (uri) => controller.folderHistory(uri instanceof vscode.Uri ? uri : undefined)),
-    command('gitardo.lineHistory', () => controller.lineHistory()),
-    command('gitardo.revealCommit', (hash) => typeof hash === 'string' && controller.reveal(hash)),
-    command('gitardo.reflog', () => controller.command('reflog')),
-    command('gitardo.cleanupBranches', () => controller.command('cleanupBranches')),
-    command('gitardo.signInGitHub', () => controller.command('signInGitHub')),
-    command('gitardo.signInGitLab', () => controller.command('signInGitLab')),
-    command('gitardo.checkOutPullRequest', () => controller.command('checkOutPullRequest')),
+    command('gitardo.fileHistory', (uri) => controller.history.fileHistory(uri instanceof vscode.Uri ? uri : undefined)),
+    command('gitardo.folderHistory', (uri) => controller.history.folderHistory(uri instanceof vscode.Uri ? uri : undefined)),
+    command('gitardo.lineHistory', () => controller.history.lineHistory()),
+    command('gitardo.revealCommit', (hash) => typeof hash === 'string' && controller.history.reveal(hash)),
+    command('gitardo.reflog', () => controller.commands.command('reflog')),
+    command('gitardo.cleanupBranches', () => controller.commands.command('cleanupBranches')),
+    command('gitardo.signInGitHub', () => controller.commands.command('signInGitHub')),
+    command('gitardo.signInGitLab', () => controller.commands.command('signInGitLab')),
+    command('gitardo.checkOutPullRequest', () => controller.commands.command('checkOutPullRequest')),
     command('gitardo.toggleBlame', toggleSetting('blame.enabled')),
     // Each of the two has a command for the palette and two for the button of the editors, in its two states.
     ...['gitardo.toggleBlameWhitespace', 'gitardo.blameIgnoreWhitespace', 'gitardo.blameCountWhitespace'].map((id) =>
@@ -229,19 +230,19 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ...['gitardo.toggleFileBlame', 'gitardo.showFileBlame', 'gitardo.hideFileBlame'].map((id) =>
       command(id, (uri) => fileBlame.toggle(uri instanceof vscode.Uri ? uri : undefined)),
     ),
-    command('gitardo.switchIdentity', () => controller.command('switchIdentity')),
-    command('gitardo.selectRepository', () => controller.command('selectRepository')),
-    command('gitardo.openRepositoryInTab', () => controller.pickTab()),
-    command('gitardo.remotes', () => controller.command('remotes')),
+    command('gitardo.switchIdentity', () => controller.commands.command('switchIdentity')),
+    command('gitardo.selectRepository', () => controller.commands.command('selectRepository')),
+    command('gitardo.openRepositoryInTab', () => controller.repositories.pickTab()),
+    command('gitardo.remotes', () => controller.commands.command('remotes')),
     command('gitardo.bisectReset', () => controller.action({ kind: 'bisectReset' })),
-    command('gitardo.compare', () => controller.compare()),
-    command('gitardo.compareWith', (uri) => controller.compareWith(uri instanceof vscode.Uri ? uri : undefined)),
-    command('gitardo.goToCommit', () => controller.goToCommit()),
-    command('gitardo.openCommit', (hash) => controller.openCommit(typeof hash === 'string' ? hash : undefined)),
+    command('gitardo.compare', () => controller.compareTabs.compare()),
+    command('gitardo.compareWith', (uri) => controller.compareTabs.compareWith(uri instanceof vscode.Uri ? uri : undefined)),
+    command('gitardo.goToCommit', () => controller.history.goToCommit()),
+    command('gitardo.openCommit', (hash) => controller.commitTabs.openCommit(typeof hash === 'string' ? hash : undefined)),
     command('gitardo.resolveConflicts', () => controller.action({ kind: 'resolveConflicts' })),
-    command('gitardo.reviewConflicts', () => controller.reviewConflicts()),
-    command('gitardo.resolveConflictsWithAI', () => controller.reviewConflicts(undefined, true)),
-    command('gitardo.chooseConflictModel', () => controller.chooseConflictModel()),
+    command('gitardo.reviewConflicts', () => controller.conflictReviews.reviewConflicts()),
+    command('gitardo.resolveConflictsWithAI', () => controller.conflictReviews.reviewConflicts(undefined, true)),
+    command('gitardo.chooseConflictModel', () => controller.commands.chooseConflictModel()),
     // The views that list commits put the cursor in their search box at Ctrl+F by themselves. While one of them has the
     // keyboard the key is bound to this, for VS Code to run something other than the search of the editor behind them.
     command('gitardo.find', () => {}),
@@ -255,9 +256,9 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.loadMoreHistory', () => controller.action({ kind: 'deepen' })),
     command('gitardo.loadWholeHistory', () => controller.action({ kind: 'unshallow' })),
     command('gitardo.createWorktree', () => controller.action({ kind: 'worktreeAdd' })),
-    command('gitardo.switchWorktree', () => controller.command('switchWorktree')),
-    command('gitardo.worktreeSetup', () => controller.command('worktreeSetup')),
-    command('gitardo.largeFiles', () => controller.command('largeFiles')),
+    command('gitardo.switchWorktree', () => controller.commands.command('switchWorktree')),
+    command('gitardo.worktreeSetup', () => controller.commands.command('worktreeSetup')),
+    command('gitardo.largeFiles', () => controller.commands.command('largeFiles')),
     ...(
       [
         ['gitardo.linkIntoWorktrees', 'link'],
@@ -265,13 +266,13 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
         ['gitardo.stopLinkingIntoWorktrees', 'stopLinking'],
         ['gitardo.stopCopyingIntoWorktrees', 'stopCopying'],
       ] as const
-    ).map(([id, entry]) => command(id, (uri, uris) => controller.setUpFromExplorer(entry, explorerUris(uri, uris)))),
+    ).map(([id, entry]) => command(id, (uri, uris) => controller.worktreeSetup.fromExplorer(entry, explorerUris(uri, uris)))),
     // What git leaves alone, on the file or the folder the Explorer's menu was opened on.
     ...(['ignore', 'stopTracking', 'hideFromGit', 'showToGit'] as const).map((kind) =>
-      command(`gitardo.${kind}`, (uri) => controller.leaveAloneFromExplorer(kind, uri instanceof vscode.Uri ? uri : undefined)),
+      command(`gitardo.${kind}`, (uri) => controller.commands.leaveAloneFromExplorer(kind, uri instanceof vscode.Uri ? uri : undefined)),
     ),
     // Git LFS, on the file the Explorer's menu was opened on (`lfs.track`).
-    command('gitardo.storeWithLfs', (uri) => controller.storeWithLfsFromExplorer(uri instanceof vscode.Uri ? uri : undefined)),
+    command('gitardo.storeWithLfs', (uri) => controller.commands.storeWithLfsFromExplorer(uri instanceof vscode.Uri ? uri : undefined)),
     command('gitardo.addSubmodule', () => controller.action({ kind: 'submoduleAdd' })),
     command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
     vscode.workspace.registerFileSystemProvider(SCHEME, fileSystem, { isReadonly: true, isCaseSensitive: true }),
@@ -280,7 +281,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     vscode.window.registerWebviewPanelSerializer(GRAPH_TAB, {
       deserializeWebviewPanel: (panel, kept: unknown) => {
         const { root, ...shown } = keptTab(kept);
-        return controller.openTab(root, panel, shown);
+        return controller.repositories.openTab(root, panel, shown);
       },
     }),
     vscode.window.registerWebviewViewProvider(REPOSITORIES_VIEW, repositoriesProvider, webviewOptions),
@@ -324,13 +325,13 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.showLog', () => log.show()),
     command('gitardo.stash', () => controller.action({ kind: 'stashPush' })),
     // The buttons Gitardo adds to the list of changes of VS Code, in the repository of what they are on.
-    command('gitardo.scmStashFile', (...files) => controller.stashFromScm(scmFiles(files), 'files')),
-    command('gitardo.scmStashStaged', (...groups) => controller.stashFromScm(scmFiles(groups), 'staged')),
-    command('gitardo.scmStashAll', (...groups) => controller.stashFromScm(scmFiles(groups), 'all')),
+    command('gitardo.scmStashFile', (...files) => controller.commands.stashFromScm(scmFiles(files), 'files')),
+    command('gitardo.scmStashStaged', (...groups) => controller.commands.stashFromScm(scmFiles(groups), 'staged')),
+    command('gitardo.scmStashAll', (...groups) => controller.commands.stashFromScm(scmFiles(groups), 'all')),
     command('gitardo.undo', () => controller.action({ kind: 'undo' })),
     // Pull is the button, which pulls the way the settings choose: the pull with no option has a command of its own.
-    ...syncActions.map((action) => command(`gitardo.${action}`, () => (action === 'pull' ? controller.pull() : controller.sync(action)))),
-    command('gitardo.pullPlain', () => controller.sync('pull')),
+    ...syncActions.map((action) => command(`gitardo.${action}`, () => (action === 'pull' ? controller.commands.pull() : controller.commands.sync(action)))),
+    command('gitardo.pullPlain', () => controller.commands.sync('pull')),
   );
   return { controller, log, fileBlame, flowDiff, extendMarkdownIt: mermaidPreview(context, log) };
 }

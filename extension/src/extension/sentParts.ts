@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import type { HostMessage, RepoState, StatePart, ViewKind } from '../shared/protocol';
+import { laidOutOf } from '../engine/graph';
+import type { Filter, HostMessage, RepoState, StatePart, ViewKind } from '../shared/protocol';
 import { commitsOf, draftOf, partOf, partsIn, partsOf } from '../shared/stateParts';
 
 /**
@@ -75,4 +76,22 @@ export function stateFor(kind: ViewKind, state: RepoState, before: Sent | undefi
     ...(kept > 0 ? { kept } : {}),
   };
   return { message, sent: { parts, rows } };
+}
+
+/**
+ * Identifies the first `count` rows of a state: two states with the same key have the same rows, as far as that.
+ * A commit never changes, so its hash stands for all of it, and the lines of the graph of a row only depend on the rows
+ * above it. The row of the uncommitted changes only counts for being there or not, which moves the lines of the graph:
+ * how many changes it says there are is sent apart.
+ * The filter is part of it because the history of a file gives the same commits other parents, and so is following
+ * only the first parent of each merge, which leaves a merge one parent.
+ */
+export function rowsKey(state: RepoState, filter: Filter | null, count = state.rows.length): string {
+  // The rows of the engine's reads keep what identifies them as they are laid out, page after page.
+  const laid = laidOutOf(state.rows);
+  if (laid) return laid.keyAt(count);
+  const hash = createHash('sha1');
+  hash.update(`${state.root}\0${JSON.stringify(filter)}\0${state.firstParent}\0`);
+  for (let index = 0; index < count; index++) hash.update(state.rows[index].hash);
+  return hash.digest('hex');
 }

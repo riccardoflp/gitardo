@@ -7,6 +7,7 @@ import { partialResolution, type ConflictAnswer } from '../shared/conflictPrompt
 import type { EngineClient } from '../engine/client';
 import { conflictPlans, deletedConflicts, recordedConflicts } from '../engine/conflictPlans';
 import type { FileResolutions } from '../engine/messages';
+import type { EngineRun } from '../engine/actions';
 import { reads, type Repository } from '../engine/reads';
 import { engineResolutions } from '../engine/resolutions';
 import type { Operation, ToViews, ViewKind } from '../shared/protocol';
@@ -14,6 +15,7 @@ import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Prop
 import { conflictModelName } from './ai';
 import { proposalUri } from './content';
 import { answers, choices } from './answers';
+import type { ControllerHost } from './controllerHost';
 
 /** How many conflicts the language model is asked about at the same time. */
 const AT_ONCE = 2;
@@ -339,5 +341,65 @@ async function askOnEngine(
     return { text, reason: answer.reason, confidence: answer.confidence, model: answer.model };
   } finally {
     listener.dispose();
+  }
+}
+
+/** Resolving conflicts without choosing a side is experimental: nothing of it is offered, or run, until it is switched on. */
+export function autoResolve(): boolean {
+  return vscode.workspace.getConfiguration('gitardo').get<boolean>('conflicts.autoResolve') === true;
+}
+
+/** Asking a language model how to resolve conflicts is experimental too, with a setting of its own. */
+export function resolveWithAI(): boolean {
+  return vscode.workspace.getConfiguration('gitardo').get<boolean>('conflicts.ai') === true;
+}
+
+/** The tab of the review, one at a time, opened on the repository a group of views shows. */
+export class ConflictReviews {
+  /** The tab where what is proposed for the conflicts is looked at before it is written. */
+  tab?: ConflictReviewTab;
+
+  constructor(private readonly host: Pick<ControllerHost, 'attach' | 'followers' | 'pin' | 'post' | 'requireState' | 'run'>) {}
+
+  /**
+   * Opens the tab where what is proposed for the conflicts is looked at, of these files or of all of them, or shows the
+   * one open. With `ai` the language model is asked about the conflicts the rules leave.
+   */
+  async reviewConflicts(paths?: string[], ai = false, on = this.host.followers): Promise<void> {
+    const repo = (await this.host.requireState(on)) && on.repo;
+    if (!repo) return;
+    if (!autoResolve() && !resolveWithAI()) {
+      void vscode.window
+        .showInformationMessage('Gitardo: resolving conflicts automatically is experimental, and it is switched off in the settings.', 'Open Settings')
+        .then((choice) => choice && vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.conflicts'));
+      return;
+    }
+    const wanted = paths?.filter((file) => typeof file === 'string');
+    if (this.tab && samePath(this.tab.repo.root, repo.root)) this.tab.reveal(wanted);
+    else {
+      this.tab?.dispose();
+      const host = {
+        attach: (webview: vscode.Webview, kind: ViewKind, data: Record<string, string>) => this.host.attach(webview, kind, data),
+        post: (message: ToViews, webview: vscode.Webview) => this.host.post(message, webview),
+        write: (on: Repository, resolutions: FileResolutions[]) => this.writeResolutions(on, resolutions),
+        settings: () => ({ rules: autoResolve(), ai: resolveWithAI() }),
+      };
+      const tab: ConflictReviewTab = new ConflictReviewTab(host, repo, wanted, () => {
+        this.host.pin(tab.webview, null);
+        if (this.tab === tab) this.tab = undefined;
+      });
+      this.tab = tab;
+      this.host.pin(tab.webview, repo);
+      await tab.reload();
+    }
+    if (ai) await this.tab?.ask();
+  }
+
+  /** Writes resolutions of conflicts, and says what is left: the engine's journal keeps how Undo puts the conflicts back. */
+  private async writeResolutions(repo: Repository, resolutions: FileResolutions[]): Promise<boolean> {
+    let written = false;
+    const runs: EngineRun[] = [{ feature: 'review.write', target: { kind: 'resolutions', files: resolutions } }];
+    await this.host.run(runs, repo, {}, () => (written = true));
+    return written;
   }
 }

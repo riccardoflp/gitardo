@@ -29,7 +29,8 @@ interface Internals {
   limit: number;
   filter: Filter | null;
   views: Map<unknown, ViewKind>;
-  compareTabs: Map<unknown, CompareTab>;
+  /** The tabs of the comparisons, by their webview. */
+  compareTabs: { tabs: Map<unknown, CompareTab> };
   hosting: Hosting | null;
   onMessage(webview: unknown, message: WebviewMessage): Promise<void>;
   post(message: ToViews, to?: unknown): void;
@@ -869,7 +870,7 @@ export async function run(): Promise<void> {
     await git(app, ['worktree', 'add', '-b', 'shown/one', dir, 'main']);
     await vscode.commands.executeCommand('gitardo.refresh');
     try {
-      await controller.selectRepo(dir);
+      await controller.repositories.selectRepo(dir);
       assert.ok(same(state().root, dir), state().root);
       assert.equal(checkedOutBranch(state()), 'shown/one');
       assert.deepEqual(state().home, back);
@@ -890,11 +891,11 @@ export async function run(): Promise<void> {
       assert.equal((await git(app, ['diff', '--cached', '--name-only'])).stdout.trim(), '');
 
       // And back to the folder of the window.
-      await controller.selectRepo(back.root);
+      await controller.repositories.selectRepo(back.root);
       assert.equal(state().root, back.root);
       assert.equal(state().home, null);
     } finally {
-      if (!same(state().root, back.root)) await controller.selectRepo(back.root);
+      if (!same(state().root, back.root)) await controller.repositories.selectRepo(back.root);
       await git(app, ['worktree', 'remove', '--force', dir]).catch(() => undefined);
       fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
       await git(app, ['worktree', 'prune']);
@@ -936,7 +937,7 @@ export async function run(): Promise<void> {
     try {
       // With several repositories listed at once, Gitardo leaves the view as it is.
       await until('app to be the repository Source Control is on', () => opened(app)?.ui.selected);
-      await controller.selectRepo(lib);
+      await controller.repositories.selectRepo(lib);
       await sleep(1500);
       assert.deepEqual(selected(), ['app']);
 
@@ -944,8 +945,8 @@ export async function run(): Promise<void> {
       await scm.update('repositories.selectionMode', 'single', vscode.ConfigurationTarget.Workspace);
       // The view keeps the first repository it lists, which may move Source Control.
       await sleep(500);
-      await controller.selectRepo(app);
-      await controller.selectRepo(lib);
+      await controller.repositories.selectRepo(app);
+      await controller.repositories.selectRepo(lib);
       await until(`lib to be selected in the Repositories view, not ${selected()}`, () => opened(lib)?.ui.selected && !opened(app)?.ui.selected);
 
       // Chosen there, as a click on it would, it is shown in Gitardo.
@@ -962,13 +963,13 @@ export async function run(): Promise<void> {
 
       // A worktree of lib, which is not in the workspace, is shown as one of lib.
       await git(lib, ['worktree', 'add', '-b', 'beside', beside]);
-      await controller.selectRepo(beside);
+      await controller.repositories.selectRepo(beside);
       assert.ok(samePath(state().root, beside), state().root);
       assert.equal(checkedOutBranch(state()), 'beside');
       assert.ok(state().home && samePath(state().home!.root, lib), JSON.stringify(state().home));
     } finally {
       await scm.update('repositories.selectionMode', undefined, vscode.ConfigurationTarget.Workspace);
-      if (!samePath(state().root, app)) await controller.selectRepo(app);
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
       await git(lib, ['worktree', 'remove', '--force', beside]).catch(() => undefined);
       fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
       await git(lib, ['worktree', 'prune']);
@@ -1022,15 +1023,15 @@ export async function run(): Promise<void> {
     await keepOpen(true);
     try {
       // What app shows: the history of a file, the local branches only, and more than a page of it asked for.
-      await controller.setFilter({ kind: 'path', path: 'b.txt' });
-      await controller.setScope({ kind: 'kinds', kinds: ['branch'] });
+      await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
+      await controller.history.setScope({ kind: 'kinds', kinds: ['branch'] });
       internals.limit = 2500;
       await vscode.commands.executeCommand('gitardo.refresh');
       const left = state();
       assert.equal(left.keepOpen, true);
       assert.deepEqual(left.filter, { kind: 'path', path: 'b.txt' });
 
-      await controller.selectRepo(lib);
+      await controller.repositories.selectRepo(lib);
       assert.ok(samePath(state().root, lib), state().root);
       // Shown for the first time, lib is read, nothing narrowed, as before.
       assert.equal(state().filter, null);
@@ -1041,7 +1042,7 @@ export async function run(): Promise<void> {
       const appReads = counted.of(nameOf(app)).length;
       // Why app would be read once shown, if something changed in it meanwhile.
       const changed = internals.kept.outOfDate(app);
-      await controller.selectRepo(app);
+      await controller.repositories.selectRepo(app);
       assert.ok(samePath(state().root, app), state().root);
       assert.deepEqual(
         state().rows.map((row) => row.hash),
@@ -1058,15 +1059,15 @@ export async function run(): Promise<void> {
       assert.ok(!internals.kept.has(app), 'app, shown, keeps nothing apart');
       assert.ok(internals.kept.has(lib), 'lib keeps what it showed');
       // Choosing the repository shown reads nothing either.
-      await controller.selectRepo(app);
+      await controller.repositories.selectRepo(app);
       assert.equal(counted.of(nameOf(app)).length, appReads);
     } finally {
       counted.stop();
       internals.scheduleRefresh = schedule;
       // What app was narrowed to is kept for it: it is taken off there, whichever repository a failure left shown.
-      if (!samePath(state().root, app)) await controller.selectRepo(app);
-      await controller.setFilter(null);
-      await controller.setScope(null);
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      await controller.history.setFilter(null);
+      await controller.history.setScope(null);
       await keepOpen(undefined);
     }
   });
@@ -1101,12 +1102,12 @@ export async function run(): Promise<void> {
     assert.equal(state().keepOpen, false);
     const counted = readsFrom();
     try {
-      await controller.setFilter({ kind: 'path', path: 'b.txt' });
-      await controller.selectRepo(lib);
+      await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
+      await controller.repositories.selectRepo(lib);
       assert.ok(!internals.kept.has(app), 'app keeps nothing');
       const from = posted.length;
       const appReads = counted.of(nameOf(app)).length;
-      await controller.selectRepo(app);
+      await controller.repositories.selectRepo(app);
       // Its commits are read again, nothing narrowed, and the views wait for them as before.
       assert.equal(state().filter, null);
       const told = toldFrom(from);
@@ -1118,15 +1119,15 @@ export async function run(): Promise<void> {
       assert.ok(counted.of(nameOf(app)).length > appReads, 'app is read again');
     } finally {
       counted.stop();
-      await controller.setFilter(null);
+      await controller.history.setFilter(null);
     }
   });
 
   await step('turning keeping repositories open off forgets at once what the repositories not shown kept, and tells the views', async () => {
     await keepOpen(true);
     try {
-      await controller.selectRepo(lib);
-      await controller.selectRepo(app);
+      await controller.repositories.selectRepo(lib);
+      await controller.repositories.selectRepo(app);
       assert.ok(internals.kept.has(lib), 'lib keeps what it showed');
       const from = posted.length;
       await keepOpen(false);
@@ -1142,9 +1143,9 @@ export async function run(): Promise<void> {
     await keepOpen(true);
     const first = (await git(lib, ['rev-parse', 'HEAD'])).stdout.trim();
     try {
-      await controller.selectRepo(lib);
+      await controller.repositories.selectRepo(lib);
       const before = state().rows.map((row) => row.subject);
-      await controller.selectRepo(app);
+      await controller.repositories.selectRepo(app);
       assert.ok(internals.kept.has(lib), 'lib keeps what it showed');
       await git(lib, ['-c', 'user.name=Test Author', '-c', 'user.email=author@example.com', 'commit', '--allow-empty', '-m', 'From the terminal in lib']);
       const libReads = counted.of(nameOf(lib)).length;
@@ -1159,7 +1160,7 @@ export async function run(): Promise<void> {
         if (each && samePath(each.root, lib)) shown.push(each.rows.map((row) => row.subject));
       });
       try {
-        await controller.selectRepo(lib);
+        await controller.repositories.selectRepo(lib);
       } finally {
         listening.dispose();
       }
@@ -1172,7 +1173,7 @@ export async function run(): Promise<void> {
       assert.equal(counted.of(nameOf(lib)).length, libReads + 1, 'lib is read once');
     } finally {
       counted.stop();
-      if (!samePath(state().root, app)) await controller.selectRepo(app);
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
       await keepOpen(undefined);
       await git(lib, ['reset', '--hard', first]);
     }
@@ -1246,7 +1247,7 @@ export async function run(): Promise<void> {
       // The one left is read by the engine again, and says what it said while it was shown.
       await until('what the worktree left is on', () => row(login)?.summary?.changed === 1, 30_000);
     } finally {
-      if (!samePath(state().root, app)) await controller.selectRepo(app);
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
       await git(app, ['worktree', 'remove', '--force', login]).catch(() => undefined);
       fs.rmSync(login, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
       await git(app, ['worktree', 'prune']);
@@ -1803,7 +1804,7 @@ export async function run(): Promise<void> {
   });
 
   // The comparisons open in tabs.
-  const tabs = () => [...internals.compareTabs.values()];
+  const tabs = () => [...internals.compareTabs.tabs.values()];
   /** The sides of the comparison opened last, and how it compares them. */
   const compared = () => {
     const tab = tabs().at(-1);
@@ -2184,13 +2185,13 @@ export async function run(): Promise<void> {
     assert.deepEqual(state().filter, { kind: 'path', path: 'b.txt' });
     // On every branch: `feature` changes the file too.
     assert.deepEqual(subjects(), ['Add feature', 'Add b']);
-    await controller.setFilter(null);
+    await controller.history.setFilter(null);
     assert.equal(state().filter, null);
 
     await vscode.commands.executeCommand('gitardo.fileHistory', vscode.Uri.file(path.join(lib, 'lib.txt')));
     assert.equal(state().name, 'lib');
     assert.deepEqual(subjects(), ['Add lib']);
-    await controller.selectRepo(state().repos[0].root);
+    await controller.repositories.selectRepo(state().repos[0].root);
     assert.equal(state().name, 'app');
     assert.equal(state().filter, null);
   });
@@ -2219,7 +2220,7 @@ export async function run(): Promise<void> {
       assert.ok(asked.some((each) => each.message.includes('choose a folder of this repository')), asked.map((each) => each.message).join('\n'));
       assert.equal(state().filter, null);
     } finally {
-      await controller.setFilter(null);
+      await controller.history.setFilter(null);
       await git(app, ['reset', '--hard', before]);
       await vscode.commands.executeCommand('gitardo.refresh');
     }
@@ -2264,7 +2265,7 @@ export async function run(): Promise<void> {
       await vscode.commands.executeCommand('workbench.action.files.revert');
     } finally {
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-      await controller.setFilter(null);
+      await controller.history.setFilter(null);
       await git(app, ['reset', '--hard', before]);
       await vscode.commands.executeCommand('gitardo.refresh');
     }
@@ -2287,19 +2288,19 @@ export async function run(): Promise<void> {
     assert.equal(subjects()[0], 'Add feature');
 
     // The history of a file is the one it has among them, and leaves them as they were when it is closed.
-    await controller.setFilter({ kind: 'path', path: 'b.txt' });
+    await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
     assert.deepEqual(subjects(), ['Add feature', 'Add b']);
     await internals.onMessage(graph, { type: 'setScope', scope: { kind: 'current' } });
     assert.deepEqual(subjects(), ['Add b']);
     assert.deepEqual(state().filter, { kind: 'path', path: 'b.txt' });
-    await controller.setFilter(null);
+    await controller.history.setFilter(null);
     assert.deepEqual(state().scope, { kind: 'current' });
 
     // Each repository has its own, and finds it again.
-    await controller.selectRepo(state().repos[1].root);
+    await controller.repositories.selectRepo(state().repos[1].root);
     assert.equal(state().name, 'lib');
     assert.equal(state().scope, null);
-    await controller.selectRepo(state().repos[0].root);
+    await controller.repositories.selectRepo(state().repos[0].root);
     assert.equal(state().name, 'app');
     assert.deepEqual(state().scope, { kind: 'current' });
 
@@ -2345,9 +2346,9 @@ export async function run(): Promise<void> {
     assert.deepEqual(state().listed, { kind: 'kinds', kinds: ['branch'] });
 
     // Each repository has its own, and finds it again.
-    await controller.selectRepo(lib);
+    await controller.repositories.selectRepo(lib);
     assert.equal(state().listed, null);
-    await controller.selectRepo(app);
+    await controller.repositories.selectRepo(app);
     assert.deepEqual(state().listed, { kind: 'kinds', kinds: ['branch'] });
 
     // Branches ticked one by one: one deleted is no longer listed, and with none left everything is.
@@ -2386,9 +2387,9 @@ export async function run(): Promise<void> {
     assert.ok(posted.some((outgoing) => outgoing.type === 'state'));
 
     // Each repository has its own, and finds them again.
-    await controller.selectRepo(state().repos[1].root);
+    await controller.repositories.selectRepo(state().repos[1].root);
     assert.deepEqual(state().favorites, []);
-    await controller.selectRepo(state().repos[0].root);
+    await controller.repositories.selectRepo(state().repos[0].root);
     assert.deepEqual(state().favorites, ['refs/heads/feature', 'refs/remotes/origin/main']);
 
     // A branch that is deleted is no longer one, and the others stay when one is taken out.
@@ -2432,7 +2433,7 @@ export async function run(): Promise<void> {
     assert.deepEqual(log.unpushed, history.slice(0, 2));
 
     // What the graph is narrowed to is nothing to them.
-    await controller.setFilter({ kind: 'path', path: 'b.txt' });
+    await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
     try {
       assert.ok(state().rows.length < history.length, 'the graph has fewer commits');
       assert.deepEqual(
@@ -2440,7 +2441,7 @@ export async function run(): Promise<void> {
         history,
       );
     } finally {
-      await controller.setFilter(null);
+      await controller.history.setFilter(null);
     }
 
     // A commit unfolds to the files it changed.
@@ -2455,11 +2456,11 @@ export async function run(): Promise<void> {
 
   await step('pushes, fetches and pulls with a rebase against the remote', async () => {
     assert.equal(state().branches.find((branch) => branch.isCheckedOut)!.upstream!.ahead, 2);
-    await controller.sync('push');
+    await controller.commands.sync('push');
     assert.equal(state().branches.find((branch) => branch.isCheckedOut)!.upstream!.ahead, 0);
     assert.deepEqual((await branchLog()).unpushed, []);
-    await controller.sync('fetch');
-    await controller.sync('pullRebase');
+    await controller.commands.sync('fetch');
+    await controller.commands.sync('pullRebase');
     assert.deepEqual(errors, []);
   });
 
@@ -2484,7 +2485,7 @@ export async function run(): Promise<void> {
       write('a.txt', `${original}mine\n`);
       logged.length = 0;
       asked.length = 0;
-      await controller.sync('pullAutostash');
+      await controller.commands.sync('pullAutostash');
       assert.ok(logged.includes('> git pull --autostash'), logged.join('\n'));
       assert.equal(subjects().filter((subject) => subject === 'Their file').length, 1);
       assert.equal(read('a.txt'), `${original}mine\n`);
@@ -2495,7 +2496,7 @@ export async function run(): Promise<void> {
       write('a.txt', original);
       write('theirs.txt', 'mine\n');
       await theirs('theirs.txt', 'THEIRS\n', 'Their change');
-      await controller.sync('pullRebaseAutostash');
+      await controller.commands.sync('pullRebaseAutostash');
       assert.ok(logged.includes('> git pull --rebase --autostash'), logged.join('\n'));
       assert.equal(subjects().filter((subject) => subject === 'Their change').length, 1);
       assert.equal(state().stashes.length, stashes + 1);
@@ -2585,12 +2586,12 @@ export async function run(): Promise<void> {
     await vscode.commands.executeCommand('gitardo.refresh');
     asked.length = 0;
     answer = () => undefined;
-    await controller.sync('pushForceWithLease');
+    await controller.commands.sync('pushForceWithLease');
     assert.equal(asked.length, 1);
     assert.match(asked[0].detail, /will be overwritten:\n\w+ Add a file\n/);
     assert.match(asked[0].detail, /git push --force-with-lease origin main$/);
     answer = run;
-    await controller.sync('pushForceWithLease');
+    await controller.commands.sync('pushForceWithLease');
     assert.deepEqual(state().branches.find((branch) => branch.isCheckedOut)!.upstream, {
       reference: 'refs/remotes/origin/main',
       remote: 'origin',
@@ -2743,7 +2744,7 @@ export async function run(): Promise<void> {
     }
 
     // In a list that leaves it out, the list gives way; in one that has it, the list stays.
-    await controller.setFilter({ kind: 'path', path: 'b.txt' });
+    await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
     const inFile = state().rows[0].hash;
     assert.ok(!loaded(oldest));
     await internals.onMessage(graph, { type: 'goTo', revision: inFile });
@@ -2759,7 +2760,7 @@ export async function run(): Promise<void> {
     assert.deepEqual(state().filter, { kind: 'ref', ref: lost, lost: true });
     assert.equal(subjects()[0], 'Lost');
     assert.deepEqual(revealed(), [`${lost} in graph`]);
-    await controller.setFilter(null);
+    await controller.history.setFilter(null);
 
     // What is not a commit is said, and nothing moves.
     forget();
@@ -2802,13 +2803,13 @@ export async function run(): Promise<void> {
     assert.equal(hashes().length, everything);
 
     // In the history of a file, only the commits of that history.
-    await controller.setFilter({ kind: 'path', path: 'b.txt' });
+    await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
     assert.ok(hashes().length < everything);
     assert.deepEqual((await find({ kind: 'author', query: 'gitardo test' })).hashes, hashes());
     assert.deepEqual(state().filter, { kind: 'path', path: 'b.txt' });
 
     // A list of results gives way to the graph the new ones are shown in.
-    await controller.setFilter({ kind: 'message', query: 'feature' });
+    await controller.history.setFilter({ kind: 'message', query: 'feature' });
     const two = await find({ kind: 'pickaxe', query: 'two' });
     assert.equal(state().filter, null);
     assert.ok(two.hashes.length > 0 && two.hashes.every((hash) => hashes().includes(hash)));
@@ -2884,7 +2885,7 @@ export async function run(): Promise<void> {
 
     // Asked for again, the commit has its tab: that one is shown.
     await vscode.commands.executeCommand('gitardo.openGraph');
-    await controller.openCommit(hash);
+    await controller.commitTabs.openCommit(hash);
     assert.equal(commitViews().length, 1);
     assert.equal(tabs().filter((candidate) => candidate.label.startsWith(short)).length, 1);
 
@@ -2901,7 +2902,7 @@ export async function run(): Promise<void> {
     await internals.onMessage(webview, { type: 'setFilesLayout', layout: 'tree' });
 
     // The other views move on to another repository: the tab is still of its own.
-    await controller.selectRepo(state().repos[1].root);
+    await controller.repositories.selectRepo(state().repos[1].root);
     assert.equal(state().name, 'lib');
     posted.length = 0;
     addressed.length = 0;
@@ -2924,14 +2925,14 @@ export async function run(): Promise<void> {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await until('the tabs to detach', () => commitViews().length === 0);
     // A closed tab is not kept for the next time.
-    await controller.openCommit(hash);
+    await controller.commitTabs.openCommit(hash);
     await until('a new tab', () => commitViews().length === 1);
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await until('the tab to detach', () => commitViews().length === 0);
 
     // What is not a commit of the repository is said, and opens nothing.
     asked.length = 0;
-    await controller.openCommit('0123456789abcdef0123456789abcdef01234567');
+    await controller.commitTabs.openCommit('0123456789abcdef0123456789abcdef01234567');
     assert.match(asked.at(-1)!.message, /0123456 is not a commit of this repository/);
     assert.equal(commitViews().length, 0);
   });
@@ -2958,17 +2959,17 @@ export async function run(): Promise<void> {
     assert.equal(asked[0].message, 'Remove remote mirror?');
     assert.deepEqual(state().remotes, ['origin']);
 
-    await controller.selectRepo(state().repos[1].root);
+    await controller.repositories.selectRepo(state().repos[1].root);
     assert.deepEqual(state().remotes, []);
     asked.length = 0;
     answer = () => undefined;
-    await controller.sync('push');
+    await controller.commands.sync('push');
     // The engine writes it as the desktop does, in capitals where the extension had none (stage 4, area 2).
     assert.equal(asked.length, 1);
     assert.match(asked[0].message, /^Gitardo: [Tt]his repository has no remote\.$/);
     assert.equal(asked[0].items.length, 1);
     assert.match(asked[0].items[0], /^Add [Rr]emote…$/);
-    await controller.selectRepo(state().repos[0].root);
+    await controller.repositories.selectRepo(state().repos[0].root);
   });
 
   await step('stashes a single file and leaves the rest alone', async () => {
@@ -3050,7 +3051,7 @@ export async function run(): Promise<void> {
       await git(lib, ['checkout', '--', 'lib.txt']);
       assert.equal(errors.length, before);
     } finally {
-      await controller.selectRepo(state().repos[0].root);
+      await controller.repositories.selectRepo(state().repos[0].root);
       answer = run;
       await controller.action({ kind: 'discardAll' });
     }
@@ -3389,7 +3390,7 @@ export async function run(): Promise<void> {
     await vscode.commands.executeCommand('gitardo.fileHistory', vscode.Uri.file(path.join(app, 'renamed.txt')));
     assert.deepEqual(state().filter, { kind: 'path', path: 'renamed.txt', renamedFrom: ['pick-one.txt'] });
     assert.deepEqual(subjects(), ['Rename a file', 'Pick one']);
-    await controller.setFilter(null);
+    await controller.history.setFilter(null);
   });
 
   await step('bisects from the graph and reports the first bad commit', async () => {
@@ -4240,7 +4241,7 @@ export async function run(): Promise<void> {
     assert.deepEqual(await sequence({ type: 'loadMore' }), []);
     assert.deepEqual(await sequence({ type: 'setFilter', filter: null }), ['loading filter', 'state none', 'loading null']);
     assert.deepEqual(await sequence({ type: 'setScope', scope: { kind: 'kinds', kinds: ['branch'] } }), ['loading filter', 'state none', 'loading null']);
-    await controller.setScope(null);
+    await controller.history.setScope(null);
 
     // Another repository: the views wait for its commits as for those of a filter.
     const home = state().root;
@@ -4250,7 +4251,7 @@ export async function run(): Promise<void> {
     assert.deepEqual(switched.filter((line) => line.startsWith('loading')), ['loading filter', 'loading null']);
     assert.ok(switched.indexOf('state none') < switched.indexOf('loading null'), switched.join(', '));
     assert.ok(switched.includes('state none'), switched.join(', '));
-    await controller.selectRepo(home);
+    await controller.repositories.selectRepo(home);
 
     // Reads that overlap are one wait, over when the last one is.
     const from = posted.length;
@@ -4284,7 +4285,7 @@ export async function run(): Promise<void> {
       changing = false;
       clearTimeout(stop);
       await changes;
-      await controller.setFilter(null);
+      await controller.history.setFilter(null);
     }
     await until('the status bar shows nothing running', () => !controller.activity.running.length);
   });
@@ -4717,7 +4718,7 @@ export async function run(): Promise<void> {
       assert.ok(images.type === 'images' && images.images);
       assert.deepEqual(images.images.before, { uri: `data:image/png;base64,${red.toString('base64')}`, weight: red.length });
       assert.deepEqual(images.images.after, { uri: `data:image/png;base64,${blue.toString('base64')}`, weight: blue.length });
-      await controller.openCommit(hash);
+      await controller.commitTabs.openCommit(hash);
       const commitView = () => [...internals.views.entries()].find(([, kind]) => kind === 'commit')?.[0] as vscode.Webview | undefined;
       const page = await until('the tab of the commit', commitView);
       assert.match(page.html, /img-src [^;]* data:;/);
@@ -4749,7 +4750,7 @@ export async function run(): Promise<void> {
 
   await step('opens a tab of the graph on another repository, which its own toolbar moves and its operations act on alone', async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    if (!samePath(state().root, app)) await controller.selectRepo(app);
+    if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
     const cached = async (folder: string) => (await git(folder, ['diff', '--cached', '--name-only'])).stdout.trim();
     try {
       // **Open in a new tab** in the menu of a row of the Repositories view.
@@ -4825,7 +4826,7 @@ export async function run(): Promise<void> {
 
   await step('shows in the panel and the side bar the repository of the tab of the graph that comes into focus, and moves no tab from them', async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    if (!samePath(state().root, app)) await controller.selectRepo(app);
+    if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
     // What the Changes view of the side bar is sent, as its page gets it.
     const changes = view('changes') as vscode.Webview & { postMessage(message: unknown): Thenable<boolean> };
     const toChanges: HostMessage[] = [];
@@ -4842,9 +4843,9 @@ export async function run(): Promise<void> {
     const chosen: string[] = [];
     const listening = controller.onDidChooseRepo((root) => chosen.push(root));
     try {
-      await controller.openTab(lib);
+      await controller.repositories.openTab(lib);
       const onLib = await until('a tab on lib', () => tabShowing(lib));
-      await controller.openTab(app);
+      await controller.repositories.openTab(app);
       const onApp = await until('a tab on app', () => tabShowing(app, onLib));
       // Opened, a tab moves nothing: the panel shows what it showed.
       assert.ok(samePath(state().root, app));
@@ -4866,7 +4867,7 @@ export async function run(): Promise<void> {
       // A tab of a commit does not move them (Q1521).
       await internals.onMessage(view('graph'), { type: 'selectRepo', root: app });
       await until('the panel to show app', () => samePath(state().root, app));
-      await controller.openCommit(state().head.commit!);
+      await controller.commitTabs.openCommit(state().head.commit!);
       await until('the tab of the commit', () => [...internals.views.values()].includes('commit'));
       await sleep(500);
       assert.ok(samePath(state().root, app));
@@ -4875,18 +4876,18 @@ export async function run(): Promise<void> {
       listening.dispose();
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
       await until('the tabs of the graph to close', () => graphTabs().length === 0);
-      if (!samePath(state().root, app)) await controller.selectRepo(app);
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
     }
   });
 
   await step('brings a tab of the graph back after a reload on what its page kept, and says so of a folder that is no longer there', async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    if (!samePath(state().root, app)) await controller.selectRepo(app);
+    if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
     // What VS Code gives the serializer of the tabs of the graph after a reload: a tab, and the state its page kept.
     const restore = (kept: unknown) => {
       const panel = vscode.window.createWebviewPanel('gitardo.graphEditor', 'Gitardo', vscode.ViewColumn.Active, { retainContextWhenHidden: true });
       const { root, ...shown } = keptTab(kept);
-      return { panel, opened: controller.openTab(root, panel, shown) };
+      return { panel, opened: controller.repositories.openTab(root, panel, shown) };
     };
     try {
       const filter = { kind: 'message', query: 'lib' } as const;
