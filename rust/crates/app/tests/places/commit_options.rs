@@ -176,6 +176,13 @@ fn commit_options__after_a_commit_with_skip_the_hooks_the_next_commit_runs_the_h
     let hooks = repository.path().parent().unwrap().join("hooks");
     std::fs::create_dir_all(&hooks).unwrap();
     std::fs::write(hooks.join("pre-commit"), "#!/bin/sh\necho ran >> hook-ran.txt\n").unwrap();
+    // Git runs a hook on Linux and macOS only when it may be executed; on Windows it runs it as it is.
+    #[cfg(unix)]
+    std::fs::set_permissions(
+        hooks.join("pre-commit"),
+        std::os::unix::fs::PermissionsExt::from_mode(0o755),
+    )
+    .unwrap();
     let hooks_path = hooks.to_string_lossy().replace('\\', "/");
     let _ = repository.git(&["config", "core.hooksPath", &hooks_path]);
     let ran_file = repository.path().join("hook-ran.txt");
