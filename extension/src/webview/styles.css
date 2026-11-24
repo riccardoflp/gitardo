@@ -1803,17 +1803,20 @@ input:focus-visible,
 }
 
 /* Room on the left for the check marks of what is switched on. */
-.menu.context.checks button {
+/* The column of the icons and the check marks, in the color of the words, dimmed with them (`ui.menu-icons`). */
+.menu.context.icons button {
   position: relative;
-  padding-left: 26px;
+  padding-left: 28px;
 }
 
-.menu.context button .codicon-check {
+.menu.context button .menu-icon {
   position: absolute;
-  left: 6px;
+  left: 7px;
   top: 50%;
+  display: flex;
   transform: translateY(-50%);
 }
+
 
 .menu.context button:disabled {
   opacity: 0.5;

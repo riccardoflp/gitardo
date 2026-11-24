@@ -38,19 +38,19 @@ interface Props {
   onStep(by: 1 | -1): void;
 }
 
-const PULL_VARIANTS: { action: PullAction; label: string; command: string }[] = [
-  { action: 'pull', label: 'Pull', command: 'git pull' },
-  { action: 'pullRebase', label: 'Pull (rebase)', command: 'git pull --rebase' },
-  { action: 'pullAutostash', label: 'Pull (autostash)', command: 'git pull --autostash' },
-  { action: 'pullRebaseAutostash', label: 'Pull (rebase, autostash)', command: 'git pull --rebase --autostash' },
+const PULL_VARIANTS: { action: PullAction; label: string; command: string; feature: string }[] = [
+  { action: 'pull', label: 'Pull', command: 'git pull', feature: 'sync.pull' },
+  { action: 'pullRebase', label: 'Pull (rebase)', command: 'git pull --rebase', feature: 'sync.pull-with' },
+  { action: 'pullAutostash', label: 'Pull (autostash)', command: 'git pull --autostash', feature: 'sync.pull-with' },
+  { action: 'pullRebaseAutostash', label: 'Pull (rebase, autostash)', command: 'git pull --rebase --autostash', feature: 'sync.pull-with' },
 ];
 
-const PUSH_VARIANTS: { action: SyncAction; label: string }[] = [
-  { action: 'push', label: 'Push' },
-  { action: 'pushForceWithLease', label: 'Push (force with lease)' },
-  { action: 'pushForce', label: 'Push (force)' },
+const PUSH_VARIANTS: { action: SyncAction; label: string; feature: string }[] = [
+  { action: 'push', label: 'Push', feature: 'sync.push' },
+  { action: 'pushForceWithLease', label: 'Push (force with lease)', feature: 'sync.push-force-with-lease' },
+  { action: 'pushForce', label: 'Push (force)', feature: 'sync.push-force' },
   // Fetch, pull and push in one click, as Gitardo's desktop has it (stage 4, area 2).
-  { action: 'sync', label: 'Sync: fetch, pull, push' },
+  { action: 'sync', label: 'Sync: fetch, pull, push', feature: 'sync.sync' },
 ];
 
 /** `loaded` highlights matches among the commits on screen; the others ask git to search the whole history. */
@@ -102,7 +102,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   const compare = checkedOut && hasDiverged(checkedOut) ? rewriteEntries(checkedOut).slice(1) : [];
   const variants = (list: typeof PUSH_VARIANTS, button: SyncAction) => (event: MouseEvent) =>
     openMenu(event, [
-      ...list.map(({ action, label }) => ({ label, hint: action === button ? 'default' : undefined, run: () => sync(action) })),
+      ...list.map(({ action, label, feature }) => ({ label, feature, hint: action === button ? 'default' : undefined, run: () => sync(action) })),
       ...(button === 'push' && compare.length ? (['separator', ...compare] as MenuEntry[]) : []),
     ]);
 

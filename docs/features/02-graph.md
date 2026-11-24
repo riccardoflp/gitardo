@@ -732,8 +732,17 @@ the same action draws, so that the eye finds an action in a long menu and one me
   the menu of a file of the changes and the **…** of their heading (`changes.row-menu`); the menus of the editors of
   the File, Diff and Merge pages; the chooser of the comparison, the sections of the settings.
 - **Uses**: `graph.icons`.
-- **Extension**: the extension draws its own menus in its webviews, with no icons yet (Q619); VS Code's own menus show
-  none.
+- **Extension**: the menus the webviews draw show the codicon nearest to each icon of the desktop
+  ([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed),
+  Q619): `src/webview/menuIcons.ts` keeps the desktop's table of meanings, each with its codicon, and the meaning
+  `operation_icon` gives each operation; an item of `menus.ts` names the card of the operation it runs (`feature`) or
+  the meaning of what it does (`icon`), and an item that switches or chooses shows the check while it is on, and no
+  icon of its own. `ContextMenu.tsx` draws the icon at the left of the words, in a column kept when any item of the
+  menu has one. The menus of a file in conflict in **Gitardo Changes** and of the **Large files** tab draw the icons
+  of the desktop's too. VS Code's own menus show none. Tested by `test/menuIcons.test.ts`, "gives each meaning of the
+  icons of Gitardo Desktop a codicon, in the order of its table", "gives each operation the meaning operation_icon of
+  Gitardo Desktop gives it" and "draws in every menu the icon of the desktop for each item that has one there, and
+  says why each other item has none".
 
 - The icon is at the left of the words, in the column the toolkit keeps for icons in every menu, drawn at 16 logical
   pixels in the color of the words: lit with them under the pointer or the keys, dimmed with them when the item cannot

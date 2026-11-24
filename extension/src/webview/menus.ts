@@ -39,15 +39,15 @@ const copy = (text: string) => post({ type: 'copy', text });
  * a merge commit, a fast-forward only, or a squash.
  */
 const mergeEntries = (label: string, ref: string): MenuEntry[] => [
-  { label, run: () => act({ kind: 'merge', ref }) },
-  { label: `${label}…`, hint: 'choose how', run: () => act({ kind: 'merge', ref, mode: 'ask' }) },
+  { label, feature: 'merge.into-current', run: () => act({ kind: 'merge', ref }) },
+  { label: `${label}…`, hint: 'choose how', feature: 'merge.choose-way', run: () => act({ kind: 'merge', ref, mode: 'ask' }) },
 ];
 
 /** Merging or rebasing only makes sense against something other than the commit already checked out. */
 function integrate(ref: string, hash: string, state: RepoState): MenuEntry[] {
   if (!state.head.commit || hash === state.head.commit) return [];
   const current = checkedOutBranch(state) ?? 'HEAD';
-  return [...mergeEntries(`Merge into ${current}`, ref), { label: `Rebase ${current} onto this`, run: () => act({ kind: 'rebase', onto: ref }) }];
+  return [...mergeEntries(`Merge into ${current}`, ref), { label: `Rebase ${current} onto this`, feature: 'rebase.onto', run: () => act({ kind: 'rebase', onto: ref }) }];
 }
 
 /**
@@ -73,12 +73,13 @@ function compareWithHead(name: string, hash: string, state: RepoState, onCompare
   const head = state.head.commit;
   if (!head || hash === head) return null;
   const current = checkedOutBranch(state) ?? 'HEAD';
-  return { label: `Compare with ${current}`, run: () => onCompare({ from: hash, to: head, fromName: name, toName: current }) };
+  return { label: `Compare with ${current}`, feature: 'compare.with-current', run: () => onCompare({ from: hash, to: head, fromName: name, toName: current }) };
 }
 
 /** Asks what to compare it with: any branch, tag or commit. */
 const compareWith = (name: string, hash: string): MenuEntry => ({
   label: 'Compare with…',
+  feature: 'compare.with',
   run: () => post({ type: 'compare', from: { name, hash } }),
 });
 
@@ -89,13 +90,14 @@ const compareWith = (name: string, hash: string): MenuEntry => ({
 function scopeEntries(ref: string, state: RepoState): MenuEntry[] {
   const { scope } = state;
   const chosen = scope ? scopeRefs(scope, state) : [];
-  const all = { label: 'Show all branches', run: () => post({ type: 'setScope', scope: null }) };
+  const all = { label: 'Show all branches', icon: 'SHOW' as const, run: () => post({ type: 'setScope', scope: null }) };
   // Taking out the only one shown would leave nothing: what is left to do is to show everything.
   if (chosen.length === 1 && chosen[0] === ref) return [all];
   return [
-    { label: 'Show only this history', run: () => post({ type: 'setScope', scope: { kind: 'refs', refs: [ref] } }) },
+    { label: 'Show only this history', icon: 'FILTER', run: () => post({ type: 'setScope', scope: { kind: 'refs', refs: [ref] } }) },
     scope && {
       label: chosen.includes(ref) ? 'Hide this history' : 'Show this history too',
+      icon: chosen.includes(ref) ? 'HIDE' : 'SHOW',
       run: () => post({ type: 'setScope', scope: toggleScopeRef(scope, ref, state) }),
     },
     scope && all,
@@ -107,7 +109,7 @@ function scopeEntries(ref: string, state: RepoState): MenuEntry[] {
  * what the graph shows. Only where the reference is listed apart from its commit: on a label of the graph it is there.
  */
 function revealEntry(hash: string, onReveal: ((hash: string) => void) | undefined): MenuEntry {
-  return onReveal ? { label: 'Show in the graph', run: () => onReveal(hash) } : null;
+  return onReveal ? { label: 'Show in the graph', icon: 'TIMELINE', run: () => onReveal(hash) } : null;
 }
 
 /**
@@ -119,6 +121,7 @@ function favoriteEntry(ref: string, state: RepoState, name?: string): MenuEntry 
   const which = name ? ` ${name}` : '';
   return {
     label: favorite ? `Remove${which} from favorites` : `Add${which} to favorites`,
+    icon: 'FAVORITE',
     run: () => post({ type: 'setFavorite', ref, favorite: !favorite }),
   };
 }
@@ -160,15 +163,15 @@ export function changesMenu(state: RepoState): MenuEntry[] {
   const { staged, unstaged, untracked, conflicted } = state.workingTree;
   return [
     // Git has nothing to stash onto before the first commit.
-    state.head.commit !== null && { label: 'Stash changes…', run: () => act({ kind: 'stashPush' }) },
-    state.head.commit !== null && staged.length > 0 && { label: 'Stash staged changes…', run: () => act({ kind: 'stashPush', staged: true }) },
+    state.head.commit !== null && { label: 'Stash changes…', feature: 'stash.push', run: () => act({ kind: 'stashPush' }) },
+    state.head.commit !== null && staged.length > 0 && { label: 'Stash staged changes…', feature: 'stash.push-staged', run: () => act({ kind: 'stashPush', staged: true }) },
     'separator',
     // Staging everything would mark the conflicts resolved, markers and all.
-    unstaged.length + untracked.length > 0 && !conflicted.length && { label: 'Stage all changes', run: () => act({ kind: 'stageAll' }) },
-    staged.length > 0 && { label: 'Unstage all changes', run: () => act({ kind: 'unstageAll' }) },
+    unstaged.length + untracked.length > 0 && !conflicted.length && { label: 'Stage all changes', feature: 'changes.stage-all', run: () => act({ kind: 'stageAll' }) },
+    staged.length > 0 && { label: 'Unstage all changes', feature: 'changes.unstage-all', run: () => act({ kind: 'unstageAll' }) },
     'separator',
     // In the middle of a merge or a rebase, aborting it is what goes back.
-    !state.operation && { label: 'Discard all changes…', danger: true, run: () => act({ kind: 'discardChanges' }) },
+    !state.operation && { label: 'Discard all changes…', danger: true, feature: 'changes.discard-all', run: () => act({ kind: 'discardChanges' }) },
   ];
 }
 
@@ -191,23 +194,23 @@ export const pathsOf = (file: FileChange) => (file.originalPath ? [file.path, fi
  * disk…** and **Hide its changes from git…**. While an operation runs, what changes something cannot be chosen.
  */
 export function changedFileMenu({ file, staged, untracked, unsaved }: ChangedFile, busy: boolean): MenuEntry[] {
-  const change = (label: string, action: Action): MenuEntry => ({ label, disabled: busy, run: () => act(action) });
-  const save = unsaved && { label: 'Save', run: () => post({ type: 'save', paths: [file.path] }) };
+  const change = (label: string, feature: string, action: Action): MenuEntry => ({ label, feature, disabled: busy, run: () => act(action) });
+  const save = unsaved && { label: 'Save', icon: 'SAVE' as const, run: () => post({ type: 'save', paths: [file.path] }) };
   // Only its editor has changed it: there is nothing for git to stage, stash, discard or leave alone until it is saved.
-  if (staged === null) return [save, { label: 'Compare with the saved file', run: () => post({ type: 'compareWithSaved', path: file.path }) }];
+  if (staged === null) return [save, { label: 'Compare with the saved file', icon: 'COMPARE', run: () => post({ type: 'compareWithSaved', path: file.path }) }];
   const onDisk = file.kind !== 'deleted';
   return [
-    { label: 'Open changes', run: () => post({ type: 'openDiff', source: { kind: 'change' }, file }) },
-    onDisk && { label: 'Open file', run: () => post({ type: 'openFile', file }) },
+    { label: 'Open changes', icon: 'CHANGES', run: () => post({ type: 'openDiff', source: { kind: 'change' }, file }) },
+    onDisk && { label: 'Open file', icon: 'OPEN_FILE', run: () => post({ type: 'openFile', file }) },
     'separator',
-    staged === 'all' ? change('Unstage', { kind: 'unstage', paths: pathsOf(file) }) : change('Stage', { kind: 'stage', paths: [file.path] }),
+    staged === 'all' ? change('Unstage', 'changes.unstage', { kind: 'unstage', paths: pathsOf(file) }) : change('Stage', 'changes.stage', { kind: 'stage', paths: [file.path] }),
     // With some of it staged, all of it goes back to HEAD.
-    change('Discard changes', staged === 'none' ? { kind: 'discard', paths: [file.path] } : { kind: 'discardChanges', paths: pathsOf(file) }),
-    change('Stash this file…', { kind: 'stashPush', paths: pathsOf(file) }),
+    change('Discard changes', 'changes.discard', staged === 'none' ? { kind: 'discard', paths: [file.path] } : { kind: 'discardChanges', paths: pathsOf(file) }),
+    change('Stash this file…', 'stash.push-file', { kind: 'stashPush', paths: pathsOf(file) }),
     'separator',
-    onDisk && change('Ignore…', { kind: 'ignore', path: file.path }),
-    onDisk && !untracked && change('Stop tracking, keep on disk…', { kind: 'stopTracking', path: file.path }),
-    onDisk && !untracked && change('Hide its changes from git…', { kind: 'hideFromGit', path: file.path }),
+    onDisk && change('Ignore…', 'changes.ignore', { kind: 'ignore', path: file.path }),
+    onDisk && !untracked && change('Stop tracking, keep on disk…', 'changes.stop-tracking', { kind: 'stopTracking', path: file.path }),
+    onDisk && !untracked && change('Hide its changes from git…', 'changes.skip', { kind: 'hideFromGit', path: file.path }),
     'separator',
     save,
   ];
@@ -220,9 +223,9 @@ export function changedFileMenu({ file, staged, untracked, unsaved }: ChangedFil
 export function resolvedAsBeforeMenu(path: string, isStaged: boolean, busy: boolean): MenuEntry[] {
   const file: FileChange = { path, originalPath: null, kind: 'modified' };
   return [
-    { label: 'Show what git wrote', run: () => post({ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file }) },
-    !isStaged && { label: 'Mark as resolved', disabled: busy, run: () => act({ kind: 'stage', paths: [path] }) },
-    { label: 'Forget this resolution…', disabled: busy, run: () => act({ kind: 'forgetResolution', path }) },
+    { label: 'Show what git wrote', icon: 'CHANGES', run: () => post({ type: 'openDiff', source: { kind: 'resolvedAsBefore' }, file }) },
+    !isStaged && { label: 'Mark as resolved', feature: 'conflicts.mark-resolved', disabled: busy, run: () => act({ kind: 'stage', paths: [path] }) },
+    { label: 'Forget this resolution…', feature: 'rerere.forget', disabled: busy, run: () => act({ kind: 'forgetResolution', path }) },
   ];
 }
 
@@ -230,16 +233,16 @@ export function resolvedAsBeforeMenu(path: string, isStaged: boolean, busy: bool
 export function hiddenFileMenu(path: string, busy: boolean): MenuEntry[] {
   const file: FileChange = { path, originalPath: null, kind: 'modified' };
   return [
-    { label: 'Open changes', run: () => post({ type: 'openDiff', source: { kind: 'worktree' }, file }) },
-    { label: 'Open file', run: () => post({ type: 'openFile', file }) },
+    { label: 'Open changes', icon: 'CHANGES', run: () => post({ type: 'openDiff', source: { kind: 'worktree' }, file }) },
+    { label: 'Open file', icon: 'OPEN_FILE', run: () => post({ type: 'openFile', file }) },
     'separator',
-    { label: 'Show its changes to git again', disabled: busy, run: () => act({ kind: 'showToGit', path }) },
+    { label: 'Show its changes to git again', feature: 'changes.unskip', disabled: busy, run: () => act({ kind: 'showToGit', path }) },
   ];
 }
 
 /** What the **…** of the heading of **Hidden from git** offers (`changes.unskip`). */
 export function hiddenGroupMenu(busy: boolean): MenuEntry[] {
-  return [{ label: 'Show all to git again', disabled: busy, run: () => act({ kind: 'showToGit' }) }];
+  return [{ label: 'Show all to git again', feature: 'changes.unskip', disabled: busy, run: () => act({ kind: 'showToGit' }) }];
 }
 
 export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): MenuEntry[] {
@@ -255,44 +258,49 @@ export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): 
   const pending = staged.length ? 'staged' : unstaged.length + untracked.length ? 'all' : null;
   const mark = (which: 'good' | 'bad') => ({
     label: state.bisect ? `Bisect: mark as ${which}` : `Start bisect: this commit is ${which}`,
+    feature: state.bisect ? 'bisect.mark' : 'bisect.start',
     run: () => act({ kind: 'bisect', mark: which, hash }),
   });
   return [
-    { label: 'Open in an editor tab', run: () => post({ type: 'openCommit', hash }) },
-    onFold && { label: 'Fold the commits it merged into one row', run: onFold },
+    { label: 'Open in an editor tab', icon: 'OPEN_AS_PAGE', run: () => post({ type: 'openCommit', hash }) },
+    onFold && { label: 'Fold the commits it merged into one row', icon: 'FOLD', run: onFold },
     'separator',
-    !isHead && { label: 'Check out commit (detached)', run: () => act({ kind: 'checkout', target: 'detached', ref: hash }) },
-    { label: 'Create branch here…', run: () => act({ kind: 'createBranch', at: hash }) },
-    { label: 'Create tag here…', run: () => act({ kind: 'createTag', at: hash }) },
-    { label: 'Create worktree here…', run: () => act({ kind: 'worktreeAdd', ref: hash, isBranch: false }) },
+    !isHead && { label: 'Check out commit (detached)', feature: 'branch.checkout-detached', run: () => act({ kind: 'checkout', target: 'detached', ref: hash }) },
+    { label: 'Create branch here…', feature: 'branch.create', run: () => act({ kind: 'createBranch', at: hash }) },
+    { label: 'Create tag here…', feature: 'tag.create', run: () => act({ kind: 'createTag', at: hash }) },
+    { label: 'Create worktree here…', feature: 'worktree.create-at-commit', run: () => act({ kind: 'worktreeAdd', ref: hash, isBranch: false }) },
     'separator',
-    !isHead && { label: `Cherry-pick ${short}`, run: () => act({ kind: 'cherryPick', hash, isMerge }) },
-    { label: `Revert ${short}`, run: () => act({ kind: 'revert', hash, isMerge }) },
+    !isHead && { label: `Cherry-pick ${short}`, feature: 'cherry-pick.commit', run: () => act({ kind: 'cherryPick', hash, isMerge }) },
+    { label: `Revert ${short}`, feature: 'revert.commit', run: () => act({ kind: 'revert', hash, isMerge }) },
     'separator',
     ...integrate(hash, hash, state),
-    canReword(hash, state) && { label: 'Edit message…', run: onEditMessage },
+    canReword(hash, state) && { label: 'Edit message…', feature: 'message.edit', run: onEditMessage },
     ...(row.stash ? [] : noteEntries(hash, state)),
     // A merge has no one set of changes to take out, and the first commit nothing before it to go back to.
-    canReword(hash, state) && row.parents.length === 1 && { label: 'Split this commit…', run: () => act({ kind: 'split', hash }) },
+    canReword(hash, state) && row.parents.length === 1 && { label: 'Split this commit…', feature: 'split.commit', run: () => act({ kind: 'split', hash }) },
     range && {
       label: range.length === 1 ? 'Edit this commit (interactive rebase)…' : `Interactive rebase of ${range.length} commits…`,
+      feature: 'rebase.interactive',
       run: () => onInteractiveRebase(range),
     },
     // Folding changes into HEAD is what amending does, so that is not offered here.
     range && !isHead && pending && !conflicted.length && {
       label: `Add ${pending} changes to this commit (fixup)`,
+      feature: 'fixup.commit',
       run: () => act({ kind: 'fixup', hash, isRoot: row.parents.length === 0 }),
     },
     // The commit before it is made again too, so it must be on the same line.
     range && row.parents.length === 1 && rebaseRange(row.parents[0], state) && {
       label: 'Squash into the commit before it…',
+      feature: 'squash.into-previous',
       run: () => act({ kind: 'squash', hashes: [row.parents[0], hash] }),
     },
-    { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, run: () => act({ kind: 'reset', hash }) },
+    { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, feature: 'reset.to-commit', run: () => act({ kind: 'reset', hash }) },
     'separator',
     compareWithHead(short, hash, state, onCompare),
     selected !== null && selected !== hash && selected !== WORKTREE && {
       label: `Compare with ${shortHash(selected)}, selected before`,
+      feature: 'compare.selected-before',
       run: () => onCompare({ from: selected, to: hash, fromName: shortHash(selected), toName: short }),
     },
     compareWith(short, hash),
@@ -300,11 +308,11 @@ export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): 
     !state.operation && mark('good'),
     !state.operation && mark('bad'),
     'separator',
-    { label: 'Copy hash', run: () => copy(hash) },
-    { label: 'Copy message', run: () => act({ kind: 'copyMessage', hash }) },
-    canFormatPatch([row]) && { label: 'Copy as patch', run: () => formatPatch([row]) },
-    canFormatPatch([row]) && { label: 'Save as patch…', run: () => formatPatch([row], true) },
-    !row.stash && { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: hash }) },
+    { label: 'Copy hash', feature: 'commits.copy-hash', run: () => copy(hash) },
+    { label: 'Copy message', feature: 'commits.copy-message', run: () => act({ kind: 'copyMessage', hash }) },
+    canFormatPatch([row]) && { label: 'Copy as patch', feature: 'patch.copy', run: () => formatPatch([row]) },
+    canFormatPatch([row]) && { label: 'Save as patch…', feature: 'patch.save', run: () => formatPatch([row], true) },
+    !row.stash && { label: 'Save as archive…', feature: 'archive.save', run: () => act({ kind: 'saveArchive', at: hash }) },
   ];
 }
 
@@ -315,8 +323,8 @@ export const hasNote = (hash: string, state: Pick<RepoState, 'notes'>) => state.
 function noteEntries(hash: string, state: RepoState): MenuEntry[] {
   const noted = hasNote(hash, state);
   return [
-    { label: noted ? 'Edit note…' : 'Add note…', run: () => act({ kind: 'editNote', hash }) },
-    noted && { label: 'Remove note', run: () => act({ kind: 'removeNote', hash }) },
+    { label: noted ? 'Edit note…' : 'Add note…', feature: 'note.edit', run: () => act({ kind: 'editNote', hash }) },
+    noted && { label: 'Remove note', feature: 'note.remove', run: () => act({ kind: 'removeNote', hash }) },
   ];
 }
 
@@ -327,8 +335,8 @@ function noteEntries(hash: string, state: RepoState): MenuEntry[] {
 export function remoteNotesEntries(state: Pick<RepoState, 'remotes' | 'notes'>): MenuEntry[] {
   const pushes = !!state.notes?.tip;
   return state.remotes.flatMap((remote): MenuEntry[] => [
-    { label: `Fetch notes from ${remote}`, run: () => act({ kind: 'fetchNotes', remote }) },
-    pushes && { label: `Push notes to ${remote}`, run: () => act({ kind: 'pushNotes', remote }) },
+    { label: `Fetch notes from ${remote}`, feature: 'note.fetch', run: () => act({ kind: 'fetchNotes', remote }) },
+    pushes && { label: `Push notes to ${remote}`, feature: 'note.push', run: () => act({ kind: 'pushNotes', remote }) },
   ]);
 }
 
@@ -346,18 +354,18 @@ export function logMenu(commit: Commit, state: RepoState): MenuEntry[] {
   const { hash } = commit;
   const isHead = hash === state.head.commit;
   return [
-    { label: 'Open in an editor tab', run: () => post({ type: 'openCommit', hash }) },
-    { label: 'Show in the graph', run: () => post({ type: 'reveal', hash }) },
+    { label: 'Open in an editor tab', icon: 'OPEN_AS_PAGE', run: () => post({ type: 'openCommit', hash }) },
+    { label: 'Show in the graph', icon: 'TIMELINE', run: () => post({ type: 'reveal', hash }) },
     'separator',
-    !isHead && { label: 'Check out commit (detached)', run: () => act({ kind: 'checkout', target: 'detached', ref: hash }) },
-    { label: 'Create branch here…', run: () => act({ kind: 'createBranch', at: hash }) },
-    { label: 'Create tag here…', run: () => act({ kind: 'createTag', at: hash }) },
+    !isHead && { label: 'Check out commit (detached)', feature: 'branch.checkout-detached', run: () => act({ kind: 'checkout', target: 'detached', ref: hash }) },
+    { label: 'Create branch here…', feature: 'branch.create', run: () => act({ kind: 'createBranch', at: hash }) },
+    { label: 'Create tag here…', feature: 'tag.create', run: () => act({ kind: 'createTag', at: hash }) },
     'separator',
-    { label: `Revert ${shortHash(hash)}`, run: () => act({ kind: 'revert', hash, isMerge: commit.parents.length > 1 }) },
-    !isHead && { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, run: () => act({ kind: 'reset', hash }) },
+    { label: `Revert ${shortHash(hash)}`, feature: 'revert.commit', run: () => act({ kind: 'revert', hash, isMerge: commit.parents.length > 1 }) },
+    !isHead && { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, feature: 'reset.to-commit', run: () => act({ kind: 'reset', hash }) },
     'separator',
-    { label: 'Copy hash', run: () => copy(hash) },
-    { label: 'Copy message', run: () => act({ kind: 'copyMessage', hash }) },
+    { label: 'Copy hash', feature: 'commits.copy-hash', run: () => copy(hash) },
+    { label: 'Copy message', feature: 'commits.copy-message', run: () => act({ kind: 'copyMessage', hash }) },
   ];
 }
 
@@ -372,19 +380,21 @@ export function selectionMenu(rows: Row[], state: RepoState, onCompare: (compari
   const newest = rows[0];
   const oldest = rows[rows.length - 1];
   return [
-    canSquash(rows, state) && { label: `Squash ${rows.length} commits into one…`, run: () => squash(rows) },
+    canSquash(rows, state) && { label: `Squash ${rows.length} commits into one…`, feature: 'squash.commits', run: () => squash(rows) },
     canCherryPick(rows, state) && {
       label: `Cherry-pick ${rows.length} commits onto ${checkedOutBranch(state) ?? 'HEAD'}`,
+      feature: 'selection.cherry-pick',
       run: () => cherryPickMany(rows),
     },
     rows.length === 2 && {
       label: 'Compare these two commits',
+      feature: 'compare.selected-before',
       run: () => onCompare({ from: oldest.hash, to: newest.hash, fromName: shortHash(oldest.hash), toName: shortHash(newest.hash) }),
     },
     'separator',
-    { label: 'Copy hashes', run: () => copy(rows.map((row) => row.hash).join('\n')) },
-    canFormatPatch(rows) && { label: 'Copy as patch', run: () => formatPatch(rows) },
-    canFormatPatch(rows) && { label: 'Save as patch…', run: () => formatPatch(rows, true) },
+    { label: 'Copy hashes', feature: 'commits.copy-hash', run: () => copy(rows.map((row) => row.hash).join('\n')) },
+    canFormatPatch(rows) && { label: 'Copy as patch', feature: 'patch.copy', run: () => formatPatch(rows) },
+    canFormatPatch(rows) && { label: 'Save as patch…', feature: 'patch.save', run: () => formatPatch(rows, true) },
   ];
 }
 
@@ -396,9 +406,10 @@ export function rewriteEntries(branch: Branch): MenuEntry[] {
   const { name } = branch;
   const upstream = upstreamOf(branch);
   return [
-    { label: 'What its last rewrite changed', run: () => act({ kind: 'rangeDiff', target: 'branch', name }) },
+    { label: 'What its last rewrite changed', feature: 'range-diff.compare', run: () => act({ kind: 'rangeDiff', target: 'branch', name }) },
     hasDiverged(branch) && {
       label: `Compare with ${upstream} commit by commit`,
+      feature: 'range-diff.compare',
       run: () => act({ kind: 'rangeDiff', target: 'branch', name, withUpstream: true }),
     },
   ];
@@ -414,6 +425,7 @@ function pullEntry(name: string | null, state: RepoState, offerNew: boolean): Me
   const service = state.hosting.service;
   return {
     label: pull ? `Open ${pullWords(service)} ${pullNumber(pull.number, service)}` : `Create ${pullWords(service)}…`,
+    feature: 'github.open-pull-request',
     run: () => post({ type: 'pullRequest', branch: name }),
   };
 }
@@ -425,6 +437,7 @@ function checkOutPullEntry(remoteBranch: string, state: RepoState): MenuEntry {
   if (!pull) return null;
   return {
     label: `Check out ${pullWords(service)} ${pullNumber(pull.number, service)}`,
+    feature: 'hosting.checkout-pull-request',
     run: () => post({ type: 'checkOutPullRequest', number: pull.number, remoteBranch }),
   };
 }
@@ -443,8 +456,8 @@ export function branchMenu(branch: Branch, state: RepoState, onCompare: (compari
     branch.isCheckedOut || worktree
       ? []
       : [
-          { label: `Check out ${name}`, run: () => act({ kind: 'checkout', target: 'branch', ref: name }) },
-          { label: 'Open in worktree', run: () => act({ kind: 'openInWorktree', name }) },
+          { label: `Check out ${name}`, feature: 'branch.checkout', run: () => act({ kind: 'checkout', target: 'branch', ref: name }) },
+          { label: 'Open in worktree', feature: 'worktree.open-in-worktree', run: () => act({ kind: 'openInWorktree', name }) },
         ];
   if (state.openBranches === 'worktree') here.reverse();
   return [
@@ -453,6 +466,7 @@ export function branchMenu(branch: Branch, state: RepoState, onCompare: (compari
     ...here,
     canFastForward(branch, state) && {
       label: `Fast-forward to ${branch.upstream && upstreamName(branch.upstream)}`,
+      feature: 'branch.fast-forward',
       run: () => act({ kind: 'fastForward', name }),
     },
     ...(branch.isCheckedOut ? [] : integrate(refArg('branch', name, state), branch.commit, state)),
@@ -467,20 +481,21 @@ export function branchMenu(branch: Branch, state: RepoState, onCompare: (compari
     'separator',
     ...trackingEntries(branch, state),
     'separator',
-    { label: 'Create branch here…', run: () => act({ kind: 'createBranch', at: refArg('branch', name, state) }) },
-    !checkedOut && { label: 'Create worktree…', run: () => act({ kind: 'worktreeAdd', ref: name, isBranch: true }) },
-    { label: worktree ? 'Rename branch…' : 'Rename…', run: () => act({ kind: 'renameBranch', name }) },
-    removable && !worktree.isMissing && { label: 'Rename worktree…', run: () => act({ kind: 'worktreeRename', path: worktree.folder }) },
-    !branch.isCheckedOut && !worktree && { label: 'Delete', danger: true, run: () => act({ kind: 'deleteBranch', name }) },
-    removable && { label: 'Remove worktree…', danger: true, run: () => act({ kind: 'worktreeRemove', path: worktree.folder, deleteBranch: false }) },
+    { label: 'Create branch here…', feature: 'branch.create', run: () => act({ kind: 'createBranch', at: refArg('branch', name, state) }) },
+    !checkedOut && { label: 'Create worktree…', feature: 'worktree.create-from-branch', run: () => act({ kind: 'worktreeAdd', ref: name, isBranch: true }) },
+    { label: worktree ? 'Rename branch…' : 'Rename…', feature: 'branch.rename', run: () => act({ kind: 'renameBranch', name }) },
+    removable && !worktree.isMissing && { label: 'Rename worktree…', feature: 'worktree.rename', run: () => act({ kind: 'worktreeRename', path: worktree.folder }) },
+    !branch.isCheckedOut && !worktree && { label: 'Delete', danger: true, feature: 'branch.delete', run: () => act({ kind: 'deleteBranch', name }) },
+    removable && { label: 'Remove worktree…', danger: true, feature: 'worktree.remove', run: () => act({ kind: 'worktreeRemove', path: worktree.folder, deleteBranch: false }) },
     removable && {
       label: 'Remove worktree and delete branch…',
       danger: true,
+      feature: 'worktree.remove',
       run: () => act({ kind: 'worktreeRemove', path: worktree.folder, deleteBranch: true }),
     },
-    { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: `refs/heads/${name}` }) },
+    { label: 'Save as archive…', feature: 'archive.save', run: () => act({ kind: 'saveArchive', at: `refs/heads/${name}` }) },
     'separator',
-    { label: 'Copy name', run: () => copy(name) },
+    { label: 'Copy name', icon: 'COPY', run: () => copy(name) },
   ];
 }
 
@@ -493,8 +508,8 @@ export function upstreamEntries(upstream: Upstream, state: RepoState): MenuEntry
   return [
     'separator',
     favoriteEntry(`refs/remotes/${name}`, state, name),
-    { label: `Copy ${name}`, run: () => copy(name) },
-    { label: `Delete ${upstreamBranch(upstream)} from ${upstream.remote}`, danger: true, run: () => act({ kind: 'deleteRemoteBranch', name }) },
+    { label: `Copy ${name}`, icon: 'COPY', run: () => copy(name) },
+    { label: `Delete ${upstreamBranch(upstream)} from ${upstream.remote}`, danger: true, feature: 'remote.delete-branch', run: () => act({ kind: 'deleteRemoteBranch', name }) },
   ];
 }
 
@@ -538,8 +553,8 @@ export function remoteBranchMenu(ref: RemoteBranch, state: RepoState, onCompare:
   const here: MenuEntry[] = worktree
     ? worktreeOpenEntries(worktree, state, true)
     : [
-        { label: local ? `Check out ${ownName}` : 'Check out as local branch', run: () => act({ kind: 'checkout', target: 'remote', ref: remoteRef }) },
-        { label: 'Open in worktree', run: () => act({ kind: 'openInWorktree', name, remote: true }) },
+        { label: local ? `Check out ${ownName}` : 'Check out as local branch', feature: 'branch.checkout-remote', run: () => act({ kind: 'checkout', target: 'remote', ref: remoteRef }) },
+        { label: 'Open in worktree', feature: 'worktree.open-in-worktree', run: () => act({ kind: 'openInWorktree', name, remote: true }) },
       ];
   if (!worktree && state.openBranches === 'worktree') here.reverse();
   return [
@@ -548,23 +563,24 @@ export function remoteBranchMenu(ref: RemoteBranch, state: RepoState, onCompare:
     // Checked out already, it is rebased by the entry that rebases what is checked out.
     diverged && !local.isCheckedOut && !worktree && {
       label: `Check out ${ownName} and rebase it onto this`,
+      feature: 'branch.checkout-remote-and-rebase',
       run: () => act({ kind: 'checkout', target: 'remote', ref: remoteRef, rebase: true }),
     },
     ...integrate(remoteRef, ref.commit, state),
     'separator',
     compareWithHead(name, ref.commit, state, onCompare),
     compareWith(name, ref.commit),
-    { label: 'What the force push changed', run: () => act({ kind: 'rangeDiff', target: 'remote', name }) },
+    { label: 'What the force push changed', feature: 'range-diff.compare', run: () => act({ kind: 'rangeDiff', target: 'remote', name }) },
     revealEntry(ref.commit, onReveal),
     ...scopeEntries(`refs/remotes/${name}`, state),
     pullEntry(nameOnRemote(name, state), state, false),
     checkOutPullEntry(name, state),
     favoriteEntry(`refs/remotes/${name}`, state),
     'separator',
-    { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: `refs/remotes/${name}` }) },
-    { label: 'Delete from remote', danger: true, run: () => act({ kind: 'deleteRemoteBranch', name }) },
+    { label: 'Save as archive…', feature: 'archive.save', run: () => act({ kind: 'saveArchive', at: `refs/remotes/${name}` }) },
+    { label: 'Delete from remote', danger: true, feature: 'remote.delete-branch', run: () => act({ kind: 'deleteRemoteBranch', name }) },
     'separator',
-    { label: 'Copy name', run: () => copy(name) },
+    { label: 'Copy name', icon: 'COPY', run: () => copy(name) },
   ];
 }
 
@@ -573,21 +589,22 @@ export function tagMenu(tag: Tag, state: RepoState, onCompare: (comparing: Compa
   return [
     tag.commit !== state.head.commit && {
       label: 'Check out tag (detached)',
+      feature: 'tag.checkout',
       run: () => act({ kind: 'checkout', target: 'detached', ref: refArg('tag', name, state) }),
     },
-    { label: 'Create branch here…', run: () => act({ kind: 'createBranch', at: refArg('tag', name, state) }) },
+    { label: 'Create branch here…', feature: 'branch.create', run: () => act({ kind: 'createBranch', at: refArg('tag', name, state) }) },
     'separator',
     compareWithHead(name, tag.commit, state, onCompare),
     compareWith(name, tag.commit),
     revealEntry(tag.commit, onReveal),
     ...scopeEntries(`refs/tags/${name}`, state),
     'separator',
-    state.remotes.length > 0 && { label: 'Push tag', run: () => act({ kind: 'pushTag', name }) },
-    { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: `refs/tags/${name}` }) },
-    { label: 'Delete', danger: true, run: () => act({ kind: 'deleteTag', name }) },
+    state.remotes.length > 0 && { label: 'Push tag', feature: 'tag.push', run: () => act({ kind: 'pushTag', name }) },
+    { label: 'Save as archive…', feature: 'archive.save', run: () => act({ kind: 'saveArchive', at: `refs/tags/${name}` }) },
+    { label: 'Delete', danger: true, feature: 'tag.delete', run: () => act({ kind: 'deleteTag', name }) },
     ...deleteOnRemoteEntries(name, state),
     'separator',
-    { label: 'Copy name', run: () => copy(name) },
+    { label: 'Copy name', icon: 'COPY', run: () => copy(name) },
   ];
 }
 
@@ -601,8 +618,8 @@ export function remoteTagsEntries(state: Pick<RepoState, 'remotes' | 'tags' | 't
   const lacksOne = !state.tagMarks || notPushedCount(state.tagMarks, state.tags) > 0;
   return [
     'separator',
-    { label: `Check tags on ${remote}`, run: () => act({ kind: 'checkTags' }) },
-    state.tags.length > 0 && lacksOne && { label: 'Push tags…', run: () => act({ kind: 'pushTags' }) },
+    { label: `Check tags on ${remote}`, feature: 'tag.remote-marks', icon: 'READ_AGAIN', run: () => act({ kind: 'checkTags' }) },
+    state.tags.length > 0 && lacksOne && { label: 'Push tags…', feature: 'tag.push-all', run: () => act({ kind: 'pushTags' }) },
   ];
 }
 
@@ -614,10 +631,11 @@ export function deleteOnRemoteEntries(name: string, state: Pick<RepoState, 'remo
   if (state.remotes.length === 0) return [];
   const remote = state.remotes.length === 1 ? state.remotes[0] : null;
   return [
-    { label: remote ? `Delete from ${remote}` : 'Delete from a remote…', danger: true, run: () => act({ kind: 'deleteTagOnRemote', name, here: false }) },
+    { label: remote ? `Delete from ${remote}` : 'Delete from a remote…', danger: true, feature: 'tag.delete-remote', run: () => act({ kind: 'deleteTagOnRemote', name, here: false }) },
     {
       label: remote ? `Delete here and from ${remote}` : 'Delete here and from a remote…',
       danger: true,
+      feature: 'tag.delete-remote',
       run: () => act({ kind: 'deleteTagOnRemote', name, here: true }),
     },
   ];
@@ -630,21 +648,21 @@ export function deleteOnRemoteEntries(name: string, state: Pick<RepoState, 'remo
  */
 export function trackingEntries(branch: Branch, state: Pick<RepoState, 'remotes'>): MenuEntry[] {
   const { name, upstream } = branch;
-  if (!upstream) return state.remotes.length > 0 ? [{ label: 'Set upstream…', run: () => act({ kind: 'setUpstream', name }) }] : [];
+  if (!upstream) return state.remotes.length > 0 ? [{ label: 'Set upstream…', feature: 'branch.set-upstream', run: () => act({ kind: 'setUpstream', name }) }] : [];
   return [
-    { label: 'Change upstream…', run: () => act({ kind: 'setUpstream', name }) },
-    { label: `Stop tracking ${upstreamName(upstream)}`, run: () => act({ kind: 'unsetUpstream', name }) },
+    { label: 'Change upstream…', feature: 'branch.set-upstream', run: () => act({ kind: 'setUpstream', name }) },
+    { label: `Stop tracking ${upstreamName(upstream)}`, feature: 'branch.unset-upstream', run: () => act({ kind: 'unsetUpstream', name }) },
   ];
 }
 
 export function stashMenu(stash: Stash): MenuEntry[] {
   const ref = stashName(stash);
   return [
-    { label: 'Apply', run: () => act({ kind: 'stashApply', ref }) },
-    { label: 'Pop', run: () => act({ kind: 'stashPop', ref }) },
-    { label: 'Create branch from stash…', run: () => act({ kind: 'stashBranch', ref }) },
+    { label: 'Apply', feature: 'stash.apply', run: () => act({ kind: 'stashApply', ref }) },
+    { label: 'Pop', feature: 'stash.pop', run: () => act({ kind: 'stashPop', ref }) },
+    { label: 'Create branch from stash…', feature: 'stash.branch', run: () => act({ kind: 'stashBranch', ref }) },
     'separator',
-    { label: 'Drop', danger: true, run: () => act({ kind: 'stashDrop', ref }) },
+    { label: 'Drop', danger: true, feature: 'stash.drop', run: () => act({ kind: 'stashDrop', ref }) },
   ];
 }
 
@@ -653,7 +671,7 @@ export function stashMenu(stash: Stash): MenuEntry[] {
  * of its row. `names` are what the two commits of the source are called, when not by their short hashes.
  */
 export function fileMenu(file: FileChange, source: DiffSource, names?: { hash?: string; parent?: string }): MenuEntry[] {
-  return [{ label: 'Compare with…', run: () => post({ type: 'compareFile', source, file, names }) }];
+  return [{ label: 'Compare with…', feature: 'details.compare-file-with', run: () => post({ type: 'compareFile', source, file, names }) }];
 }
 
 /** What VS Code calls showing a file in the file manager of the system. */
@@ -669,15 +687,16 @@ function worktreeOpenEntries(worktree: Worktree, state: Pick<RepoState, 'agentsW
   if (worktree.isMissing) return [];
   const it = ofBranch ? ' worktree' : '';
   return [
-    state.agentsWindow && { label: `Open${it} in Agents Window`, run: () => act({ kind: 'worktreeOpen', path, where: 'agents' }) },
-    !worktree.isCurrent && { label: `Open${it} in new window`, run: () => act({ kind: 'worktreeOpen', path, where: 'window' }) },
-    { label: ofBranch ? 'Open terminal in worktree' : 'Open in terminal', run: () => act({ kind: 'worktreeTerminal', path }) },
+    state.agentsWindow && { label: `Open${it} in Agents Window`, icon: 'NEW_WINDOW', run: () => act({ kind: 'worktreeOpen', path, where: 'agents' }) },
+    !worktree.isCurrent && { label: `Open${it} in new window`, feature: 'worktree.open-in-new-window', run: () => act({ kind: 'worktreeOpen', path, where: 'window' }) },
+    { label: ofBranch ? 'Open terminal in worktree' : 'Open in terminal', feature: 'worktree.open-in-terminal', run: () => act({ kind: 'worktreeTerminal', path }) },
     {
       label: !ofBranch ? REVEAL : REVEAL.startsWith('Reveal') ? REVEAL.replace('Reveal', 'Reveal worktree') : 'Open folder of worktree',
+      feature: 'worktree.reveal',
       run: () => act({ kind: 'worktreeReveal', path }),
     },
     // The views of this window go to it, for its changes, commits and branches.
-    !worktree.isCurrent && { label: ofBranch ? 'Show worktree in Gitardo' : 'Show in Gitardo', run: () => post({ type: 'selectRepo', root: path }) },
+    !worktree.isCurrent && { label: ofBranch ? 'Show worktree in Gitardo' : 'Show in Gitardo', feature: 'worktree.show-in-gitardo', run: () => post({ type: 'selectRepo', root: path }) },
   ];
 }
 
@@ -690,17 +709,18 @@ export function worktreeMenu(worktree: Worktree, state: Pick<RepoState, 'agentsW
     // What it has checked out. A missing worktree may have had a commit that is no longer there.
     !worktree.isMissing && worktree.commit !== null && revealEntry(worktree.commit, onReveal),
     'separator',
-    !worktree.isMissing && !worktree.isMain && !worktree.isCurrent && !home && { label: 'Rename…', run: () => act({ kind: 'worktreeRename', path }) },
-    { label: 'Copy path', run: () => copy(path) },
+    !worktree.isMissing && !worktree.isMain && !worktree.isCurrent && !home && { label: 'Rename…', feature: 'worktree.rename', run: () => act({ kind: 'worktreeRename', path }) },
+    { label: 'Copy path', feature: 'worktree.copy-path', run: () => copy(path) },
     // Git keeps a locked worktree whatever happens to its folder; the main worktree cannot be locked.
-    isLocked(worktree) && { label: 'Unlock', run: () => act({ kind: 'worktreeUnlock', path }) },
-    !isLocked(worktree) && !worktree.isMain && { label: 'Lock…', run: () => act({ kind: 'worktreeLock', path }) },
+    isLocked(worktree) && { label: 'Unlock', feature: 'worktree.unlock', run: () => act({ kind: 'worktreeUnlock', path }) },
+    !isLocked(worktree) && !worktree.isMain && { label: 'Lock…', feature: 'worktree.lock', run: () => act({ kind: 'worktreeLock', path }) },
     // From the checkout of the views, into another: what new worktrees get of what git ignores, as they are now.
-    !worktree.isMissing && !worktree.isCurrent && !home && { label: 'Bring ignored files…', run: () => act({ kind: 'worktreeSetUp', path }) },
+    !worktree.isMissing && !worktree.isCurrent && !home && { label: 'Bring ignored files…', feature: 'worktree-setup.bring-into-worktree', icon: 'WORKTREE', run: () => act({ kind: 'worktreeSetUp', path }) },
     'separator',
-    !worktree.isCurrent && !worktree.isMain && !home && { label: 'Remove…', danger: true, run: () => act({ kind: 'worktreeRemove', path }) },
+    !worktree.isCurrent && !worktree.isMain && !home && { label: 'Remove…', danger: true, feature: 'worktree.remove', run: () => act({ kind: 'worktreeRemove', path }) },
     hasPrunable(state.worktrees) && {
       label: 'Prune missing worktrees',
+      feature: 'worktree.prune',
       run: () => act({ kind: 'worktreePrune' }),
     },
   ];
@@ -726,16 +746,18 @@ export function lockTitle(worktree: Worktree): string | undefined {
 /** What the "…" beside the title of the Worktrees section offers, and a right click on that title. */
 export function worktreesMenu(state: RepoState): MenuEntry[] {
   return [
-    { label: 'Create worktree…', run: () => act({ kind: 'worktreeAdd' }) },
-    { label: 'Switch worktree…', run: () => post({ type: 'command', command: 'switchWorktree' }) },
+    { label: 'Create worktree…', feature: 'worktree.create', run: () => act({ kind: 'worktreeAdd' }) },
+    { label: 'Switch worktree…', feature: 'worktree.switch', run: () => post({ type: 'command', command: 'switchWorktree' }) },
     'separator',
-    { label: 'Choose what new worktrees get…', run: () => post({ type: 'command', command: 'worktreeSetup' }) },
+    { label: 'Choose what new worktrees get…', feature: 'worktree-setup.page', run: () => post({ type: 'command', command: 'worktreeSetup' }) },
     state.worktrees.some((worktree) => !worktree.isMissing && !worktree.isCurrent) && {
       label: 'Bring ignored files into the other worktrees…',
+      feature: 'worktree-setup.bring-into-other-worktrees',
+      icon: 'WORKTREE',
       run: () => act({ kind: 'worktreeSetUp' }),
     },
     'separator',
-    hasPrunable(state.worktrees) && { label: 'Prune missing worktrees', run: () => act({ kind: 'worktreePrune' }) },
+    hasPrunable(state.worktrees) && { label: 'Prune missing worktrees', feature: 'worktree.prune', run: () => act({ kind: 'worktreePrune' }) },
   ];
 }
 
@@ -751,31 +773,34 @@ export function submoduleMenu(submodule: Submodule, state: Pick<RepoState, 'root
   const status = submoduleStatus(submodule);
   const moved = status === 'ahead' || status === 'behind' || status === 'diverged' || status === 'unknown';
   return [
-    initialized && { label: 'Open in new window', run: () => act({ kind: 'submoduleOpen', path }) },
-    initialized && { label: 'Open in terminal', run: () => act({ kind: 'worktreeTerminal', path: folder }) },
-    initialized && { label: REVEAL, run: () => act({ kind: 'worktreeReveal', path: folder }) },
-    initialized && { label: 'Show in Gitardo', run: () => post({ type: 'selectRepo', root: folder }) },
+    initialized && { label: 'Open in new window', feature: 'submodule.open-in-new-window', run: () => act({ kind: 'submoduleOpen', path }) },
+    initialized && { label: 'Open in terminal', feature: 'submodule.open-in-terminal', run: () => act({ kind: 'worktreeTerminal', path: folder }) },
+    initialized && { label: REVEAL, feature: 'submodule.reveal', run: () => act({ kind: 'worktreeReveal', path: folder }) },
+    initialized && { label: 'Show in Gitardo', feature: 'submodule.show-in-gitardo', run: () => post({ type: 'selectRepo', root: folder }) },
     'separator',
-    !initialized && { label: 'Initialize', run: () => act({ kind: 'submoduleUpdate', path }) },
+    !initialized && { label: 'Initialize', feature: 'submodule.initialize', run: () => act({ kind: 'submoduleUpdate', path }) },
     moved && recorded !== null && {
       label: `Update to the recorded commit ${shortHash(recorded)}`,
+      feature: 'submodule.update-to-recorded',
       run: () => act({ kind: 'submoduleUpdate', path }),
     },
     moved && head !== null && {
       label: `Stage ${shortHash(head)} as the recorded commit`,
+      feature: 'submodule.stage-recorded',
       run: () => act({ kind: 'submoduleRecord', path }),
     },
     initialized && {
       label: submodule.branch ? `Update to the latest of ${submodule.branch}` : 'Update to the latest of its remote',
+      feature: 'submodule.update-to-latest',
       run: () => act({ kind: 'submoduleUpdate', path, remote: true }),
     },
-    { label: 'Synchronize URLs from .gitmodules', run: () => act({ kind: 'submoduleSync' }) },
+    { label: 'Synchronize URLs from .gitmodules', feature: 'submodule.sync-urls', run: () => act({ kind: 'submoduleSync' }) },
     'separator',
-    { label: 'Copy path', run: () => copy(path) },
-    !!submodule.url && { label: 'Copy URL', run: () => copy(submodule.url ?? '') },
+    { label: 'Copy path', feature: 'submodule.copy-path', run: () => copy(path) },
+    !!submodule.url && { label: 'Copy URL', feature: 'submodule.copy-url', run: () => copy(submodule.url ?? '') },
     'separator',
-    initialized && { label: 'Deinitialize…', danger: true, run: () => act({ kind: 'submoduleDeinit', path }) },
-    { label: 'Remove…', danger: true, run: () => act({ kind: 'submoduleRemove', path }) },
+    initialized && { label: 'Deinitialize…', danger: true, feature: 'submodule.deinitialize', run: () => act({ kind: 'submoduleDeinit', path }) },
+    { label: 'Remove…', danger: true, feature: 'submodule.remove', run: () => act({ kind: 'submoduleRemove', path }) },
   ];
 }
 
@@ -790,10 +815,11 @@ export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' 
     shown && row.isShown && row.kind === 'repository'
       ? [
           'separator',
-          { label: 'Clean up…', run: () => act({ kind: 'cleanUp' }) },
+          { label: 'Clean up…', feature: 'upkeep.clean-up', run: () => act({ kind: 'cleanUp' }) },
           // While git keeps no commit-graph file of it and would read one (`upkeep.write-commit-graph`).
           !!shown.commitGraph && !shown.commitGraph.hasFile && !shown.commitGraph.isIgnored && {
             label: 'Speed up reading the history',
+            feature: 'upkeep.write-commit-graph',
             run: () => act({ kind: 'writeCommitGraph' }),
           },
           {
@@ -810,10 +836,10 @@ export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' 
         ]
       : [];
   // Any row, in a tab of the graph of its own that keeps it whatever the other views show (`repo.tab-repository`).
-  const tab: MenuEntry[] = [{ label: 'Open in a new tab', run: () => post({ type: 'openInTab', root: row.folder }) }, 'separator'];
+  const tab: MenuEntry[] = [{ label: 'Open in a new tab', icon: 'ADD', run: () => post({ type: 'openInTab', root: row.folder }) }, 'separator'];
   // What a repository stores with Git LFS, in a tab of its own, the row shown first (`lfs.page`).
   const largeFiles: MenuEntry[] =
-    row.kind === 'repository' ? ['separator', { label: 'Large files…', run: () => post({ type: 'openLargeFiles', root: row.folder }) }] : [];
+    row.kind === 'repository' ? ['separator', { label: 'Large files…', feature: 'lfs.page', run: () => post({ type: 'openLargeFiles', root: row.folder }) }] : [];
   return [...tab, ...rowEntries(row, shown), ...largeFiles, ...upkeep];
 }
 
@@ -825,11 +851,11 @@ function rowEntries(row: Pick<RepositoryRow, 'folder' | 'isShown'>, shown: Shown
   const submodule = shown?.submodules.find((each) => samePath(submoduleFolder(each, shown), path));
   if (shown && submodule) return submoduleMenu(submodule, shown);
   return [
-    { label: 'Open in terminal', run: () => act({ kind: 'worktreeTerminal', path }) },
-    { label: REVEAL, run: () => act({ kind: 'worktreeReveal', path }) },
-    !row.isShown && { label: 'Show in Gitardo', run: () => post({ type: 'selectRepo', root: path }) },
+    { label: 'Open in terminal', feature: 'worktree.open-in-terminal', run: () => act({ kind: 'worktreeTerminal', path }) },
+    { label: REVEAL, feature: 'worktree.reveal', run: () => act({ kind: 'worktreeReveal', path }) },
+    !row.isShown && { label: 'Show in Gitardo', feature: 'worktree.show-in-gitardo', run: () => post({ type: 'selectRepo', root: path }) },
     'separator',
-    { label: 'Copy path', run: () => copy(path) },
+    { label: 'Copy path', feature: 'worktree.copy-path', run: () => copy(path) },
   ];
 }
 
@@ -844,23 +870,23 @@ export function dropMenu(source: DragSource, target: Row, state: RepoState): Men
     // A cherry-pick always lands on what is checked out, so that is the only place a commit can be dropped.
     if (!onHead || source.hash === head) return [];
     const { hash, isMerge } = source;
-    return [{ label: `Cherry-pick ${shortHash(hash)} onto ${current}`, run: () => act({ kind: 'cherryPick', hash, isMerge }) }];
+    return [{ label: `Cherry-pick ${shortHash(hash)} onto ${current}`, feature: 'cherry-pick.commit', run: () => act({ kind: 'cherryPick', hash, isMerge }) }];
   }
 
   const { name } = source;
   if (onHead) {
     if (source.current || source.hash === head) return [];
     const ref = refArg(source.local ? 'branch' : 'remote', name, state);
-    return [...mergeEntries(`Merge ${name} into ${current}`, ref), { label: `Rebase ${current} onto ${name}`, run: () => act({ kind: 'rebase', onto: ref }) }];
+    return [...mergeEntries(`Merge ${name} into ${current}`, ref), { label: `Rebase ${current} onto ${name}`, feature: 'rebase.onto', run: () => act({ kind: 'rebase', onto: ref }) }];
   }
 
   // A branch another worktree has checked out is rebased there, not from here.
   if (!source.local || source.hash === target.hash || (!source.current && worktreeOf(name, state))) return [];
   const onto = target.hash;
   const short = shortHash(onto);
-  if (!source.current) return [{ label: `Rebase ${name} onto ${short}`, run: () => act({ kind: 'rebase', onto, branch: name }) }];
+  if (!source.current) return [{ label: `Rebase ${name} onto ${short}`, feature: 'rebase.branch-onto', run: () => act({ kind: 'rebase', onto, branch: name }) }];
   return [
-    { label: `Rebase ${name} onto ${short}`, run: () => act({ kind: 'rebase', onto }) },
-    { label: `Reset ${name} to ${short}…`, run: () => act({ kind: 'reset', hash: onto }) },
+    { label: `Rebase ${name} onto ${short}`, feature: 'rebase.onto', run: () => act({ kind: 'rebase', onto }) },
+    { label: `Reset ${name} to ${short}…`, feature: 'reset.to-commit', run: () => act({ kind: 'reset', hash: onto }) },
   ];
 }

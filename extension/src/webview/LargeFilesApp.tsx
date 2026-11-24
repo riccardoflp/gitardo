@@ -17,6 +17,7 @@ import {
 } from '../shared/lfs';
 import { sizeText } from '../shared/worktreeSetup';
 import { type MenuEntry, useMenu } from './ContextMenu';
+import type { Meaning } from './menuIcons';
 import { EntryIcon } from './FileIcon';
 import { Icon } from './Icon';
 import { onMessage, post } from './vscode';
@@ -24,9 +25,19 @@ import { onMessage, post } from './vscode';
 /** Sends the extension what the tab asks. */
 const ask = (asked: LargeFilesAsk) => post({ type: 'largeFiles', ask: asked });
 
+/** The meaning of the icon of each entry of the menus of the tab, as the desktop's page draws it; none for a lock, which no icon says (`ui.menu-icons`). */
+const ENTRY_ICONS: Partial<Record<LargeFilesAsk['kind'], Meaning>> = {
+  untrack: 'DELETE',
+  storeCommitted: 'ADD',
+  openAttributes: 'OPEN_FILE',
+  download: 'PULL',
+  openFile: 'OPEN_FILE',
+  revealFile: 'FILES',
+};
+
 /** The entries of a menu of the tab as the context menu takes them. */
 const menuOf = (entries: (LargeFilesEntry | 'separator')[]): MenuEntry[] =>
-  entries.map((entry) => (entry === 'separator' ? entry : { label: entry.label, run: () => ask(entry.ask) }));
+  entries.map((entry) => (entry === 'separator' ? entry : { label: entry.label, icon: ENTRY_ICONS[entry.ask.kind], run: () => ask(entry.ask) }));
 
 /**
  * The **Large files** tab of a repository (`lfs.page`): whether Git LFS is there and set up, the patterns of the files

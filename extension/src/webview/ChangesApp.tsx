@@ -10,6 +10,7 @@ import { ActionButtons, Check, FileRow, type FileAction } from './FileRow';
 import { FileTree, toggled } from './FileTree';
 import { commitOptionsMenu } from './commitOptions';
 import { useMenu } from './ContextMenu';
+import type { Meaning } from './menuIcons';
 import { Icon } from './Icon';
 import { OperationBanner, resolvableConflicts } from './OperationBanner';
 import { RepoSelect } from './RepoSelect';
@@ -34,6 +35,8 @@ const changePath = (change: Listed) => change.file.path;
 
 /** The buttons of a file in conflict, by their icons, in the order its menu lists them. */
 const MENU_ORDER = ['sparkle', 'wand', 'add', 'arrow-right', 'arrow-left'];
+/** The meaning of each of those buttons, whose icon its item of the menu draws, as the desktop's menu of the row does (`ui.menu-icons`). */
+const MENU_ICONS: Record<string, Meaning> = { sparkle: 'DRAFTED', wand: 'BY_THE_RULES', add: 'ADD', 'arrow-right': 'TAKE_INCOMING', 'arrow-left': 'TAKE_CURRENT' };
 /** The buttons of a file in conflict that open the review of its conflicts, and change nothing until it is applied. */
 const REVIEWS = ['sparkle', 'wand'];
 
@@ -378,7 +381,7 @@ export function ChangesApp() {
                     event,
                     [...actions]
                       .sort((one, other) => MENU_ORDER.indexOf(one.icon) - MENU_ORDER.indexOf(other.icon))
-                      .map((action) => ({ label: action.title, disabled: busy && !REVIEWS.includes(action.icon), run: action.run })),
+                      .map((action) => ({ label: action.title, icon: MENU_ICONS[action.icon], disabled: busy && !REVIEWS.includes(action.icon), run: action.run })),
                   )
                 }
               />

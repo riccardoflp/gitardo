@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Icon } from './Icon';
+import { itemIcon, type Meaning } from './menuIcons';
 
 export interface MenuItem {
   label: string;
@@ -23,6 +24,10 @@ export interface MenuItem {
   disabled?: boolean;
   /** The tooltip, which finishes the thought of the label. */
   title?: string;
+  /** The card of the operation it runs, whose icon it draws at the left of its words (`ui.menu-icons`). */
+  feature?: string;
+  /** The meaning of what it does, for an item that runs no operation of the catalog: it draws the icon of that meaning. */
+  icon?: Meaning;
 }
 
 /** Falsy entries are dropped, so menus can be written with `condition && item`. */
@@ -103,8 +108,9 @@ function Menu({ menu, onClose }: { menu: OpenState; onClose(): void }) {
 
   const classes = ['menu', 'context'];
   if (columns > 1) classes.push('columns');
-  // The labels all start after the room of the check marks, when there are some.
-  if (menu.items.some((item) => item !== 'separator' && item.checked !== undefined)) classes.push('checks');
+  // The words all start after the column of the icons and the check marks, when there are some (`ui.menu-icons`).
+  const icons = menu.items.map((item) => (item === 'separator' ? undefined : itemIcon(item)));
+  if (menu.items.some((item, index) => item !== 'separator' && (item.checked !== undefined || icons[index]))) classes.push('icons');
   return (
     <div
       className={classes.join(' ')}
@@ -129,7 +135,11 @@ function Menu({ menu, onClose }: { menu: OpenState; onClose(): void }) {
               item.run();
             }}
           >
-            {item.checked && <Icon name="check" />}
+            {icons[index] && (
+              <span className="menu-icon">
+                <Icon name={icons[index]} />
+              </span>
+            )}
             {item.label}
             {item.hint && <span className="hint">{item.hint}</span>}
           </button>
