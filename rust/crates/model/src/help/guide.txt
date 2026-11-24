@@ -3788,7 +3788,7 @@ title: Keep what each repository showed
 place: Repositories, in the side column
 show: none
 What a repository keeps while another is shown, so that coming back to it finds it as it was, at once.
-In VS Code: with `gitardo.repositories.keepOpen` on, the repository left by the list of `repo.select`, by VS Code's Repositories view (`repo.follow-source-control`) or by **Show in Gitardo** keeps, in memory, the scroll of the graph, the commit selected and its details, the search, the branch filter, the references with their sections open or closed, and the message of the Changes view; the engine keeps its state as last read. Coming back shows that at once, and reads again behind it when it changed meanwhile. The list of `repo.select` puts the worktrees and the submodules of a repository under it, indented, as `repo.group-tabs` groups them. With the setting off, choosing another repository is as it was before it. Each view keeps what it showed of each repository in the memory of its page, by folder (`useKept` of), and the extension host keeps the state the views were last sent, what the graph was narrowed to and how far it was read, and the message of the Changes view (and), as recommends. A repository that kept nothing, as one shown for the first time, is shown as choosing a repository did before. Tested by `test/e2e/ui.mjs`, step "with keeping repositories open on, a repository chosen again in the list shows the commit it had selected, at the same scroll";, the steps that start "with keeping repositories open" and "turning keeping repositories open off", and "lists the worktrees of a repository of the workspace under it in the list of the repositories"; and.
+In VS Code: with `gitardo.repositories.keepOpen` on, the repository left by the list of `repo.select`, by VS Code's Repositories view (`repo.follow-source-control`) or by **Show in Gitardo** keeps, in memory, the scroll of the graph, the commit selected and its details, the search, the branch filter, the references with their sections open or closed, and the message of the Changes view; the engine keeps its state as last read. Coming back shows that at once, and reads again behind it when it changed meanwhile. The list of `repo.select` puts the worktrees and the submodules of a repository under it, indented, as `repo.group-tabs` groups them. With the setting off, choosing another repository is as it was before it. Each view keeps what it showed of each repository in the memory of its page, by folder (`useKept` of), and the extension host keeps the state the views were last sent, what the graph was narrowed to and how far it was read, and the message of the Changes view (and `RepositoriesShown.comeBack`), as recommends. A repository that kept nothing, as one shown for the first time, is shown as choosing a repository did before. Tested by `test/e2e/ui.mjs`, step "with keeping repositories open on, a repository chosen again in the list shows the commit it had selected, at the same scroll";, the steps that start "with keeping repositories open" and "turning keeping repositories open off", and "lists the worktrees of a repository of the workspace under it in the list of the repositories"; and.
 @card extension repo.group-tabs
 title: Worktrees and submodules in the tab of their repository
 place: Repositories, in the side column
@@ -3800,7 +3800,7 @@ title: Keep the tabs not shown up to date
 place: Repositories, in the side column
 show: none
 How the repositories of the tabs not shown follow their changes without reading at every one of them.
-In VS Code: with `gitardo.repositories.keepOpen` on, the repositories the extension keeps follow these rules, the window of VS Code taking the place of the tab shown. The repositories it keeps are those left since the window opened: none is read in the background, so the rule of the reads one after the other once the workspace opens has nothing to read there. Their watchers stay, and a change marks them out of date. Tested by, steps "with keeping repositories open on, a commit made in a terminal in a repository not shown reads nothing, and showing it reads it once" and "with keeping repositories open on, shows a repository chosen again at once as it was left, and reads nothing for it when nothing changed". What the rows of its Repositories view say of the repositories not shown is not their state: it is read by the engine in the background, as `repo.worktree-summary` says, whatever the setting, and never while an operation runs or a state is read.
+In VS Code: with `gitardo.repositories.keepOpen` on, the repositories the extension keeps follow these rules, the window of VS Code taking the place of the tab shown. The repositories it keeps are those left since the window opened: none is read in the background, so the rule of the reads one after the other once the workspace opens has nothing to read there. Their watchers stay, and a change marks them out of date (`ChangesSeen.changedIn`). Tested by, steps "with keeping repositories open on, a commit made in a terminal in a repository not shown reads nothing, and showing it reads it once" and "with keeping repositories open on, shows a repository chosen again at once as it was left, and reads nothing for it when nothing changed". What the rows of its Repositories view say of the repositories not shown is not their state: it is read by the engine in the background, as `repo.worktree-summary` says, whatever the setting, and never while an operation runs or a state is read.
 @card extension trust.is-trusted
 title: Whether a folder is trusted
 place: Repositories, in the side column
@@ -4184,7 +4184,7 @@ title: Which references the branch rail lists
 place: the timeline
 show: none
 What the branch rail lists from the choice of its own filter, and that choice kept for each repository.
-In VS Code: `listedRefs` of, the rules of ported to TypeScript, over the `Scope` the branches shown are made of. The choice is kept for each repository in the workspace state under `gitardo.branchesListed`, and is sent to the views as `RepoState.listed` without the references gone since, which is not written again then. Tested by, the tests that start "refs.listed:";, step "lists in the references what their own filter chooses, kept for each repository, and the branches shown in the graph and it never change each other".
+In VS Code: `listedRefs` of, the rules of ported to TypeScript, over the `Scope` the branches shown are made of. The choice is kept for each repository in the workspace state under `gitardo.branchesListed` (`HistoryShown.setListed`), and is sent to the views as `RepoState.listed` without the references gone since (`HistoryShown.listedIn`), which is not written again then. Tested by, the tests that start "refs.listed:";, step "lists in the references what their own filter chooses, kept for each repository, and the branches shown in the graph and it never change each other".
 @card extension refs.sort
 title: Sort the branches and tags
 place: the timeline
@@ -4201,7 +4201,7 @@ title: Add a branch to favorites
 place: the timeline
 show: none
 **Favorites** has the branches marked with **Add to favorites**, local or remote; they carry a star where they are listed with the others.
-In VS Code: **Add to favorites** and **Remove from favorites** in the context menu of a local or a remote branch, and **Add `<remote branch>` to favorites** under the entries of a label that stands for its upstream too; the full names of each repository are kept in the workspace state under `gitardo.favorites`, and the **Favorites** sections of the references tree and of the Branches view list them. No git command runs.
+In VS Code: **Add to favorites** and **Remove from favorites** in the context menu of a local or a remote branch, and **Add `<remote branch>` to favorites** under the entries of a label that stands for its upstream too; the full names of each repository are kept in the workspace state under `gitardo.favorites` (`HistoryShown.setFavorite`), and the **Favorites** sections of the references tree and of the Branches view list them. No git command runs.
 @card extension search.box
 title: The search box
 place: the header, Search and Quick search
@@ -4546,7 +4546,7 @@ title: The Changes page
 place: the draft and the Changes page
 show: page
 The page where the changes are staged and committed: one list of the changed files, each with a box, the files in conflict apart above it, and the commit box at the top, whose message and **Commit** the draft at the top of the timeline shows too. The rest of the commit box, **Amend last commit**, the button that drafts the message with the AI provider and the identity, is on this page only. While the timeline is narrowed to branches that do not have the commit checked out, the draft is not there, and this page is where one commits.
-In VS Code: the **Gitardo Changes** view of the Source Control side bar (`ChangesApp` in, view kind `changes`, registered as `gitardo.changes`), declared hidden in `package.json`, so that VS Code shows it only once **Gitardo: Show Changes** in the Command Palette (`gitardo.openChanges`), ticking **Gitardo Changes** in the **…** menu of the side bar, or **Show Changes** in the message after a squash merge asks for it. Its rows, boxes and buttons are those of this page, with VS Code's editors in place of the pages (`changes.open`); a list of more than 300 files shows the first 300 and **Show all N files…** (`FILES_LIMIT` in). The view runs nothing itself: what its boxes and buttons ask is sent to Gitardo's engine as the cards of the operations say. **View as tree** or **View as list**, and the message of the commit box, are kept in the view's state (`loadUiState` and `saveUiState` in), the layout as `changesFiles`. The placeholder of the message is, or `on detached HEAD`; a click on the identity under it runs, still in TypeScript. Before the repository is read the view says *Loading repository…*.
+In VS Code: the **Gitardo Changes** view of the Source Control side bar (`ChangesApp` in, view kind `changes`, registered as `gitardo.changes`), declared hidden in `package.json`, so that VS Code shows it only once **Gitardo: Show Changes** in the Command Palette (`gitardo.openChanges`), ticking **Gitardo Changes** in the **…** menu of the side bar, or **Show Changes** in the message after a squash merge asks for it. Its rows, boxes and buttons are those of this page, with VS Code's editors in place of the pages (`changes.open`); a list of more than 300 files shows the first 300 and **Show all N files…** (`FILES_LIMIT` in). The view runs nothing itself: what its boxes and buttons ask is sent to Gitardo's engine as the cards of the operations say. **View as tree** or **View as list**, and the message of the commit box, are kept in the view's state (`loadUiState` and `saveUiState` in), the layout as `changesFiles`. The placeholder of the message is, or `on detached HEAD`; a click on the identity under it runs `Commands.switchIdentity`, still in TypeScript. Before the repository is read the view says *Loading repository…*.
 @card extension changes.read-working-tree
 title: Read what is not committed
 place: the draft and the Changes page
@@ -4562,13 +4562,13 @@ title: Files with edits not saved
 place: the draft and the Changes page
 show: none
 Which files of the repository have edits typed in one of Gitardo's own editors and not saved yet: the File page and the editable sides of the Diff and Merge pages.
-In VS Code: the files of VS Code's text documents with edits not saved, worked out by the extension itself (and in) by the same rules, with the files git ignores asked of the engine (`reads.ignored` in), and told to the Changes view with an `unsaved` message. It is worked out again at each edit, at each editor closed or saved and at each read of the repository, and sent only when the list changed.
+In VS Code: the files of VS Code's text documents with edits not saved, worked out by the extension itself (`UnsavedFiles.check` and `UnsavedFiles.unsavedIn` in) by the same rules, with the files git ignores asked of the engine (`reads.ignored` in), and told to the Changes view with an `unsaved` message. It is worked out again at each edit, at each editor closed or saved and at each read of the repository, and sent only when the list changed.
 @card extension changes.open
 title: What a file of the Changes page opens
 place: the draft and the Changes page
 show: none
 Decides which page, and which two versions, a click on a file of the Changes page, or **Open changes** and **Open file** of its menu (`changes.row-menu`), opens.
-In VS Code: a click on a file of the Changes view, its buttons **Open File** and **Open Changes**, **Open all changes in one editor** on the header of **Changes**, and **Compare with the saved file** on a file only an editor has changed, done by the extension itself (the messages `openChange`, `openFile`, `openDiff`, `openChanges` and `compareWithSaved` in, and `sides` in), with VS Code's editors in place of the pages. The diff opens in VS Code's diff editor, titled or; when VS Code's Git extension has the repository open, its two sides are that extension's own `git:` documents, so that **Stage Selected Ranges**, **Unstage Selected Ranges** and **Revert Selected Ranges** work in it. **Open all changes in one editor** runs `vscode.changes`: one editor titled **Changes**, where each file has the two sides **Open Changes** gives it, rather than the last commit against the file on disk. **Compare with the saved file** runs VS Code's `workbench.files.action.compareWithSaved`. A file in conflict with its base and both sides opens in VS Code's merge editor. The setting is `gitardo.changes.openOnClick`.
+In VS Code: a click on a file of the Changes view, its buttons **Open File** and **Open Changes**, **Open all changes in one editor** on the header of **Changes**, and **Compare with the saved file** on a file only an editor has changed, done by the extension itself (the messages `openChange`, `openFile`, `openDiff`, `openChanges` and `compareWithSaved` in `ViewMessages.onMessage`, and `sides` in), with VS Code's editors in place of the pages. The diff opens in VS Code's diff editor, titled or; when VS Code's Git extension has the repository open, its two sides are that extension's own `git:` documents, so that **Stage Selected Ranges**, **Unstage Selected Ranges** and **Revert Selected Ranges** work in it. **Open all changes in one editor** runs `vscode.changes`: one editor titled **Changes**, where each file has the two sides **Open Changes** gives it, rather than the last commit against the file on disk. **Compare with the saved file** runs VS Code's `workbench.files.action.compareWithSaved`. A file in conflict with its base and both sides opens in VS Code's merge editor. The setting is `gitardo.changes.openOnClick`.
 @card extension changes.beside-file
 title: The Changes page beside what it opens
 place: the draft and the Changes page
@@ -4636,7 +4636,7 @@ title: Commit
 place: the draft and the Changes page
 show: show where
 Makes a commit of what is staged, with the message of the commit box.
-In VS Code: **Commit** in the commit box of the Changes view, and `Ctrl+Enter` (`Cmd+Enter`) in its message, send `feature/run` of `commit.create` to Gitardo's engine with the message typed as the answer `message` (`engineRuns` in, run by). The question when nothing is staged is a modal warning dialog with **Stage all and commit** (`VscodeAsker` in), and the plan is shown in a modal dialog when `gitardo.commandPreview` is `all`; once it ran, the engine's follow-up `emptyCommitMessage` empties the commit box (the message `committed`). The message the box starts from comes from the engine's follow-ups, posted as `commitMessage` by: after a squash merge, `preparedMessage`, for which the extension reads what `.git/SQUASH_MSG` says (`reads.squashMessage`, `commit.prepared-message`); after a split, `fillCommitMessage`, with the message of the commit split. When the engine's binary is missing, it says so.
+In VS Code: **Commit** in the commit box of the Changes view, and `Ctrl+Enter` (`Cmd+Enter`) in its message, send `feature/run` of `commit.create` to Gitardo's engine with the message typed as the answer `message` (`engineRuns` in, run by). The question when nothing is staged is a modal warning dialog with **Stage all and commit** (`VscodeAsker` in), and the plan is shown in a modal dialog when `gitardo.commandPreview` is `all`; once it ran, the engine's follow-up `emptyCommitMessage` empties the commit box (the message `committed`). The message the box starts from comes from the engine's follow-ups, posted as `commitMessage` by `RunFollowUps.beforeRead`: after a squash merge, `preparedMessage`, for which the extension reads what `.git/SQUASH_MSG` says (`reads.squashMessage`, `commit.prepared-message`); after a split, `fillCommitMessage`, with the message of the commit split. When the engine's binary is missing, it says so.
 @card extension commit.amend
 title: Amend the last commit
 place: the draft and the Changes page
@@ -4684,7 +4684,7 @@ title: Draft the commit message
 place: the draft and the Changes page
 show: none
 Asks the AI provider to write the commit message from the changes, and puts its answer in the message box, to edit.
-In VS Code: the sparkle button of the commit box of the Changes view, titled *Draft a message from the changes with the language model set up in VS Code*. in asks the engine `read/commit.draft-message` with the subjects of the graph: the engine reads the changes and the diff (`commit.read-draft-diff`), writes the request and cleans the answer, and asks VS Code's language models in place of the AI provider with `host/languageModel`, which `answerLanguageModel` in sends to the first model gives, with no effort, and with the justification *Gitardo sends your uncommitted changes to the model to draft a commit message.* (G3: not the model of `gitardo.conflicts.aiModel`). The engine drafts it; the extension only sends the request the engine wrote to VS Code's model and gives the answer back. When the engine's binary is missing, it says so. The status bar says *Gitardo: drafting commit message* while it runs. With no model, it refuses with *Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.*
+In VS Code: the sparkle button of the commit box of the Changes view, titled *Draft a message from the changes with the language model set up in VS Code*. `Commands.draftMessage` in asks the engine `read/commit.draft-message` with the subjects of the graph: the engine reads the changes and the diff (`commit.read-draft-diff`), writes the request and cleans the answer, and asks VS Code's language models in place of the AI provider with `host/languageModel`, which `answerLanguageModel` in sends to the first model gives, with no effort, and with the justification *Gitardo sends your uncommitted changes to the model to draft a commit message.* (G3: not the model of `gitardo.conflicts.aiModel`). The engine drafts it; the extension only sends the request the engine wrote to VS Code's model and gives the answer back. When the engine's binary is missing, it says so. The status bar says *Gitardo: drafting commit message* while it runs. With no model, it refuses with *Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.*
 @card extension commit.read-draft-diff
 title: The diff a draft is written from
 place: the draft and the Changes page
@@ -4701,7 +4701,7 @@ title: Switch identity
 place: the draft and the Changes page
 show: quick search
 Sets the name and email that commits are made with in this repository, from a profile of the settings or typed.
-In VS Code: **Gitardo: Switch Identity** in the Command Palette, **Switch identity…** in the **…** menu of the toolbar of the graph, and a click on the identity under the commit box of the Changes view. Each sends `feature/run` of `identity.switch` to Gitardo's engine (in); the pick is a quick pick, and the name and email input boxes. **Edit the list of identities…** is added to the pick by the extension, which opens the settings at `gitardo.identities` and runs nothing (`HostHooks.choices`, B9). When the engine's binary is missing, it says so.
+In VS Code: **Gitardo: Switch Identity** in the Command Palette, **Switch identity…** in the **…** menu of the toolbar of the graph, and a click on the identity under the commit box of the Changes view. Each sends `feature/run` of `identity.switch` to Gitardo's engine (in, `Commands.switchIdentity`); the pick is a quick pick, and the name and email input boxes. **Edit the list of identities…** is added to the pick by the extension, which opens the settings at `gitardo.identities` and runs nothing (`HostHooks.choices`, B9). When the engine's binary is missing, it says so.
 @card extension identity.use-global
 title: Use the global identity again
 place: the draft and the Changes page
@@ -4832,7 +4832,7 @@ title: Clean up branches
 place: the branch rail
 show: quick search
 Lists the local branches that are done with, merged or left without their upstream, and deletes the ones ticked, with the worktrees that have them.
-In VS Code: **Gitardo: Clean Up Branches** in the Command Palette and in the **…** of the Branches view; **Clean up branches…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `branch.clean-up` to Gitardo's engine (in); the pick is a quick pick of several, the merged branches ticked. Once the plan is confirmed, and before its steps, VS Code's Git extension is told to close each worktree the plan removes (`git.close`), which Windows would not let git delete otherwise (`HostHooks.confirmed`). When the engine's binary is missing, it says so.
+In VS Code: **Gitardo: Clean Up Branches** in the Command Palette and in the **…** of the Branches view; **Clean up branches…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `branch.clean-up` to Gitardo's engine (in, `Commands.cleanupBranches`); the pick is a quick pick of several, the merged branches ticked. Once the plan is confirmed, and before its steps, VS Code's Git extension is told to close each worktree the plan removes (`git.close`), which Windows would not let git delete otherwise (`HostHooks.confirmed`, `Commands.closeRemoved`). When the engine's binary is missing, it says so.
 @card extension branch.fast-forward
 title: Fast-forward a branch that is not checked out
 place: the branch rail
@@ -4931,7 +4931,7 @@ title: Manage remotes
 place: the branch rail
 show: quick search
 Lists the remotes with their URLs, to fetch one alone, change its URL, rename it, copy its URL or remove it, or to add another.
-In VS Code: **Gitardo: Manage Remotes** in the Command Palette and in the **…** of the Branches view; **Manage remotes…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `remote.manage` to Gitardo's engine (in); its picks are quick picks, the remotes searched by name and URL. Once something ran, the remote that pull requests are read from is found again. When the engine's binary is missing, it says so.
+In VS Code: **Gitardo: Manage Remotes** in the Command Palette and in the **…** of the Branches view; **Manage remotes…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `remote.manage` to Gitardo's engine (in, `Commands.manageRemotes`); its picks are quick picks, the remotes searched by name and URL. Once something ran, the remote that pull requests are read from is found again. When the engine's binary is missing, it says so.
 @card extension remote.fetch
 title: Fetch one remote
 place: the branch rail
@@ -4956,7 +4956,7 @@ In VS Code: in the pick of **Gitardo: Manage Remotes**, run by the engine with i
 title: Add a remote
 place: the branch rail
 show: show where
-In VS Code: **Add remote…** in the pick of **Gitardo: Manage Remotes**; **Add remote…** on the warning that the repository has no remote, after a fetch, a pull, a push or **Sync**. Each sends `feature/run` of `remote.add` to Gitardo's engine (in); the name and URL are asked in input boxes. When the engine's binary is missing, it says so.
+In VS Code: **Add remote…** in the pick of **Gitardo: Manage Remotes**; **Add remote…** on the warning that the repository has no remote, after a fetch, a pull, a push or **Sync**. Each sends `feature/run` of `remote.add` to Gitardo's engine (in, `Commands.manageRemotes`); the name and URL are asked in input boxes. When the engine's binary is missing, it says so.
 @card extension remote.delete-branch
 title: Delete a branch from its remote
 place: the branch rail
@@ -4968,7 +4968,7 @@ title: Fetch
 place: the branch rail
 show: quick search
 Brings what every remote has, and forgets the remote branches deleted there.
-In VS Code: **Fetch** in the toolbar of the graph (tooltip **Fetch: git fetch --all --prune**); **Gitardo: Fetch** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.fetch` to Gitardo's engine (in, `engineRuns` in) through and `syncRuns`; the pull requests are read again after it (`readPullRequests`). When the engine's binary is missing, it says so.
+In VS Code: **Fetch** in the toolbar of the graph (tooltip **Fetch: git fetch --all --prune**); **Gitardo: Fetch** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.fetch` to Gitardo's engine (in, `engineRuns` in) through `Commands.sync` and `syncRuns`; the pull requests are read again after it (`readPullRequests`). When the engine's binary is missing, it says so.
 @card extension sync.deepen
 title: Load more history
 place: the branch rail
@@ -4986,7 +4986,7 @@ title: Pull
 place: the branch rail
 show: quick search
 Brings what the upstream has into the branch checked out, the way the settings choose.
-In VS Code: **Pull** in the toolbar of the graph, with the number of commits the branch is behind, its tooltip the command the settings make, as **Pull: git pull --rebase --autostash**; **Gitardo: Pull** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.pull` to Gitardo's engine (in, `engineRuns` in) through and `syncRuns`. The settings are `gitardo.pull.rebase` and `gitardo.pull.autostash`. The warning that the changes set aside do not fit on what came in, with **Show Stashes**, is said by the extension from the stashes read after the pull, on both paths. When the engine's binary is missing, it says so.
+In VS Code: **Pull** in the toolbar of the graph, with the number of commits the branch is behind, its tooltip the command the settings make, as **Pull: git pull --rebase --autostash**; **Gitardo: Pull** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.pull` to Gitardo's engine (in, `engineRuns` in) through `Commands.sync` and `syncRuns`. The settings are `gitardo.pull.rebase` and `gitardo.pull.autostash`. The warning that the changes set aside do not fit on what came in, with **Show Stashes**, is said by the extension from the stashes read after the pull (`Commands.afterSync`), on both paths. When the engine's binary is missing, it says so.
 @card extension sync.pull-with
 title: Pull one way or another
 place: the branch rail
@@ -4998,13 +4998,13 @@ title: Push
 place: the branch rail
 show: quick search
 Sends the commits of the branch checked out to its upstream, or, for its first push, to the remote, making that its upstream.
-In VS Code: **Push** in the toolbar of the graph (tooltip **Push: git push**), with the number of commits the branch is ahead; **Push** in the menu **More push options** beside it, marked **default**; **Gitardo: Push** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.push` to Gitardo's engine (in, `engineRuns` in) through. After the first push of a branch, when the main remote is on GitHub and the branch has no pull request, **Pushed `<branch>`.** offers **Create Pull Request**. When the engine's binary is missing, it says so.
+In VS Code: **Push** in the toolbar of the graph (tooltip **Push: git push**), with the number of commits the branch is ahead; **Push** in the menu **More push options** beside it, marked **default**; **Gitardo: Push** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.push` to Gitardo's engine (in, `engineRuns` in) through `Commands.sync`. After the first push of a branch, when the main remote is on GitHub and the branch has no pull request, **Pushed `<branch>`.** offers **Create Pull Request** (`Commands.afterSync`). When the engine's binary is missing, it says so.
 @card extension sync.sync
 title: Sync with the upstream
 place: the branch rail
 show: quick search
 Fetches, pulls what the upstream has, then pushes what the branch checked out has ahead of it: in one click, what the counts on **Sync** promise.
-In VS Code: **Sync: fetch, pull, push** in the menu **More push options** beside **Push** in the toolbar of the graph; **Gitardo: Sync** (`gitardo.sync`) in the Command Palette and in the **…** of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.sync` to Gitardo's engine (in, `engineRuns` in) through and `syncRuns`. When the engine's binary is missing, it says so, and runs nothing.
+In VS Code: **Sync: fetch, pull, push** in the menu **More push options** beside **Push** in the toolbar of the graph; **Gitardo: Sync** (`gitardo.sync`) in the Command Palette and in the **…** of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.sync` to Gitardo's engine (in, `engineRuns` in) through `Commands.sync` and `syncRuns`. When the engine's binary is missing, it says so, and runs nothing.
 @card extension sync.read-overwritten
 title: Read what a force push would overwrite
 place: the branch rail
@@ -5054,7 +5054,7 @@ title: Cherry-pick a commit
 place: the timeline
 show: show where
 Applies the changes of one commit onto what is checked out, as a new commit, after saying which files will conflict.
-In VS Code: **Cherry-pick `<short>`** in the context menu of a commit in the graph and the Gitardo Graph, also on a merge and while an operation is under way (`commitMenu` in); **Cherry-pick `<short>` onto `<current>`** for a commit dropped on the commit checked out or on the row of the uncommitted changes; **Cherry-pick** for a position chosen in the list of the reflog. The action `cherryPick` runs it on the commit. The setting is `gitardo.cherryPick.recordOrigin`. When the engine's binary is missing, it says so.
+In VS Code: **Cherry-pick `<short>`** in the context menu of a commit in the graph and the Gitardo Graph, also on a merge and while an operation is under way (`commitMenu` in); **Cherry-pick `<short>` onto `<current>`** for a commit dropped on the commit checked out or on the row of the uncommitted changes; **Cherry-pick** for a position chosen in the list of the reflog (`Commands.browseReflog`). The action `cherryPick` runs it on the commit. The setting is `gitardo.cherryPick.recordOrigin`. When the engine's binary is missing, it says so.
 @card extension cherry-pick.skip-empty
 title: Get past a commit that changes nothing
 place: the timeline
@@ -5241,7 +5241,7 @@ title: See what a rewrite changed
 place: the timeline
 show: show where
 Opens, commit by commit, what a rebase or an amend changed in a branch, what a force push would replace, or what someone else's force push replaced.
-In VS Code: the same entries in the menus of the graph and the references (`branchMenu` and `remoteBranchMenu` in), in **More push options** beside **Push**, and on the messages the extension says after an operation; each sends `feature/run` of `range-diff.compare` to Gitardo's engine (in), whose follow-up opens the tab of `range-diff.page`. The warning of a force push is VS Code's modal dialog, which gets **Compare First**. When the engine's binary is missing, it says so.
+In VS Code: the same entries in the menus of the graph and the references (`branchMenu` and `remoteBranchMenu` in), in **More push options** beside **Push**, and on the messages the extension says after an operation (`Commands.afterSync`, `RunFollowUps.say`); each sends `feature/run` of `range-diff.compare` to Gitardo's engine (in), whose follow-up opens the tab of `range-diff.page`. The warning of a force push is VS Code's modal dialog, which gets **Compare First**. When the engine's binary is missing, it says so.
 @card extension range-diff.page
 title: What a rewrite changed, commit by commit
 place: the timeline
@@ -5271,19 +5271,19 @@ title: Stash all changes
 place: Kept aside, in the branch rail
 show: quick search
 Sets every change aside, staged or not, untracked files included, and leaves the working tree as the last commit.
-In VS Code: **Stash changes…** in the context menu of the uncommitted changes row of the graph; **Stash** in the toolbar of the graph (tooltip **Stash: git stash push --include-untracked**); **Stash all changes…** above the files of the uncommitted changes in the details while none is ticked, and on the header of **Changes** in the Changes view; **Stash Changes** on the title of the Stashes view; **Gitardo: Stash Changes** in the Command Palette; **Stash All Changes…** on the **Changes** group of VS Code's own list of changes in the Source Control view, as a button and in its context menu, while `gitardo.scm.stashButtons` is on, run in the repository of the first file of the group, which the views then show. Each sends `feature/run` of `stash.push` to Gitardo's engine (in, `engineRuns` in); the message is asked in VS Code's input box, and the plan shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker` in). When the engine's binary is missing, it says so.
+In VS Code: **Stash changes…** in the context menu of the uncommitted changes row of the graph; **Stash** in the toolbar of the graph (tooltip **Stash: git stash push --include-untracked**); **Stash all changes…** above the files of the uncommitted changes in the details while none is ticked, and on the header of **Changes** in the Changes view; **Stash Changes** on the title of the Stashes view; **Gitardo: Stash Changes** in the Command Palette; **Stash All Changes…** on the **Changes** group of VS Code's own list of changes in the Source Control view, as a button and in its context menu, while `gitardo.scm.stashButtons` is on, run in the repository of the first file of the group, which the views then show (`Commands.stashFromScm`). Each sends `feature/run` of `stash.push` to Gitardo's engine (in, `engineRuns` in); the message is asked in VS Code's input box, and the plan shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker` in). When the engine's binary is missing, it says so.
 @card extension stash.push-staged
 title: Stash the staged changes
 place: Kept aside, in the branch rail
 show: show where
 Sets aside only what is staged; the rest stays where it is.
-In VS Code: **Stash staged changes…** in the context menu of the uncommitted changes row of the graph; **Stash only the staged changes…** on the header of **Changes** in the Changes view; **Stash Only the Staged Changes…** on the **Staged Changes** group of VS Code's own list of changes, as a button and in its context menu, while `gitardo.scm.stashButtons` is on. Each sends `feature/run` of `stash.push-staged` to Gitardo's engine (`engineRuns`), its message asked in VS Code's input box (`VscodeAsker`). When the engine's binary is missing, it says so.
+In VS Code: **Stash staged changes…** in the context menu of the uncommitted changes row of the graph; **Stash only the staged changes…** on the header of **Changes** in the Changes view; **Stash Only the Staged Changes…** on the **Staged Changes** group of VS Code's own list of changes, as a button and in its context menu, while `gitardo.scm.stashButtons` is on (`Commands.stashFromScm`). Each sends `feature/run` of `stash.push-staged` to Gitardo's engine (`engineRuns`), its message asked in VS Code's input box (`VscodeAsker`). When the engine's binary is missing, it says so.
 @card extension stash.push-file
 title: Stash a file, or the files ticked
 place: Kept aside, in the branch rail
 show: show where
 Sets aside every change to one file, or to the files chosen, staged or not.
-In VS Code: **Stash this file…** on each file of the Changes view and of the uncommitted changes in the details; **Stash 1 selected file…** or **Stash N selected files…** above the files of the uncommitted changes in the details, while some are ticked; **Stash This File…** on each file of the **Staged Changes**, **Changes** and **Untracked Changes** groups of VS Code's own list of changes, as a button and in the context menu, for every file selected there, while `gitardo.scm.stashButtons` is on (which leaves out files outside the repository and runs in the repository of the first file, which the views then show). Each sends `feature/run` of `stash.push-file` to Gitardo's engine on the files given, a renamed file with both its names (`engineRuns`, run by), its message asked in VS Code's input box (`VscodeAsker`). When the engine's binary is missing, it says so.
+In VS Code: **Stash this file…** on each file of the Changes view and of the uncommitted changes in the details; **Stash 1 selected file…** or **Stash N selected files…** above the files of the uncommitted changes in the details, while some are ticked; **Stash This File…** on each file of the **Staged Changes**, **Changes** and **Untracked Changes** groups of VS Code's own list of changes, as a button and in the context menu, for every file selected there, while `gitardo.scm.stashButtons` is on (`Commands.stashFromScm`, which leaves out files outside the repository and runs in the repository of the first file, which the views then show). Each sends `feature/run` of `stash.push-file` to Gitardo's engine on the files given, a renamed file with both its names (`engineRuns`, run by), its message asked in VS Code's input box (`VscodeAsker`). When the engine's binary is missing, it says so.
 @card extension stash.preview
 title: What applying a stash would stop on
 place: Kept aside, in the branch rail
@@ -5361,7 +5361,7 @@ title: The message when an operation stops on conflicts
 place: the Conflicts page
 show: none
 Says that an operation stopped on conflicts, what to do next, and offers the resolutions at once.
-In VS Code: in, shown by when a step of the engine fails and, once the repository is read again, a file is in conflict. It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and **Show Log**; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
+In VS Code: in, shown by `RunFollowUps.reportEngineFailure` when a step of the engine fails and, once the repository is read again, a file is in conflict. It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and **Show Log**; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
 @card extension conflicts.read-files
 title: The files in conflict and their sides
 place: the Conflicts page
@@ -5379,7 +5379,7 @@ title: Open a file in conflict
 place: the Conflicts page
 show: none
 Opens a file in conflict where it can be resolved by hand, which depends on what the two sides did to it.
-In VS Code: a click on a file of the **Conflicts** group of the Changes view (in), the diff button of `review.deleted-card`, and the line of a card in the review. A file with stages 1, 2 and 3 opens in VS Code's merge editor (in, VS Code's internal `_open.mergeEditor` command), titled **Merging: \<name\>**, with the base from `:1`, **Current** from `:2` and **Incoming** from `:3`; never the Flow Merge, which is reached from the button of the merge editor. A file one side deleted opens in VS Code's diff editor, `:1:<file>` on the left and the file on disk on the right; any other file in a plain editor, with its markers. The stages are read by the engine (`reads.conflictStages` in).
+In VS Code: a click on a file of the **Conflicts** group of the Changes view (in), the diff button of `review.deleted-card`, and the line of a card in the review (`FileDiffs.openConflict`). A file with stages 1, 2 and 3 opens in VS Code's merge editor (in, VS Code's internal `_open.mergeEditor` command), titled **Merging: \<name\>**, with the base from `:1`, **Current** from `:2` and **Incoming** from `:3`; never the Flow Merge, which is reached from the button of the merge editor. A file one side deleted opens in VS Code's diff editor (`FileDiffs.openDeletedConflict`), `:1:<file>` on the left and the file on disk on the right; any other file in a plain editor, with its markers. The stages are read by the engine (`reads.conflictStages` in).
 @card extension conflicts.mark-resolved
 title: Mark as resolved
 place: the Conflicts page
@@ -5730,13 +5730,13 @@ title: Open the comparison on GitHub
 place: the Compare page
 show: show where
 Opens the same comparison on github.com, each side by the name it has there.
-In VS Code: **Open on GitHub** in the Compare tab, shown when the main remote is on GitHub and neither side is the working tree; runs `compare.open-on-service` on the engine, which is this one on GitHub, with the target `comparison`, the tab's two sides, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. A comparison of a commit with itself is refused with the engine's warning, *The two sides are the same commit.*, and opens nothing, where the extension opened GitHub's page anyway (G5, kept in M48 and said in its CHANGELOG); with `gitardo.commandPreview` set to `all`, nothing is asked first, since nothing runs (G6). When the engine's binary is missing, it says so.
+In VS Code: **Open on GitHub** in the Compare tab, shown when the main remote is on GitHub and neither side is the working tree; `CompareTabs.openCompareOnService` runs `compare.open-on-service` on the engine, which is this one on GitHub, with the target `comparison`, the tab's two sides, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. A comparison of a commit with itself is refused with the engine's warning, *The two sides are the same commit.*, and opens nothing, where the extension opened GitHub's page anyway (G5, kept in M48 and said in its CHANGELOG); with `gitardo.commandPreview` set to `all`, nothing is asked first, since nothing runs (G6). When the engine's binary is missing, it says so.
 @card extension compare.open-on-service
 title: Open the comparison on another hosting service
 place: the Compare page
 show: show where
 What `compare.open-on-github` does for GitHub, on GitLab, Bitbucket, Azure DevOps, Gitea and Forgejo: opens the same comparison on the hosting service of the main remote, each side by the name it has there.
-In VS Code: **Open on `<service>`** in the Compare tab, where **Open on GitHub** is, and only in **Since they diverged** on Bitbucket, Gitea and Forgejo; runs it on the engine with the target `comparison`, on GitHub too, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. When the engine's binary is missing, it says so.
+In VS Code: **Open on `<service>`** in the Compare tab, where **Open on GitHub** is, and only in **Since they diverged** on Bitbucket, Gitea and Forgejo; `CompareTabs.openCompareOnService` runs it on the engine with the target `comparison`, on GitHub too, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. When the engine's binary is missing, it says so.
 @card extension compare.path-with
 title: Compare a file or a folder with a branch, tag or commit
 place: the Compare page
@@ -5933,7 +5933,7 @@ title: Mark a commit good or bad
 place: the Files page
 show: show where
 While a bisect is under way, marks any commit of the timeline.
-In VS Code: **Bisect: mark as good** and **Bisect: mark as bad** in the context menu of any commit during a bisect. The message that names the first bad commit, with **Show in the graph** and **End bisect**, is shown by once the repository is read again.
+In VS Code: **Bisect: mark as good** and **Bisect: mark as bad** in the context menu of any commit during a bisect. The message that names the first bad commit, with **Show in the graph** and **End bisect**, is shown by `RunFollowUps.reportBisect` once the repository is read again.
 @card extension bisect.answer
 title: Answer for the commit being tested
 place: the Files page
@@ -5975,19 +5975,19 @@ title: Create a worktree
 place: Kept aside, in the branch rail
 show: quick search
 Makes a new worktree on a new branch, from a branch the user picks, in the folder of the worktrees.
-In VS Code: **+** on the title of the Worktrees section, among the references beside the graph and in the Branches view; **Create worktree…** in its **…**; **Gitardo: Create Worktree…** (`gitardo.createWorktree`) in the Command Palette and in the **…** of the Branches view; the last entry of **Gitardo: Switch Worktree…**. Each sends `feature/run` of `worktree.create` on `HEAD` to Gitardo's engine (`worktreeAdd` with no `ref` in `engineRuns` of, run by in); the questions are asked in VS Code's pickers and input boxes, the name checked by the engine with `question/validate` as it is typed (`VscodeAsker` in). The format and its inputs are `gitardo.branches.format` and `gitardo.branches.inputs`, or, where they are not set, `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs`, sent by. What follows the worktree made is the extension's: the engine hands the commands of `worktree-setup.command-steps` over in `waiting`, and the extension runs them in VS Code's terminals; once they have all succeeded, the message **Worktree created in `<folder>`** has **Open in Agents Window** (where VS Code has it) and **Open in New Window** in place of the desktop's three, and **Choose What It Gets…** while the engine offers it, once for the workspace (workspace state `SETUP_OFFERED`). When the engine's binary is missing, it says so.
+In VS Code: **+** on the title of the Worktrees section, among the references beside the graph and in the Branches view; **Create worktree…** in its **…**; **Gitardo: Create Worktree…** (`gitardo.createWorktree`) in the Command Palette and in the **…** of the Branches view; the last entry of **Gitardo: Switch Worktree…**. Each sends `feature/run` of `worktree.create` on `HEAD` to Gitardo's engine (`worktreeAdd` with no `ref` in `engineRuns` of, run by in); the questions are asked in VS Code's pickers and input boxes, the name checked by the engine with `question/validate` as it is typed (`VscodeAsker` in). The format and its inputs are `gitardo.branches.format` and `gitardo.branches.inputs`, or, where they are not set, `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs`, sent by. What follows the worktree made is the extension's (`RunFollowUps.worktreeMade`): the engine hands the commands of `worktree-setup.command-steps` over in `waiting`, and the extension runs them in VS Code's terminals; once they have all succeeded, the message **Worktree created in `<folder>`** has **Open in Agents Window** (where VS Code has it) and **Open in New Window** in place of the desktop's three, and **Choose What It Gets…** while the engine offers it, once for the workspace (workspace state `SETUP_OFFERED`). When the engine's binary is missing, it says so.
 @card extension worktree.create-from-branch
 title: Put a branch in a new worktree
 place: Kept aside, in the branch rail
 show: show where
 Puts a local branch in a worktree of its own, or, with a format of branch names, a new branch made from it.
-In VS Code: **Create worktree…** in the context menu of a local branch among the references, in the Branches view and on its label in the graph (`branchMenu` in). It sends `feature/run` of `worktree.create-from-branch` on the branch to Gitardo's engine (`worktreeAdd` with `isBranch` in `engineRuns` of, run by), its questions asked in VS Code's pickers and input boxes (`VscodeAsker`), and what follows is as in `worktree.create`. When the engine's binary is missing, it says so.
+In VS Code: **Create worktree…** in the context menu of a local branch among the references, in the Branches view and on its label in the graph (`branchMenu` in). It sends `feature/run` of `worktree.create-from-branch` on the branch to Gitardo's engine (`worktreeAdd` with `isBranch` in `engineRuns` of, run by), its questions asked in VS Code's pickers and input boxes (`VscodeAsker`), and what follows is as in `worktree.create` (`RunFollowUps.worktreeMade`). When the engine's binary is missing, it says so.
 @card extension worktree.create-at-commit
 title: Create a worktree at a commit
 place: Kept aside, in the branch rail
 show: show where
 Makes a worktree at a commit of the timeline, on a new branch made there, or on a detached HEAD when no name is given.
-In VS Code: **Create worktree here…** in the context menu of a commit in the graph (`commitMenu` in). It sends `feature/run` of `worktree.create-at-commit` on the commit to Gitardo's engine (`worktreeAdd` with a commit in `engineRuns` of, run by), its questions asked in VS Code's pickers and input boxes (`VscodeAsker`), and what follows is as in `worktree.create`. When the engine's binary is missing, it says so.
+In VS Code: **Create worktree here…** in the context menu of a commit in the graph (`commitMenu` in). It sends `feature/run` of `worktree.create-at-commit` on the commit to Gitardo's engine (`worktreeAdd` with a commit in `engineRuns` of, run by), its questions asked in VS Code's pickers and input boxes (`VscodeAsker`), and what follows is as in `worktree.create` (`RunFollowUps.worktreeMade`). When the engine's binary is missing, it says so.
 @card extension worktree.section
 title: The Worktrees list
 place: Kept aside, in the branch rail
@@ -6040,25 +6040,25 @@ title: The banner of a worktree shown in this window
 place: Kept aside, in the branch rail
 show: none
 Says which worktree or submodule the views show while it is not the folder of the window, and goes back.
-In VS Code: drawn in the webviews, in TypeScript: `WorktreeBanner` in, at the top of the Graph view (not of the Gitardo Graph tab), the Changes view and the Branches view, while `home` of the state is set (when not compact). **Back to `<repository>`** posts `selectRepo` to; nothing is sent to the engine.
+In VS Code: drawn in the webviews, in TypeScript: `WorktreeBanner` in, at the top of the Graph view (not of the Gitardo Graph tab), the Changes view and the Branches view, while `home` of the state is set (when not compact). **Back to `<repository>`** posts `selectRepo` to `RepositoriesShown.selectRepo`; nothing is sent to the engine.
 @card extension worktree.rename
 title: Rename a worktree
 place: Kept aside, in the branch rail
 show: show where
 Gives a worktree's folder another name with `git worktree move`, and its branch too if wanted.
-In VS Code: **Rename…** in the context menu of a worktree, beside the graph and in the Branches view; **Rename worktree…** in that of a branch another worktree has (`worktreeMenu`, `branchMenu` in). It sends `feature/run` of `worktree.rename` on the worktree to Gitardo's engine (`worktreeRename` in `engineRuns` of, run by), its questions asked in VS Code's input boxes and pickers (`VscodeAsker`). Before it, has VS Code's Git extension close the worktree (`closeInVSCodeGit` in, `> git.close <folder>` in the log), which Windows would otherwise hold. The folder open in this window is not sent to the engine, which does not know it: `hostAction` in refuses it. When the engine's binary is missing, it says so.
+In VS Code: **Rename…** in the context menu of a worktree, beside the graph and in the Branches view; **Rename worktree…** in that of a branch another worktree has (`worktreeMenu`, `branchMenu` in). It sends `feature/run` of `worktree.rename` on the worktree to Gitardo's engine (`worktreeRename` in `engineRuns` of, run by), its questions asked in VS Code's input boxes and pickers (`VscodeAsker`). Before it, `RunFollowUps.letGoInVSCodeGit` has VS Code's Git extension close the worktree (`closeInVSCodeGit` in, `> git.close <folder>` in the log), which Windows would otherwise hold. The folder open in this window is not sent to the engine, which does not know it: `hostAction` in refuses it. When the engine's binary is missing, it says so.
 @card extension worktree.copy-path
 title: Copy the path of a worktree
 place: Kept aside, in the branch rail
 show: show where
 Puts the full path of a worktree's folder on the clipboard.
-In VS Code: **Copy path** in the context menu of a worktree (`worktreeMenu` in), done by the extension itself, in TypeScript: the webview posts `{ type: 'copy' }`, which puts on VS Code's clipboard; nothing is sent to the engine.
+In VS Code: **Copy path** in the context menu of a worktree (`worktreeMenu` in), done by the extension itself, in TypeScript: the webview posts `{ type: 'copy' }`, which `ViewMessages.onMessage` puts on VS Code's clipboard; nothing is sent to the engine.
 @card extension worktree.remove
 title: Remove a worktree
 place: Kept aside, in the branch rail
 show: show where
 Removes a worktree's folder with `git worktree remove`, and its branch too if wanted.
-In VS Code: **Remove…** in the context menu of a worktree, beside the graph and in the Branches view; **Remove worktree…** and **Remove worktree and delete branch…** in that of a branch another worktree has (`worktreeMenu`, `branchMenu` in), which give the answer `branch` (`keep` or `delete`). It sends `feature/run` of `worktree.remove` on the worktree to Gitardo's engine (`worktreeRemove` in `engineRuns` of, run by), its question and its danger asked in VS Code's picker and modal dialog (`VscodeAsker`). Before it, has VS Code's Git extension close the worktree (`closeInVSCodeGit` in, `> git.close <folder>` in the log). The folder open in this window is not sent to the engine, which does not know it: `hostAction` in refuses it. When git refuses a worktree with changes, the engine's offer **Remove anyway** comes in the error's `data.followUps`, and the extension shows it as a button of the error message beside **Show Log**. When the engine's binary is missing, it says so.
+In VS Code: **Remove…** in the context menu of a worktree, beside the graph and in the Branches view; **Remove worktree…** and **Remove worktree and delete branch…** in that of a branch another worktree has (`worktreeMenu`, `branchMenu` in), which give the answer `branch` (`keep` or `delete`). It sends `feature/run` of `worktree.remove` on the worktree to Gitardo's engine (`worktreeRemove` in `engineRuns` of, run by), its question and its danger asked in VS Code's picker and modal dialog (`VscodeAsker`). Before it, `RunFollowUps.letGoInVSCodeGit` has VS Code's Git extension close the worktree (`closeInVSCodeGit` in, `> git.close <folder>` in the log). The folder open in this window is not sent to the engine, which does not know it: `hostAction` in refuses it. When git refuses a worktree with changes, the engine's offer **Remove anyway** comes in the error's `data.followUps`, and the extension shows it as a button of the error message beside **Show Log**. When the engine's binary is missing, it says so.
 @card extension worktree.prune
 title: Prune missing worktrees
 place: Kept aside, in the branch rail
@@ -6094,7 +6094,7 @@ title: Get past a folder that Windows holds
 place: Kept aside, in the branch rail
 show: none
 On Windows another program can hold a worktree's folder for a moment, such as a window or a terminal that has just left it. A move or a removal that fails for that is not left half done.
-In VS Code: carried out by the engine in the plans of `worktree.rename` and `worktree.remove` the extension runs there, after had VS Code's Git extension close the worktree, which is what holds it most often inside VS Code.
+In VS Code: carried out by the engine in the plans of `worktree.rename` and `worktree.remove` the extension runs there, after `RunFollowUps.letGoInVSCodeGit` had VS Code's Git extension close the worktree, which is what holds it most often inside VS Code.
 @card extension worktree.remove-empty-folders
 title: Leave no empty folders behind
 place: Kept aside, in the branch rail
@@ -6112,7 +6112,7 @@ title: Open a branch in a worktree of its own
 place: Kept aside, in the branch rail
 show: show where
 Works on a branch in its own worktree, with nothing asked: the worktree is made if it is not there yet, and opens.
-In VS Code: **Open in worktree** in the context menu of a local branch and of a remote branch, among the references, in the Branches view and on its label in the graph; a double click on them while `gitardo.branches.openIn` is `worktree` (`branchMenu`, `remoteBranchMenu`, `openBranch`, `openRemoteBranch` in). It sends `feature/run` of `worktree.open-in-worktree` on the branch or the remote branch to Gitardo's engine (`openInWorktree` in `engineRuns` of, run by). A local branch that another worktree has already is not sent: the extension opens that worktree itself, where `gitardo.worktrees.openIn` says, the Agents window included. Once the engine made the worktree and the commands of `worktree-setup.command-steps` the extension runs in VS Code's terminals have all succeeded, opens it where `gitardo.worktrees.openIn` says. When the engine's binary is missing, it says so.
+In VS Code: **Open in worktree** in the context menu of a local branch and of a remote branch, among the references, in the Branches view and on its label in the graph; a double click on them while `gitardo.branches.openIn` is `worktree` (`branchMenu`, `remoteBranchMenu`, `openBranch`, `openRemoteBranch` in). It sends `feature/run` of `worktree.open-in-worktree` on the branch or the remote branch to Gitardo's engine (`openInWorktree` in `engineRuns` of, run by). A local branch that another worktree has already is not sent: the extension opens that worktree itself, where `gitardo.worktrees.openIn` says, the Agents window included. Once the engine made the worktree and the commands of `worktree-setup.command-steps` the extension runs in VS Code's terminals have all succeeded, `RunFollowUps.worktreeMade` opens it where `gitardo.worktrees.openIn` says. When the engine's binary is missing, it says so.
 @card extension worktree.switch
 title: Switch worktree
 place: Kept aside, in the branch rail
@@ -6148,13 +6148,13 @@ title: Commands in a new worktree
 place: Kept aside, in the branch rail
 show: none
 The commands of `worktrees.setupCommands`, such as `npm ci`, run in a new worktree once it has been created and its links and copies made.
-In VS Code: the commands are `gitardo.worktrees.setupCommands`, set in the workspace folder, the workspace file or the user's settings. The extension says `host.terminal` when it starts the engine, so the engine hands the `Task` steps over in `waiting` instead of running them, and runs them with `runSetupCommands` of, without waiting for them: one after the other, each as a VS Code task named after the folder of the worktree (source *Gitardo*), a shell execution with the worktree as its folder, in a terminal of this window shown without taking the focus, the next only once the last ended with exit code 0. Trust is VS Code's: the extension sends `trust` `vscode`, so the engine asks no trust question, and the commands run only in a trusted workspace. A command that fails, or a workspace not trusted, is said in a warning with **Open in Agents Window** (where VS Code has it) and **Open in New Window**. When the engine's binary is missing, it says so.
+In VS Code: the commands are `gitardo.worktrees.setupCommands`, set in the workspace folder, the workspace file or the user's settings. The extension says `host.terminal` when it starts the engine, so the engine hands the `Task` steps over in `waiting` instead of running them, and `RunFollowUps.worktreeMade` runs them with `runSetupCommands` of, without waiting for them: one after the other, each as a VS Code task named after the folder of the worktree (source *Gitardo*), a shell execution with the worktree as its folder, in a terminal of this window shown without taking the focus, the next only once the last ended with exit code 0. Trust is VS Code's: the extension sends `trust` `vscode`, so the engine asks no trust question, and the commands run only in a trusted workspace. A command that fails, or a workspace not trusted, is said in a warning with **Open in Agents Window** (where VS Code has it) and **Open in New Window**. When the engine's binary is missing, it says so.
 @card extension worktree-setup.read-ignored
 title: Read what git ignores, with its size
 place: Kept aside, in the branch rail
 show: none
 What git ignores in the folder the views show, as the page that chooses what new worktrees get lists it.
-In VS Code: read by the engine for the tab of what new worktrees get: `Reads.setupIgnored` in, asked by when the tab opens and on **Look again**, which looks on disk whether a link leads to a folder, as the engine does not say, and adds what is proposed for each entry (`ignoredEntry` in).
+In VS Code: read by the engine for the tab of what new worktrees get: `Reads.setupIgnored` in, asked by `WorktreeSetupTab.send` when the tab opens and on **Look again**, which looks on disk whether a link leads to a folder, as the engine does not say, and adds what is proposed for each entry (`ignoredEntry` in).
 @card extension worktree-setup.propose
 title: What is proposed for what git ignores
 place: Kept aside, in the branch rail
@@ -6166,19 +6166,19 @@ title: Commands proposed from lock files
 place: Kept aside, in the branch rail
 show: none
 The commands proposed for new worktrees from the lock files the repository commits at its top.
-In VS Code: worked out by the engine for the tab of what new worktrees get: `Reads.setupCommands` in, asked by with `worktree-setup.read-ignored`.
+In VS Code: worked out by the engine for the tab of what new worktrees get: `Reads.setupCommands` in, asked by `WorktreeSetupTab.send` with `worktree-setup.read-ignored`.
 @card extension worktree-setup.read-what-patterns-take
 title: Ask git what the patterns take
 place: Kept aside, in the branch rail
 show: none
 What the link and copy patterns of the page take from the folder the views show, as a whole and each on its own.
-In VS Code: read by the engine for the tab of what new worktrees get: `Reads.setupPreview` in, asked by the message `previewWorktreeSetup`, whose case in cleans the patterns first.
+In VS Code: read by the engine for the tab of what new worktrees get: `Reads.setupPreview` in, asked by the message `previewWorktreeSetup`, whose case in `ViewMessages.onMessage` cleans the patterns first.
 @card extension worktree-setup.page
 title: Choose what new worktrees get
 place: Kept aside, in the branch rail
 show: page
 A page that lists what git ignores in the folder the views show, proposes what new worktrees get of it, and edits and saves the patterns and the commands.
-In VS Code: an editor tab, `WorktreeSetupApp` in (view kind `worktreeSetup`), opened by and fed by and `worktreeSetupInfo` in: what it reads is read by the engine (`worktree-setup.read-ignored`, `worktree-setup.propose-commands`, `worktree-setup.read-what-patterns-take`), and what is proposed is worked out in TypeScript (`worktree-setup.propose`). Its entries: **Gitardo: Choose What New Worktrees Get…** (`gitardo.worktreeSetup`) in the Command Palette and in the **…** of the Branches view; **Choose what new worktrees get…** in the **…** of the Worktrees section; **Choose What It Gets…** after a worktree is created; **Choose What New Worktrees Get…** in the messages of the Explorer's entries. One tab at a time, for the repository the views show: a tab open for it is brought forward, one open for another repository is closed. **Save in** offers the workspace folder (its `.vscode/settings.json`) and **User**, VS Code's settings, in place of the repository's `.gitardo/settings.json` and the user's file; **Edit in settings.json** in place of **Edit in settings file**. Saving stays in the extension (`worktree-setup.save`); **Bring into the other worktree** sends `worktree-setup.bring-into-other-worktrees` to the engine.
+In VS Code: an editor tab, `WorktreeSetupApp` in (view kind `worktreeSetup`), opened by and fed by `WorktreeSetupTab.send` and `worktreeSetupInfo` in: what it reads is read by the engine (`worktree-setup.read-ignored`, `worktree-setup.propose-commands`, `worktree-setup.read-what-patterns-take`), and what is proposed is worked out in TypeScript (`worktree-setup.propose`). Its entries: **Gitardo: Choose What New Worktrees Get…** (`gitardo.worktreeSetup`) in the Command Palette and in the **…** of the Branches view; **Choose what new worktrees get…** in the **…** of the Worktrees section; **Choose What It Gets…** after a worktree is created; **Choose What New Worktrees Get…** in the messages of the Explorer's entries. One tab at a time, for the repository the views show: a tab open for it is brought forward, one open for another repository is closed. **Save in** offers the workspace folder (its `.vscode/settings.json`) and **User**, VS Code's settings, in place of the repository's `.gitardo/settings.json` and the user's file; **Edit in settings.json** in place of **Edit in settings file**. Saving stays in the extension (`worktree-setup.save`); **Bring into the other worktree** sends `worktree-setup.bring-into-other-worktrees` to the engine.
 @card extension worktree-setup.choose
 title: Choose what a line gets
 place: Kept aside, in the branch rail
@@ -6316,25 +6316,25 @@ title: Deinitialize a submodule
 place: Kept aside, in the branch rail
 show: show where
 Empties the submodule's folder and forgets it locally; it stays in `.gitmodules` and in the commits.
-In VS Code: **Deinitialize…**, marked as an entry that loses work, in the context menu of a submodule in the Submodules section. First the extension has VS Code's Git extension close the submodule, and each initialized one inside it, that it has open, since Windows refuses to empty a folder it watches (in, `closeInVSCodeGit` in, which runs `git.close` and logs `> git.close <folder>`); then it sends `feature/run` of `submodule.deinitialize` to Gitardo's engine on the submodule by its path (`submoduleDeinit` in `engineRuns`, run by), its question always asked in a modal dialog (`VscodeAsker`), and the forced variant, **Deinitialize `<folder>`, losing its changes**, asked at once with a warning when git refuses. On Windows the engine runs a command again while the folder is held (`worktree.recover-held-folder`). When the engine's binary is missing, it says so.
+In VS Code: **Deinitialize…**, marked as an entry that loses work, in the context menu of a submodule in the Submodules section. First the extension has VS Code's Git extension close the submodule, and each initialized one inside it, that it has open, since Windows refuses to empty a folder it watches (`RunFollowUps.letGoInVSCodeGit` in, `closeInVSCodeGit` in, which runs `git.close` and logs `> git.close <folder>`); then it sends `feature/run` of `submodule.deinitialize` to Gitardo's engine on the submodule by its path (`submoduleDeinit` in `engineRuns`, run by), its question always asked in a modal dialog (`VscodeAsker`), and the forced variant, **Deinitialize `<folder>`, losing its changes**, asked at once with a warning when git refuses. On Windows the engine runs a command again while the folder is held (`worktree.recover-held-folder`). When the engine's binary is missing, it says so.
 @card extension submodule.remove
 title: Remove a submodule
 place: Kept aside, in the branch rail
 show: show where
 Deletes the submodule from the repository: its folder, its entry in `.gitmodules`, its record, and its clone in the git directory; the removal is staged, ready to commit.
-In VS Code: **Remove…**, marked as an entry that loses work, in the context menu of a submodule in the Submodules section, initialized or not. First VS Code's Git extension closes it, and each initialized one inside it, as for `submodule.deinitialize` (`closeInVSCodeGit`); then it sends `feature/run` of `submodule.remove` to Gitardo's engine on the submodule by its path (`submoduleRemove` in `engineRuns`, run by), its warning always asked in a modal warning dialog (`VscodeAsker`). The engine deletes the clone once the plan succeeded, and a clone it cannot delete is only said in the log; on Windows it runs a command again while the folder is held. When the engine's binary is missing, it says so.
+In VS Code: **Remove…**, marked as an entry that loses work, in the context menu of a submodule in the Submodules section, initialized or not. First VS Code's Git extension closes it, and each initialized one inside it, as for `submodule.deinitialize` (`RunFollowUps.letGoInVSCodeGit`, `closeInVSCodeGit`); then it sends `feature/run` of `submodule.remove` to Gitardo's engine on the submodule by its path (`submoduleRemove` in `engineRuns`, run by), its warning always asked in a modal warning dialog (`VscodeAsker`). The engine deletes the clone once the plan succeeded, and a clone it cannot delete is only said in the log; on Windows it runs a command again while the folder is held. When the engine's binary is missing, it says so.
 @card extension submodule.copy-path
 title: Copy the path of a submodule
 place: Kept aside, in the branch rail
 show: show where
 Puts the submodule's folder, from the root of the repository, on the clipboard.
-In VS Code: stays in the extension, in TypeScript: in posts `copy`, which in writes to the clipboard; no git runs.
+In VS Code: stays in the extension, in TypeScript: in posts `copy`, which `ViewMessages.onMessage` in writes to the clipboard; no git runs.
 @card extension submodule.copy-url
 title: Copy the URL of a submodule
 place: Kept aside, in the branch rail
 show: show where
 Puts the URL `.gitmodules` gives the submodule on the clipboard.
-In VS Code: stays in the extension, in TypeScript, as `submodule.copy-path` does: in, written to the clipboard by.
+In VS Code: stays in the extension, in TypeScript, as `submodule.copy-path` does: in, written to the clipboard by `ViewMessages.onMessage`.
 @card extension submodule.add
 title: Add a submodule
 place: Kept aside, in the branch rail
@@ -6436,13 +6436,13 @@ title: Open or create the pull request of a branch
 place: the branch rail
 show: none
 Opens the pull request of a branch in the browser, or GitHub's page to create one.
-In VS Code: the same entries in the graph's menus and its badges; opens the address of the pull request the engine read, or asks the engine for the page that creates one (`read/hosting.web-link`, `hosting.web-links`), and opens it with `vscode.env.openExternal`. It changes nothing and runs no git.
+In VS Code: the same entries in the graph's menus and its badges; `Commands.openPullRequest` opens the address of the pull request the engine read, or asks the engine for the page that creates one (`read/hosting.web-link`, `hosting.web-links`), and opens it with `vscode.env.openExternal`. It changes nothing and runs no git.
 @card extension github.offer-after-push
 title: Offer to create a pull request after the first push
 place: the branch rail
 show: none
 The first push of a branch is when a pull request is usually wanted: Gitardo offers to open GitHub's page to create it.
-In VS Code: derives it in TypeScript once a push of the engine gave the branch its upstream, and says **Pushed \<branch\>.** with **Create Pull Request**, which opens the address of `github.open-pull-request`.
+In VS Code: `Commands.afterSync` derives it in TypeScript once a push of the engine gave the branch its upstream, and says **Pushed \<branch\>.** with **Create Pull Request**, which opens the address of `github.open-pull-request`.
 @card extension hosting.detect-remote
 title: The hosting service of the main remote
 place: the branch rail
@@ -6460,13 +6460,13 @@ title: Open or create the pull request of a branch, on another hosting service
 place: the branch rail
 show: none
 What `github.open-pull-request` does for GitHub, on the other services: opens the merge request of a branch on GitLab, or the page of the service that creates a pull request for it.
-In VS Code: the same entries in the menus of the branches (`pullEntry` in) and on the labels of the graph; opens the address of the merge request known, or asks the engine for the page that creates one (`read/hosting.web-link`), and opens it with `vscode.env.openExternal`.
+In VS Code: the same entries in the menus of the branches (`pullEntry` in) and on the labels of the graph; `Commands.openPullRequest` opens the address of the merge request known, or asks the engine for the page that creates one (`read/hosting.web-link`), and opens it with `vscode.env.openExternal`.
 @card extension hosting.offer-after-push
 title: Offer to create a pull request after the first push, on another hosting service
 place: the branch rail
 show: none
 What `github.offer-after-push` does for GitHub, on the other services.
-In VS Code: offers **Create Merge Request** on GitLab, **Create Pull Request** elsewhere, after the first push of a branch with none known, on every service the engine found, and opens what opens.
+In VS Code: `Commands.afterSync` offers **Create Merge Request** on GitLab, **Create Pull Request** elsewhere, after the first push of a branch with none known, on every service the engine found, and opens what `Commands.openPullRequest` opens.
 @card extension hosting.token
 title: Read the token of a GitLab
 place: the branch rail
@@ -6518,7 +6518,7 @@ title: Undo the last operation
 place: the header and the bottom panel
 show: quick search
 **Undo** takes back the newest operation of Gitardo, as its journal keeps it: a commit, amend, checkout, merge, pull, rebase or reset by the reflog, and what the reflog does not see from the journal itself. With nothing in the journal, after a commit made in a terminal for one, it takes back the last move of the reflog. When the newest operation is one it cannot take back, a push, a fetch, a tag, a stash or a worktree, it says so rather than take back the one before it. It always shows what it is about to do first. With nothing in the journal, undoing twice redoes.
-In VS Code: **Undo** in the toolbar of the graph, whose tooltip names the newest operation of the journal (*Undo "Commit"*, or *"Push main to origin" cannot be undone*, from `journal/last`, which checks the journal against the state of the last `repo.read-state` instead of reading the repository again, and reads it only when no state was read since the last operation (M15)); **Gitardo: Undo Last Operation** in the Command Palette and in the **…** of the headers of the Commits view and the Gitardo Graph; the **Undo** of the message after resolving conflicts automatically. Each sends `feature/run` of `undo.last` to Gitardo's engine (in), its plan always shown in a modal dialog first (`VscodeAsker` in). Every operation is the engine's, so its journal has them all. When the engine's binary is missing, it says so.
+In VS Code: **Undo** in the toolbar of the graph, whose tooltip names the newest operation of the journal (*Undo "Commit"*, or *"Push main to origin" cannot be undone*, from `journal/last`, which checks the journal against the state of the last `repo.read-state` instead of reading the repository again, and reads it only when no state was read since the last operation (M15)); **Gitardo: Undo Last Operation** in the Command Palette and in the **…** of the headers of the Commits view and the Gitardo Graph; the **Undo** of the message after resolving conflicts automatically (`RunFollowUps.say`). Each sends `feature/run` of `undo.last` to Gitardo's engine (in), its plan always shown in a modal dialog first (`VscodeAsker` in). Every operation is the engine's, so its journal has them all. When the engine's binary is missing, it says so.
 @card extension undo.journal
 title: Remember what Undo needs
 place: the header and the bottom panel
@@ -6972,7 +6972,7 @@ title: Store files with Git LFS
 place: the Files page
 show: show where
 Has Git LFS store the files that a pattern takes, from their next commit on.
-In VS Code: built: **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, in a repository that stores files with Git LFS already, as the Files page offers it, sends `feature/run` of `lfs.track` with the target `file`, its questions asked with VS Code's picks and input boxes; it is not offered on a folder, for which **Everything in `<folder>`** of a file of it, or a pattern typed, does. **Track a pattern…** is on the **Large files** tab.
+In VS Code: built: **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, in a repository that stores files with Git LFS already, as the Files page offers it, sends `feature/run` of `lfs.track` with the target `file` (`Commands.storeWithLfsFromExplorer`), its questions asked with VS Code's picks and input boxes; it is not offered on a folder, for which **Everything in `<folder>`** of a file of it, or a pattern typed, does. **Track a pattern…** is on the **Large files** tab.
 @card extension lfs.store-committed
 title: Store with Git LFS the files committed before
 place: the Files page
