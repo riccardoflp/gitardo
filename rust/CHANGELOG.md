@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- The question of editing the message of an older commit shows the new message, and that of squashing commits the
+  message of the commit they become, which the rebase reads from a file the plan writes.
+- **Clean up branches** deletes the branches ticked in one `git branch -D`, after their worktrees: a branch merged into
+  the branch checked out but not into its upstream was refused by `git branch -d`, after its worktree was removed,
+  and the branches after it were left.
+- Cherry-picking several commits, or a merge commit, works out first which files it will stop on, as picking one
+  commit does, and asks first naming them: each commit of a series on top of the one before it, a merge commit from its
+  first parent.
+- **Commit** with nothing staged refuses while a file is in conflict, where staging everything first would have taken
+  the file as resolved and committed its markers.
+- **Skip** of a step of a cherry-pick, a revert, a rebase or a patch warns, where it asked a question, while what was
+  resolved in the step would be thrown away.
+- **Undo** right after pushing a tag, deleting one from its remote, setting an upstream, fetching nothing new or
+  another operation it cannot take back that changes only the remote or git's configuration says so, where it took
+  back the operation before it.
+- With git's rerere turned on after a merge or a rebase stopped, the files in conflict are no longer said to be
+  resolved by git as before: git took note of none of them, and **Resolve with AI** and the review show their conflicts.
 - Discarding a staged file before the first commit warns that it will be deleted from disk, "One staged file will be
   deleted from disk.", or as many as there are, where the warning spoke of a last commit there is not.
 - With `commandPreview` set to `all`, a plan that changes nothing itself, with no step and no danger, such as **Open on

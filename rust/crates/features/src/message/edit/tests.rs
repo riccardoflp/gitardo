@@ -74,7 +74,7 @@ fn message_edit__an_older_commit_is_reworded_by_one_rebase_with_autostash() {
     assert_eq!(
         note.as_str(),
         "bbbbbbb gets the new message, and the 2 commits after it are made again on top of it, with new hashes.\n\n\
-         Changes that are not committed are set aside and put back."
+         Changes that are not committed are set aside and put back.\n\nThe new message:\n\nNew words"
     );
 }
 

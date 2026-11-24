@@ -19,4 +19,5 @@ mod reads_lfs;
 mod reads_repository;
 mod reads_tags;
 mod repository;
+mod risks;
 mod summaries;

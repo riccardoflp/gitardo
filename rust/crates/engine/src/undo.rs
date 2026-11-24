@@ -1,6 +1,6 @@
 //! The journal of what Undo needs for the operations of Gitardo that the reflog does not see (`undo.journal`).
 
-use model::contract::{JournalEntry, MovedBranch, Plan, Text, Undo, UndoRecord};
+use model::contract::{JournalEntry, MovedBranch, Plan, Step, Text, Undo, UndoRecord};
 use model::state::{Head, RepositoryState};
 
 /// How many entries the journal keeps for a repository: the oldest go first.
@@ -46,7 +46,9 @@ impl Journal {
 /// `HEAD` moved by something Gitardo did not do, a commit in a terminal, every entry is dropped, so that Undo goes by the
 /// reflog. Each plan that ran adds an entry: what it left for Undo, a move of `HEAD` that the reflog takes back, or the
 /// reason it cannot be taken back, so that Undo says it rather than take back the operation before it. A plan that cannot
-/// be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it.
+/// be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes past it;
+/// one that ran git for anything else (a push, a fetch, a remote or an upstream, a lock) is an entry even when nothing
+/// the read sees changed, since what it changed is on the remote or in git's configuration.
 /// A plan that is the Undo of an entry drops it. The journal keeps at most [`MOST_ENTRIES`].
 ///
 /// Feature: undo.journal
@@ -120,11 +122,53 @@ fn record_of(plan: &Plan, before: &RepositoryState, after: &RepositoryState) -> 
         }),
         Undo::Journal(record) => Recorded::Entry(record.clone()),
         Undo::TakesBack(number) => Recorded::TakesBack(*number),
-        Undo::Impossible(reason) if references_changed(before, after) => {
+        Undo::Impossible(reason) if references_changed(before, after) || !changes_only_files(plan) => {
             Recorded::Entry(UndoRecord::NotUndoable { reason: reason.clone() })
         }
         Undo::Impossible(_) => Recorded::Nothing,
     }
+}
+
+/// The git commands that change nothing but files, those of the working tree or an archive saved, and the index.
+const FILES_AND_INDEX: [&str; 13] = [
+    "add",
+    "apply",
+    "archive",
+    "checkout",
+    "checkout-index",
+    "clean",
+    "merge-file",
+    "mv",
+    "read-tree",
+    "reset",
+    "restore",
+    "rm",
+    "update-index",
+];
+
+/// Whether a plan changes nothing but files and the index: each of its git commands is one of [`FILES_AND_INDEX`]. A
+/// step that is not git writes, links, copies or deletes files, or runs a command of the user's, which the reads after
+/// it see if it moved `HEAD`.
+fn changes_only_files(plan: &Plan) -> bool {
+    plan.steps.iter().all(|step| match step {
+        Step::Git { arguments, .. } => {
+            command_of(arguments).is_some_and(|command| FILES_AND_INDEX.contains(&command.as_str()))
+        }
+        _ => true,
+    })
+}
+
+/// The git command among the arguments after `git`: the first one that is not an option, nor the value of `-c` or `-C`.
+fn command_of(arguments: &[std::ffi::OsString]) -> Option<String> {
+    let mut words = arguments.iter().map(|argument| argument.to_string_lossy());
+    while let Some(word) = words.next() {
+        if word == "-c" || word == "-C" {
+            let _value = words.next();
+        } else if !word.starts_with('-') {
+            return Some(word.into_owned());
+        }
+    }
+    None
 }
 
 /// The branches a rewrite was to move, each with the commit it is on once the rewrite ran (`undo.moved-branches`).
@@ -282,6 +326,45 @@ mod tests {
             after.newest().map(|entry| &entry.record),
             Some(UndoRecord::NotUndoable { .. })
         ));
+    }
+
+    #[test]
+    fn undo_journal__what_cannot_be_undone_and_ran_git_beyond_the_files_is_an_entry_though_no_reference_changed() {
+        let deleted_one = journal_after(&Journal::new(), Some(&plan(deleted("old"))), &at('a'), &at('a'));
+        let with = |arguments: &[&str]| Plan {
+            steps: vec![model::contract::Step::git(
+                std::path::PathBuf::from("."),
+                arguments.iter().copied(),
+            )],
+            ..plan(Undo::Impossible(Text::from("It cannot be taken back.")))
+        };
+        // A tag pushed and an upstream set change nothing the read sees: each is an entry, which Undo stops at.
+        for arguments in [
+            &["push", "origin", "refs/tags/v1"][..],
+            &["branch", "--set-upstream-to=origin/main", "main"],
+            &["-c", "core.quotepath=false", "fetch", "origin"],
+        ] {
+            let after = journal_after(&deleted_one, Some(&with(arguments)), &at('a'), &at('a'));
+            assert!(
+                matches!(
+                    after.newest().map(|entry| &entry.record),
+                    Some(UndoRecord::NotUndoable { .. })
+                ),
+                "{arguments:?}"
+            );
+        }
+        // Staging, restoring and unstaging change only files and the index: Undo goes past them.
+        for arguments in [
+            &["add", "--", "a.txt"][..],
+            &["restore", "--", "a.txt"],
+            &["reset", "--quiet"],
+        ] {
+            assert_eq!(
+                journal_after(&deleted_one, Some(&with(arguments)), &at('a'), &at('a')),
+                deleted_one,
+                "{arguments:?}"
+            );
+        }
     }
 
     #[test]

@@ -12,7 +12,8 @@ pub const MESSAGE: AnswerKey = AnswerKey("message");
 pub const STAGE_ALL: AnswerKey = AnswerKey("stage-all");
 
 /// Commits what is staged with the message of the commit box; when nothing is staged and something else is changed,
-/// asks first to stage it all.
+/// asks first to stage it all, and refuses while a file is in conflict, which `git add --all` would take as resolved
+/// with its markers in it.
 ///
 /// Feature: commit.create
 #[must_use]
@@ -28,6 +29,11 @@ pub fn create(context: &Context, answers: &Answers) -> Outcome {
     let stages_all = working_tree.staged.is_empty();
     if stages_all && working_tree.is_clean() {
         return Outcome::Refuse(Refusal::saying("There are no changes to commit."));
+    }
+    if stages_all && !working_tree.conflicted.is_empty() {
+        return Outcome::Refuse(Refusal::saying(
+            "Resolve the conflicts first: staging all changes would commit the files in conflict with their markers.",
+        ));
     }
     if stages_all && !answers.is_confirmed(STAGE_ALL) {
         return Outcome::Ask(stage_all_question());
@@ -149,6 +155,24 @@ mod tests {
         ));
         assert_eq!(plan.after, [FollowUp::EmptyCommitMessage]);
         assert_eq!(lines(&plan), ["git commit -m \"Fix the parser\""]);
+    }
+
+    #[test]
+    fn commit_create__with_nothing_staged_and_a_file_in_conflict_refuses_rather_than_stage_its_markers() {
+        let mut state = state();
+        state.working_tree.conflicted.push(model::state::ConflictedFile {
+            path: String::from("c.txt"),
+            kind: model::state::ConflictKind::BothModified,
+        });
+        state.working_tree.unstaged.push(modified("a.txt"));
+        let confirmed = with_message("Merge").with(STAGE_ALL, Answer::Confirmed);
+        let Outcome::Refuse(refusal) = create(&context(state, Target::Head), &confirmed) else {
+            panic!("staging a file in conflict is refused")
+        };
+        assert_eq!(
+            refusal.message.as_str(),
+            "Resolve the conflicts first: staging all changes would commit the files in conflict with their markers."
+        );
     }
 
     #[test]

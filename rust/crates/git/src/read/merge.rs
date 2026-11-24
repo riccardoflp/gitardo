@@ -41,6 +41,39 @@ pub fn read_predicted_conflicts(
     ))
 }
 
+/// The files the first pick of a series of cherry-picks to stop would leave in conflict, the commits oldest first, as
+/// `merge.read-predicted-conflicts` reads them: each commit merged from its parent into the tree the pick before it
+/// wrote, the first into `HEAD`. A series that stops on none gives an empty list; "cannot tell" (`None`) when git
+/// cannot work a pick out, as a git older than 2.45, which merges into no tree but a commit.
+///
+/// # Errors
+///
+/// When git cannot be started or is cancelled.
+pub fn read_series_conflicts(git: &Git, commits: &[String]) -> Result<Option<Vec<PathBuf>>, GitError> {
+    let mut ours = String::from("HEAD");
+    for commit in commits {
+        let request = PredictedConflictsRequest {
+            ours: Some(std::mem::take(&mut ours)),
+            theirs: commit.clone(),
+            base: Some(format!("{commit}^")),
+        };
+        let output = git.read_output(&predicted_conflicts_arguments(&request))?;
+        match parse_predicted_conflicts(&output) {
+            Some(paths) if paths.is_empty() => {
+                let printed = String::from_utf8_lossy(&output.stdout);
+                printed
+                    .split('\0')
+                    .next()
+                    .unwrap_or_default()
+                    .trim()
+                    .clone_into(&mut ours);
+            }
+            stopped => return Ok(stopped),
+        }
+    }
+    Ok(Some(Vec::new()))
+}
+
 /// `git merge-tree --write-tree --no-messages --name-only -z [--merge-base=<base>] <ours> <theirs>`.
 #[must_use]
 pub fn predicted_conflicts_arguments(request: &PredictedConflictsRequest) -> Vec<OsString> {
@@ -171,5 +204,59 @@ mod tests {
             .map(|word| word.to_str().unwrap())
             .collect();
         assert_eq!(tail, ["--merge-base=abc1234", "HEAD", "feature"]);
+    }
+
+    /// A repository whose `topic` changes the line `b` of `f.txt` twice, `B` then `BB`, and whose `main` changes the
+    /// line of `g.txt` alone, or the line `b` too when `main_changes_b`; `main` checked out. Gives the two commits of
+    /// `topic`, oldest first.
+    fn picking(main_changes_b: bool) -> (testkit::Repository, Vec<String>) {
+        let mut repository = testkit::Repository::new();
+        let _base = repository.commit("Add the files", &[("f.txt", "a\nb\nc\n"), ("g.txt", "x\n")]);
+        repository.branch("topic");
+        let main = if main_changes_b { "a\nmain\nc\n" } else { "a\nb\nc\n" };
+        let _main = repository.commit("Change them on main", &[("f.txt", main), ("g.txt", "y\n")]);
+        repository.checkout("topic");
+        let first = repository.commit("Make b B", &[("f.txt", "a\nB\nc\n")]);
+        let second = repository.commit("Make B BB", &[("f.txt", "a\nBB\nc\n")]);
+        repository.checkout("main");
+        (repository, vec![first, second])
+    }
+
+    /// Git in a repository, with no configuration but the repository's own.
+    fn git_of(repository: &testkit::Repository) -> crate::Git {
+        let empty = repository.path().join(".git").join("empty-config");
+        std::fs::write(&empty, "").unwrap();
+        crate::Git::new(repository.path())
+            .with_variable("GIT_CONFIG_NOSYSTEM", "1")
+            .with_variable("GIT_CONFIG_GLOBAL", empty.as_os_str())
+    }
+
+    #[test]
+    fn merge_read_predicted_conflicts__a_series_picks_each_commit_onto_what_the_one_before_made() {
+        let (repository, commits) = picking(false);
+        let git = git_of(&repository);
+        // The second alone onto HEAD would conflict, as `b` is not yet `B`; after the first it does not.
+        let alone = PredictedConflictsRequest {
+            ours: None,
+            theirs: commits[1].clone(),
+            base: Some(format!("{}^", commits[1])),
+        };
+        assert_eq!(
+            super::read_predicted_conflicts(&git, &alone).unwrap(),
+            Some(vec![PathBuf::from("f.txt")])
+        );
+        assert_eq!(super::read_series_conflicts(&git, &commits).unwrap(), Some(Vec::new()));
+        let head = repository.git(&["rev-parse", "HEAD"]);
+        assert_eq!(repository.git(&["status", "--porcelain"]), "");
+        assert_eq!(repository.git(&["rev-parse", "HEAD"]), head);
+    }
+
+    #[test]
+    fn merge_read_predicted_conflicts__a_series_gives_the_files_of_the_first_pick_that_stops() {
+        let (repository, commits) = picking(true);
+        assert_eq!(
+            super::read_series_conflicts(&git_of(&repository), &commits).unwrap(),
+            Some(vec![PathBuf::from("f.txt")])
+        );
     }
 }

@@ -104,10 +104,10 @@ fn branch_clean_up__lists_merged_and_gone_branches_ticking_only_the_merged() {
 }
 
 #[test]
-fn branch_clean_up__deletes_merged_with_d_and_the_others_with_capital_d_after_a_warning() {
+fn branch_clean_up__deletes_them_all_in_one_capital_d_the_merged_first_after_a_warning_that_names_the_others() {
     let context = context(repository(), Target::Head);
-    let plan = plan(clean_up(&context, &ticked(merged(&["main", "a"]), &["a", "b"])));
-    assert_eq!(lines(&plan), ["git branch -d a", "git branch -D b"]);
+    let plan = plan(clean_up(&context, &ticked(merged(&["main", "a"]), &["b", "a"])));
+    assert_eq!(lines(&plan), ["git branch -D a b"]);
     assert_eq!(plan.title.as_str(), "Delete 2 branches");
     assert!(matches!(&plan.danger, Danger::Destructive(reason) if reason.as_str().contains(": b.")));
 }
@@ -125,7 +125,7 @@ fn branch_clean_up__removes_the_worktree_of_a_merged_branch_before_deleting_it()
     );
     assert_eq!(ticked_first, ["a"]);
     let plan = plan(clean_up(&context, &ticked(answers, &["a"])));
-    assert_eq!(lines(&plan), ["git worktree remove app-a", "git branch -d a"]);
+    assert_eq!(lines(&plan), ["git worktree remove app-a", "git branch -D a"]);
     assert_eq!(plan.title.as_str(), "Delete 1 branch and 1 worktree");
     assert!(matches!(plan.danger, Danger::Confirm(_)));
 }
@@ -160,7 +160,7 @@ fn branch_clean_up__a_worktree_is_removed_as_worktree_remove_does_its_links_unli
         [
             "unlink /code/app.worktrees/feature/a/node_modules",
             "git worktree remove /code/app.worktrees/feature/a",
-            "git branch -d a",
+            "git branch -D a",
             "delete /code/app.worktrees/feature",
         ]
     );
@@ -179,7 +179,7 @@ fn branch_clean_up__a_worktree_with_files_not_committed_is_unticked_and_forced_w
     );
     assert_eq!(ticked_first, Vec::<String>::new());
     let plan = plan(clean_up(&context, &ticked(answers, &["a"])));
-    assert_eq!(lines(&plan), ["git worktree remove --force app-a", "git branch -d a"]);
+    assert_eq!(lines(&plan), ["git worktree remove --force app-a", "git branch -D a"]);
     assert!(matches!(&plan.danger, Danger::Destructive(reason) if reason.as_str().contains("app-a")));
 }
 
@@ -240,7 +240,7 @@ fn worktree_locked__clean_up_lists_the_branch_of_a_locked_worktree_unticked_and_
         [
             "git worktree unlock /code/app.worktrees/a",
             "git worktree remove /code/app.worktrees/a",
-            "git branch -d a"
+            "git branch -D a"
         ]
     );
 }

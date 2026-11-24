@@ -14,7 +14,7 @@ const CONFLICTS: AnswerKey = AnswerKey("conflicts");
 
 /// Picks the commit it was invoked on with `git cherry-pick [-x] [-m 1] <hash>`: a merge commit against its first
 /// parent, and with `cherryPick.recordOrigin` the origin written in the new message. It asks first when conflicts are
-/// predicted, merging the commit into `HEAD` from its parent; a merge commit is not predicted.
+/// predicted, merging the commit into `HEAD` from its parent, the first parent of a merge commit, as `-m 1` picks it.
 ///
 /// Feature: cherry-pick.commit
 #[must_use]
@@ -41,20 +41,15 @@ pub fn commit(context: &Context, answers: &Answers) -> Outcome {
         );
     };
     let parents = picked.first().map_or(0, |picked| picked.parents.len());
-    let conflicts = if parents == 1 {
-        let Some(conflicts) = answers.conflicts(CONFLICTS) else {
-            return Outcome::Read(
-                CONFLICTS,
-                Query::PredictedConflicts {
-                    ours: None,
-                    theirs: commit.to_string(),
-                    base: Some(format!("{commit}^")),
-                },
-            );
-        };
-        conflicts
-    } else {
-        None
+    let Some(conflicts) = answers.conflicts(CONFLICTS) else {
+        return Outcome::Read(
+            CONFLICTS,
+            Query::PredictedConflicts {
+                ours: None,
+                theirs: commit.to_string(),
+                base: Some(format!("{commit}^")),
+            },
+        );
     };
     let mut arguments = vec!["cherry-pick"];
     if context.settings.cherry_pick_record_origin {
@@ -113,12 +108,17 @@ mod tests {
     }
 
     #[test]
-    fn cherry_pick_commit__picks_a_merge_against_its_first_parent_and_predicts_nothing() {
+    fn cherry_pick_commit__picks_a_merge_against_its_first_parent_and_predicts_from_it() {
         let context = context(state(), Target::Commit(testing::commit('b')));
         let answers = picked(&[testing::commit('c'), testing::commit('d')]);
+        let Outcome::Read(CONFLICTS, Query::PredictedConflicts { base, .. }) = commit(&context, &answers) else {
+            panic!("the conflicts of a merge are predicted too")
+        };
+        assert_eq!(base, Some(format!("{}^", testing::commit('b'))));
+        let answers = answers.with(CONFLICTS, Answer::Conflicts(Some(vec![String::from("a.txt")])));
         let plan = plan(commit(&context, &answers));
         assert_eq!(lines(&plan), [format!("git cherry-pick -m 1 {}", testing::commit('b'))]);
-        assert_eq!(plan.danger, Danger::None);
+        assert!(matches!(plan.danger, Danger::Confirm(ref reason) if reason.as_str().contains("\na.txt")));
     }
 
     #[test]

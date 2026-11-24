@@ -213,10 +213,10 @@ describe.skipIf(!built)('Conflicts, through the engine', { timeout: 60_000 }, ()
     expect(finished).toEqual({ kind: 'refused', message: 'Resolve the conflicts and stage the files first.', offer: null });
   });
 
-  it('skips the step a cherry-pick stopped on, asking first since what was resolved in it is thrown away (D2)', async () => {
+  it('skips the step a cherry-pick stopped on, warning first since what was resolved in it is thrown away (D2)', async () => {
     const ran = await scenario(picking, mapped({ kind: 'skip' }));
     expect(ran.engine).toEqual(['git cherry-pick --skip']);
-    expect(danger(ran.finished)).toEqual({ kind: 'confirm', reason: 'What was resolved in this step is thrown away.' });
+    expect(danger(ran.finished)).toEqual({ kind: 'destructive', reason: 'What was resolved in this step is thrown away.' });
   });
 
   it('aborts the merge, with the warning', async () => {

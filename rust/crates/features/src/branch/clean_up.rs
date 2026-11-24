@@ -26,7 +26,8 @@ pub const LINKS: AnswerKey = AnswerKey("folder links");
 
 /// Lists every local branch merged into `HEAD` or whose upstream was deleted from the remote, but the one checked out
 /// here and the one of the main worktree, ticks the merged ones whose worktree has nothing uncommitted, and deletes
-/// those ticked with their worktrees: the merged ones with `git branch -d`, the others with `git branch -D`.
+/// those ticked with their worktrees, in one `git branch -D`: `git branch -d` checks a branch against its upstream when
+/// it has one, and would refuse one merged into `HEAD` alone, after its worktree was removed.
 ///
 /// Feature: branch.clean-up
 #[must_use]
@@ -182,8 +183,8 @@ fn folder_name(worktree: &Worktree) -> String {
     )
 }
 
-/// The plan: the missing worktrees pruned, the others removed as `worktree.remove` removes one, then the merged branches
-/// deleted with `-d` and the others with `-D`, each in one command, then the folders the worktrees leave empty.
+/// The plan: the missing worktrees pruned, the others removed as `worktree.remove` removes one, then the branches
+/// deleted in one `git branch -D`, the merged ones first, then the folders the worktrees leave empty.
 fn plan(context: &Context, picked: &[&Candidate<'_>], links: &[PathBuf]) -> Plan {
     let folder = context.repository.folder.clone();
     let worktrees: Vec<&Worktree> = picked.iter().filter_map(|candidate| candidate.worktree).collect();
@@ -195,13 +196,10 @@ fn plan(context: &Context, picked: &[&Candidate<'_>], links: &[PathBuf]) -> Plan
             .map(|candidate| candidate.branch.name.as_str())
             .collect()
     };
-    for (flag, branches) in [("-d", names(true)), ("-D", names(false))] {
-        if !branches.is_empty() {
-            let mut arguments = vec!["branch", flag];
-            arguments.extend(branches);
-            steps.push(Step::git(folder.clone(), arguments));
-        }
-    }
+    let mut arguments = vec!["branch", "-D"];
+    arguments.extend(names(true));
+    arguments.extend(names(false));
+    steps.push(Step::git(folder, arguments));
     steps.extend(empty_folder_steps(context, &worktrees));
     let title = Text::from(title(picked.len(), worktrees.len()));
     Plan {

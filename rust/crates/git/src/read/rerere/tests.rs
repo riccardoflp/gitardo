@@ -125,6 +125,24 @@ fn rerere_read_resolved__with_auto_update_the_same_merge_gives_m_which_is_staged
     assert!(staged.lines().any(|path| path == "m.txt"), "{staged}");
 }
 
+#[test]
+fn rerere_read_resolved__rerere_turned_on_after_the_merge_stopped_gives_nothing() {
+    let mut repository = Repository::new();
+    let _ = repository.commit("Add the file", &[("m.txt", "base m\n")]);
+    repository.branch("topic");
+    let _ = repository.commit("Change it on main", &[("m.txt", "main m\n")]);
+    repository.checkout("topic");
+    let _ = repository.commit("Change it on topic", &[("m.txt", "topic m\n")]);
+    repository.checkout("main");
+    merge_topic(&repository);
+    let _ = repository.git(&["config", "rerere.enabled", "true"]);
+    assert_eq!(resolved_of(&repository), Vec::<ResolvedAsBefore>::new());
+    assert_eq!(
+        read_with_the_repository(&repository).resolved_as_before,
+        Vec::<ResolvedAsBefore>::new()
+    );
+}
+
 /// The files git resolved as before, as the read of the repository gives them.
 fn read_with_the_repository(repository: &Repository) -> model::state::RepositoryState {
     let request = crate::read::repo::StateRequest {

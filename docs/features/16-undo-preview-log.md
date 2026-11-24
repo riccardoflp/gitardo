@@ -191,7 +191,9 @@ branch with no history (`branch.create-orphan`, whose move git writes in no refl
 files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD`
 is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that
 cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes
-past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
+past it; one that ran git for anything else (a push, a fetch, an upstream, a lock) is an entry with its reason even
+when nothing the read sees changed, since what it changed is on the remote or in git's configuration. It is kept in
+memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
 
 - **Kind**: Derivation
 - **Function**: `engine::undo::journal_after(journal, plan, state_before, state_after) -> Journal`
@@ -205,6 +207,8 @@ Acceptance:
       holds again.
 - [ ] A plan that cannot be taken back is an entry with its reason once a reference changed, and nothing when only
       files and the index did.
+- [ ] A plan that cannot be taken back and ran git beyond the files and the index, as a tag pushed or an upstream set,
+      is an entry with its reason, though no reference changed: Undo right after it says why, and takes back nothing.
 - [ ] The journal keeps at most 50 entries per repository. (A number of Gitardo Desktop's own: the extension keeps
       what it needs in memory only. Whether entries survive a restart is open question Q4.)
 

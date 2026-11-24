@@ -801,7 +801,9 @@ Makes a commit of what is staged, with the message of the commit box.
 - **After**: the message box is emptied, **Amend last commit** unticked and the options of the commit back where they
   start (`commit.options`); the timeline selects nothing new.
 - **Refuses**: "Enter a commit message." with an empty message; "There are no changes to commit." when nothing is
-  staged and nothing else is changed.
+  staged and nothing else is changed; "Resolve the conflicts first: staging all changes would commit the files in
+  conflict with their markers." when nothing is staged and a file is in conflict, which `git add --all` would take as
+  resolved.
 - **Uses**: `changes.stage-all`.
 
 When the repository has prepared a message, such as the one git writes for a squash merge (`merge.`) or the message of a
@@ -814,6 +816,7 @@ Acceptance:
 - [ ] With nothing staged and `a.txt` modified, it asks, and after **Stage all and commit** runs `git add --all` then
       `git commit -m …`; untracked files are in the commit.
 - [ ] Declining the confirmation runs nothing and keeps the message.
+- [ ] With nothing staged and a file in conflict, it refuses, and the file is still in conflict.
 - [ ] With the message `  \n  ` the button is disabled.
 - [ ] After the commit the message box is empty.
 - [ ] A squash merge that stopped to be committed fills the empty message box with git's prepared message.

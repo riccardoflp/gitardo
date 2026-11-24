@@ -61,8 +61,7 @@ These hold everywhere in the product, and the cards are checked against them
 - What is shown is what runs.
 - What can lose work asks first, and says what would be lost.
 - **Undo** takes back the last operation, whether it ran in Gitardo or in a terminal, from the reflog or from what
-  Gitardo remembered. After an operation that leaves neither, it takes back the one before, and says which
-  ([RS2](13-risks.md)).
+  Gitardo remembered. Right after an operation it cannot take back, it says so rather than take back the one before.
 - Reading the repository never takes git's locks.
 - The repository is read again on its own when its files change, also from outside VS Code.
 

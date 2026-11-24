@@ -45,9 +45,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::Stash { index } => stash(git, *index),
         Query::Identity => identity(git),
         Query::FileVersions { path, commit } => file_versions(git, path, commit.as_ref()),
-        Query::PredictedConflicts { ours, theirs, base } => {
-            predicted_conflicts(git, &conflicts_request(ours.as_ref(), theirs, base.as_ref()))
-        }
+        Query::PredictedConflicts { .. } | Query::PredictedSeriesConflicts { .. } => predictions(git, query),
         Query::Commits { revisions } => rewrite::read_commits(git, revisions).map(Answer::Commits),
         Query::LineAfter { commit } => rewrite::read_line_after(git, commit).map(Answer::Commits),
         Query::Message { commit } => rewrite::read_message(git, commit).map(Answer::Message),
@@ -202,9 +200,15 @@ fn file_versions(git: &Git, path: &str, commit: Option<&model::CommitId>) -> Res
     }))
 }
 
-/// The files a merge would leave in conflict, as the paths the features say.
-fn predicted_conflicts(git: &Git, request: &PredictedConflictsRequest) -> Result<Answer, GitError> {
-    let paths = read_predicted_conflicts(git, request)?;
+/// The files a merge, or the first pick of a series that stops, would leave in conflict, as the paths the features say.
+fn predictions(git: &Git, query: &Query) -> Result<Answer, GitError> {
+    let paths = match query {
+        Query::PredictedConflicts { ours, theirs, base } => {
+            read_predicted_conflicts(git, &conflicts_request(ours.as_ref(), theirs, base.as_ref()))?
+        }
+        Query::PredictedSeriesConflicts { commits } => git::read::merge::read_series_conflicts(git, commits)?,
+        _ => None,
+    };
     Ok(Answer::Conflicts(paths.map(|paths| {
         paths
             .into_iter()
@@ -312,6 +316,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::PredictedConflicts { ours, theirs, base } => git::command_line(
             &git::read::merge::predicted_conflicts_arguments(&conflicts_request(ours.as_ref(), theirs, base.as_ref())),
         ),
+        Query::PredictedSeriesConflicts { commits } => describe_series_conflicts(commits),
         Query::Commits { revisions } => git::command_line(&rewrite::commits_arguments(revisions)),
         Query::LineAfter { commit } => git::command_line(&rewrite::line_after_arguments(commit)),
         Query::Message { commit } => git::command_line(&rewrite::message_arguments(commit)),
@@ -430,6 +435,20 @@ fn describe_positions(reference: &str, count: usize) -> String {
         count,
     };
     git::command_line(&git::read::reflog::positions_arguments(&request))
+}
+
+/// The commands that predict the conflicts of a series of cherry-picks: one `git merge-tree` for each commit, into the
+/// tree the one before it wrote.
+fn describe_series_conflicts(commits: &[String]) -> String {
+    commits
+        .iter()
+        .enumerate()
+        .map(|(index, commit)| {
+            let ours = if index == 0 { "HEAD" } else { "<the tree before>" };
+            format!("git merge-tree --write-tree --no-messages --name-only -z --merge-base={commit}^ {ours} {commit}")
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// The commands that read the line of a commit up to `HEAD`.
