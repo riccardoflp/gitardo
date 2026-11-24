@@ -494,7 +494,7 @@ export class Controller implements vscode.Disposable {
 
   /** Sends a message to the views of a group. */
   private postToGroup(group: ViewGroup, message: ToViews): void {
-    for (const [view, kind] of this.views) if (kind !== 'repositories' && this.groupOf(view) === group) this.post(message, view);
+    this.post(message, undefined, group);
   }
 
   /** Loads the UI into a webview and wires it to this controller. `data` is written on the page for the view to read. */
@@ -2514,9 +2514,13 @@ export class Controller implements vscode.Disposable {
       });
     const group = new ViewGroup(this.groupHost, tab);
     const attachment = this.attach(tab.webview, 'graph', { tab: 'graph' }, group);
-    // The panel and the side bar follow the tab that comes into focus, not one opened (`repo.follow-tab`).
+    // The panel and the side bar follow the tab that comes into focus, not one opened (`repo.follow-tab`): VS Code also
+    // says a tab is active as it is first shown, which is not a change.
+    let active = tab.active;
     tab.onDidChangeViewState(({ webviewPanel }) => {
-      if (webviewPanel.active) void this.followTab(group);
+      const came = webviewPanel.active && !active;
+      active = webviewPanel.active;
+      if (came) void this.followTab(group);
     });
     tab.onDidDispose(() => {
       attachment.dispose();
@@ -2736,9 +2740,11 @@ export class Controller implements vscode.Disposable {
   /** When the repositories of the workspace are looked for again, for a change heard of while none was shown. */
   private lookAgain?: ReturnType<typeof setTimeout>;
 
-  private post(message: ToViews, to?: vscode.Webview): void {
-    // The Repositories view is sent its rows alone, by `repositoriesView`.
-    const targets = to ? [to] : [...this.views].filter(([, kind]) => kind !== 'repositories').map(([view]) => view);
+  private post(message: ToViews, to?: vscode.Webview, group?: ViewGroup): void {
+    // The Repositories view is sent its rows alone, by `repositoriesView`; a message for a group goes to its views.
+    const targets = to
+      ? [to]
+      : [...this.views].filter(([view, kind]) => kind !== 'repositories' && (!group || this.groupOf(view) === group)).map(([view]) => view);
     if (message.type !== 'state') {
       for (const view of targets) void view.postMessage(message);
       return;
