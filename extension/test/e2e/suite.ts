@@ -4412,6 +4412,9 @@ export async function run(): Promise<void> {
       await git(app, ['commit', '-m', text]);
     }
     await controller.refresh();
+    // On a slow runner the operation of the step before may still be ending, which would refuse the next one (M42).
+    const last = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    await until('the three commits read, with nothing under way', () => state().head.commit === last && !(controller as unknown as { running: boolean }).running);
     try {
       // The last one is amended, without a question, and what is staged stays out of it.
       fs.writeFileSync(path.join(app, 'three.txt'), 'staged\n');
