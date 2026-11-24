@@ -211,16 +211,15 @@ the end of the line.
 - **Function**: `views::blame::current_line_view(state, ui) -> Vec<Intent>`
 - **Entry points**: the File page of a file on disk inside a repository.
 - **Offered when**: `blame.enabled` is on, and the selection is within one line.
-- **Reads**: `blame.read-line`, 200 ms after the cursor last moved to another line or the File page came to the front;
-  an answer for a line the cursor has left since is dropped. What it answers is kept for the line and the version of
-  the text, and asked again only when either changes: moving the cursor along a line, or back to a line of the same
-  text, asks nothing. The text not saved is sent with the first line asked of each version, not again for it. All of
-  it is asked again when `HEAD` of the repository moved or `blame.ignoreWhitespaceAndMoves` changed.
+- **Reads**: `blame.read-line`, 200 ms after the cursor last moved or the File page came to the front; an answer for a
+  line the cursor has left since is dropped.
 - **Settings**: `blame.enabled` (on by default) turns it on and off; `blame.ignoreWhitespaceAndMoves` blames with `-w -M`.
 - **Uses**: `blame.read-line`, `blame.toggle-current-line`, `blame.format-line` (for how long ago).
 - **Extension**: `BlameAnnotator` (`src/extension/blame.ts`), a decoration after the end of the line in the editor,
   `blame.read-line` asked through `reads.blameLine`. The answers are kept by `LineBlames` of `src/shared/blameCache.ts`
-  for the document, its version and the line, forgotten when the document is closed or `HEAD` moved; tested by
+  for the document, its version and the line, and asked again only when one of them changes: moving the cursor along
+  a line, or back to a line of the same text, asks nothing, and the text not saved is sent once for each version; they
+  are forgotten when the document is closed, `HEAD` moved or `blame.ignoreWhitespaceAndMoves` changed (D88); tested by
   `test/blameCache.test.ts` and by the step of `test/e2e/suite.ts` that moves the cursor along a line and counts no
   read.
 
@@ -236,7 +235,6 @@ What it shows:
 Acceptance:
 
 - [ ] Moving the cursor to a line and waiting 200 ms shows that line's author, age and subject at its end, and only there.
-- [ ] Moving the cursor along a line, and back to a line it was on in the same text, asks git nothing.
 - [ ] Typing on a line makes it say *Not committed yet* once the cursor rests.
 - [ ] With `blame.enabled` off, nothing is shown.
 - [ ] Selecting across two lines shows nothing.
@@ -473,9 +471,8 @@ lines brought out and the age of each line in color.
 - **Offered when**: the File page shows a file on disk inside a repository of the workspace, or a file as it was in a
   commit. It is switched on file by file, and a file keeps it until its page is closed.
 - **Reads**: `blame.read-file`; again 400 ms after the last edit, with the text as it is in the page, saved or not; again
-  when the file is saved or changed on the disk; again when `HEAD` of its repository moved (a commit made, a checkout,
-  a reset), not at every read of the repository; again when the setting `blame.ignoreWhitespaceAndMoves` changes. An
-  answer older than one already shown is dropped. A file as it was in a commit is not read again when `HEAD` moves.
+  when the file is saved; again when the repository changes (a commit made, a checkout) or the setting
+  `blame.ignoreWhitespaceAndMoves` changes. An answer older than one already shown is dropped.
 - **Settings**: `fileBlame.format`, `fileBlame.groupLines`, `fileBlame.age.*`, `blame.ignoreWhitespaceAndMoves`,
   `fileBlame.everyFile`.
 - **Uses**: `blame.read-file`, `blame.format-line`, `blame.age-color`, `blame.pick-pinned-line`,
@@ -484,7 +481,8 @@ lines brought out and the age of each line in color.
   inlay hint keeps before each line. An edit draws again only the editors of the file typed in; the lines of the
   commit under the cursor are a decoration of their own over the column, so that moving the cursor to another commit
   draws those lines and not every line. `refresh` reads again the files of a repository whose `HEAD` moved, as
-  `HeadsSeen` of `src/shared/blameCache.ts` tells from the state read, not at every state. Tested by the steps of the
+  `HeadsSeen` of `src/shared/blameCache.ts` tells from the state read, not at every state, and a file as it was in a
+  commit not at all (D88). Tested by the steps of the
   blame of a file in `test/e2e/suite.ts`.
 
 What it shows:

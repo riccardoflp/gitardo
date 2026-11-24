@@ -1666,7 +1666,7 @@ for `anthropic`, `openai-compatible` and the list of models: the wait is shown a
 it where no other activity of the question is older; for a draft and for Ask Gitardo it is in the tooltip of the
 indicator and the Activity tab. Phase 3: the cards, D87, R1.4 and R1.7, the CHANGELOG and **Before a release**.
 
-## M44 — Reads that cost less, in the extension most of all
+## M44 — Reads that cost less, in the extension most of all (done)
 
 Git's commit-graph file is offered where it is missing, and the extension stops spending time of its own: the views are
 sent only the parts of the state they show and that changed, the blame is asked once for each line, no read is made
@@ -1733,6 +1733,45 @@ the history faster, **Write it** writes the file, and the first page of the hist
 time; a file saved in the large repository sends the Branches view and the tabs of a commit nothing; moving the cursor
 along a line asks no blame; five views opened at once make one read; QA1 to QA4 are at least as quick as on 2026-11-23,
 and every card of the milestone passes its tests.
+
+Built: phase 1, `upkeep.read-commit-graph` read with `repo.read-state` and again only when the places of the file or
+the configuration change, `upkeep.write-commit-graph`, the notice of `views::activity::commit_graph` with **Write it**
+and **Not for this repository** (`commitGraphDeclined` in `state.json`, by the folder of the main worktree), and
+**Speed up reading the history** after **Clean up…**; *once each time the repository is opened* is once for each run of
+the window. A test left out of the suite times the first page of 56,000 commits at 287 ms without the file and 42 ms
+with it, in a debug build; `cargo xtask perf` says whether the repository has the file. Phase 2, protocol 1.12 with
+`commitGraph` in the state, `src/extension/commitGraphOffer.ts` with `gitardo.commitGraphDeclined`, the action
+`writeCommitGraph` from the notification and from the menu of the row. Phase 3, the `state` message in parts
+(`StatePart`: `repository`, `refs`, `stashes`, `worktrees`, `workingTree`, `submodules`, `pulls`, `rows`, `draft`,
+`rest`), `partsOf` in `src/shared/stateParts.ts`, `stateFor` and `partKey` in `src/extension/sentParts.ts`, and the
+page keeping the parts it has in `src/webview/received.ts`; a view whose parts are all unchanged is sent nothing, and
+the tabs of conflicts, of a range and of new worktrees no state. Phase 4, `readForView`, saves through `changesToRead`,
+and `checkUnsaved` asking once for each file; a file saved outside the repository shown asks no read. Phase 5,
+`LineBlames` and `HeadsSeen` in `src/shared/blameCache.ts`, the lines of the commit under the cursor as a decoration of
+their own; a file of a repository not shown is read again on a save, not when its `HEAD` moves from a terminal, since
+that repository sends no state. Phase 6, `FrameReader` joining a message once, `CommitRow` and `FoldedRow` as `memo`
+components, the Commits view drawing the rows in sight, the rows of `RefsTree` made once for each state, and the pages
+as ES modules under `dist/webview/`: the Changes view loads 282 KB of script instead of 474, the Graph view 352.
+
+Phase 7, measured on 2026-11-24 with `test/perf/vscode.mjs` on the large repository, the minified build, VS Code in
+Xvfb: the median of three runs before and after, and one run with the file:
+
+| | Before | M44 | M44 with a commit-graph |
+| --- | ---: | ---: | ---: |
+| QA1, the graph opened from the Command Palette | 2,810 ms | 2,836 ms | 3,007 ms |
+| QA2, a refresh, until the view has a new state | 454 ms | 900 ms | 603 ms |
+| QA2, its drawing | 48 ms | 6 ms | 6 ms |
+| A refresh with the whole history loaded | 537 ms | 435 ms | 469 ms |
+| Its drawing | 51 ms | 7 ms | 4 ms |
+| QA4, typing 32 letters | 49 ms | 53 ms | 66 ms |
+
+A refresh that finds the same history sends the graph nothing when its first page is read, as it did before: the
+first message it gets is the one that says the whole history is read again, so the wait of QA2 now counts the read of
+the whole history, which takes as long as before. The opening of QA1 is mostly VS Code's start of the extension and the
+first page, which the commit-graph file does not shorten in VS Code as it does in `dist/perf.js` (190 ms against 458).
+The suite of `test/e2e/suite.ts`, in Xvfb with `GIT_CONFIG_GLOBAL=/dev/null` and `LC_ALL=C.UTF-8`, passes 85 steps; the
+two that fail, the sentence of an operation refused and the kind of a file in the details of a commit, fail on the
+commit before M44 too.
 
 ## M45 — A repository for each tab of the graph, in the extension
 
