@@ -2380,17 +2380,27 @@ try {
           return { x: rect.x + 60, y: rect.y + rect.height / 2, expanded: row.getAttribute('aria-expanded') === 'true' };
         })()`),
       );
+    // Each menu opens with the notifications cleared, so that a choice made in it is told by the only one shown.
     const menu = async (name) => {
+      await command('Notifications: Clear All Notifications');
       const at = await row(name);
       await mouse(at.x, at.y, 'right');
       return until('the context menu', () =>
         page.evaluate(`(() => { const items = [...document.querySelectorAll('.context-view .monaco-menu .action-label')].map((item) => item.textContent).filter(Boolean); return items.length ? items : null; })()`),
       );
     };
+    const notifications = () => page.evaluate(`[...document.querySelectorAll('.notification-list-item-message')].map((message) => message.textContent)`);
     // The menus of the workbench take the item under the mouse with Enter, when the click alone does not reach them.
-    const pick = async (item) => {
+    // A choice ends when its notification says what became of it: the next menu opens only then, once its patterns are
+    // saved.
+    const pick = async (item, said) => {
       await clickText('.context-view .monaco-menu .action-label', item);
       if (await page.evaluate(`!!document.querySelector('.context-view .monaco-menu')`)) await key('Enter');
+      try {
+        await until(`what became of it: ${said}`, async () => (await notifications()).some((text) => text.includes(said)));
+      } catch (error) {
+        throw new Error(`${error.message}; the notifications say: ${JSON.stringify(await notifications())}`);
+      }
     };
     fs.mkdirSync(path.dirname(exclude), { recursive: true });
     fs.writeFileSync(exclude, `${excluded ?? ''}\nnode_modules/\n`);
@@ -2411,7 +2421,7 @@ try {
       await shot('explorer-link');
       assert(items.includes('Link into New Worktrees') && items.includes('Copy into New Worktrees'), `menu: ${items}`);
       assert(items.includes('Show Folder History'), `menu of a folder: ${items}`);
-      await pick('Link into New Worktrees');
+      await pick('Link into New Worktrees', 'node_modules will be linked into new worktrees.');
       await until('the folder in the setting of the workspace folder', () => linked()?.join() === '/node_modules/');
 
       // Linked by the pattern of its path: the menu offers to stop it.
@@ -2423,16 +2433,13 @@ try {
       });
       await shot('explorer-stop-linking');
       assert(!items.includes('Link into New Worktrees'), `menu: ${items}`);
-      await pick('Stop Linking into New Worktrees');
+      await pick('Stop Linking into New Worktrees', 'New worktrees will no longer get node_modules.');
       await until('the setting without it', () => linked()?.length === 0);
 
       // A file git tracks: each worktree has it from its commit, and nothing is saved.
       items = await menu('a.txt');
       assert(!items.includes('Link into New Worktrees') && items.includes('Copy into New Worktrees'), `menu: ${items}`);
-      await pick('Copy into New Worktrees');
-      await until('why it is not copied', () =>
-        page.evaluate(`[...document.querySelectorAll('.notification-list-item-message')].some((message) => message.textContent.includes('Git tracks a.txt'))`),
-      );
+      await pick('Copy into New Worktrees', 'Git tracks a.txt: each worktree has it from its commit.');
       await shot('explorer-tracked');
       assert(JSON.parse(fs.readFileSync(settingsFile, 'utf8'))['gitardo.worktrees.copyFiles'] === undefined, 'nothing is saved to copy');
     } finally {
