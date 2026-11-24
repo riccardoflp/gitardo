@@ -270,7 +270,8 @@ describe.skipIf(!built)('Merge, rebase, cherry-pick, revert and reset, through t
     const hash = await head(other, 'HEAD~1');
     const before = await snapshot(other);
     const ran = await runEngine(other, await runsOf(other, { kind: 'revert', hash, isMerge: false }));
-    expect(ran).toMatchObject({ kind: 'failed', message: expect.stringContaining('nothing to commit') });
+    // A step speaks the user's language, so only what Gitardo says around git's words is looked for.
+    expect(ran).toMatchObject({ kind: 'failed', message: expect.stringContaining(`\`git revert --no-edit ${hash}\` failed:`) });
     expect(fs.existsSync(path.join(other, '.git', 'REVERT_HEAD'))).toBe(false);
     expect(await snapshot(other)).toEqual(before);
   });

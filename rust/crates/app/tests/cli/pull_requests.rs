@@ -119,11 +119,8 @@ fn hosting_checkout_pull_request__a_number_with_no_pull_request_says_so_and_no_b
     let Err(EngineError::Step(failure)) = check_out(&repository, "99") else {
         panic!("the fetch fails");
     };
-    assert!(
-        failure.said.contains("couldn't find remote ref refs/pull/99/head"),
-        "{}",
-        failure.said
-    );
+    // A step speaks the user's language, so only the name of the ref, which git says in every language, is looked for.
+    assert!(failure.said.contains("refs/pull/99/head"), "{}", failure.said);
     assert_eq!(failure.plan, "Check out pull request #99");
     assert!(
         repository.git(&["branch", "--list", "pull/99"]).trim().is_empty(),
