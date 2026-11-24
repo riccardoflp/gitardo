@@ -594,9 +594,10 @@ the worktrees that have them.
   2. For each other worktree picked, the steps of `worktree.remove`: `unlink <path>` for each link to a
      folder outside it, then `git worktree remove <path>`, with `--force` when it has files not committed, and
      `delete <path>` for what Windows kept from being deleted.
-  3. `git branch -d <merged…>`, the merged branches in one command.
-  4. `git branch -D <not merged…>`, the others in one command.
-  5. `delete <folder>` for each folder of the worktrees left empty.
+  3. `git branch -D <merged…> <not merged…>`, all of them in one command, the merged ones first: `git branch -d`
+     checks a branch against its upstream when it has one, and would refuse one merged into `HEAD` alone, after its
+     worktree was removed.
+  4. `delete <folder>` for each folder of the worktrees left empty.
 - **Danger**: Confirm; Destructive when a branch picked is not merged ("Not merged into the current branch, so their
   commits may become unreachable: `<branches>`") or a worktree picked has files not committed ("These worktrees have
   files not committed, which are deleted with them: `<paths>`").
@@ -611,9 +612,9 @@ The title of the plan counts what goes: "Delete 3 branches and 1 worktree".
 Acceptance:
 
 - [ ] With `a` merged and `b` whose upstream is gone and not merged, both are listed, `a` ticked and `b` not.
-- [ ] Ticking both runs `git branch -d a` and `git branch -D b`, after a warning that names `b`.
+- [ ] Ticking both runs `git branch -D a b`, after a warning that names `b`.
 - [ ] A merged branch checked out in another worktree with no changes is ticked, and its worktree is removed with
-      `git worktree remove <path>` before `git branch -d`.
+      `git worktree remove <path>` before `git branch -D`.
 - [ ] A worktree with 2 files not committed is listed with **2 files not committed**, unticked, and ticking it adds
       `--force` and the warning.
 - [ ] The branch checked out is never listed; in a window on a linked worktree, the branch of the main worktree is not
@@ -622,7 +623,7 @@ Acceptance:
 - [ ] The links of a worktree to folders outside it are unlinked before `git worktree remove`, so that the
       folders they lead to keep their files; the folder of the worktrees it leaves empty is deleted last.
 - [ ] Extension: a merged branch `merged` with a worktree is listed as **merged into main, with its worktree merged**,
-      ticked; the worktree is removed with `git worktree remove <path>` before `git branch -d merged`, and its folder is
+      ticked; the worktree is removed with `git worktree remove <path>` before `git branch -D merged`, and its folder is
       gone.
 - [ ] Extension: with nothing to list, the engine says so and nothing runs.
 

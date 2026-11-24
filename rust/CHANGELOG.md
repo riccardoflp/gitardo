@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Clean up branches** deletes the branches ticked in one `git branch -D`, after their worktrees: a branch merged into
+  the branch checked out but not into its upstream was refused by `git branch -d`, after its worktree was removed,
+  and the branches after it were left.
 - Cherry-picking several commits, or a merge commit, works out first which files it will stop on, as picking one
   commit does, and asks first naming them: each commit of a series on top of the one before it, a merge commit from its
   first parent.

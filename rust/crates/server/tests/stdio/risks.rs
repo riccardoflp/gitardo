@@ -243,3 +243,93 @@ fn conflicts_take_side__a_file_with_lines_typed_in_it_warns_first() {
     );
     assert_eq!(ran.danger()["kind"], json!("destructive"), "{}", ran.danger());
 }
+
+#[test]
+fn branch_clean_up__a_branch_merged_into_head_but_not_into_its_upstream_is_deleted_with_its_worktree() {
+    let mut repository = repository();
+    let _remote = testkit::Remote::new(&repository);
+    let _branch = repository.git(&["checkout", "--quiet", "-b", "done"]);
+    let _pushed = repository.git(&["push", "--quiet", "--set-upstream", "origin", "done"]);
+    let _later = repository.commit("Add d", &[("d.txt", "d\n")]);
+    repository.checkout("main");
+    let _merged = repository.git(&["merge", "--quiet", "--no-ff", "--no-edit", "done"]);
+    let worktree = repository.path().with_file_name("done-worktree");
+    let worktree_text = worktree.to_string_lossy().into_owned();
+    let _added = repository.git(&["worktree", "add", "--quiet", &worktree_text, "done"]);
+    let mut engine = opened(&repository);
+
+    let ran = run(
+        &mut engine,
+        &repository,
+        "branch.clean-up",
+        (
+            &json!({ "kind": "head" }),
+            &json!({ "branches": { "kind": "choices", "identifiers": ["done"] } }),
+        ),
+    );
+    assert_eq!(ran.kind(), &json!("ran"), "{}", ran.answer);
+    assert_eq!(repository.git(&["branch", "--list", "done"]).trim(), "");
+    assert!(!worktree.exists());
+}
+
+#[test]
+fn worktree_create__a_branch_a_tag_has_the_name_of_is_started_from_the_branch() {
+    let mut repository = repository();
+    let tagged = repository.git(&["rev-parse", "HEAD"]).trim().to_owned();
+    let _branch = repository.git(&["checkout", "--quiet", "-b", "release"]);
+    let release = repository.commit("Add r", &[("r.txt", "r\n")]);
+    repository.checkout("main");
+    let _tag = repository.git(&["tag", "release", &tagged]);
+    let mut engine = opened(&repository);
+
+    let ran = run(
+        &mut engine,
+        &repository,
+        "worktree.create",
+        (
+            &json!({ "kind": "head" }),
+            &json!({
+                "start": { "kind": "choice", "identifier": "release" },
+                "name": { "kind": "text", "text": "spike" }
+            }),
+        ),
+    );
+    assert_eq!(ran.kind(), &json!("ran"), "{}", ran.answer);
+    assert_eq!(repository.git(&["rev-parse", "spike"]).trim(), release);
+}
+
+#[cfg(unix)]
+#[test]
+fn worktree_remove__a_removal_git_refuses_still_takes_the_links_out_first() {
+    // RS15 is still true: the links to folders outside a worktree are taken out before `git worktree remove`, which
+    // git on Windows would empty through them, and a removal git then refuses leaves the worktree without them.
+    let repository = repository();
+    let worktree = repository.path().with_file_name("linked-worktree");
+    let worktree_text = worktree.to_string_lossy().into_owned();
+    let _added = repository.git(&["worktree", "add", "--quiet", "-b", "linked", &worktree_text]);
+    let outside = repository.path().with_file_name("shared-modules");
+    std::fs::create_dir_all(&outside).unwrap();
+    std::fs::write(outside.join("kept.txt"), "kept\n").unwrap();
+    let link = worktree.join("node_modules");
+    std::os::unix::fs::symlink(&outside, &link).unwrap();
+    std::fs::write(worktree.join("a.txt"), "changed in the worktree\n").unwrap();
+    let mut engine = opened(&repository);
+
+    let ran = run(
+        &mut engine,
+        &repository,
+        "worktree.remove",
+        (
+            &json!({ "kind": "worktree", "folder": worktree_text }),
+            &json!({ "branch": { "kind": "choice", "identifier": "keep" } }),
+        ),
+    );
+    assert!(
+        ran.answer.get("error").is_some(),
+        "git refuses a worktree with changes: {}",
+        ran.answer
+    );
+    assert!(worktree.join("a.txt").exists(), "the worktree stays");
+    assert!(std::fs::symlink_metadata(&link).is_err(), "its link is gone");
+    assert!(outside.join("kept.txt").exists(), "what it led to is kept");
+}

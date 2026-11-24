@@ -157,8 +157,7 @@ fn branch_clean_up__deletes_the_branches_ticked_merged_and_gone() {
     assert!(asked.errors.contains("branches=a"), "{}", asked.errors);
     assert!(asked.errors.contains("branches=b"), "{}", asked.errors);
     let ended = cli_done(&repository, &["--yes", "branch.clean-up", "branches=a,b"]);
-    assert!(ended.out.contains("> git branch -d a"), "{}", ended.out);
-    assert!(ended.out.contains("> git branch -D b"), "{}", ended.out);
+    assert!(ended.out.contains("> git branch -D a b"), "{}", ended.out);
     assert_eq!(repository.git(&["branch", "--list", "a", "b"]), "");
 }
 
@@ -177,7 +176,7 @@ fn branch_clean_up__removes_the_worktree_of_a_merged_branch_first() {
     let _added = repository.git(&["worktree", "add", "--quiet", &folder_text, "a"]);
     let ended = cli_done(&repository, &["--yes", "branch.clean-up", "branches=a"]);
     let removed = ended.out.find("> git worktree remove");
-    let deleted = ended.out.find("> git branch -d a");
+    let deleted = ended.out.find("> git branch -D a");
     assert!(removed.is_some() && removed < deleted, "{}", ended.out);
     assert!(!folder.exists());
 }

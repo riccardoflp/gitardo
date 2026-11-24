@@ -10,9 +10,7 @@ in the commit that fixes it, which says so in its message; the [roadmap](07-road
 
 | | Kind | What it is | What happens if it bites | How likely | What we do |
 | --- | --- | --- | --- | --- | --- |
-| RS13 | Risk | A branch is given to git by its short name where a tag or a remote branch may have the same name: deleting it from its remote, starting a branch of a worktree from it. `branch.delete-remote`, `worktree.create-for-branch`. | git refuses, or starts the new branch from the tag. | Low | M3 |
-| RS14 | Risk | **Clean Up Branches** lists the branches merged into `HEAD` but deletes them with `git branch -d`, which checks against the upstream when there is one: such a branch is refused, and the commands after it do not run, while the worktrees removed before stay removed. `branch.cleanup`. | A cleanup half done. | Low | M3 |
-| RS15 | Risk | When the second command of removing or renaming a worktree fails (`git branch -d` refusing an unmerged branch), the empty parent folders stay, as `finish` runs only after every command succeeded. On Windows, the links to folders are taken out before a removal that git may then refuse. `worktree.remove`, `worktree.rename`. | Empty folders left; a worktree without its links. | Low | M3 |
+| RS15 | Risk | Removing a worktree takes its links to folders outside it out before `git worktree remove`, which git on Windows would empty through them and git elsewhere would refuse when it does not ignore them; when git then refuses the removal, as it does a worktree with changes, the worktree is left without its links. The empty folders and the branch come after the removal, in that order, and no longer stay behind. `worktree.remove`, `branch.clean-up`; shown by `worktree_remove__a_removal_git_refuses_still_takes_the_links_out_first` in `rust/crates/server/tests/stdio/risks.rs`. | A worktree without its links, such as `node_modules`, until **Remove anyway** removes it or what new worktrees get is brought into it again. | Low: it needs links and a removal git refuses. | Put the links back when git refuses, once the engine reads where each leads |
 
 ## Where what runs is not what is shown
 

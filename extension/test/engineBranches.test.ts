@@ -242,7 +242,7 @@ describe.skipIf(!built)('Branches and tags, through the engine', { timeout: 120_
     const cleaned = await scenario(finished, () => [{ feature: 'branch.clean-up', target: { kind: 'head' } }], {
       branches: () => ({ kind: 'choices', identifiers: ['done', 'gone'] }),
     });
-    expect(cleaned.engine).toEqual(['git branch -d done', 'git branch -D gone']);
+    expect(cleaned.engine).toEqual(['git branch -D done gone']);
   });
 });
 

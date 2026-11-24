@@ -397,7 +397,7 @@ With a format set, **Create branch…**, in the toolbar and on a branch, a tag o
 
 ### Branch cleanup
 
-**Gitardo: Clean Up Branches** lists the local branches that are merged into the current one, or whose upstream branch was deleted from the remote. Merged branches are ticked and deleted with `git branch -d`, which refuses to lose commits. Branches that are not merged are left unticked; if you tick them they are deleted with `git branch -D`, after a warning. The current branch is never listed, nor the branch of the main worktree when this window is another worktree.
+**Gitardo: Clean Up Branches** lists the local branches that are merged into the current one, or whose upstream branch was deleted from the remote. Merged branches are ticked. Branches that are not merged are left unticked, and ticking one warns first that its commits may become unreachable. Those ticked are deleted in one `git branch -D`, after their worktrees are removed: `git branch -d` would refuse a branch merged into the current one but not into its upstream, and leave the cleanup half done. The current branch is never listed, nor the branch of the main worktree when this window is another worktree.
 
 A branch that another worktree has checked out is listed with that worktree, and the two go together: the worktree is removed with `git worktree remove` before the branch is deleted, since git deletes no branch that a worktree has, and a folder of the worktrees left empty goes too. A worktree with files not committed is left unticked, like a branch that is not merged, and says how many; if you tick it, it is removed with `--force`, after a warning that those files are deleted. A worktree whose folder is gone is pruned.
 
