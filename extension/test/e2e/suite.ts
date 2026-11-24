@@ -893,12 +893,20 @@ export async function run(): Promise<void> {
     const selected = () => vscodeApi.repositories.filter((repository) => repository.ui.selected).map((repository) => path.basename(repository.rootUri.fsPath));
     // The view makes the commands that select in it; the worktrees of the steps before, gone from disk, are closed.
     await vscode.commands.executeCommand('workbench.view.scm');
-    // VS Code's Git may keep a worktree a step deleted with git open for a long while: it is closed here, as Gitardo
-    // closes those it removes itself.
-    for (const repository of vscodeApi.repositories.filter((each) => !fs.existsSync(each.rootUri.fsPath))) {
-      await vscode.commands.executeCommand('git.close', repository);
-    }
-    await until("VS Code's Git extension to have app and lib open, alone", () => opened(app) && opened(lib) && vscodeApi.repositories.length === 2).catch(
+    // VS Code's Git may keep a worktree a step deleted with git open for a long while, and may list one only after a
+    // while, under load: each one gone from disk is closed as it is seen, as Gitardo closes those it removes itself,
+    // asked again every two seconds until it is gone from the list. Closing them once before waiting failed now and
+    // then, when the list had not caught up yet.
+    const asked = new Map<string, number>();
+    const closeGone = () => {
+      for (const repository of vscodeApi.repositories) {
+        const root = repository.rootUri.fsPath;
+        if (fs.existsSync(root) || Date.now() - (asked.get(root) ?? 0) < 2000) continue;
+        asked.set(root, Date.now());
+        vscode.commands.executeCommand('git.close', repository).then(undefined, () => undefined);
+      }
+    };
+    await until("VS Code's Git extension to have app and lib open, alone", () => (closeGone(), opened(app) && opened(lib) && vscodeApi.repositories.length === 2), 30_000).catch(
       (error: Error) => {
         const listed = vscodeApi.repositories.map((repository) => `${repository.rootUri.fsPath}${fs.existsSync(repository.rootUri.fsPath) ? '' : ' (gone)'}`);
         throw new Error(`${error.message}; it has ${listed.join(', ')}`);
