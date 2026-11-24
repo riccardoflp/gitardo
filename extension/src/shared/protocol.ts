@@ -723,6 +723,8 @@ export type WebviewMessage =
   /** The pointer came to a branch, with its commit, whose history the views of the graph bring out; or left it, with null. */
   | { type: 'trace'; hash: string | null }
   | { type: 'selectRepo'; root: string }
+  /** Opens a tab of the graph in the editor on a repository, a worktree or a submodule (`repo.tab-repository`). */
+  | { type: 'openInTab'; root: string }
   /**
    * The commit box was pointed at another repository: the message it had in the one left, to keep, and the one shown,
    * whose message it asks for (`repo.keep-open`).

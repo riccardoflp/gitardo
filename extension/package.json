@@ -357,6 +357,11 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.openRepositoryInTab",
+        "title": "Open Repository in a New Tab",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.remotes",
         "title": "Manage Remotes",
         "category": "Gitardo"

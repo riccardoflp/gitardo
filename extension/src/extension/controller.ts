@@ -81,7 +81,7 @@ import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '
 import { extensionKey } from '../engine/settings';
 import { RangeDiffTab } from './rangeDiffTab';
 import { type GroupHost, REFRESH_DELAY, RepositorySession, type SessionHost, ViewGroup, errorText, failureText, firstParent, keepOpen, pageSize } from './repositorySession';
-import { Sessions } from './sessions';
+import { Sessions, tabTitle } from './sessions';
 import { type Sent, stateFor } from './sentParts';
 import { partsOf } from '../shared/stateParts';
 import { COMPARE_REWRITE, SEE_WHAT_CHANGED, buttonWords, forcePushed, type RangeDiffTarget } from '../shared/rangeDiff';
@@ -108,6 +108,15 @@ const RECENT_KEY = 'gitardo.recentComparisons';
 const RECENT_COMPARISONS = 8;
 /** How many subjects of the last commits a draft of a commit message is written with. */
 const DRAFT_SUBJECTS = 10;
+
+/** The kind of the tabs of the graph in the editor, which VS Code brings back after a reload (`repo.keep-tabs`). */
+export const GRAPH_TAB = 'gitardo.graphEditor';
+
+/** What a tab of the graph showed, which it is opened with again after a reload: its search and its branches shown. */
+export interface TabShown {
+  filter?: Filter | null;
+  scope?: Scope | null;
+}
 
 /** The working tree, as a side of a comparison. */
 const WORKTREE_SIDE: ComparedRef = { name: 'Working tree', hash: WORKTREE };
@@ -232,6 +241,8 @@ export class Controller implements vscode.Disposable {
    * that show what they do.
    */
   private readonly followers: ViewGroup;
+  /** What every group of views asks of the controller. */
+  private readonly groupHost: GroupHost;
   /** The session of each repository a group of views shows, and which one each group is on. */
   private readonly sessions: Sessions<RepositorySession, ViewGroup>;
   /** The group each view that shows a repository is in; the tabs of a commit, a comparison and the like are in none. */
@@ -351,7 +362,7 @@ export class Controller implements vscode.Disposable {
     this.fileIcons = new FileIcons(log);
     this.roots = this.resourceRoots();
     this.activity = new Activity(log);
-    const groupHost: GroupHost = {
+    this.groupHost = {
       post: (group, message) => this.postToGroup(group, message),
       sendRows: (group) => {
         const state = group.state;
@@ -362,7 +373,7 @@ export class Controller implements vscode.Disposable {
         void offerCommitGraph(group.state, { memento: this.memento, ask, write: () => this.action({ kind: 'writeCommitGraph' }, group) });
       },
     };
-    this.followers = new ViewGroup(groupHost);
+    this.followers = new ViewGroup(this.groupHost);
     const sessionHost: SessionHost = {
       log,
       activity: this.activity,
@@ -465,7 +476,9 @@ export class Controller implements vscode.Disposable {
   private groupOf(webview: vscode.Webview): ViewGroup | undefined {
     const pinned = this.pinned.get(webview);
     if (!pinned) return this.groups.get(webview);
-    return this.followers;
+    const shows = (group: ViewGroup) => !!group.session && samePath(group.session.root, pinned.root);
+    // With no group on its repository, it is sent nothing more, as the tab of a commit of another repository is.
+    return shows(this.followers) ? this.followers : this.allGroups().find(shows);
   }
 
   /** Whether a view is there to show what is read of a session. */
@@ -526,7 +539,9 @@ export class Controller implements vscode.Disposable {
 
   /** Reads again the repository a group shows, the panel's unless another is given; with none yet, looks for one. */
   async refresh(on = this.followers): Promise<void> {
-    if (!this.located || !on.session) return this.locating ?? this.locate();
+    if (!this.located) return this.locating ?? this.locate();
+    // A tab that shows nothing waits for nothing: only the panel looks for the repositories again.
+    if (!on.session) return on === this.followers ? (this.locating ?? this.locate()) : this.locating;
     return on.session.refresh();
   }
 
@@ -2313,6 +2328,7 @@ export class Controller implements vscode.Disposable {
     const grouped = groupRepositories(found).map(({ repository, depth }) => ({ repository: { ...repository, name: repositoryName(repository.folder, folders) }, depth }));
     this.repos = grouped.map(({ repository, depth }) => ({ root: repository.folder, name: repository.name, depth }));
     this.repositoriesView.found(grouped);
+    for (const group of this.allGroups()) this.retitle(group);
     // A repository that is no longer in the workspace keeps nothing.
     this.kept.forget((root) => !this.repos.some((repo) => samePath(repo.root, root)));
     // The repository chosen last time in this workspace, as long as it is still there.
@@ -2334,7 +2350,7 @@ export class Controller implements vscode.Disposable {
    * repository, made when no group showed it, and the session it leaves is let go when it was the last group there.
    * With `again`, a group already there starts again, as when the repositories of the workspace are looked for again.
    */
-  private async point(group: ViewGroup, root: string | undefined, again = false): Promise<void> {
+  private async point(group: ViewGroup, root: string | undefined, again = false, shown: TabShown = {}): Promise<void> {
     const before = group.session;
     if (before && root && samePath(before.root, root)) {
       if (!again) return;
@@ -2353,6 +2369,8 @@ export class Controller implements vscode.Disposable {
     const kept = made && keepOpen() ? this.kept.take(root) : undefined;
     group.reset(this.memento.get<Record<string, Scope>>(SCOPE_KEY, {})[root] ?? null);
     if (kept) return this.comeBack(group, session, kept);
+    if (shown.filter) group.filter = shown.filter;
+    if (shown.scope !== undefined) group.scope = shown.scope;
     // A repository chosen counts every worktree again, as **Refresh** does.
     if (made) session.everything = true;
     // The commits of the repository before stay in the views until those of this one come.
@@ -2472,9 +2490,78 @@ export class Controller implements vscode.Disposable {
     this.chose(on, root);
   }
 
-  /** A group shows what was chosen: what the panel shows is selected in VS Code's Repositories view. */
+  /** A group shows what was chosen: what the panel shows is selected in VS Code's Repositories view, a tab says it in its title. */
   private chose(on: ViewGroup, root: string): void {
     if (on === this.followers) this.chosenEmitter.fire(root);
+    else this.retitle(on);
+  }
+
+  /**
+   * Opens a tab of the graph in the editor on a repository, a worktree or a submodule: the one the panel shows unless
+   * another is given (`repo.tab-repository`). The tab keeps it, whatever the other views show, and is read with them.
+   * `panel` is a tab VS Code brings back after a reload, with what it showed (`repo.keep-tabs`).
+   */
+  async openTab(root?: string, panel?: vscode.WebviewPanel, shown: TabShown = {}): Promise<void> {
+    await this.whenLocated();
+    const tab =
+      panel ??
+      vscode.window.createWebviewPanel(GRAPH_TAB, 'Gitardo', vscode.ViewColumn.Active, {
+        retainContextWhenHidden: true,
+      });
+    const group = new ViewGroup(this.groupHost, tab);
+    const attachment = this.attach(tab.webview, 'graph', { tab: 'graph' }, group);
+    tab.onDidDispose(() => {
+      attachment.dispose();
+      this.sessions.leave(group);
+      group.session = undefined;
+      group.dispose();
+    });
+    root ??= this.followers.repo?.root;
+    if (!root) return this.setState(group, null);
+    group.home = await this.homeFor(root);
+    // A choice of the panel's is the panel's: the tab starts with the history as the panel shows it, read for itself.
+    await this.point(group, root, false, shown);
+    this.retitle(group);
+  }
+
+  /** Says in the title of the tab of a group what it shows: `Gitardo · api`, `Gitardo · api › feature/login` (Q1520). */
+  private retitle(group: ViewGroup): void {
+    if (group.panel) group.panel.title = tabTitle(group.session?.root, this.repos, group.home);
+  }
+
+  /**
+   * The repository of the workspace a worktree or a submodule outside its list is of, to go back to: the one a group
+   * shows it from, or the one it shares its folder of git with; none for a folder of the list.
+   */
+  private async homeFor(root: string): Promise<RepoInfo | undefined> {
+    if (this.repos.some((each) => samePath(each.root, root))) return undefined;
+    for (const group of this.allGroups()) {
+      const state = group.state;
+      if (!state) continue;
+      if (samePath(state.root, root)) return group.home;
+      const member =
+        state.worktrees.some((each) => samePath(each.folder, root)) ||
+        state.submodules.some((each) => each.checkout?.commit && samePath(submoduleFolder(each, state), root));
+      if (member) return this.repos.find((each) => samePath(each.root, state.root)) ?? group.home;
+    }
+    return this.worktreeOwner(root);
+  }
+
+  /**
+   * **Gitardo: Open Repository in a New Tab**: asks which repository, worktree or submodule, as **Gitardo: Select
+   * Repository** lists them, and opens a tab of the graph on it.
+   */
+  async pickTab(): Promise<void> {
+    await this.whenLocated();
+    if (!this.repos.length) {
+      void vscode.window.showInformationMessage('Gitardo: no Git repository in this workspace.');
+      return;
+    }
+    const choice = await vscode.window.showQuickPick(
+      this.repos.map((repo) => ({ label: repo.name, detail: repo.root, repo })),
+      { title: 'Open Repository in a New Tab', matchOnDetail: true },
+    );
+    if (choice) await this.openTab(choice.repo.root);
   }
 
   /** The repository of the workspace that a folder is a worktree of, by the git directory they share. */
@@ -2648,7 +2735,7 @@ export class Controller implements vscode.Disposable {
   private async readForView(on: ViewGroup): Promise<void> {
     if (this.locating) return this.locating;
     if (!this.located) return this.locate();
-    if (!on.session) return this.refresh(on);
+    if (!on.session) return on === this.followers ? this.refresh(on) : undefined;
     return on.session.readForView(on);
   }
 
@@ -2863,6 +2950,8 @@ export class Controller implements vscode.Disposable {
       }
       case 'selectRepo':
         return this.selectRepo(message.root, on);
+      case 'openInTab':
+        return typeof message.root === 'string' ? this.openTab(message.root) : undefined;
       case 'keepMessage':
         return this.keepMessage(webview, message.root, message.message, message.shown);
       case 'openDiff':

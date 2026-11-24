@@ -463,13 +463,14 @@ describe('the menu of a row of the Repositories view', () => {
 
   it('reveals the folder of a row of another repository, copies its path, opens a terminal there and shows it', () => {
     const menu = repositoryRowMenu({ folder: 'C:/prj/web', isShown: false, kind: 'repository' }, shown);
-    expect(labels(menu)).toEqual(['Open in terminal', expect.stringMatching(/^Reveal in|^Open containing folder$/), 'Show in Gitardo', 'Copy path']);
+    expect(labels(menu)).toEqual(['Open in a new tab', 'Open in terminal', expect.stringMatching(/^Reveal in|^Open containing folder$/), 'Show in Gitardo', 'Copy path']);
     expect(run(menu, 'Open in terminal')).toEqual([{ type: 'action', action: { kind: 'worktreeTerminal', path: 'C:/prj/web' } }]);
     expect(run(menu, /^Reveal in|^Open containing folder$/)).toEqual([{ type: 'action', action: { kind: 'worktreeReveal', path: 'C:/prj/web' } }]);
     expect(run(menu, 'Show in Gitardo')).toEqual([{ type: 'selectRepo', root: 'C:/prj/web' }]);
     expect(run(menu, 'Copy path')).toEqual([{ type: 'copy', text: 'C:/prj/web' }]);
     // Before the repository shown is read, every row has these.
     expect(labels(repositoryRowMenu({ folder: 'C:/prj/app-login', isShown: true, kind: 'worktree' }, null))).toEqual([
+      'Open in a new tab',
       'Open in terminal',
       expect.any(String),
       'Copy path',
@@ -478,7 +479,7 @@ describe('the menu of a row of the Repositories view', () => {
 
   it('has what the menu of a worktree has in the Branches view, for a worktree of the repository shown', () => {
     const menu = repositoryRowMenu({ folder: 'c:\\prj\\app-login', isShown: false, kind: 'worktree' }, shown);
-    expect(labels(menu)).toEqual(labels(worktreeMenu(login, shown)));
+    expect(labels(menu)).toEqual(['Open in a new tab', ...labels(worktreeMenu(login, shown))]);
     expect(labels(menu)).toEqual(expect.arrayContaining(['Open in new window', 'Show in Gitardo', 'Rename…', 'Copy path', 'Bring ignored files…', 'Remove…']));
     expect(run(menu, 'Remove…')).toEqual([{ type: 'action', action: { kind: 'worktreeRemove', path: login.folder } }]);
     // The one shown is not shown again, nor removed from here.
@@ -494,7 +495,20 @@ describe('the menu of a row of the Repositories view', () => {
     expect(run(menu, 'Show in Gitardo')).toEqual([{ type: 'selectRepo', root: 'C:\\prj\\app/lib/core' }]);
     expect(run(menu, 'Deinitialize…')).toEqual([{ type: 'action', action: { kind: 'submoduleDeinit', path: 'lib/core' } }]);
     // A submodule of another repository is a folder like another.
-    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web/lib/core', isShown: false, kind: 'submodule' }, shown))).toHaveLength(4);
+    expect(labels(repositoryRowMenu({ folder: 'C:/prj/web/lib/core', isShown: false, kind: 'submodule' }, shown))).toHaveLength(5);
+  });
+
+  it('repo.tab-repository: opens any row in a new tab of the graph, the one shown too', () => {
+    for (const row of [
+      { folder: 'C:/prj/web', isShown: false, kind: 'repository' },
+      { folder: 'C:/prj/app', isShown: true, kind: 'repository' },
+      { folder: 'c:\\prj\\app-login', isShown: false, kind: 'worktree' },
+      { folder: 'C:/prj/app/lib/core', isShown: false, kind: 'submodule' },
+    ] as const) {
+      const menu = repositoryRowMenu(row, shown);
+      expect(labels(menu)[0]).toBe('Open in a new tab');
+      expect(run(menu, 'Open in a new tab')).toEqual([{ type: 'openInTab', root: row.folder }]);
+    }
   });
 
   it('upkeep.clean-up and upkeep.start-background: the row of the repository shown alone cleans up and has git look after it', () => {

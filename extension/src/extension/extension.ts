@@ -100,13 +100,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     },
   };
 
-  const openInEditor = () => {
-    const panel = vscode.window.createWebviewPanel('gitardo.graphEditor', 'Gitardo', vscode.ViewColumn.Active, {
-      retainContextWhenHidden: true,
-    });
-    const attachment = controller.attach(panel.webview, 'graph');
-    panel.onDidDispose(() => attachment.dispose());
-  };
+  /** A tab of the graph in the editor, on the repository the panel shows, which it keeps (`repo.tab-repository`). */
+  const openInEditor = () => controller.openTab();
 
   /** Turns a setting that is on or off into the other, for the user wherever they work. */
   const toggleSetting = (name: string) => () => {
@@ -155,8 +150,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   const shown = vscode.Disposable.from(
     vscode.workspace.onDidChangeWorkspaceFolders(lookForRepos),
     vscode.workspace.onDidChangeConfiguration((event) => setupSettings.some((setting) => event.affectsConfiguration(setting)) && showSetupInMenus(roots)),
-    controller.onDidChangeState((state) => {
-      if (!state) return;
+    // Each repository a view shows, the panel's or a tab's.
+    controller.onDidReadRepository((state) => {
       hasRepository(true);
       showRootsInMenus([...new Set([...roots, ...state.repos.map((repo) => repo.root)])]);
       flowDiff.repositoryChanged(state.root);
@@ -232,6 +227,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ),
     command('gitardo.switchIdentity', () => controller.command('switchIdentity')),
     command('gitardo.selectRepository', () => controller.command('selectRepository')),
+    command('gitardo.openRepositoryInTab', () => controller.pickTab()),
     command('gitardo.remotes', () => controller.command('remotes')),
     command('gitardo.bisectReset', () => controller.action({ kind: 'bisectReset' })),
     command('gitardo.compare', () => controller.compare()),

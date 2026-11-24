@@ -790,7 +790,9 @@ export function repositoryRowMenu(row: Pick<RepositoryRow, 'folder' | 'isShown' 
           },
         ]
       : [];
-  return [...rowEntries(row, shown), ...upkeep];
+  // Any row, in a tab of the graph of its own that keeps it whatever the other views show (`repo.tab-repository`).
+  const tab: MenuEntry[] = [{ label: 'Open in a new tab', run: () => post({ type: 'openInTab', root: row.folder }) }, 'separator'];
+  return [...tab, ...rowEntries(row, shown), ...upkeep];
 }
 
 /** What a row has before the upkeep: the menu of a worktree or a submodule of the repository shown, or what asks for a folder. */

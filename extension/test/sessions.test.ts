@@ -4,7 +4,8 @@
  * its folder.
  */
 import { describe, expect, it } from 'vitest';
-import { Sessions } from '../src/extension/sessions';
+import { Sessions, tabTitle } from '../src/extension/sessions';
+import type { RepoInfo } from '../src/shared/protocol';
 
 /** A session as the registry sees it: its folder, and whether it was let go and by which group last. */
 interface FakeSession {
@@ -81,5 +82,35 @@ describe('the sessions of the repositories shown', () => {
     expect(sessions.sessionOf('panel')).toBeUndefined();
     sessions.leave('panel');
     expect(sessions.all().map((each) => each.root)).toEqual(['/work/web']);
+  });
+});
+
+describe('the title of a tab of the graph', () => {
+  const repos: RepoInfo[] = [
+    { root: '/work/api', name: 'api', depth: 0 },
+    { root: '/work/api.worktrees/login', name: 'login', depth: 1 },
+    { root: '/work/api/vendor/ui', name: 'vendor/ui', depth: 1 },
+    { root: '/work/web', name: 'web', depth: 0 },
+  ];
+  const api = repos[0];
+
+  it('name the repository it shows', () => {
+    expect(tabTitle('/work/web', repos, undefined)).toBe('Gitardo · web');
+    expect(tabTitle('\\work\\API', repos, undefined)).toBe('Gitardo · api');
+  });
+
+  it('name a worktree or a submodule of the list after the repository it is under', () => {
+    expect(tabTitle('/work/api.worktrees/login', repos, undefined)).toBe('Gitardo · api › login');
+    expect(tabTitle('/work/api/vendor/ui', repos, undefined)).toBe('Gitardo · api › vendor/ui');
+  });
+
+  it('name a worktree or a submodule outside the list after the repository it was opened from', () => {
+    expect(tabTitle('/elsewhere/hotfix', repos, api)).toBe('Gitardo · api › hotfix');
+    expect(tabTitle('/work/api/vendor/icons/', repos, api)).toBe('Gitardo · api › vendor/icons');
+    expect(tabTitle('/elsewhere/hotfix', repos, undefined)).toBe('Gitardo · hotfix');
+  });
+
+  it('say only Gitardo while it shows no repository', () => {
+    expect(tabTitle(undefined, repos, api)).toBe('Gitardo');
   });
 });

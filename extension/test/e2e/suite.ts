@@ -45,6 +45,18 @@ interface Internals {
   repositoriesView: { sent?: string };
   /** The views of the panel and of the side bar, and the session of the repository they show (D89). */
   followers: { session?: object };
+  /** The group each view that shows a repository is in: the panel and the side bar, or a tab of the graph (D89). */
+  groups: Map<unknown, ViewGroup>;
+  /** The session of each repository a group of views shows. */
+  sessions: { all(): { root: string }[] };
+}
+
+/** A group of views, as the controller keeps it: the panel and the side bar, or a tab of the graph in the editor. */
+interface ViewGroup {
+  session?: { root: string };
+  state: RepoState | null;
+  filter: Filter | null;
+  panel?: vscode.WebviewPanel;
 }
 
 /** A comparison open in a tab, as the controller keeps it. */
@@ -4469,6 +4481,93 @@ export async function run(): Promise<void> {
         if (!failed) throw error;
       }
       fs.rmSync(path.join(app, 'logo.png'), { force: true });
+      await controller.refresh();
+    }
+  });
+
+  // The tabs of the graph in the editor, each a group of views of its own on a repository (D89).
+  const graphTabs = () => [...new Set(internals.groups.values())].filter((group) => group.panel);
+  const tabShowing = (root: string, besides?: ViewGroup) => graphTabs().find((group) => group !== besides && !!group.state && samePath(group.state.root, root));
+  const pageOf = (group: ViewGroup) => {
+    const found = [...internals.groups].find(([, candidate]) => candidate === group);
+    assert.ok(found, 'the tab has a page');
+    return found[0] as vscode.Webview;
+  };
+  const sessionNames = () => internals.sessions.all().map((session) => path.basename(session.root)).sort();
+
+  await step('opens a tab of the graph on another repository, which its own toolbar moves and its operations act on alone', async () => {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    if (!samePath(state().root, app)) await controller.selectRepo(app);
+    const cached = async (folder: string) => (await git(folder, ['diff', '--cached', '--name-only'])).stdout.trim();
+    try {
+      // **Open in a new tab** in the menu of a row of the Repositories view.
+      await internals.onMessage(view('repositories'), { type: 'openInTab', root: lib });
+      const tab = await until('a tab of the graph on lib', () => tabShowing(lib));
+      assert.equal(tab.panel!.title, 'Gitardo · workspace/lib');
+      assert.deepEqual(
+        tab.state!.rows.map((row) => row.subject),
+        ['Add lib'],
+      );
+      assert.ok(samePath(state().root, app), 'the panel still shows app');
+      assert.deepEqual(sessionNames(), ['app', 'lib']);
+      const page = pageOf(tab);
+      await until('the page of the tab to be sent lib', () =>
+        posted.some((outgoing, at) => outgoing.type === 'state' && addressed[at] === page && !!outgoing.state && samePath(outgoing.state.root, lib)),
+      );
+
+      // What is done from the tab is done in lib.
+      fs.writeFileSync(path.join(lib, 'tab.txt'), 'tab\n');
+      write('panel.txt', 'panel\n');
+      await until('the file in the tab', () => tab.state?.workingTree.untracked.includes('tab.txt'));
+      await until('the file in the panel', () => state().workingTree.untracked.includes('panel.txt'));
+      await internals.onMessage(page, { type: 'action', action: { kind: 'stage', paths: ['tab.txt'] } });
+      assert.equal(await cached(lib), 'tab.txt');
+      assert.equal(await cached(app), '');
+
+      // One operation at a time in the window, whichever tab asks: the other is refused, naming where the first runs.
+      errors.length = 0;
+      await Promise.all([
+        internals.onMessage(page, { type: 'action', action: { kind: 'unstage', paths: ['tab.txt'] } }),
+        internals.onMessage(view('graph'), { type: 'action', action: { kind: 'stage', paths: ['panel.txt'] } }),
+      ]);
+      assert.ok(
+        errors.some((text) => / is running in (workspace\/)?lib\. Try again once it ends\./.test(text)),
+        JSON.stringify(errors),
+      );
+      errors.length = 0;
+      assert.equal(await cached(lib), '');
+      assert.equal(await cached(app), '');
+
+      // The list of the repositories of the tab's toolbar moves the tab alone, and lib is let go with nothing on it.
+      await internals.onMessage(page, { type: 'selectRepo', root: app });
+      await until('the tab to show app', () => tab.state && samePath(tab.state.root, app));
+      assert.equal(tab.panel!.title, 'Gitardo · workspace/app');
+      assert.ok(samePath(state().root, app));
+      assert.deepEqual(sessionNames(), ['app']);
+      await internals.onMessage(page, { type: 'selectRepo', root: lib });
+      await until('the tab to show lib again', () => tab.state && samePath(tab.state.root, lib));
+
+      // Two tabs on one repository read it once, and each keeps what narrows its graph.
+      await internals.onMessage(view('repositories'), { type: 'openInTab', root: lib });
+      const second = await until('a second tab on lib', () => tabShowing(lib, tab));
+      assert.equal(second.session, tab.session);
+      await internals.onMessage(pageOf(second), { type: 'setFilter', filter: { kind: 'path', path: 'lib.txt' } });
+      assert.deepEqual(second.filter, { kind: 'path', path: 'lib.txt' });
+      assert.equal(tab.filter, null);
+      assert.equal(internals.filter, null);
+
+      // A session is let go with the last tab on it, not before.
+      second.panel!.dispose();
+      assert.deepEqual(sessionNames(), ['app', 'lib']);
+      tab.panel!.dispose();
+      assert.deepEqual(sessionNames(), ['app']);
+      assert.equal(graphTabs().length, 0);
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      await git(lib, ['reset', '--quiet']).catch(() => undefined);
+      await git(app, ['reset', '--quiet']).catch(() => undefined);
+      fs.rmSync(path.join(lib, 'tab.txt'), { force: true });
+      fs.rmSync(path.join(app, 'panel.txt'), { force: true });
       await controller.refresh();
     }
   });
