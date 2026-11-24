@@ -1626,15 +1626,18 @@ Writes the patterns and the commands of the page to the settings of the reposito
 - **Undo**: Not taken back by Undo: change the patterns again, or **Remove from**.
 - **After**: the page shows what is saved, with no changes pending.
 - **Uses**: `worktree-setup.settings-in-effect`.
-- **Extension**: **Save** in the tab of what new worktrees get, done by the extension itself, in TypeScript, in
-  VS Code's settings: `saveSetup(root, target, patterns, alsoVSCode, commands?)` in `src/extension/worktreeSettings.ts`,
-  from the message `saveWorktreeSetup`, writes `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles` and
-  `gitardo.worktrees.setupCommands` with VS Code's settings API, to the `.vscode/settings.json` of the workspace folder
-  or to the user's settings; with **Also in VS Code's git.worktreeSymlinkFolders and git.worktreeIncludeFiles, for the
-  worktrees VS Code creates**, those two as well. Nothing is asked, and it is not a plan: nothing of it is shown first
-  or written to the log (W12). Under VS Code the engine refuses this feature, and the others that write its own
-  settings files: **Inside VS Code, what new worktrees get is in VS Code's settings: Gitardo changes them there, not in
-  a file of its own.**, until the engine can have the extension write a setting (`WriteSetting`, Q399).
+- **Extension**: **Save** in the tab of what new worktrees get sends `feature/run` of `worktree-setup.save` to
+  Gitardo's engine (`Controller.runOnEngine`, from the message `saveWorktreeSetup`), with the target `setupSettings`,
+  the place chosen, the patterns, the commands and the box, and `setup`, what VS Code sets in the repository's folder
+  (`setupGiven` in `src/extension/worktreeSettings.ts`). Inside VS Code the plan has no step: it ends in follow-ups
+  `writeSetting`, which the extension writes with VS Code's settings API (`WorkspaceConfiguration.update`),
+  `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles` and `gitardo.worktrees.setupCommands`, in the
+  `.vscode/settings.json` of the workspace folder, or the user's settings when that is chosen or the repository is in
+  no folder of the workspace; with **Also in VS Code's git.worktreeSymlinkFolders and git.worktreeIncludeFiles, for the
+  worktrees VS Code creates**, those two as well, in the same place. With `gitardo.commandPreview` set to `all` the plan
+  is shown first, each setting as a line, `set gitardo.worktrees.linkFolders ["node_modules/"] in the workspace
+  folder`, and each setting written is in the command log (W4, W12, settled in M48). When the engine's binary is
+  missing, it says so (D49).
 
 Acceptance:
 
@@ -1650,9 +1653,13 @@ Acceptance:
       empty list of commands is written only where one is set somewhere already.
 - [ ] Extension: VS Code's two settings change only with the box ticked, and then get the same patterns.
 - [ ] Extension: when writing fails, *Gitardo: the settings were not saved. <error>* is said.
-- [ ] Extension: `feature/run` of `worktree-setup.save` sent to the engine is refused with **Inside VS Code, what new
-      worktrees get is in VS Code's settings: Gitardo changes them there, not in a file of its own.**, and no file is
-      written.
+- [ ] Inside VS Code, the plan has no step and no file is written: VS Code writes the three settings in the workspace
+      folder, VS Code's two with the box ticked, and in the user's settings for a repository in no folder of the
+      workspace.
+- [ ] Inside VS Code, what the place sets already, with the box not ticked, is refused: **New worktrees get this
+      already, as it is saved there.**
+- [ ] Extension: with `gitardo.commandPreview` set to `all`, saving is asked first with the settings it writes, and
+      the command log then has `> set gitardo.worktrees.linkFolders ["node_modules/"] in the workspace folder`.
 
 ### `worktree-setup.remove-from` — Remove the settings of new worktrees from a place
 
@@ -1668,10 +1675,10 @@ Takes the three settings out of the place chosen on the page, so that what is se
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: save them again.
 - **After**: the page shows what applies now.
-- **Extension**: **Remove from `<workspace folder>`** or **Remove from User** in the tab of what new worktrees get, done
-  by the extension itself, in TypeScript: `saveSetup` in `src/extension/worktreeSettings.ts` writes the three
-  `gitardo.worktrees.*` settings as not set there, with VS Code's settings API; not a plan, nothing logged (W12). The
-  engine refuses this feature under VS Code, as it refuses `worktree-setup.save`.
+- **Extension**: **Remove from `<workspace folder>`** or **Remove from User** in the tab of what new worktrees get sends
+  `feature/run` of `worktree-setup.remove-from` to Gitardo's engine, with the target `setupSettings` of the place, as
+  **Save** does; its plan has no step, and its follow-ups `writeSetting` have VS Code remove the three
+  `gitardo.worktrees.*` settings from that place, logged and shown first under `all` (W4, settled in M48).
 
 Acceptance:
 
@@ -1680,6 +1687,7 @@ Acceptance:
 - [ ] VS Code's `git.worktreeSymlinkFolders` stays in `.vscode/settings.json`.
 - [ ] Extension: **Remove from** the workspace folder leaves the three of Gitardo not set there, and what is set
       elsewhere applies again.
+- [ ] Inside VS Code, removing from the user's settings has the host remove the three there, and writes no file.
 
 ### `worktree-setup.edit-settings-file` — Edit the settings of new worktrees in their file
 
@@ -1698,7 +1706,9 @@ Opens the settings file of the place chosen on the page, to edit the patterns an
 - **Extension**: **Edit in settings.json** in the tab of what new worktrees get, done by the extension itself, in
   TypeScript: `editSetupJson` in `src/extension/worktreeSettings.ts`, from the message `editWorktreeSetup`, opens the
   user's `settings.json` or the `.vscode/settings.json` of the workspace folder in VS Code's editor, made by VS Code
-  when it is not there. The engine refuses this feature under VS Code, as it refuses `worktree-setup.save`.
+  when it is not there. It writes nothing, so it is not a plan: VS Code's own file of the settings is the extension's to
+  open, and the engine, which has no such file, refuses this feature under VS Code, **Inside VS Code, what new
+  worktrees get is in VS Code's settings: Gitardo changes them there, not in a file of its own.** (W4, kept in M48).
 
 Acceptance:
 
@@ -1731,13 +1741,15 @@ Has new worktrees link a folder of the checkout, chosen in the Files page, by th
 - **Uses**: `worktree-setup.explain-change`, `worktree-setup.settings-in-effect`.
 - **Extension**: **Link into New Worktrees** in the context menu of a folder in VS Code's Explorer, for the folders
   selected, not in the Command Palette (`gitardo.linkIntoWorktrees` in `package.json`, `explorer/context`, group
-  `z_gitardo_worktrees@1`, while the path is not in the context key `gitardo.linkedIntoWorktrees`). Done by the
-  extension itself, in TypeScript, in VS Code's settings: `Controller.setUpFromExplorer('link', uris)` in
-  `src/extension/controller.ts`, with `changeSetup` and `savePatterns` of `src/extension/worktreeSettings.ts`, writes
-  `gitardo.worktrees.linkFolders` where it is set now, the workspace folder or the user's settings, and where it is
-  not set in the workspace folder (the user's when the repository is in no folder of the workspace), with VS Code's
-  progress *Gitardo: looking at what git ignores* in the status bar meanwhile. It is not a plan: nothing of it is shown
-  first or written to the log (W12). The engine refuses this feature under VS Code, as it refuses `worktree-setup.save`. The folder of a repository itself counts as in none.
+  `z_gitardo_worktrees@1`, while the path is not in the context key `gitardo.linkedIntoWorktrees`).
+  `Controller.setUpFromExplorer('link', uris)` in `src/extension/controller.ts` sends `feature/run` of this feature to
+  Gitardo's engine for each repository, on the paths chosen in it (`files`), with `setup`, what VS Code sets in its
+  folder. The plan has no step: its follow-ups `writeSetting` have VS Code write `gitardo.worktrees.linkFolders` where
+  it is set now, the workspace folder or the user's settings, and where it is not set in the workspace folder (the
+  user's when the repository is in no folder of the workspace); it is shown first under `gitardo.commandPreview` `all`,
+  logged, and what became of each is said in an information message with **Choose What New Worktrees Get…**, which
+  opens the tab, or in a warning when nothing changed (W4, W12, settled in M48). A path in no repository says so. The
+  folder of a repository itself counts as in none.
 
 Acceptance:
 
@@ -1758,6 +1770,8 @@ Acceptance:
       *Git tracks files in .vscode: each worktree has them from its commit.*
 - [ ] Extension: on a folder copied by its path, `/node_modules/` moves from the copies to the links.
 - [ ] Extension: **Choose What New Worktrees Get…** in the message shows the repository in the views and opens the tab.
+- [ ] Inside VS Code, with `node_modules/` linked by the user's settings, linking `packages/api/node_modules` has the
+      host write both patterns in the user's settings, and writes no file.
 
 ### `worktree-setup.copy-into-new-worktrees` — Copy a file or a folder into new worktrees
 
@@ -1781,10 +1795,10 @@ path.
 - **Uses**: `worktree-setup.explain-change`, `worktree-setup.settings-in-effect`.
 - **Extension**: **Copy into New Worktrees** in the context menu of a file or a folder in VS Code's Explorer, for those
   selected, not in the Command Palette (`gitardo.copyIntoWorktrees` in `package.json`, `explorer/context`, group
-  `z_gitardo_worktrees@2`, while the path is not in the context key `gitardo.copiedIntoWorktrees`). Done by the
-  extension itself, in TypeScript, in VS Code's settings, as `worktree-setup.link-into-new-worktrees` does:
-  `Controller.setUpFromExplorer('copy', uris)` writes `gitardo.worktrees.copyFiles`, not as a plan and not logged
-  (W12). The engine refuses this feature under VS Code, as it refuses `worktree-setup.save`.
+  `z_gitardo_worktrees@2`, while the path is not in the context key `gitardo.copiedIntoWorktrees`).
+  `Controller.setUpFromExplorer('copy', uris)` runs this feature on Gitardo's engine as
+  `worktree-setup.link-into-new-worktrees` does, and VS Code writes `gitardo.worktrees.copyFiles` from its follow-up,
+  shown first under `all` and logged (W4, W12, settled in M48).
 
 Acceptance:
 
@@ -1804,6 +1818,10 @@ Acceptance:
 - [ ] Extension: on `packages/a/node_modules/x.js` while `node_modules/` is linked, nothing is saved and it says
       *packages/a/node_modules/x.js is in packages/a/node_modules, which the pattern node_modules/ links into new
       worktrees: nothing in it is copied.*
+- [ ] Inside VS Code, copying `.env` with nothing set has the host write `["/.env"]` as `worktrees.copyFiles` in the
+      workspace folder, says **Saved in the settings of the workspace folder.**, and writes no file.
+- [ ] Extension: on `build.log`, ignored, the command log has `> set gitardo.worktrees.copyFiles […, "/build.log"] in
+      the workspace folder`, and **Stop Copying into New Worktrees** takes it out again.
 
 ### `worktree-setup.stop-linking` — Stop linking a folder into new worktrees
 
@@ -1824,16 +1842,18 @@ Takes the link pattern of a folder's own path out, from the Files page.
 - **Extension**: **Stop Linking into New Worktrees** in the context menu of VS Code's Explorer, not in the Command
   Palette (`gitardo.stopLinkingIntoWorktrees` in `package.json`), offered by the context key
   `gitardo.linkedIntoWorktrees` that `showSetupInMenus` and `namedPaths` of `src/extension/worktreeSettings.ts` set when
-  the workspace folders or the four settings change. Done by the extension itself, in TypeScript:
-  `Controller.setUpFromExplorer('none', uris)` takes the patterns `/<path>` and `/<path>/` out of both lists, saved as
-  `worktree-setup.link-into-new-worktrees` saves, not as a plan and not logged (W12); **Stop Copying into New
-  Worktrees** does the same. The engine refuses this feature under VS Code, as it refuses `worktree-setup.save`.
+  the workspace folders or the four settings change. `Controller.setUpFromExplorer('stopLinking', uris)` runs this
+  feature on Gitardo's engine as `worktree-setup.link-into-new-worktrees` does: the link patterns of the path go, saved
+  where `gitardo.worktrees.linkFolders` is set, shown first under `all` and logged. The extension took the patterns of
+  the path out of both lists with either Stop entry; now each takes out its own, as in Gitardo Desktop (W4, W12,
+  settled in M48, said in the CHANGELOG).
 
 Acceptance:
 
 - [ ] With `["/node_modules/", "node_modules/"]`, stopping on `node_modules` leaves `["node_modules/"]` and says it is
       still linked by `node_modules/`.
 - [ ] With `["/node_modules/"]` alone, it leaves `[]` and says new worktrees will no longer get it.
+- [ ] Inside VS Code, with nothing to take out it is refused with what became of the folder, and nothing is written.
 - [ ] Extension: after **Link into New Worktrees** on `node_modules`, **Stop Linking into New Worktrees** leaves
       `gitardo.worktrees.linkFolders` an empty list in the workspace folder, and the menu offers **Link into New
       Worktrees** again.
@@ -1857,8 +1877,8 @@ Takes the copy pattern of a file's or a folder's own path out, from the Files pa
 - **Uses**: `worktree-setup.explain-change`.
 - **Extension**: **Stop Copying into New Worktrees** in the context menu of VS Code's Explorer
   (`gitardo.stopCopyingIntoWorktrees` in `package.json`, offered by the context key `gitardo.copiedIntoWorktrees`),
-  done by the extension itself as `worktree-setup.stop-linking` says: both entries take the patterns of the path out of
-  both lists. The engine refuses this feature under VS Code, as it refuses `worktree-setup.save`.
+  run on Gitardo's engine as `worktree-setup.stop-linking` says: it takes the copy patterns of the path out of
+  `gitardo.worktrees.copyFiles` alone (W4, W12, settled in M48).
 
 Acceptance:
 
@@ -1873,12 +1893,8 @@ patterns out, and the sentence that says it.
 - **Kind**: Derivation
 - **Function**: `model::worktree_setup::explain_change(input) -> SetupChange`
 - **Uses**: `worktree-setup.folders-to-link`, `worktree-setup.paths-to-copy`; by the four Files page entries.
-- **Extension**: worked out in TypeScript for the four entries of VS Code's Explorer, from what the engine reads:
-  `changeSetup(root, entry, choice, patterns)` and `setupChangeText` in `src/extension/worktreeSettings.ts`, with
-  `chooseByPath` in `src/shared/worktreeSetup.ts`, ask the engine what the patterns take before and after
-  (`worktree-setup.read-what-patterns-take`, `Reads.setupTakes` in `src/engine/reads.ts`); when the patterns do not
-  give it what was chosen, `read/worktree-setup.explain-change` (`Reads.pathStatuses`) says whether git tracks or
-  ignores it.
+- **Extension**: the same, by the engine: the four entries of VS Code's Explorer run their features on Gitardo's
+  engine (M48), whose plans say what became of each path with these sentences.
 
 The rules, for **Link** or **Copy**:
 

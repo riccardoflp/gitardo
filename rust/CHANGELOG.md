@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Discarding a staged file before the first commit warns that it will be deleted from disk, "One staged file will be
+  deleted from disk.", or as many as there are, where the warning spoke of a last commit there is not.
+- With `commandPreview` set to `all`, a plan that changes nothing itself, with no step and no danger, such as **Open on
+  GitHub** of a comparison or loading the pull requests, runs without asking: there was nothing to show but its title.
 - Version 1.13 of the protocol of `gitardo-engine --stdio`, for the extension: the state of a repository says whether
   git remembers how conflicts are resolved (`rerere`) and which files in conflict it resolved as before
   (`resolvedAsBefore`), and `read/diff.read-sides` reads the version `marked`, a file in conflict as git marked it,
@@ -9,7 +13,10 @@
   `read/lfs.read-status`, `read/lfs.read-files` and `read/lfs.read-locks` read them for its **Large files** tab, and
   `read/lfs.read-content` gives a file of a commit or of the index with the content in place of its pointer when the
   store of the repository has it, never downloaded. `lfs.download` and `lfs.unlock` take their targets from it, and
-  an operation offered carries the files `lfs.track` read for **Store them with Git LFS in the next commit**.
+  an operation offered carries the files `lfs.track` read for **Store them with Git LFS in the next commit**. `feature/run` also takes `setup`, what
+  VS Code sets for new worktrees in the repository's folder, the follow-up `writeSetting` says where it is written
+  (`target`), and the tab of what new worktrees get saves with the target `setupSettings`. Saving what new worktrees
+  get, from the page or the Files page, still writes Gitardo's files in the window.
 
 ## 1.3.0 - 2026-11-24
 

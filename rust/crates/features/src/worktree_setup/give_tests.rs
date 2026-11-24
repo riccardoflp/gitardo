@@ -327,3 +327,100 @@ fn worktree_setup_stop_copying__another_pattern_still_copies_it() {
         "{said}"
     );
 }
+
+/// The context of an entry inside VS Code, which gives the settings: `node_modules/` linked by the user's settings,
+/// and nothing copied.
+fn in_vs_code(paths: &[&str]) -> Context {
+    use model::worktree_setup::{InEffect, SettingSource, SetupSettings};
+    let mut context = on(paths);
+    let list = |values: &[&str], source| InEffect {
+        values: values.iter().map(|value| (*value).to_owned()).collect(),
+        source,
+    };
+    context.settings.worktrees.setup = Some(SetupSettings {
+        link_folders: list(&["node_modules/"], SettingSource::User),
+        copy_files: list(&[], SettingSource::Nothing),
+        setup_commands: list(&[], SettingSource::Nothing),
+    });
+    context
+}
+
+/// The answers of an entry inside VS Code: no settings file is read.
+fn answers_in_vs_code(statuses: &[PathStatus], before: SetupPreview, after: SetupPreview) -> Answers {
+    Answers::new()
+        .with(PATH_STATUSES, Answer::PathStatuses(statuses.to_vec()))
+        .with(BEFORE_AND_AFTER, Answer::SetupTakes(vec![before, after]))
+}
+
+/// Each setting a plan has the host write: its key, its value and where.
+type Written = Vec<(String, Option<String>, model::contract::SettingTarget)>;
+
+/// The settings a plan has the host write, its steps and what it says.
+fn host_writes(outcome: Outcome) -> (Written, Vec<Step>, String) {
+    let plan = plan(outcome);
+    let written = plan
+        .after
+        .iter()
+        .filter_map(|follow_up| match follow_up {
+            FollowUp::WriteSetting(written) => Some((written.key.clone(), written.value.clone(), written.target)),
+            _ => None,
+        })
+        .collect();
+    let said = plan.after.iter().find_map(|follow_up| match follow_up {
+        FollowUp::Say(words) => Some(words.as_str().to_owned()),
+        _ => None,
+    });
+    (written, plan.steps, said.unwrap_or_default())
+}
+
+#[test]
+fn worktree_setup_copy_into_new_worktrees__inside_vs_code_the_host_writes_the_setting_in_the_workspace_folder() {
+    use model::contract::SettingTarget;
+    let after = taken(&[("node_modules/", "node_modules")], &[("/.env", ".env")]);
+    let before = taken(&[("node_modules/", "node_modules")], &[]);
+    let answers = answers_in_vs_code(&[IGNORED_FILE], before, after);
+    let (written, steps, said) = host_writes(copy_into_new_worktrees(&in_vs_code(&[".env"]), &answers));
+    assert_eq!(steps, []);
+    assert_eq!(
+        written,
+        [(
+            String::from("worktrees.copyFiles"),
+            Some(String::from(r#"["/.env"]"#)),
+            SettingTarget::WorkspaceFolder
+        )]
+    );
+    assert_eq!(
+        said,
+        ".env will be copied into new worktrees. Saved in the settings of the workspace folder."
+    );
+}
+
+#[test]
+fn worktree_setup_link_into_new_worktrees__inside_vs_code_a_list_set_by_the_user_is_written_there() {
+    use model::contract::SettingTarget;
+    let path = "packages/api/node_modules";
+    let before = taken(&[("node_modules/", "node_modules")], &[]);
+    let after = taken(
+        &[("node_modules/", "node_modules"), ("/packages/api/node_modules/", path)],
+        &[],
+    );
+    let answers = answers_in_vs_code(&[IGNORED_FOLDER], before, after);
+    let (written, _, said) = host_writes(link_into_new_worktrees(&in_vs_code(&[path]), &answers));
+    assert_eq!(
+        written,
+        [(
+            String::from("worktrees.linkFolders"),
+            Some(String::from(r#"["node_modules/","/packages/api/node_modules/"]"#)),
+            SettingTarget::User
+        )]
+    );
+    assert!(said.ends_with("Saved in the settings of the user."), "{said}");
+}
+
+#[test]
+fn worktree_setup_stop_linking__inside_vs_code_with_nothing_to_change_it_is_refused_with_the_reason() {
+    let before = taken(&[("node_modules/", "node_modules")], &[]);
+    let answers = answers_in_vs_code(&[IGNORED_FOLDER], before.clone(), before);
+    let said = refused(stop_linking(&in_vs_code(&["node_modules"]), &answers));
+    assert!(said.contains("node_modules"), "{said}");
+}

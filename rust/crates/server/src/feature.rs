@@ -7,10 +7,11 @@ use std::sync::{Arc, Mutex, PoisonError};
 use engine::{EngineError, Finished, TaskSteps};
 use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git};
-use model::contract::{Answer, AnswerKey, Answers, Context, Target, Validation};
+use model::contract::{Answer, AnswerKey, Answers, Context, FeatureSettings, Target, Validation};
 use model::state::RepositoryState;
 use protocol::feature::{
-    AnswerJson, FeatureRunParams, FinishedJson, FollowUpJson, FollowUpsParams, ValidateParams, ValidateResult,
+    AnswerJson, FeatureRunParams, FinishedJson, FollowUpJson, FollowUpsParams, SetupGivenJson, ValidateParams,
+    ValidateResult,
 };
 use protocol::messages::methods;
 use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, notification_message};
@@ -37,12 +38,10 @@ pub fn run(
         .map_err(|problem| ResponseError::new(codes::INVALID_PARAMS, problem.to_string()))?;
     let repository = session.opened(&params.repository)?;
     let state = read_kept(&repository, cancel)?;
-    let mut settings = session.feature_settings();
-    settings.branch_values = params.inputs;
     let context = Context {
         repository: state,
         target,
-        settings,
+        settings: run_settings(session, params.inputs, params.setup),
         now: now(),
     };
     let (known, given) = known_before(params.answers);
@@ -88,6 +87,18 @@ pub fn run(
             Err(engine_failure(&error))
         }
     }
+}
+
+/// The settings of one run: the session's, with the inputs of a branch name given and, while the extension gives what
+/// new worktrees get, what VS Code resolves of it in the repository's folder.
+fn run_settings(session: &Session, inputs: BTreeMap<String, String>, setup: Option<SetupGivenJson>) -> FeatureSettings {
+    let mut settings = session.feature_settings();
+    settings.branch_values = inputs;
+    if let Some(given) = setup.filter(|_| settings.worktrees.setup.is_some()) {
+        settings.worktrees.setup = Some(given.settings());
+        settings.worktrees.repository_target = given.repository_target();
+    }
+    settings
 }
 
 /// The state of a repository read for the context of a feature, and kept for `journal/last` (`undo.last`).

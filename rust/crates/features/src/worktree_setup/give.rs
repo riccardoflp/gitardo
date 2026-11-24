@@ -13,7 +13,7 @@ use model::worktree_setup::{
 };
 
 use super::files::{COPY_FILES, LINK_FOLDERS, NO_USER_FILE, SettingsFiles, edited, list_value, patterns_of, place_of};
-use super::files::{place_words, read_files, write_step};
+use super::files::{host_target, host_target_words, place_words, read_files, setting_written, write_step};
 
 /// The key of what git says of the paths chosen.
 const PATH_STATUSES: AnswerKey = AnswerKey("worktree-setup-path-statuses");
@@ -81,15 +81,21 @@ fn change(context: &Context, answers: &Answers, action: SetupAction) -> Outcome 
             "{path} is in no repository of the workspace."
         )));
     }
-    let files = match read_files(context, answers) {
-        Ok(files) => files,
-        Err(outcome) => return *outcome,
+    // Inside VS Code, which gives the settings, no file is read: VS Code writes them where they are set.
+    let (files, settings) = match &context.settings.worktrees.setup {
+        Some(given) => (None, given.clone()),
+        None => match read_files(context, answers) {
+            Ok(files) => {
+                let settings = files.in_effect();
+                (Some(files), settings)
+            }
+            Err(outcome) => return *outcome,
+        },
     };
     let Some(Answer::PathStatuses(statuses)) = answers.get(PATH_STATUSES) else {
         return Outcome::Read(PATH_STATUSES, Query::PathStatuses { paths });
     };
     let chosen: Vec<(&String, &PathStatus)> = paths.iter().zip(statuses).collect();
-    let settings = files.in_effect();
     let before = patterns_of(&settings);
     let after = chosen.iter().fold(before.clone(), |patterns, (path, status)| {
         change_patterns(&patterns, (path, status.is_folder), action)
@@ -128,11 +134,88 @@ fn change(context: &Context, answers: &Answers, action: SetupAction) -> Outcome 
         place_of(settings.link_folders.source),
         place_of(settings.copy_files.source),
     );
-    match write_steps(&files, &before, &changed, sources) {
-        Ok((steps, places)) if !steps.is_empty() => Outcome::Run(saving_plan(action, steps, &said, &places)),
-        Ok(_) => Outcome::Refuse(Refusal::saying(&said)),
+    saved_change(context, files, (&before, &changed), sources, (action, &said))
+}
+
+/// The plan of a change once the patterns are worked out: the steps that write Gitardo's files, or inside VS Code the
+/// settings it writes; refused, saying what became of each path, when nothing changes.
+fn saved_change(
+    context: &Context,
+    files: Option<SettingsFiles>,
+    (before, changed): (&SetupPatterns, &SetupPatterns),
+    sources: (SettingsPlace, SettingsPlace),
+    (action, said): (SetupAction, &str),
+) -> Outcome {
+    let Some(files) = files else {
+        let (settings, places) = host_settings(context, before, changed, sources);
+        if settings.is_empty() {
+            return Outcome::Refuse(Refusal::saying(said));
+        }
+        return Outcome::Run(saving_plan(
+            action,
+            Saved {
+                steps: Vec::new(),
+                settings,
+                places,
+            },
+            said,
+        ));
+    };
+    match write_steps(&files, before, changed, sources) {
+        Ok((steps, places)) if !steps.is_empty() => {
+            let places = places.into_iter().map(place_words).collect();
+            Outcome::Run(saving_plan(
+                action,
+                Saved {
+                    steps,
+                    settings: Vec::new(),
+                    places,
+                },
+                said,
+            ))
+        }
+        Ok(_) => Outcome::Refuse(Refusal::saying(said)),
         Err(refusal) => Outcome::Refuse(refusal),
     }
+}
+
+/// What a change saves: the steps that write Gitardo's files, or the settings the host writes, and the words of the
+/// places saved in.
+struct Saved {
+    /// The steps.
+    steps: Vec<Step>,
+    /// The settings the host writes (`FollowUp::WriteSetting`).
+    settings: Vec<FollowUp>,
+    /// The places, as **Saved in the settings of …** names them.
+    places: Vec<&'static str>,
+}
+
+/// The settings the host writes for the lists that changed, each in the place of its settings where it is set, with
+/// the words of the places.
+fn host_settings(
+    context: &Context,
+    before: &SetupPatterns,
+    changed: &SetupPatterns,
+    (link_place, copy_place): (SettingsPlace, SettingsPlace),
+) -> (Vec<FollowUp>, Vec<&'static str>) {
+    let mut settings = Vec::new();
+    let mut places = Vec::new();
+    let lists = [
+        (LINK_FOLDERS, link_place, &before.link, &changed.link),
+        (COPY_FILES, copy_place, &before.copy, &changed.copy),
+    ];
+    for (key, place, was, is) in lists {
+        if was == is {
+            continue;
+        }
+        let target = host_target(context, place);
+        settings.push(setting_written(key, Some(&list_value(is)), target));
+        let words = host_target_words(target);
+        if !places.contains(&words) {
+            places.push(words);
+        }
+    }
+    (settings, places)
 }
 
 /// The writes of the lists that changed, each in the file of the place it is set in, with the places written.
@@ -165,7 +248,7 @@ fn write_steps(
 }
 
 /// The plan that saves the change, and says what became of each path and where it was saved.
-fn saving_plan(action: SetupAction, steps: Vec<Step>, said: &str, places: &[SettingsPlace]) -> Plan {
+fn saving_plan(action: SetupAction, saved: Saved, said: &str) -> Plan {
     let title = match action {
         SetupAction::Link => "Link into new worktrees",
         SetupAction::Copy => "Copy into new worktrees",
@@ -178,20 +261,21 @@ fn saving_plan(action: SetupAction, steps: Vec<Step>, said: &str, places: &[Sett
         SetupAction::StopLinking => "Not taken back by Undo: Link into New Worktrees puts it back.",
         SetupAction::StopCopying => "Not taken back by Undo: Copy into New Worktrees puts it back.",
     };
-    let where_saved = places
-        .iter()
-        .map(|place| place_words(*place))
-        .collect::<Vec<_>>()
-        .join(" and of ");
+    let where_saved = saved.places.join(" and of ");
+    let mut after = saved.settings;
+    after.push(FollowUp::Say(Text::from(format!(
+        "{said} Saved in the settings of {where_saved}."
+    ))));
+    after.push(FollowUp::Offer(
+        FeatureId("worktree-setup.page"),
+        Text::from(CHOOSE_ON_THE_PAGE),
+    ));
     Plan {
         title: Text::from(title),
-        steps,
+        steps: saved.steps,
         danger: Danger::None,
         undo: Undo::Impossible(Text::from(undo)),
-        after: vec![
-            FollowUp::Say(Text::from(format!("{said} Saved in the settings of {where_saved}."))),
-            FollowUp::Offer(FeatureId("worktree-setup.page"), Text::from(CHOOSE_ON_THE_PAGE)),
-        ],
+        after,
         on_failure: Vec::new(),
     }
 }

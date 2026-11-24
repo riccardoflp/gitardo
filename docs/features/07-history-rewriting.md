@@ -214,6 +214,10 @@ failure. Gitardo skips it, as a rebase would, and says so in the log.
 - **After**: when a skip itself fails for another reason, such as the conflicts of the next commit, that is the failure
   shown; when none of the conditions holds, the original failure is shown.
 - **Refuses**: never; it does nothing when the conditions do not hold.
+- **Extension**: the same follow-up of the engine's `cherry-pick.commit`, `selection.cherry-pick`,
+  `conflicts.continue-operation` and `conflicts.skip-step`, run by `Controller.runOnEngine`. The skip is a plan of its
+  own, so with `gitardo.commandPreview` set to `all` it is shown and asked first, where the extension skipped inside the
+  operation already confirmed (D12, kept in M48 and said in its CHANGELOG).
 
 Acceptance:
 

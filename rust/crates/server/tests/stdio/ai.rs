@@ -215,8 +215,8 @@ fn ai_choose_model_the_hosts_models_are_listed_and_the_two_settings_left_for_the
     assert_eq!(
         follow_ups[0]["params"]["followUps"],
         json!([
-            { "kind": "writeSetting", "key": "ai.model", "value": "two" },
-            { "kind": "writeSetting", "key": "ai.effort", "value": "high" }
+            { "kind": "writeSetting", "key": "ai.model", "value": "two", "target": "user" },
+            { "kind": "writeSetting", "key": "ai.effort", "value": "high", "target": "user" }
         ]),
         "{follow_ups:?}"
     );

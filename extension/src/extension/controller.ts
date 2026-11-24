@@ -15,9 +15,6 @@ import {
   cleanPatterns,
   type CommandProposal,
   type IgnoredEntry,
-  type SetupChoice,
-  type SetupPatterns,
-  type SetupTarget,
 } from '../shared/worktreeSetup';
 import { submoduleFolder } from '../shared/submodules';
 import { subjectAndBody } from '../shared/message';
@@ -71,7 +68,7 @@ import { pickCoAuthors } from './coAuthors';
 import { ConflictReviewTab } from './conflictReview';
 import { INDEX, contentUri, isAbsent, proposalUri } from './content';
 import { imagePair } from '../shared/images';
-import { changeSetup, editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
+import { editSetupJson, setupGiven, worktreeSetupInfo } from './worktreeSettings';
 import { EngineError, ErrorCode } from '../engine/connection';
 import { type EngineRun, engineRuns, syncRuns } from '../engine/actions';
 import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Target } from '../engine/messages';
@@ -82,8 +79,8 @@ import type { NotDownloaded } from './content';
 import { LargeFilesTabs } from './largeFiles';
 import { LFS_WORDS, notDownloadedMessage } from '../shared/lfs';
 import { completed, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
-import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
-import { extensionKey } from '../engine/settings';
+import type { ComparisonTarget, CompareSideTarget, SetupSettingsTarget, WriteSettingFollowUp } from '../engine/messages';
+import { settingLine, settingWritten } from '../engine/settings';
 import { RangeDiffTab } from './rangeDiffTab';
 import { type GroupHost, REFRESH_DELAY, RepositorySession, type SessionHost, ViewGroup, errorText, failureText, firstParent, keepOpen, pageSize } from './repositorySession';
 import { Sessions, tabTitle } from './sessions';
@@ -177,6 +174,20 @@ const cleanPath = (path: unknown): string | null => {
     .replace(/\\/g, '/')
     .replace(/^(?:\.?\/)+|\/+$/g, '');
   return clean && clean !== '.' ? clean : null;
+};
+
+/** The page of what new worktrees get, offered once settings of new worktrees are saved. */
+const SETUP_PAGE = 'worktree-setup.page';
+
+/** An entry of the context menu of VS Code's Explorer that gives new worktrees a path, or stops it. */
+export type ExplorerSetup = 'link' | 'copy' | 'stopLinking' | 'stopCopying';
+
+/** The engine's feature of each entry of the Explorer (M48). */
+const EXPLORER_SETUP: Record<ExplorerSetup, string> = {
+  link: 'worktree-setup.link-into-new-worktrees',
+  copy: 'worktree-setup.copy-into-new-worktrees',
+  stopLinking: 'worktree-setup.stop-linking',
+  stopCopying: 'worktree-setup.stop-copying',
 };
 
 const hasCommand = async (id: string) => (await vscode.commands.getCommands(true)).includes(id);
@@ -1253,10 +1264,11 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
-   * Has new worktrees get the files and folders chosen in the Explorer linked, copied, or nothing by a pattern of their
-   * own path, in the settings that apply to the repository each one is in, and says what became of each.
+   * Has new worktrees get the files and folders chosen in the Explorer linked or copied by a pattern of their own path,
+   * or stop it, with the engine's `worktree-setup.*` entry in each repository they are in: a plan that VS Code's
+   * settings are written by, where each list is set, shown first under `all` and logged like any other (M48).
    */
-  async setUpFromExplorer(choice: SetupChoice, chosen: vscode.Uri[]): Promise<void> {
+  async setUpFromExplorer(entry: ExplorerSetup, chosen: vscode.Uri[]): Promise<void> {
     await this.whenLocated();
     const owner = (uri: vscode.Uri) => {
       const inside = this.repos.filter((repo) => {
@@ -1265,45 +1277,22 @@ export class Controller implements vscode.Disposable {
       });
       return inside.sort((a, b) => b.root.length - a.root.length)[0];
     };
-    const said: string[] = [];
-    let changed = 0;
-    let saved: SetupTarget | undefined;
-    const byRepo = new Map<string, vscode.Uri[]>();
+    const outside: string[] = [];
+    const byRepo = new Map<string, { repo: Repository; paths: string[] }>();
     for (const uri of chosen.filter((each) => each.scheme === 'file')) {
       const repo = owner(uri);
-      if (!repo) said.push(`${path.basename(uri.fsPath)} is in no repository of the workspace.`);
-      else byRepo.set(repo.root, [...(byRepo.get(repo.root) ?? []), uri]);
+      if (!repo) {
+        outside.push(`${path.basename(uri.fsPath)} is in no repository of the workspace.`);
+        continue;
+      }
+      const relative = path.relative(repo.root, uri.fsPath).split(path.sep).join('/');
+      const known = byRepo.get(repo.root) ?? { repo, paths: [] };
+      byRepo.set(repo.root, { repo, paths: [...known.paths, relative] });
     }
-    try {
-      await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'Gitardo: looking at what git ignores' }, async () => {
-        for (const [root, uris] of byRepo) {
-          const { linkFrom, copyFrom, ...before } = setupPatterns(root);
-          let patterns: SetupPatterns = before;
-          for (const uri of uris) {
-            const entry = { path: path.relative(root, uri.fsPath).split(path.sep).join('/'), folder: ((await vscode.workspace.fs.stat(uri)).type & vscode.FileType.Directory) !== 0 };
-            const result = await changeSetup(root, entry, choice, patterns);
-            patterns = result.patterns;
-            if (result.change.kind === 'done' || result.change.kind === 'still') changed++;
-            said.push(setupChangeText(entry.path, entry.folder, choice, result.change));
-          }
-          for (const [kind, from] of [['link', linkFrom], ['copy', copyFrom]] as const) {
-            const same = patterns[kind].length === before[kind].length && patterns[kind].every((pattern, index) => pattern === before[kind][index]);
-            if (!same) saved = await savePatterns(root, kind, patterns[kind], from);
-          }
-        }
-      });
-    } catch (error) {
-      said.push(errorText(error));
+    if (outside.length) void vscode.window.showWarningMessage(`Gitardo: ${outside.join(' ')}`);
+    for (const { repo, paths } of byRepo.values()) {
+      if (!(await this.runOnEngine([{ feature: EXPLORER_SETUP[entry], target: { kind: 'files', paths } }], repo))) return;
     }
-    if (!said.length) return;
-    const where = saved && ` Saved in the settings of ${saved === 'user' ? 'the user' : 'the workspace folder'}.`;
-    const text = `Gitardo: ${said.join(' ')}${where ?? ''}`;
-    const open = 'Choose What New Worktrees Get…';
-    const show = changed ? vscode.window.showInformationMessage : vscode.window.showWarningMessage;
-    if ((await show(text, open)) !== open) return;
-    const [first] = byRepo.values();
-    if (first) await this.showRepoOf(first[0]);
-    await this.openWorktreeSetup();
   }
 
   /** Opens a comparison opened before, its branches where they are now. */
@@ -1756,10 +1745,16 @@ export class Controller implements vscode.Disposable {
     if (repo) await this.runOnEngine([{ feature: 'ai.choose-model', target: { kind: 'head' } }], repo, {}, undefined, on);
   }
 
-  /** Writes a setting the engine left, in the user's settings, by the extension's name; null removes it. */
-  private async writeSetting(followUp: WriteSettingFollowUp): Promise<void> {
+  /**
+   * Writes a setting the engine left, by the extension's name, in the place it names, of the workspace folder of the
+   * repository in `root`, of the workspace or of the user; null removes it from there. It is logged as a step is.
+   */
+  private async writeSetting(followUp: WriteSettingFollowUp, root: string): Promise<void> {
     const value = followUp.value === null ? undefined : followUp.value;
-    await vscode.workspace.getConfiguration('gitardo').update(extensionKey(followUp.key), value, vscode.ConfigurationTarget.Global);
+    const { section, key } = settingWritten(followUp.key);
+    const places = { workspaceFolder: vscode.ConfigurationTarget.WorkspaceFolder, workspace: vscode.ConfigurationTarget.Workspace, user: vscode.ConfigurationTarget.Global };
+    this.log.info(`> ${settingLine(followUp)}`);
+    await vscode.workspace.getConfiguration(section, vscode.Uri.file(root)).update(key, value, places[followUp.target ?? 'user']);
   }
 
   /** A comparison tab as the target of `compare.open-on-service` and, with a file, of `compare.take-file`. */
@@ -1928,7 +1923,9 @@ export class Controller implements vscode.Disposable {
       let busy = false;
       try {
         const inputs = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
-        result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs }, asker);
+        // What new worktrees get as VS Code resolves it in the repository's folder, for the features that save it.
+        const setup = feature.startsWith('worktree-setup.') ? setupGiven(repo.root) : undefined;
+        result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs, setup }, asker);
       } catch (failure) {
         busy = failure instanceof EngineError && failure.code === ErrorCode.busy;
         if (!(failure instanceof EngineError && (failure.code === ErrorCode.busy || failure.code === ErrorCode.cancelled))) {
@@ -2118,10 +2115,12 @@ export class Controller implements vscode.Disposable {
 
   /** Carries out what a plan of the engine leaves for the host before the repository is read again. */
   private async followUpsBeforeRead(followUps: FollowUp[], run: { feature: string; target: Target; repo: Repository; title?: string }): Promise<void> {
+    // A setting VS Code could not write: what is said next would say it was saved.
+    let unsaved = false;
     for (const [index, followUp] of followUps.entries()) {
       switch (followUp.kind) {
         case 'say':
-          this.say(String(followUp.text), followUps.slice(index + 1), run);
+          if (!unsaved) this.say(String(followUp.text), followUps.slice(index + 1), run);
           break;
         // **See What Changed** after a rewrite that said nothing of its own (M36): said as the desktop says it.
         case 'offerRun':
@@ -2153,9 +2152,15 @@ export class Controller implements vscode.Disposable {
         case 'readPullRequests':
           void this.sessions.find(run.repo.root)?.refreshPulls(true);
           break;
-        // AI and GitHub (stage 4, area 6): the model that resolves conflicts, chosen with `ai.choose-model`.
+        // The model that resolves conflicts (stage 4, area 6), and what new worktrees get (M48): settings of VS Code.
         case 'writeSetting':
-          await this.writeSetting({ kind: 'writeSetting', key: String(followUp.key), value: followUp.value });
+          if (unsaved) break;
+          try {
+            await this.writeSetting(followUp as unknown as WriteSettingFollowUp, run.repo.root);
+          } catch (error) {
+            unsaved = true;
+            void vscode.window.showErrorMessage(`Gitardo: the settings were not saved. ${errorText(error)}`);
+          }
           break;
         // The commit box of the Changes view, after a squash merge and a split (area 3).
         case 'preparedMessage': {
@@ -2198,8 +2203,13 @@ export class Controller implements vscode.Disposable {
     }
     const undo = run.feature === 'conflicts.resolve-automatically' ? ['Undo'] : [];
     const words = text.startsWith('Gitardo ') ? text : `Gitardo: ${text}`;
-    void vscode.window.showInformationMessage(words, ...offers.map((offer) => offer.label), ...undo).then((choice) => {
+    void vscode.window.showInformationMessage(words, ...offers.map((offer) => offer.label), ...undo).then(async (choice) => {
       const offer = offers.find((each) => each.label === choice);
+      // **Choose What New Worktrees Get…** opens the tab, for the repository the settings were saved for.
+      if (offer?.feature === SETUP_PAGE) {
+        await this.selectRepo(run.repo.root);
+        return this.openWorktreeSetup();
+      }
       if (offer) void this.runOnEngine([{ feature: offer.feature, target: offer.target, answers: offer.answers }], run.repo);
       if (choice === 'Undo') void this.action({ kind: 'undo' }, this.groupShowing(run.repo.root));
     });
@@ -2966,11 +2976,17 @@ export class Controller implements vscode.Disposable {
         if (!repo || (message.target !== 'user' && message.target !== 'workspace')) return;
         const tab = this.setupTab?.panel.webview === webview ? this.setupTab : undefined;
         if (tab) tab.saving = true;
+        // The engine's plan, shown first under `all` and logged; VS Code writes the settings it leaves (M48).
+        const target: SetupSettingsTarget = {
+          kind: 'setupSettings',
+          place: message.target === 'user' ? 'user' : 'repository',
+          link: cleanPatterns(message.patterns?.link),
+          copy: cleanPatterns(message.patterns?.copy),
+          commands: Array.isArray(message.commands) ? cleanCommands(message.commands) : [],
+          alsoVsCode: message.alsoVSCode === true,
+        };
         try {
-          const commands = Array.isArray(message.commands) ? cleanCommands(message.commands) : undefined;
-          await saveSetup(repo.root, message.target, message.patterns, message.alsoVSCode === true, commands);
-        } catch (error) {
-          void vscode.window.showErrorMessage(`Gitardo: the settings were not saved. ${errorText(error)}`);
+          await this.runOnEngine([{ feature: message.patterns ? 'worktree-setup.save' : 'worktree-setup.remove-from', target }], repo);
         } finally {
           if (tab) tab.saving = false;
         }

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   choose,
   chooseAll,
-  chooseByPath,
   chooseOne,
   cleanCommands,
   cleanPatterns,
@@ -137,14 +136,8 @@ describe('what new worktrees get of what git ignores', () => {
     expect(chooseOne({ link: [], copy: [] }, places, places[0], 'copy')).toEqual({ link: [], copy: ['/apps/web/.env.local'] });
   });
 
-  it('chooses from the Explorer by the pattern of the path, leaving the patterns of names alone', () => {
-    const patterns = { link: ['node_modules/', '/packages/api/vendor/'], copy: ['/.env', '.env.local'] };
-    // From copied to linked, as the pattern of its path moves.
-    expect(chooseByPath({ link: [], copy: ['/.vscode/', '/.vscode'] }, folder('.vscode'), 'link')).toEqual({ link: ['/.vscode/'], copy: [] });
-    expect(chooseByPath(patterns, folder('apps/web/node_modules'), 'copy')).toEqual({ ...patterns, copy: [...patterns.copy, '/apps/web/node_modules/'] });
-    expect(chooseByPath(patterns, folder('packages/api/vendor'), 'none')).toEqual({ link: ['node_modules/'], copy: patterns.copy });
-    expect(chooseByPath(patterns, file('.env'), 'none')).toEqual({ link: patterns.link, copy: ['.env.local'] });
-    // Only the patterns that name one path each, as the context menu offers to stop them.
+  it('names the paths the context menu of the Explorer offers to stop giving to new worktrees', () => {
+    // Only the patterns that name one path each; the engine changes the patterns (`worktree-setup.*`).
     expect(namedPaths(['/.env', '/packages/api/vendor/', 'node_modules/', 'apps/*/.env', '/build/**', '!/keep', '/a[b]'])).toEqual(['.env', 'packages/api/vendor']);
   });
 

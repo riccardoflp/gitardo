@@ -7,12 +7,13 @@ mod follow_up;
 mod plan;
 mod question;
 mod resolutions;
+mod setup;
 mod target;
 
 use std::collections::BTreeMap;
 
 pub use diff_change::{DiffChangeJson, DiffSideJson, LinesJson};
-pub use follow_up::FollowUpJson;
+pub use follow_up::{FollowUpJson, SettingTargetJson};
 pub use plan::{DangerJson, FinishedJson, OfferJson, PlanJson, StepJson, UndoJson, WentOnAfterJson};
 pub use question::{
     AnswerJson, ChoiceJson, FileFilterJson, FileQuestionJson, QuestionJson, QuestionKindJson, ValidationJson,
@@ -23,6 +24,7 @@ pub use resolutions::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+pub use setup::{GivenListJson, SettingsPlaceJson, SetupFromJson, SetupGivenJson, SetupSaveJson};
 pub use target::{LfsPathJson, NotACommit, TargetJson};
 
 use crate::rpc::RequestId;
@@ -47,6 +49,10 @@ pub struct FeatureRunParams {
     /// identifier of each input.
     #[serde(default)]
     pub inputs: BTreeMap<String, String>,
+    /// What new worktrees get in the folder of the repository, as VS Code resolves its settings there, for the features
+    /// that save it (1.13, `worktree-setup.*`); none to take what `settings/changed` sent.
+    #[serde(default)]
+    pub setup: Option<SetupGivenJson>,
 }
 
 fn yes() -> bool {

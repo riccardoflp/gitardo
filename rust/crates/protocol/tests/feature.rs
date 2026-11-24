@@ -116,6 +116,7 @@ fn every_message_of_feature_run_is_read_back_as_it_was_written() {
         answers,
         journal: true,
         inputs: BTreeMap::from([(String::from("ticket"), String::from("T-1"))]),
+        setup: None,
     });
     round_trip(&AskParams {
         run: RequestId::Number(4),

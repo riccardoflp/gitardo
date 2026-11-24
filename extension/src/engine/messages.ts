@@ -31,7 +31,9 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * state, whether git remembers how conflicts are resolved and the files it resolved as before, and the version `marked`
  * of a side of `read/diff.read-sides`, a file in conflict as git marked it (milestone M46), and `lfs` in the state, the
  * reads of Git LFS (`read/lfs.read-status`, `read/lfs.read-files`, `read/lfs.read-locks`, `read/lfs.read-content`),
- * the targets `lfsFiles` and `lfsLock` and the answer `names` (milestone M47).
+ * the targets `lfsFiles` and `lfsLock` and the answer `names` (milestone M47), and `target` in the follow-up
+ * `writeSetting`, the target `setupSettings` and `setup` in `feature/run`, for the settings of new worktrees saved by
+ * the engine's plans (milestone M48).
  */
 export const PROTOCOL = '1.13';
 
@@ -118,7 +120,34 @@ export type Target =
   | DiffChangeTarget
   // From 1.13: files stored with Git LFS to download, of the commit checked out (null) or of another, and a lock of one.
   | { kind: 'lfsFiles'; paths: { path: string; isFolder: boolean }[]; commit: string | null }
-  | ({ kind: 'lfsLock' } & LfsLock);
+  | ({ kind: 'lfsLock' } & LfsLock)
+  // From 1.13: what the tab of what new worktrees get saves, and where (`worktree-setup.save`, `worktree-setup.remove-from`).
+  | SetupSettingsTarget;
+
+/** What the tab of what new worktrees get saves: the repository's place, its workspace folder, or the user's (1.13). */
+export interface SetupSettingsTarget {
+  kind: 'setupSettings';
+  place: 'repository' | 'user';
+  link: string[];
+  copy: string[];
+  commands: string[];
+  alsoVsCode: boolean;
+}
+
+/** Where a list of what new worktrees get is set in VS Code (1.13). */
+export type SetupFrom = 'workspace' | 'user' | 'vscode' | 'none';
+
+/**
+ * What new worktrees get in the folder of a repository, as VS Code resolves its settings there, given to the features
+ * that save it (`setup` of `feature/run`, 1.13).
+ */
+export interface SetupGiven {
+  linkFolders: { values: string[]; from: SetupFrom };
+  copyFiles: { values: string[]; from: SetupFrom };
+  setupCommands: { values: string[]; from: SetupFrom };
+  /** Whether the repository is in a folder of the workspace; else what is set nowhere goes in the user's settings. */
+  inWorkspaceFolder: boolean;
+}
 
 /** The resolutions accepted in a file of the review, and the text they were made from (`FileResolutions` of `model`). */
 export interface FileResolutions {
@@ -237,6 +266,8 @@ export interface FeatureRunParams {
   answers: Record<string, Answer>;
   journal: boolean;
   inputs: Record<string, string>;
+  /** What new worktrees get in the repository's folder, for the features that save it (1.13). */
+  setup?: SetupGiven;
 }
 
 /** The engine's question of a run. */
@@ -748,11 +779,18 @@ export interface DiscoveredRepository {
   commonFolder: string | null;
 }
 
-/** A setting a feature leaves for the extension to write in the user's settings, by the desktop's name; null removes it. */
+/** Where VS Code writes a setting a feature leaves (1.13); the user's settings when an older engine says nothing. */
+export type SettingTarget = 'workspaceFolder' | 'workspace' | 'user';
+
+/**
+ * A setting a feature leaves for the extension to write, by the desktop's name, VS Code's own with their `git.` prefix;
+ * null removes it from that place.
+ */
 export interface WriteSettingFollowUp {
   kind: 'writeSetting';
   key: string;
   value: unknown;
+  target?: SettingTarget;
 }
 
 // Milestone M17, from 1.9 (`rust/crates/protocol/src/mermaid.rs`): a diagram of Mermaid as an SVG, with no repository.

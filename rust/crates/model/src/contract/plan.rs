@@ -323,8 +323,8 @@ pub enum FollowUp {
     TrustFolder(PathBuf),
     /// Stop trusting these folders (`trust.manage`).
     ForgetTrustedFolders(Vec<PathBuf>),
-    /// Write a setting in the user's settings of the host, in place of a step that writes the user's settings file:
-    /// under the extension, VS Code's (`ai.choose-model`, Q399). Never in Gitardo Desktop.
+    /// Write a setting in the settings of the host, in the place it names, in place of a step that writes a settings
+    /// file: under the extension, VS Code's (`ai.choose-model`, `worktree-setup.save`, Q399). Never in Gitardo Desktop.
     WriteSetting(Box<SettingWritten>),
     /// Run tasks in the Tasks tab, each in a terminal of its own, after those it depends on (`tasks.run`,
     /// `tasks.run-group`).
@@ -336,13 +336,29 @@ pub enum FollowUp {
     TagsOnRemote(Box<crate::tag::TagsOnRemote>),
 }
 
-/// A setting the host writes in the user's settings.
+/// A setting the host writes in its settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SettingWritten {
-    /// Its name, as the desktop's settings file names it: `ai.model`.
+    /// Its name, as the desktop's settings file names it: `ai.model`; VS Code's own settings with their `git.` prefix,
+    /// `git.worktreeSymlinkFolders`.
     pub key: String,
-    /// Its value as JSON text, `"claude-test"`; none to remove the setting, so that its default applies.
+    /// Its value as JSON text, `"claude-test"`; none to remove the setting from that place, so that what is set
+    /// elsewhere, or its default, applies.
     pub value: Option<String>,
+    /// The place of the host's settings it is written in.
+    pub target: SettingTarget,
+}
+
+/// A place of the host's settings a setting is written in (Q399).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SettingTarget {
+    /// The settings of the workspace folder that has the repository: its `.vscode/settings.json`.
+    #[default]
+    WorkspaceFolder,
+    /// The settings of the workspace: its `.code-workspace` file, or the folder's when the workspace is one folder.
+    Workspace,
+    /// The user's settings, for every workspace.
+    User,
 }
 
 /// A plan offered in place of one whose step failed, when git said some words.

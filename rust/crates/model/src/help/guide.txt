@@ -4591,6 +4591,18 @@ place: the draft and the Changes page
 show: show where
 Takes everything out of the index; the files on disk are not touched.
 In VS Code: unticking the ticked header box of **Changes** in the Changes view (titled *All staged: click to unstage all changes*) while no file is in conflict, and **Unstage all changes** in the context menu of the uncommitted changes row of the graph, offered while something is staged, also while files are in conflict, send `feature/run` of `changes.unstage-all` to Gitardo's engine on the changes (`engineRuns` in): neither ends a merge or a cherry-pick any more. While files are in conflict the header box sends `changes.unstage` with the files staged, both names of a rename. The plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, it says so.
+@card extension changes.discard
+title: Discard the changes of a file
+place: the draft and the Changes page
+show: show where
+Takes one file back to the last commit, staged changes included, or deletes it when it is untracked; several files given at once are discarded together.
+In VS Code: **Discard changes** on a file of the Changes view, which gives the file alone when nothing of it is staged and the file with both names of a rename otherwise; **Discard all changes in this file, staged too…** on a file of the uncommitted changes in the details of the graph; **Discard all changes in 1 selected file…** or **Discard all changes in N selected files…** above those files, once some are ticked. Each sends `feature/run` of `changes.discard` to Gitardo's engine, on the one file or on the files given (the actions `discard` and `discardChanges` in `engineRuns`); its warning is always asked, in a modal warning dialog (`VscodeAsker`). **Discard Changes** in the title of the Flow Diff sends `changes.discard` on its file, through. Before the first commit the warning says the staged file is deleted from disk, the extension's sentence, now the engine's in both apps (A3, settled in M48). When the engine's binary is missing, it says so.
+@card extension changes.discard-all
+title: Discard all changes
+place: the draft and the Changes page
+show: show where
+Takes every changed file back to the last commit, staged changes included, and deletes the untracked files.
+In VS Code: **Discard all changes…** in the context menu of the uncommitted changes row of the graph, and above the files of the uncommitted changes in the details while none is ticked, both offered while no operation is under way, send `feature/run` of `changes.discard-all` to Gitardo's engine on the whole working tree, as from the draft; **Discard all changes** on the header of **Changes** in the Changes view sends it on the files of the list when nothing is staged, and `changes.discard` with every file of the list, both names of a rename, when something is (the actions `discardChanges` and `discardAll` in `engineRuns`, run by). The warning is always asked, in a modal warning dialog (`VscodeAsker`). When the engine's binary is missing, it says so. Before the first commit the warning says the staged files are deleted from disk (A3, settled in M48).
 @card extension changes.save
 title: Save a file, or all of them
 place: the draft and the Changes page
@@ -5025,6 +5037,12 @@ place: the timeline
 show: show where
 Applies the changes of one commit onto what is checked out, as a new commit, after saying which files will conflict.
 In VS Code: **Cherry-pick `<short>`** in the context menu of a commit in the graph and the Gitardo Graph, also on a merge and while an operation is under way (`commitMenu` in); **Cherry-pick `<short>` onto `<current>`** for a commit dropped on the commit checked out or on the row of the uncommitted changes; **Cherry-pick** for a position chosen in the list of the reflog. The action `cherryPick` runs it on the commit. The setting is `gitardo.cherryPick.recordOrigin`. When the engine's binary is missing, it says so.
+@card extension cherry-pick.skip-empty
+title: Get past a commit that changes nothing
+place: the timeline
+show: show where
+When a cherry-pick or a revert stops on a commit whose changes are already there, or whose conflicts were resolved by keeping what `HEAD` has, git will not continue until that commit is skipped, and says so in words that read like a failure. Gitardo skips it, as a rebase would, and says so in the log.
+In VS Code: the same follow-up of the engine's `cherry-pick.commit`, `selection.cherry-pick`, `conflicts.continue-operation` and `conflicts.skip-step`, run by. The skip is a plan of its own, so with `gitardo.commandPreview` set to `all` it is shown and asked first, where the extension skipped inside the operation already confirmed (kept in M48 and said in its CHANGELOG).
 @card extension revert.commit
 title: Revert a commit
 place: the timeline
@@ -5527,6 +5545,12 @@ place: the Conflicts page
 show: none
 Small models often write the lines around the conflict again with their answer. Where those lines are as they were sent, only what stands in place of the conflict is kept.
 In VS Code: the engine's, through `ai.ask-conflict`; in makes the proposal of the lines it gives.
+@card extension ai.choose-model
+title: Choose the model that resolves conflicts
+place: the Conflicts page
+show: quick search
+Chooses which model of the AI provider is asked about conflicts, and how much it thinks before it answers.
+In VS Code: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the model's name at the top of the review, while `gitardo.conflicts.ai` is on. runs `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with the desktop's picks, the first saying **The first model** (G2, settled in M48); with `gitardo.commandPreview` set to `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` in the user settings of VS Code, each a line of the command log, as every setting the engine has VS Code write (M48). Nothing changes in the repository, and **Undo** still takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so. The review then names **\<id\>, not available** when the chosen one is gone.
 @card extension ai.copilot
 title: GitHub Copilot as the AI provider
 place: the Conflicts page
@@ -5683,6 +5707,12 @@ show: show where
 Copies the changes of the comparison, as listed, as a patch that `git apply` takes, binary files included.
 Entry points: **Copy as patch** in the comparison page (**Copy the changes as a patch that git apply takes**).
 Offered when: files differ.
+@card extension compare.open-on-github
+title: Open the comparison on GitHub
+place: the Compare page
+show: show where
+Opens the same comparison on github.com, each side by the name it has there.
+In VS Code: **Open on GitHub** in the Compare tab, shown when the main remote is on GitHub and neither side is the working tree; runs `compare.open-on-service` on the engine, which is this one on GitHub, with the target `comparison`, the tab's two sides, and opens the address of the follow-up `openUrl` with `vscode.env.openExternal`. A comparison of a commit with itself is refused with the engine's warning, *The two sides are the same commit.*, and opens nothing, where the extension opened GitHub's page anyway (G5, kept in M48 and said in its CHANGELOG); with `gitardo.commandPreview` set to `all`, nothing is asked first, since nothing runs (G6). When the engine's binary is missing, it says so.
 @card extension compare.open-on-service
 title: Open the comparison on another hosting service
 place: the Compare page
@@ -6137,12 +6167,54 @@ place: Kept aside, in the branch rail
 show: none
 How the buttons of the page change the patterns: by the pattern of a path or of a name, keeping the patterns that take more than the line.
 In VS Code: worked out in the tab, in TypeScript: `patternFor`, `namePattern`, `pathPattern`, `choose`, `chooseAll`, `chooseOne`, `groupEntries`, `statusOf`, `statusNow` and `statusOfAll` in.
+@card extension worktree-setup.save
+title: Save what new worktrees get
+place: Kept aside, in the branch rail
+show: show where
+Writes the patterns and the commands of the page to the settings of the repository or of the user.
+In VS Code: **Save** in the tab of what new worktrees get sends `feature/run` of `worktree-setup.save` to Gitardo's engine (from the message `saveWorktreeSetup`), with the target `setupSettings`, the place chosen, the patterns, the commands and the box, and `setup`, what VS Code sets in the repository's folder (`setupGiven` in). Inside VS Code the plan has no step: it ends in follow-ups `writeSetting`, which the extension writes with VS Code's settings API (`WorkspaceConfiguration.update`), `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles` and `gitardo.worktrees.setupCommands`, in the `.vscode/settings.json` of the workspace folder, or the user's settings when that is chosen or the repository is in no folder of the workspace; with **Also in VS Code's git.worktreeSymlinkFolders and git.worktreeIncludeFiles, for the worktrees VS Code creates**, those two as well, in the same place. With `gitardo.commandPreview` set to `all` the plan is shown first, each setting as a line, `set gitardo.worktrees.linkFolders ["node_modules/"] in the workspace folder`, and each setting written is in the command log (W4, W12, settled in M48). When the engine's binary is missing, it says so.
+@card extension worktree-setup.remove-from
+title: Remove the settings of new worktrees from a place
+place: Kept aside, in the branch rail
+show: show where
+Takes the three settings out of the place chosen on the page, so that what is set elsewhere applies again.
+In VS Code: **Remove from `<workspace folder>`** or **Remove from User** in the tab of what new worktrees get sends `feature/run` of `worktree-setup.remove-from` to Gitardo's engine, with the target `setupSettings` of the place, as **Save** does; its plan has no step, and its follow-ups `writeSetting` have VS Code remove the three `gitardo.worktrees.*` settings from that place, logged and shown first under `all` (W4, settled in M48).
+@card extension worktree-setup.edit-settings-file
+title: Edit the settings of new worktrees in their file
+place: Kept aside, in the branch rail
+show: show where
+Opens the settings file of the place chosen on the page, to edit the patterns and the commands by hand.
+In VS Code: **Edit in settings.json** in the tab of what new worktrees get, done by the extension itself, in TypeScript: `editSetupJson` in, from the message `editWorktreeSetup`, opens the user's `settings.json` or the `.vscode/settings.json` of the workspace folder in VS Code's editor, made by VS Code when it is not there. It writes nothing, so it is not a plan: VS Code's own file of the settings is the extension's to open, and the engine, which has no such file, refuses this feature under VS Code, **Inside VS Code, what new worktrees get is in VS Code's settings: Gitardo changes them there, not in a file of its own.** (W4, kept in M48).
+@card extension worktree-setup.link-into-new-worktrees
+title: Link a folder into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Has new worktrees link a folder of the checkout, chosen in the Files page, by the pattern of its path.
+In VS Code: **Link into New Worktrees** in the context menu of a folder in VS Code's Explorer, for the folders selected, not in the Command Palette (`gitardo.linkIntoWorktrees` in `package.json`, `explorer/context`, group `z_gitardo_worktrees@1`, while the path is not in the context key `gitardo.linkedIntoWorktrees`). in sends `feature/run` of this feature to Gitardo's engine for each repository, on the paths chosen in it (`files`), with `setup`, what VS Code sets in its folder. The plan has no step: its follow-ups `writeSetting` have VS Code write `gitardo.worktrees.linkFolders` where it is set now, the workspace folder or the user's settings, and where it is not set in the workspace folder (the user's when the repository is in no folder of the workspace); it is shown first under `gitardo.commandPreview` `all`, logged, and what became of each is said in an information message with **Choose What New Worktrees Get…**, which opens the tab, or in a warning when nothing changed (W4, W12, settled in M48). A path in no repository says so. The folder of a repository itself counts as in none.
+@card extension worktree-setup.copy-into-new-worktrees
+title: Copy a file or a folder into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Has new worktrees get a copy of a file or a folder of the checkout, chosen in the Files page, by the pattern of its path.
+In VS Code: **Copy into New Worktrees** in the context menu of a file or a folder in VS Code's Explorer, for those selected, not in the Command Palette (`gitardo.copyIntoWorktrees` in `package.json`, `explorer/context`, group `z_gitardo_worktrees@2`, while the path is not in the context key `gitardo.copiedIntoWorktrees`). runs this feature on Gitardo's engine as `worktree-setup.link-into-new-worktrees` does, and VS Code writes `gitardo.worktrees.copyFiles` from its follow-up, shown first under `all` and logged (W4, W12, settled in M48).
+@card extension worktree-setup.stop-linking
+title: Stop linking a folder into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Takes the link pattern of a folder's own path out, from the Files page.
+In VS Code: **Stop Linking into New Worktrees** in the context menu of VS Code's Explorer, not in the Command Palette (`gitardo.stopLinkingIntoWorktrees` in `package.json`), offered by the context key `gitardo.linkedIntoWorktrees` that `showSetupInMenus` and `namedPaths` of set when the workspace folders or the four settings change. runs this feature on Gitardo's engine as `worktree-setup.link-into-new-worktrees` does: the link patterns of the path go, saved where `gitardo.worktrees.linkFolders` is set, shown first under `all` and logged. The extension took the patterns of the path out of both lists with either Stop entry; now each takes out its own, as in Gitardo Desktop (W4, W12, settled in M48, said in the CHANGELOG).
+@card extension worktree-setup.stop-copying
+title: Stop copying into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Takes the copy pattern of a file's or a folder's own path out, from the Files page.
+In VS Code: **Stop Copying into New Worktrees** in the context menu of VS Code's Explorer (`gitardo.stopCopyingIntoWorktrees` in `package.json`, offered by the context key `gitardo.copiedIntoWorktrees`), run on Gitardo's engine as `worktree-setup.stop-linking` says: it takes the copy patterns of the path out of `gitardo.worktrees.copyFiles` alone (W4, W12, settled in M48).
 @card extension worktree-setup.explain-change
 title: Why a choice from the Files page changes nothing
 place: Kept aside, in the branch rail
 show: none
 What becomes of a file or a folder given to new worktrees, or taken from them, from the Files page, as git works the patterns out, and the sentence that says it.
-In VS Code: worked out in TypeScript for the four entries of VS Code's Explorer, from what the engine reads: and `setupChangeText` in, with `chooseByPath` in, ask the engine what the patterns take before and after (`worktree-setup.read-what-patterns-take`, `Reads.setupTakes` in); when the patterns do not give it what was chosen, `read/worktree-setup.explain-change` (`Reads.pathStatuses`) says whether git tracks or ignores it.
+In VS Code: the same, by the engine: the four entries of VS Code's Explorer run their features on Gitardo's engine (M48), whose plans say what became of each path with these sentences.
 @card extension worktree-setup.bring-into-worktree
 title: Bring ignored files into a worktree
 place: Kept aside, in the branch rail

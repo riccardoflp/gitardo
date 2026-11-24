@@ -4,7 +4,7 @@
 use model::ai::{AiModel, AiModels, CopilotNeed, Effort, Key};
 use model::contract::{
     Answer, AnswerKey, Answers, Choice, Context, Danger, FeatureId, FollowUp, Outcome, Plan, Query, Question,
-    QuestionKind, Refusal, SettingWritten, Step, Text, Undo, Validation,
+    QuestionKind, Refusal, SettingTarget, SettingWritten, Step, Text, Undo, Validation,
 };
 
 /// The models listed with the key kept.
@@ -60,7 +60,7 @@ pub fn choose_model(context: &Context, answers: &Answers) -> Outcome {
         ));
     };
     let Some(model) = answers.choice(MODEL) else {
-        return Outcome::Ask(model_question(&models, first, &settings.model));
+        return Outcome::Ask(model_question(&models, first, &settings.model, hosted));
     };
     let Some(effort) = answers.choice(EFFORT) else {
         return Outcome::Ask(effort_question(settings.effort));
@@ -68,11 +68,14 @@ pub fn choose_model(context: &Context, answers: &Answers) -> Outcome {
     let model = model.strip_prefix(MODEL_PREFIX);
     let effort = Effort::from_setting(effort);
     let name = model_name(&models, first, model);
+    // Under a host, the picks are all there is to agree to: the host writes the two settings, and nothing more is
+    // shown, under `commandPreview` `all` too (G6).
+    let danger = if hosted { Danger::Agreed } else { Danger::None };
     let plan = |steps: Vec<Step>, after: Vec<FollowUp>| {
         Outcome::Run(Plan {
             title: Text::from(format!("Resolve conflicts with {name}")),
             steps,
-            danger: Danger::None,
+            danger,
             undo: Undo::Impossible(Text::from("Choosing again sets them back.")),
             after,
             on_failure: Vec::new(),
@@ -140,11 +143,12 @@ fn settings_written(model: Option<&str>, effort: Option<Effort>) -> Vec<FollowUp
     ]
 }
 
-/// A setting for the host to write, its value as a JSON string, or removed.
+/// A setting for the host to write in the user's settings, its value as a JSON string, or removed.
 fn setting_written(key: &str, value: Option<&str>) -> FollowUp {
     FollowUp::WriteSetting(Box::new(SettingWritten {
         key: key.to_owned(),
         value: value.map(|value| json::to_compact_text(&json::Value::String(value.to_owned()))),
+        target: SettingTarget::User,
     }))
 }
 
@@ -217,14 +221,15 @@ fn choice(identifier: String, label: &str, description: Option<&str>) -> Choice 
     }
 }
 
-/// **The model that resolves conflicts**: the first model of the provider, then each model listed; the current choice
-/// is the default.
-fn model_question(models: &[AiModel], first: &AiModel, current: &str) -> Question {
-    let mut choices = vec![choice(
-        String::from(FIRST_MODEL),
-        "The first model of the provider",
-        Some(&first.name),
-    )];
+/// **The model that resolves conflicts**: the first model of the provider, or **The first model** under a host whose
+/// models they are, then each model listed; the current choice is the default.
+fn model_question(models: &[AiModel], first: &AiModel, current: &str, hosted: bool) -> Question {
+    let first_label = if hosted {
+        "The first model"
+    } else {
+        "The first model of the provider"
+    };
+    let mut choices = vec![choice(String::from(FIRST_MODEL), first_label, Some(&first.name))];
     choices.extend(models.iter().map(|model| {
         let description = (model.name != model.id).then_some(model.id.as_str());
         choice(format!("{MODEL_PREFIX}{}", model.id), &model.name, description)

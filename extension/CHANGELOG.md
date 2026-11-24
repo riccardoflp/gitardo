@@ -14,9 +14,19 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - **Store with Git LFS…** in the context menu of a file of VS Code's Explorer, in a repository that stores files with Git LFS already, asks how its files are named, all the files of its extension, this file, everything in its folder or a pattern typed, and has Git LFS write the pattern in the `.gitattributes` at the top. When files the pattern takes were committed before, the message after counts them and offers **Store them with Git LFS in the next commit**.
 - The **Large files** tab of a repository, opened by **Large files…** in the menu of its row in **Gitardo Repositories** or by **Gitardo: Large Files**, says whether Git LFS is installed and set up, with **Set up** when it is not, lists the patterns, with **Track a pattern…** and **Stop storing with Git LFS**, and the files of the commit checked out with their sizes and whether each is downloaded, with **Download** and **Download all**. It shows who locked each file, read from the server when the tab opens and on **Refresh**, and offers **Lock** and **Unlock**, someone else's lock after a warning; a server without locks is said so.
 
+### Changed
+
+- Choosing the model that resolves conflicts offers the models as Gitardo Desktop does: **The first model**, then each model by its name, then how much it thinks, **As the model is set up** first.
+- Opening on GitHub a comparison of a commit with itself says the two sides are the same commit, and opens nothing.
+- With `gitardo.commandPreview` set to `all`, skipping a cherry-picked commit that changes nothing is now shown and asked first.
+- With `gitardo.commandPreview` set to `all`, choosing the model that resolves conflicts asks nothing more than its picks, and **Open on GitHub** and loading the pull requests ask nothing: there is nothing to show.
+- Saving what new worktrees get, from its tab or with **Link into New Worktrees** and **Copy into New Worktrees** of the Explorer, is now done by Gitardo's engine, as in Gitardo Desktop: each setting saved or taken out is a line of the log, and with `gitardo.commandPreview` set to `all` it is shown first. So are the two settings of the model that resolves conflicts.
+- **Stop Linking into New Worktrees** takes out only the patterns that link the path, and **Stop Copying into New Worktrees** only those that copy it, where each took out both before.
+
 ### Fixed
 
 - **Copy message** in the context menu of a commit copies its whole message, body included, as git wrote it, not its subject alone.
+- Discarding a staged file before the first commit warns again that it will be deleted from disk, "One staged file will be deleted from disk.", where it spoke of a last commit there is not.
 
 ## 1.3.0 - 2026-11-24
 

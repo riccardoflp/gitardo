@@ -608,7 +608,9 @@ given at once are discarded together.
   to Gitardo's engine (`Controller.runOnEngine`), on the one file or on the files given (the actions `discard` and
   `discardChanges` in `engineRuns`, `src/engine/actions.ts`); its warning is always asked, in a modal warning dialog
   (`VscodeAsker`). **Discard Changes** in the title of the Flow Diff sends `changes.discard` on its file, through
-  `Controller.runIn` (`src/flow/flowDiff.ts`). When the engine's binary is missing, it says so (D49).
+  `Controller.runIn` (`src/flow/flowDiff.ts`). Before the first commit the warning says the staged file is deleted from
+  disk, the extension's sentence, now the engine's in both apps (A3, settled in M48). When the engine's binary is
+  missing, it says so (D49).
 - **Offered when**: the file is changed for git.
 - **Plan**:
   - Nothing of it staged: `git restore -- <path>` for a tracked file, `git clean -f -- <path>` for an untracked one.
@@ -622,7 +624,8 @@ given at once are discarded together.
 - **Danger**: Destructive, because changes that are not committed are lost for good, and an untracked or added file is
   deleted from disk. The warning says which: "Unstaged changes to tracked files will be lost.", "One untracked file will
   be deleted from disk.", or "One file goes back to the last commit, staged changes included: they will be lost, and a
-  file added since is deleted from disk."
+  file added since is deleted from disk."; before the first commit, which has no last commit to go back to, "One staged
+  file will be deleted from disk."
 - **Undo**: Impossible: changes that were never committed are in no reflog.
 - **Refuses**: "There is nothing to discard." when git sees no change in the file any more.
 - **Uses**: `changes.pathspec`.
@@ -645,6 +648,8 @@ Acceptance:
 - [ ] Extension: in the details, ticking `one.txt` and `two.txt`, both untracked, and choosing **Discard all changes in
       2 selected files…** asks *Discard the changes of 2 files?* with `git clean -f -- one.txt two.txt` and "2
       untracked files will be deleted from disk."
+- [ ] Before the first commit, discarding a staged file warns "One staged file will be deleted from disk.", in both
+      apps.
 - [ ] Extension: a file taken out of the index and left on disk goes back to what `HEAD` has, and is not deleted.
 - [ ] Extension: discarding `pages/[id].txt` runs `git restore -- :(literal)pages/[id].txt`, and `pages/i.txt` and
       `pages/d.txt` keep their changes.
@@ -664,7 +669,7 @@ Takes every changed file back to the last commit, staged changes included, and d
   nothing is staged, and `changes.discard` with every file of the list, both names of a rename, when something is (the
   actions `discardChanges` and `discardAll` in `engineRuns`, `src/engine/actions.ts`, run by `Controller.runOnEngine`).
   The warning is always asked, in a modal warning dialog (`VscodeAsker`). When the engine's binary is missing, it says
-  so (D49).
+  so (D49). Before the first commit the warning says the staged files are deleted from disk (A3, settled in M48).
 - **Offered when**: in the context menu of the row, while no merge, rebase, cherry-pick, revert or `git am` is in
   progress: there, **Abort** is what goes back.
 - **Plan**, from the header of the Changes page, which acts on the files of its list and leaves the files in conflict
@@ -681,7 +686,8 @@ Takes every changed file back to the last commit, staged changes included, and d
   `git restore`.
 - **Danger**: Destructive, because every change not committed is lost and untracked files are deleted. The warning
   counts them: "3 files go back to the last commit, staged changes included: they will be lost, and a file added since
-  is deleted from disk. 2 untracked files will be deleted from disk."
+  is deleted from disk. 2 untracked files will be deleted from disk."; before the first commit, "2 staged files will be
+  deleted from disk." in place of the first sentence.
 - **Undo**: Impossible: changes that were never committed are in no reflog.
 - **Refuses**: "There is nothing to discard." when nothing is changed; from the row, while an operation is in progress,
   as a key binding may still ask: "Abort the `<operation>` to discard all of it."
@@ -708,6 +714,8 @@ Acceptance:
       changes…**.
 - [ ] Extension: with `a.txt` staged and `b.txt` changed, **Discard all changes** of the Changes view asks *Discard the
       changes of 2 files?* with one `git restore --source=HEAD --staged --worktree -- a.txt b.txt`.
+- [ ] Before the first commit, with two files staged, the warning says "2 staged files will be deleted from disk.", in
+      both apps.
 - [ ] Extension: before the first commit, **Discard all changes…** of the row runs `git rm -r --force --quiet -- .`,
       and the staged files are deleted from disk.
 - [ ] Extension: **Cancel** leaves every file as it was.

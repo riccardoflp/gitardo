@@ -239,10 +239,10 @@ describe.skipIf(!built)('AI and GitHub through the engine', { timeout: 60_000 },
     const { finished, followUps } = await engine.runFeature({ repository: root, feature: 'ai.choose-model', target: { kind: 'head' } }, asker);
     expect(finished.kind).toBe('ran');
     const picks = asker.asked.find((question) => question.key === 'model');
-    expect(picks?.kind.kind === 'pick' && picks.kind.choices.map((each) => each.label)).toEqual(['The first model of the provider', 'Fast model', 'Chosen model']);
+    expect(picks?.kind.kind === 'pick' && picks.kind.choices.map((each) => each.label)).toEqual(['The first model', 'Fast model', 'Chosen model']);
     expect(followUps).toEqual([
-      { kind: 'writeSetting', key: 'ai.model', value: 'chosen' },
-      { kind: 'writeSetting', key: 'ai.effort', value: 'high' },
+      { kind: 'writeSetting', key: 'ai.model', value: 'chosen', target: 'user' },
+      { kind: 'writeSetting', key: 'ai.effort', value: 'high', target: 'user' },
     ]);
     expect(followUps.map((followUp) => extensionKey(String((followUp as { key?: unknown }).key)))).toEqual(['conflicts.aiModel', 'conflicts.aiEffort']);
   });

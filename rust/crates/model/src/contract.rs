@@ -21,7 +21,7 @@ pub use context::{
 pub use journal::{JournalEntry, UndoRecord};
 pub use moved::{MovedBranch, MovedBranchesUndo, moved_branches};
 pub use outcome::{FeatureId, Operation, Outcome, Query, Refusal};
-pub use plan::{Danger, FailureOffer, FollowUp, OfferedRun, Plan, SettingWritten, Step, Undo};
+pub use plan::{Danger, FailureOffer, FollowUp, OfferedRun, Plan, SettingTarget, SettingWritten, Step, Undo};
 pub use question::{Choice, FileFilter, FileQuestion, Question, QuestionKind, Validation, count_of};
 pub use results::EmptyStop;
 pub use words::Text;

@@ -5,8 +5,8 @@ use model::contract::{Answers, Context, Danger, Outcome, Refusal, Step, Target, 
 use model::state::{Operation, RepositoryState};
 
 use super::files::{
-    NEVER_COMMITTED, NOTHING_TO_DISCARD, UNSTAGED_WARNING, back_to_last_commit_warning, is_staged, plan, staged_names,
-    untracked_warning, with_files,
+    NEVER_COMMITTED, NOTHING_TO_DISCARD, UNSTAGED_WARNING, back_to_last_commit_warning, is_staged, plan,
+    staged_deleted_warning, staged_names, untracked_warning, with_files,
 };
 
 /// Discards every change, after a warning that counts what is lost. From the header of the Changes page
@@ -104,19 +104,26 @@ fn from_list(repository: &RepositoryState, only: Option<&[String]>) -> Discarded
             .push(with_files(folder.clone(), &["restore"], tracked.iter().copied()));
         discarded.warning.push(UNSTAGED_WARNING.to_owned());
     } else if !tracked.is_empty() {
-        let step = if repository.has_commit() {
+        if repository.has_commit() {
             let names = tracked.iter().flat_map(|path| staged_names(tree, path));
-            with_files(
+            discarded.steps.push(with_files(
                 folder.clone(),
                 &["restore", "--source=HEAD", "--staged", "--worktree"],
                 names,
-            )
+            ));
+            discarded.warning.push(back_to_last_commit_warning(tracked.len()));
         } else {
-            let staged = tree.staged.iter().map(|change| change.path.as_str()).filter(given);
-            with_files(folder.clone(), &["rm", "-r", "--force", "--quiet"], staged)
-        };
-        discarded.steps.push(step);
-        discarded.warning.push(back_to_last_commit_warning(tracked.len()));
+            let staged: Vec<&str> = tree
+                .staged
+                .iter()
+                .map(|change| change.path.as_str())
+                .filter(given)
+                .collect();
+            discarded.warning.push(staged_deleted_warning(staged.len()));
+            discarded
+                .steps
+                .push(with_files(folder.clone(), &["rm", "-r", "--force", "--quiet"], staged));
+        }
     }
     if !untracked.is_empty() {
         discarded.warning.push(untracked_warning(untracked.len()));
@@ -128,8 +135,8 @@ fn from_list(repository: &RepositoryState, only: Option<&[String]>) -> Discarded
 }
 
 /// The whole working tree, files in conflict included: `git restore --source=HEAD --staged --worktree -- .` when a
-/// tracked file changed, `git rm -r --force --quiet -- .` in its place before the first commit, then
-/// `git clean -f -d -- .` when there are untracked files, folders included.
+/// tracked file changed, `git rm -r --force --quiet -- .` in its place before the first commit, which deletes the staged
+/// files and says so, then `git clean -f -d -- .` when there are untracked files, folders included.
 fn from_working_tree(repository: &RepositoryState) -> Discarded {
     let tree = &repository.working_tree;
     let folder = &repository.folder;
@@ -147,7 +154,12 @@ fn from_working_tree(repository: &RepositoryState) -> Discarded {
             .push(with_files(folder.clone(), &["rm", "-r", "--force", "--quiet"], ["."]));
     }
     if !discarded.steps.is_empty() {
-        discarded.warning.push(back_to_last_commit_warning(tracked.len()));
+        let warning = if repository.has_commit() {
+            back_to_last_commit_warning(tracked.len())
+        } else {
+            staged_deleted_warning(tree.staged.len())
+        };
+        discarded.warning.push(warning);
     }
     if !tree.untracked.is_empty() {
         discarded

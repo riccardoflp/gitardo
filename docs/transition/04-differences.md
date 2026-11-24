@@ -95,6 +95,9 @@ Four things cut across areas and are best decided once:
   text at `changes/files.rs:79-87`).
 - **Verdict**: **Bug (engine)**: the warning speaks of a last commit that does not exist and does not say the files
   are deleted. Take the extension's sentence.
+- **Settled in M48**: before the first commit the warning is "One staged file will be deleted from disk.", or "N staged
+  files will be deleted from disk.", in both apps (`staged_deleted_warning`, `rust/crates/features/src/changes/files.rs`),
+  with tests.
 
 ### A4. Discard on a Diff page with nothing unstaged
 
@@ -697,6 +700,8 @@ Four things cut across areas and are best decided once:
   (`engine/src/drive.rs:321-339`, `256`).
 - Verdict: **CHANGELOG**. "With commandPreview set to all, skipping a cherry-picked commit that changes nothing is now
   shown and asked first."
+- **Settled in M48**: the engine's way is kept (D90); the line is in the extension's CHANGELOG, and the card
+  `cherry-pick.skip-empty` says it.
 
 ## Worktrees and their setup
 
@@ -766,6 +771,14 @@ Four things cut across areas and are best decided once:
   (`server/src/settings.rs`, `features/worktree_setup/files.rs`, `settings_given`). Writing them stays in the
   extension, in VS Code's settings, until `WriteSetting` (Q399): under VS Code the engine refuses `worktree-setup.save`,
   the Explorer's entries and the others that write its own files.
+- **Settled in M48**: `FollowUp::WriteSetting` has a `target`, the workspace folder, the workspace or the user (Q399,
+  protocol 1.13). Under VS Code, `worktree-setup.save`, `worktree-setup.remove-from` and the four entries of the
+  Explorer plan follow-ups in place of the steps that write a file, and the extension writes them with
+  `WorkspaceConfiguration.update` under `gitardo.worktrees.*` (and `git.*` for VS Code's two), each list where it is
+  set; `feature/run` gives them `setup`, what VS Code sets in the repository's folder and where. `saveSetup` and the
+  Explorer's TypeScript are gone from `src/extension/worktreeSettings.ts`. The desktop keeps its steps.
+  `worktree-setup.edit-settings-file` stays refused under VS Code: opening VS Code's own file of the settings is the
+  extension's, which writes nothing.
 
 ### W5. Who decides that the setup commands may run
 
@@ -873,6 +886,10 @@ Four things cut across areas and are best decided once:
   Gitardo." (Depends on W4 for where it is written.)
 - **Not moved in stage 4** (area 5): saving what new worktrees get stays in the extension, in VS Code's settings,
   until `WriteSetting` (Q399, W4); the line goes into the CHANGELOG with that move.
+- **Settled in M48**, with W4: saving is the engine's plan, shown first under `commandPreview` `all` with the settings
+  it writes as its lines, and each setting written is in the log; the line is in the extension's CHANGELOG. **Stop
+  Linking into New Worktrees** now takes out the link pattern of the path alone, and **Stop Copying into New Worktrees**
+  the copy pattern, as in the desktop, where the extension took both out with either.
 
 ## Submodules
 
@@ -1185,6 +1202,8 @@ same answer; the model chosen and the effort reach the model the same. What diff
 - **Verdict**: **Choice**, decided: the engine's words, *to be confirmed by the maintainer*. Recommended later: under a
   host the first choice says **The first model**, without naming the provider. CHANGELOG: "Choosing the model that
   resolves conflicts offers the models as Gitardo Desktop does."
+- **Settled in M48**: the engine's picks are kept (D90), and under a host the first choice says **The first model**
+  (`model_question`, `rust/crates/features/src/ai/choose_model.rs`); the line is in the extension's CHANGELOG.
 
 ### G3. The model the draft of a commit message is asked of
 
@@ -1215,6 +1234,7 @@ same answer; the model chosen and the effort reach the model the same. What diff
   language model is available in VS Code…", the extension's words given by the host.
 - **Verdict**: **CHANGELOG**. "Opening on GitHub a comparison of a commit with itself says the two sides are the same
   commit."
+- **Settled in M48**: the engine's refusals are kept (D90); the line is in the extension's CHANGELOG.
 
 ### G6. Plans with no step confirmed under `gitardo.commandPreview` set to `all`
 
@@ -1225,6 +1245,10 @@ same answer; the model chosen and the effort reach the model the same. What diff
   shown (`all`), with an empty list of commands; with the default, it asks nothing.
 - **Verdict**: **Choice**, open. Recommended: a plan with no step and no danger is never confirmed, on both apps; an
   engine change, not an option.
+- **Settled in M48**, as recommended (D90): `needs_confirmation` takes the plan, and one with no danger, no step and no
+  setting for the host to write is never confirmed, under `all` too, in both apps (`rust/crates/engine/src/preview.rs`).
+  `ai.choose-model` under a host writes its two settings through follow-ups, so its plan is `Agreed`: its picks are the
+  agreement, and nothing more is asked.
 
 ## Stage 10 (`src/git` removed)
 

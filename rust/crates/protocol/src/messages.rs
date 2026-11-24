@@ -76,12 +76,14 @@ pub mod methods {
 /// worktree, the files hidden from git and the reason a worktree is locked; whether git's maintenance looks after the
 /// repository, `notes` in the state, the commits with a note, and `note` in the details of a commit; 1.12 what
 /// milestone M44 needs: `commitGraph` in the state, whether git keeps its commit-graph file of the repository and reads
-/// it; 1.13 what milestones M46 and M47 need: `rerere` and `resolvedAsBefore` in the state, whether git remembers how
-/// conflicts are resolved and the files it resolved as before, and the version `marked` of `read/diff.read-sides`, a
-/// file in conflict as git marked it; `lfs` in the state, whether Git LFS is there and set up and the patterns of the
+/// it; 1.13 what milestones M46, M47 and M48 need: `rerere` and `resolvedAsBefore` in the state, whether git remembers
+/// how conflicts are resolved and the files it resolved as before, and the version `marked` of `read/diff.read-sides`,
+/// a file in conflict as git marked it; `lfs` in the state, whether Git LFS is there and set up and the patterns of the
 /// files the repository stores with it, the reads `read/lfs.read-status`, `read/lfs.read-files`, `read/lfs.read-locks`
 /// and `read/lfs.read-content` ([`crate::reads`]), the targets `lfsFiles` and `lfsLock`, and the answer `names`, which
-/// an operation offered is given.
+/// an operation offered is given; `target` in the follow-up `writeSetting`, where VS Code writes the setting, the
+/// target `setupSettings` and `setup` in `feature/run`, what new worktrees get in the repository's folder, for the
+/// settings of new worktrees saved by the engine's plans.
 pub const VERSION: &str = "1.13";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.

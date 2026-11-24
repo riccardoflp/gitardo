@@ -262,10 +262,10 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
       [
         ['gitardo.linkIntoWorktrees', 'link'],
         ['gitardo.copyIntoWorktrees', 'copy'],
-        ['gitardo.stopLinkingIntoWorktrees', 'none'],
-        ['gitardo.stopCopyingIntoWorktrees', 'none'],
+        ['gitardo.stopLinkingIntoWorktrees', 'stopLinking'],
+        ['gitardo.stopCopyingIntoWorktrees', 'stopCopying'],
       ] as const
-    ).map(([id, choice]) => command(id, (uri, uris) => controller.setUpFromExplorer(choice, explorerUris(uri, uris)))),
+    ).map(([id, entry]) => command(id, (uri, uris) => controller.setUpFromExplorer(entry, explorerUris(uri, uris)))),
     // What git leaves alone, on the file or the folder the Explorer's menu was opened on.
     ...(['ignore', 'stopTracking', 'hideFromGit', 'showToGit'] as const).map((kind) =>
       command(`gitardo.${kind}`, (uri) => controller.leaveAloneFromExplorer(kind, uri instanceof vscode.Uri ? uri : undefined)),

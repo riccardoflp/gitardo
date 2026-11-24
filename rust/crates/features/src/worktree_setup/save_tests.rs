@@ -171,3 +171,131 @@ fn worktree_setup_remove_from__vs_code_s_setting_stays() {
     assert_eq!(written(&plan, &vs_code_file()), None);
     assert_eq!(lines(&plan), [format!("write {}", repository_file().display())]);
 }
+
+/// The settings a plan has the host write, each with its value and its place.
+fn host_writes(plan: &Plan) -> Vec<(String, Option<String>, model::contract::SettingTarget)> {
+    plan.after
+        .iter()
+        .filter_map(|follow_up| match follow_up {
+            model::contract::FollowUp::WriteSetting(written) => {
+                Some((written.key.clone(), written.value.clone(), written.target))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// A list VS Code gives, and where it is set.
+fn given(values: &[&str], source: model::worktree_setup::SettingSource) -> model::worktree_setup::InEffect {
+    model::worktree_setup::InEffect {
+        values: values.iter().map(|value| (*value).to_owned()).collect(),
+        source,
+    }
+}
+
+/// The context of the page saving inside VS Code, which gives the settings: nothing set but the user's commands.
+fn saving_in_vs_code(save: SetupSave) -> Context {
+    use model::worktree_setup::{SettingSource, SetupSettings};
+    let mut context = saving(save);
+    context.settings.worktrees.setup = Some(SetupSettings {
+        link_folders: given(&[], SettingSource::Nothing),
+        copy_files: given(&[], SettingSource::Nothing),
+        setup_commands: given(&["npm ci"], SettingSource::User),
+    });
+    context
+}
+
+#[test]
+fn worktree_setup_save__inside_vs_code_the_host_writes_the_three_settings_in_the_workspace_folder_and_no_file() {
+    use model::contract::SettingTarget;
+    let context = saving_in_vs_code(SetupSave {
+        place: SettingsPlace::Repository,
+        patterns: patterns(&["node_modules/"], &["/.env", "*.missing"]),
+        commands: Vec::new(),
+        also_vs_code: true,
+    });
+    let plan = plan(save(&context, &Answers::new()));
+    assert_eq!(plan.steps, []);
+    let folder = SettingTarget::WorkspaceFolder;
+    let list = |text: &str| Some(String::from(text));
+    assert_eq!(
+        host_writes(&plan),
+        [
+            (
+                String::from("worktrees.linkFolders"),
+                list("[\"node_modules/\"]"),
+                folder
+            ),
+            (
+                String::from("worktrees.copyFiles"),
+                list("[\"/.env\",\"*.missing\"]"),
+                folder
+            ),
+            // The user sets commands: the empty list is written, so that none run for this repository.
+            (String::from("worktrees.setupCommands"), list("[]"), folder),
+            (
+                String::from("git.worktreeSymlinkFolders"),
+                list("[\"node_modules/\"]"),
+                folder
+            ),
+            (
+                String::from("git.worktreeIncludeFiles"),
+                list("[\"/.env\",\"*.missing\"]"),
+                folder
+            ),
+        ]
+    );
+}
+
+#[test]
+fn worktree_setup_save__inside_vs_code_a_repository_in_no_folder_of_the_workspace_saves_in_the_users_settings() {
+    use model::contract::SettingTarget;
+    let mut context = saving_in_vs_code(SetupSave {
+        place: SettingsPlace::Repository,
+        patterns: patterns(&["node_modules/"], &[]),
+        ..SetupSave::default()
+    });
+    context.settings.worktrees.repository_target = SettingTarget::User;
+    let plan = plan(save(&context, &Answers::new()));
+    assert!(
+        host_writes(&plan)
+            .iter()
+            .all(|(_, _, target)| *target == SettingTarget::User)
+    );
+}
+
+#[test]
+fn worktree_setup_save__inside_vs_code_what_the_place_sets_already_is_refused() {
+    use model::worktree_setup::{SettingSource, SetupSettings};
+    let mut context = saving(SetupSave {
+        place: SettingsPlace::User,
+        patterns: patterns(&["node_modules/"], &[]),
+        ..SetupSave::default()
+    });
+    context.settings.worktrees.setup = Some(SetupSettings {
+        link_folders: given(&["node_modules/"], SettingSource::User),
+        copy_files: given(&[], SettingSource::User),
+        setup_commands: given(&[], SettingSource::Nothing),
+    });
+    assert!(matches!(save(&context, &Answers::new()), Outcome::Refuse(_)));
+}
+
+#[test]
+fn worktree_setup_remove_from__inside_vs_code_the_host_removes_the_three_settings_from_the_place() {
+    use model::contract::SettingTarget;
+    let context = saving_in_vs_code(SetupSave {
+        place: SettingsPlace::User,
+        ..SetupSave::default()
+    });
+    let plan = plan(remove_from(&context, &Answers::new()));
+    assert_eq!(plan.steps, []);
+    let removed = |key: &str| (String::from(key), None, SettingTarget::User);
+    assert_eq!(
+        host_writes(&plan),
+        [
+            removed("worktrees.linkFolders"),
+            removed("worktrees.copyFiles"),
+            removed("worktrees.setupCommands")
+        ]
+    );
+}

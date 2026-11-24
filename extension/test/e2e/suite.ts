@@ -726,13 +726,29 @@ export async function run(): Promise<void> {
       const preview = (await until('what the patterns take', () => posted.find(answered))).preview!;
       assert.deepEqual([preview.link, preview.copy, preview.counts.copy], [['node_modules'], ['.env'], { '/.env': 1, '*.missing': 0 }]);
 
-      // Saved for the workspace folder: Gitardo's settings, which apply from then on.
+      // Saved for the workspace folder: Gitardo's settings, which apply from then on, written by the engine's plan and
+      // logged (M48).
       posted.length = 0;
+      logged.length = 0;
       await internals.onMessage(tab, { type: 'saveWorktreeSetup', target: 'workspace', patterns });
       assert.deepEqual(gitardo().inspect('worktrees.linkFolders')?.workspaceFolderValue, ['node_modules/']);
       assert.deepEqual(gitardo().inspect('worktrees.copyFiles')?.workspaceFolderValue, ['/.env', '*.missing']);
+      assert.ok(logged.includes('> set gitardo.worktrees.linkFolders ["node_modules/"] in the workspace folder'), JSON.stringify(logged));
       const saved = await until('the tab to show what is saved', () => posted.find((message): message is Setup => message.type === 'worktreeSetup' && !!message.info));
       assert.deepEqual([saved.info!.effective.linkFrom, saved.info!.effective.copyFrom], ['workspace', 'workspace']);
+
+      // From the Explorer, a file copied by its own path is saved where the copies are set, then taken out again.
+      const log = vscode.Uri.file(path.join(app, 'build.log'));
+      logged.length = 0;
+      asked.length = 0;
+      await vscode.commands.executeCommand('gitardo.copyIntoWorktrees', log);
+      assert.deepEqual(gitardo().inspect('worktrees.copyFiles')?.workspaceFolderValue, ['/.env', '*.missing', '/build.log']);
+      assert.ok(logged.includes('> set gitardo.worktrees.copyFiles ["/.env","*.missing","/build.log"] in the workspace folder'), JSON.stringify(logged));
+      await until('what became of it', () =>
+        asked.find((question) => question.message === 'Gitardo: build.log will be copied into new worktrees. Saved in the settings of the workspace folder.'),
+      );
+      await vscode.commands.executeCommand('gitardo.stopCopyingIntoWorktrees', log);
+      assert.deepEqual(gitardo().inspect('worktrees.copyFiles')?.workspaceFolderValue, ['/.env', '*.missing']);
 
       // A new worktree gets it, and no longer offers to choose it.
       logged.length = 0;
@@ -3734,7 +3750,7 @@ export async function run(): Promise<void> {
         offered,
         internals.engine?.running
           ? [
-              ['The first model of the provider', 'First model', 'Chosen model'],
+              ['The first model', 'First model', 'Chosen model'],
               ['As the model is set up', 'Low', 'Medium', 'High', 'Extra high', 'Max'],
             ]
           : [
@@ -3744,6 +3760,18 @@ export async function run(): Promise<void> {
       );
       assert.equal(settings().get('conflicts.aiModel'), 'test-chosen');
       assert.equal(settings().get('conflicts.aiEffort'), 'high');
+      // With every plan shown first, the picks are all that is asked: nothing runs that was not chosen in them (G6).
+      if (internals.engine?.running) {
+        await set('commandPreview', 'all');
+        try {
+          asked.length = 0;
+          await vscode.commands.executeCommand('gitardo.chooseConflictModel');
+          assert.ok(!asked.some((question) => /^Resolve conflicts with/.test(question.message)), JSON.stringify(asked));
+          assert.equal(settings().get('conflicts.aiModel'), 'test-chosen');
+        } finally {
+          await set('commandPreview', undefined);
+        }
+      }
       asked.length = 0;
       answer = run;
       await controller.action({ kind: 'merge', ref: 'aside' });

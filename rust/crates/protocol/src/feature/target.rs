@@ -12,6 +12,7 @@ use model::lfs::{LfsDownload, LfsPath};
 
 use super::diff_change::DiffChangeJson;
 use super::resolutions::{FileResolutionsJson, MergeResultJson};
+use super::setup::SetupSaveJson;
 use crate::reads::{CompareModeJson, ComparisonSideJson, LfsLockJson};
 use crate::state::FileChangeJson;
 
@@ -126,6 +127,9 @@ pub enum TargetJson {
     },
     /// A lock of a file stored with Git LFS, as `read/lfs.read-locks` gave it (1.13, `lfs.unlock`).
     LfsLock(LfsLockJson),
+    /// What the tab of what new worktrees get saves, and where (1.13, `worktree-setup.save`,
+    /// `worktree-setup.remove-from`).
+    SetupSettings(SetupSaveJson),
 }
 
 /// A file or a folder to download with Git LFS, from the top of the working tree, with `/`.
@@ -235,6 +239,7 @@ impl TryFrom<TargetJson> for Target {
                 commit: id.as_deref().map(commit).transpose()?,
             })),
             TargetJson::LfsLock(lock) => Target::LfsLock(Box::new(lock.into())),
+            TargetJson::SetupSettings(save) => Target::SetupSettings(Box::new(save.into())),
         })
     }
 }
