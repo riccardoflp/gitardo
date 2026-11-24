@@ -126,6 +126,14 @@ fn rerere_read_resolved__with_auto_update_the_same_merge_gives_m_which_is_staged
 }
 
 #[test]
+fn rerere_read_resolved__a_file_whose_content_is_no_longer_the_resolution_recorded_is_not_resolved_as_before() {
+    let repository = recorded(false);
+    merge_topic(&repository);
+    std::fs::write(repository.path().join("m.txt"), "changed after git resolved it\n").unwrap();
+    assert_eq!(resolved_of(&repository), []);
+}
+
+#[test]
 fn rerere_read_resolved__rerere_turned_on_after_the_merge_stopped_gives_nothing() {
     let mut repository = Repository::new();
     let _ = repository.commit("Add the file", &[("m.txt", "base m\n")]);

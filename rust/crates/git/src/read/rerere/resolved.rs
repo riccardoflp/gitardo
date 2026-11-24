@@ -64,7 +64,8 @@ fn is_recorded(rr_cache: &Path, content: &[u8]) -> bool {
 }
 
 /// The files git resolved as before: those in conflict that `git rerere remaining` does not list, and those staged
-/// during the operation, as `rerere.autoUpdate` has git do, whose content is a resolution git recorded. A path with a
+/// during the operation, as `rerere.autoUpdate` has git do, each only when its content is a resolution git recorded,
+/// so that a resolution forgotten is not said to be one whatever git lists. A path with a
 /// line ending in it cannot be told apart in what git prints, and is taken as not resolved (Q1200). Git lists only the
 /// conflicts it took note of: when rerere was off as the operation stopped, and turned on after, it wrote no `MERGE_RR`
 /// and lists none, though it resolved none, so without that file no file in conflict is resolved as before.
@@ -76,6 +77,11 @@ fn is_recorded(rr_cache: &Path, content: &[u8]) -> bool {
 /// Feature: rerere.read-resolved
 pub fn read_resolved(git: &Git, request: &ResolvedRequest) -> Result<Vec<ResolvedAsBefore>, GitError> {
     let mut resolved = Vec::new();
+    let rr_cache = super::rr_cache(&request.git_folder);
+    let holds_recorded = |path: &str| {
+        let content = std::fs::read(git.directory().join(path)).unwrap_or_default();
+        is_recorded(&rr_cache, &content)
+    };
     if !request.conflicted.is_empty() && request.git_folder.join("MERGE_RR").is_file() {
         let printed = git.run_read(&remaining_arguments())?;
         let remaining = parse_remaining(&String::from_utf8_lossy(&printed));
@@ -83,7 +89,7 @@ pub fn read_resolved(git: &Git, request: &ResolvedRequest) -> Result<Vec<Resolve
             request
                 .conflicted
                 .iter()
-                .filter(|path| !path.contains('\n') && !remaining.contains(path))
+                .filter(|path| !path.contains('\n') && !remaining.contains(path) && holds_recorded(path))
                 .map(|path| ResolvedAsBefore {
                     path: path.clone(),
                     is_staged: false,
@@ -91,13 +97,11 @@ pub fn read_resolved(git: &Git, request: &ResolvedRequest) -> Result<Vec<Resolve
         );
     }
     let staged = parse_resolve_undo(&git.run_read(&resolve_undo_arguments())?);
-    let rr_cache = super::rr_cache(&request.git_folder);
     for path in staged {
         if request.conflicted.contains(&path) {
             continue;
         }
-        let content = std::fs::read(git.directory().join(&path)).unwrap_or_default();
-        if is_recorded(&rr_cache, &content) {
+        if holds_recorded(&path) {
             resolved.push(ResolvedAsBefore { path, is_staged: true });
         }
     }

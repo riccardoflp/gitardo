@@ -1935,9 +1935,12 @@ Acceptance:
 - [x] With rerere off it runs nothing and gives nothing.
 - [x] Once the merge is committed or aborted, it gives nothing.
 - [x] With rerere turned on after the merge stopped, it gives nothing: git took note of no conflict, and resolved none.
+- [x] A file in conflict whose text is no longer the resolution git recorded, edited after git wrote it or forgotten,
+  is not resolved as before, whatever `git rerere remaining` lists.
 
 - As built, `git rerere remaining` lists only the conflicts git took note of in `MERGE_RR`, which it writes when rerere
-  is on as the operation stops: without that file, no file in conflict is resolved as before. The files git staged are
+  is on as the operation stops: without that file, no file in conflict is resolved as before, and a file in conflict is one only while its text on disk is
+  a resolution git recorded. The files git staged are
   not found in what the operation printed, which Gitardo does not run when the user runs it in a terminal, nor in
   `MERGE_RR`, which drops them: they are the paths of `git ls-files --resolve-undo -z` that are no longer in conflict
   and whose text on disk is one of the resolutions git recorded, the files `postimage` of the folder `rr-cache`. The

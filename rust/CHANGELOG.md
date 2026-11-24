@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- A file in conflict is said to be resolved as before only while its text is the resolution git recorded: a resolution
+  forgotten, or a file changed after git wrote it, is no longer said to be one where `git rerere remaining` leaves it
+  out, as it did on Windows.
 - The Command log has, under a git command that succeeded, what git printed, a line each and muted, such as the hint
   of a push and the link to open a pull request or what a pull did; and under a command given something on its
   standard input, such as the message of a commit or the patch of a change staged, that input, indented, as the
