@@ -181,5 +181,126 @@ pub fn feature_test_names(code: &str) -> Vec<(usize, String)> {
         .collect()
 }
 
+/// What a **Tested by** of a document names: a file of tests, and the names of tests in it that follow it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TestedBy {
+    /// The document, from the root of the repository.
+    pub document: String,
+    /// The line of the words **Tested by**.
+    pub line: usize,
+    /// The file as the document writes it: `test/…` and `src/…` from the extension's folder, `rust/…` from the root
+    /// of the repository.
+    pub file: String,
+    /// The names given after the file, each the whole name of a test or of a step, or the start of several.
+    pub names: Vec<String>,
+}
+
+impl TestedBy {
+    /// Where the file is, from the root of the repository.
+    pub fn path(&self) -> String {
+        if self.file.starts_with("rust/") {
+            self.file.clone()
+        } else {
+            format!("extension/{}", self.file)
+        }
+    }
+}
+
+/// What each **Tested by** of a document names. The passage runs from the words to the end of their sentence, over
+/// the lines that go on the same item or paragraph; a file is a path of tests in backticks, and a name is in double
+/// quotes or in italics after its file. Words between them, such as "the steps of the blame", name nothing a program
+/// can check. `docs/catalog.py` reads them the same way.
+pub fn parse_tested_by(text: &str, document: &str) -> Vec<TestedBy> {
+    let lines: Vec<&str> = text.lines().collect();
+    let mut found = Vec::new();
+    for (index, line) in lines.iter().enumerate() {
+        let Some(start) = line.find("Tested by") else {
+            continue;
+        };
+        let mut passage = line.get(start + "Tested by".len()..).unwrap_or_default().to_owned();
+        for following in lines.iter().skip(index + 1) {
+            let trimmed = following.trim_start();
+            if trimmed.is_empty()
+                || ["- ", "#", "|"].iter().any(|mark| trimmed.starts_with(mark))
+                || following.starts_with("```")
+            {
+                break;
+            }
+            passage.push(' ');
+            passage.push_str(following.trim());
+        }
+        for (file, names) in named_in(&passage) {
+            found.push(TestedBy {
+                document: document.to_owned(),
+                line: index + 1,
+                file,
+                names,
+            });
+        }
+    }
+    found
+}
+
+/// The files and names of one passage, up to the end of its sentence.
+fn named_in(passage: &str) -> Vec<(String, Vec<String>)> {
+    let characters: Vec<char> = passage.chars().collect();
+    let mut files: Vec<(String, Vec<String>)> = Vec::new();
+    let mut index = 0;
+    while let Some(&character) = characters.get(index) {
+        if character == '*' && characters.get(index + 1) == Some(&'*') {
+            index += 2;
+            continue;
+        }
+        if matches!(character, '`' | '"' | '*') {
+            let Some(length) = characters.iter().skip(index + 1).position(|other| *other == character) else {
+                break;
+            };
+            let inside: String = characters.iter().skip(index + 1).take(length).collect();
+            index += length + 2;
+            if character == '`' {
+                if is_test_file(&inside) {
+                    files.push((inside, Vec::new()));
+                }
+            } else {
+                let name = inside.split_whitespace().collect::<Vec<_>>().join(" ");
+                if let Some((_, names)) = files.last_mut().filter(|_| !name.is_empty() && name != "none") {
+                    names.push(name);
+                }
+            }
+            continue;
+        }
+        if character == '.' && characters.get(index + 1).is_none_or(|next| *next == ' ') {
+            break;
+        }
+        index += 1;
+    }
+    files
+}
+
+/// Whether a span in backticks is a file of tests: `test/kept.test.ts`, `rust/crates/server/tests/stdio/summaries.rs`.
+fn is_test_file(span: &str) -> bool {
+    let rooted = ["test/", "src/", "rust/"].iter().any(|root| span.starts_with(root));
+    let typed = [".ts", ".tsx", ".mjs", ".js", ".rs"]
+        .iter()
+        .any(|extension| span.ends_with(extension));
+    let plain = span
+        .chars()
+        .all(|character| character.is_alphanumeric() || matches!(character, '/' | '.' | '_' | '-'));
+    rooted && typed && plain
+}
+
+/// Whether some code has a string that starts with a name, as the title of a test or of a step is written there.
+pub fn names_test(code: &str, name: &str) -> bool {
+    let flat = code
+        .replace("\\'", "'")
+        .replace("\\\"", "\"")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    ['\'', '"', '`']
+        .iter()
+        .any(|quote| flat.contains(&format!("{quote}{name}")))
+}
+
 #[cfg(test)]
 mod tests;

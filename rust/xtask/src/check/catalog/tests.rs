@@ -1,5 +1,7 @@
+use std::collections::BTreeMap;
+
 use super::{Catalog, problems};
-use crate::catalog::{Card, FeatureFunction, IndexRow};
+use crate::catalog::{Card, FeatureFunction, IndexRow, TestedBy};
 
 fn card(identifier: &str, function: &str, acceptance: usize) -> Card {
     Card {
@@ -52,6 +54,8 @@ fn built_catalog() -> Catalog {
             test("branch_create__makes_the_branch"),
             test("branch_create__refuses_a_bad_name"),
         ],
+        tested_by: Vec::new(),
+        test_files: BTreeMap::new(),
     }
 }
 
@@ -74,6 +78,8 @@ fn passes_a_card_only_specified_without_code() {
         index: vec![row("branch.create", "Specified")],
         functions: Vec::new(),
         tests: Vec::new(),
+        tested_by: Vec::new(),
+        test_files: BTreeMap::new(),
     };
     assert_eq!(messages(&catalog), Vec::<String>::new());
 }
@@ -205,5 +211,45 @@ fn refuses_a_card_built_in_the_extension_before_the_desktop() {
         !messages(&catalog)
             .iter()
             .any(|message| message.contains("the desktop comes first"))
+    );
+}
+
+/// A catalog whose card says it is tested by `test/kept.test.ts`, "keeps the scroll", with the file holding `code`.
+fn tested_by_catalog(code: Option<&str>) -> Catalog {
+    let mut catalog = built_catalog();
+    catalog.tested_by = vec![TestedBy {
+        document: String::from("docs/features/01-repositories.md"),
+        line: 12,
+        file: String::from("test/kept.test.ts"),
+        names: vec![String::from("keeps the scroll")],
+    }];
+    catalog.test_files = BTreeMap::from([(String::from("extension/test/kept.test.ts"), code.map(str::to_owned))]);
+    catalog
+}
+
+#[test]
+fn passes_a_test_named_after_tested_by_that_is_there() {
+    let code = "it('keeps the scroll of each repository', () => {});";
+    assert_eq!(messages(&tested_by_catalog(Some(code))), Vec::<String>::new());
+}
+
+#[test]
+fn refuses_a_file_named_after_tested_by_that_is_not_there() {
+    assert_eq!(
+        messages(&tested_by_catalog(None)),
+        vec![String::from(
+            "R2.6 test/kept.test.ts is named after Tested by, and is not there."
+        )]
+    );
+}
+
+#[test]
+fn refuses_a_test_named_after_tested_by_that_its_file_does_not_have() {
+    let code = "it('keeps the selection', () => {});";
+    assert_eq!(
+        messages(&tested_by_catalog(Some(code))),
+        vec![String::from(
+            "R2.6 \"keeps the scroll\" is named after Tested by, and test/kept.test.ts has no test of that name."
+        )]
     );
 }

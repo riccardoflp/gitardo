@@ -148,8 +148,8 @@ export async function startWindow({ workspace, temp, out, codePath, settings: ex
       return null;
     })()`);
 
-  /** Runs a command from the command palette, by typing its name. */
-  async function command(title) {
+  /** Runs a command from the command palette, by typing its name; `chosen` is called as it is chosen, the time a person's wait starts. */
+  async function command(title, chosen = () => {}) {
     await until('the command palette', async () => {
       if ((await prompt())?.kind === 'quick') return true;
       // A key goes to whatever has the focus, which may be a webview: a click on the empty part of the status bar takes it back.
@@ -163,6 +163,7 @@ export async function startWindow({ workspace, temp, out, codePath, settings: ex
     await until(`the command "${title}"`, () =>
       page.evaluate(`[...document.querySelectorAll('.quick-input-list .monaco-list-row')].some((row) => row.textContent.includes(${JSON.stringify(title)}))`),
     );
+    chosen();
     await key('Enter');
     await sleep(300);
   }

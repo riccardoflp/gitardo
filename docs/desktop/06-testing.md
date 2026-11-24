@@ -210,9 +210,11 @@ of the large repository, read and laid out.
 ## What a change runs before it is committed
 
 `cargo xtask check`, which is `rustfmt --check`, `clippy` with warnings denied, `cargo test`, and the checks of the
-catalog and of the rules in [03-code-rules.md](03-code-rules.md#what-cargo-xtask-check-checks). A change to a view also
-runs `cargo xtask snapshots`, and someone looks at the images that changed. A change to the engine that the extension
-uses also runs the extension's `npm run test:e2e` against the debug binary.
+catalog and of the rules in [03-code-rules.md](03-code-rules.md#what-cargo-xtask-check-checks): among them, that every
+test a card names after **Tested by**, in the extension or in `rust/`, is there (rule R2.6, the extension's risk RS6),
+as `npm run check:docs` checks it too. A change to a view also runs `cargo xtask snapshots`, and someone looks at the
+images that changed. A change to the engine that the extension uses also runs the extension's `npm run test:e2e`
+against the debug binary.
 
 ## What no test reaches
 

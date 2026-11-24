@@ -1,4 +1,6 @@
-use super::{feature_test_names, parse_cards, parse_feature_functions, parse_index, test_prefix};
+use super::{
+    feature_test_names, names_test, parse_cards, parse_feature_functions, parse_index, parse_tested_by, test_prefix,
+};
 
 const AREA: &str = "# Branches
 
@@ -96,4 +98,47 @@ fn names_tests_after_the_identifier() {
             (4, String::from("graph_view__draws"))
         ]
     );
+}
+
+#[test]
+fn reads_the_files_and_names_after_tested_by_to_the_end_of_the_sentence() {
+    let text = "- **Extension**: kept in memory. Tested by `test/e2e/ui.mjs`, step \"with keeping on, it\n  shows the commit\"; `test/kept.test.ts`; `rust/crates/server/tests/stdio/summaries.rs`, *reads once*,\n  and **Cancel** names nothing. Then `test/other.test.ts` is not tested by.\n- **Uses**: `test/uses.test.ts`.\n";
+    let found = parse_tested_by(text, "docs/features/01-repositories.md");
+    let named: Vec<(&str, Vec<&str>)> = found
+        .iter()
+        .map(|each| (each.file.as_str(), each.names.iter().map(String::as_str).collect()))
+        .collect();
+    assert_eq!(
+        named,
+        vec![
+            ("test/e2e/ui.mjs", vec!["with keeping on, it shows the commit"]),
+            ("test/kept.test.ts", vec![]),
+            ("rust/crates/server/tests/stdio/summaries.rs", vec!["reads once"]),
+        ]
+    );
+    assert_eq!(found[0].line, 1);
+    assert_eq!(found[0].path(), "extension/test/e2e/ui.mjs");
+    assert_eq!(found[2].path(), "rust/crates/server/tests/stdio/summaries.rs");
+}
+
+#[test]
+fn leaves_out_none_and_what_is_not_a_file_of_tests() {
+    let text =
+        "- **Tested by**: `test/e2e/suite.ts`, the steps that log `> git pull --autostash`; *none* for the rest.\n";
+    let found = parse_tested_by(text, "docs/features/extension/16-undo-preview-log.md");
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].file, "test/e2e/suite.ts");
+    assert_eq!(found[0].names, Vec::<String>::new());
+}
+
+#[test]
+fn finds_a_name_at_the_start_of_a_string_written_over_lines_or_with_escaped_quotes() {
+    let code =
+        "await step(\n  'follows the repository selected in VS Code\\'s view,\n   and shows it', async () => {});";
+    assert!(names_test(
+        code,
+        "follows the repository selected in VS Code's view, and shows it"
+    ));
+    assert!(names_test(code, "follows the repository"));
+    assert!(!names_test(code, "the repository selected"));
 }

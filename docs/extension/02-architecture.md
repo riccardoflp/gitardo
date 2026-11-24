@@ -112,14 +112,19 @@ flowchart TB
 - `src/shared` uses nothing of the others, but for one type: `protocol.ts` imports `SyntaxTheme` from
   `src/flow/diff/protocol.ts`. *Marked: a type of the Flow Diff that both use; it belongs in `src/shared`.*
 - `src/webview` uses `src/shared`. It also uses pure code of other folders, bundled into the page:
-  `src/flow/diff/computeDiff.ts` (the side changes), `src/flow/webview/columns.ts` and `languages.ts`. *Marked: these
-  work because the code is pure, but nothing keeps it so; see [RS3](13-risks.md).*
+  `src/flow/diff/computeDiff.ts` (the side changes), `src/flow/webview/columns.ts` and `languages.ts`, and two types,
+  `CharRange` of `src/flow/diff/model.ts` and `SyntaxTheme` of `src/flow/diff/protocol.ts`. *Marked: these work
+  because the code is pure, which `test/imports.test.ts` keeps so: nothing bundled into a page imports Node or VS
+  Code.*
 - `src/flow` uses `src/engine`, `src/shared` and two modules of `src/extension` (`content.ts`, `answers.ts`): it reads
   through `src/engine/reads.ts` and runs the engine's features through the `Controller`.
 - `src/engine` uses only Node and `src/shared`, and `vscode` in `vscode.ts` alone, so that the tests drive the rest; it
-  never imports `src/webview` (rule R1.5). *Followed; no tool checks it.*
+  never imports `src/webview` (rule R1.5). *Checked by `test/imports.test.ts`.*
 - No file of `src/` runs `git`, nor any other program but the engine (rule R1.4).
 - `src/extension` uses all of the above.
+
+`test/imports.test.ts`, run by `npm test`, fails on an import this drawing does not have, other than the files it
+marks.
 
 ## From a click to git
 

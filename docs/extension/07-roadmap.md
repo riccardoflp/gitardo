@@ -53,14 +53,16 @@ each of these against the engine that runs them now.
 
 Exit: the **Differs** lines of those cards are gone.
 
-## M4 — The checks
+## M4 — The checks (done by M49)
 
-Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which tries
-each of these against the engine that runs them now.
+Taken up by [M49](../desktop/07-roadmap.md#m49--the-checks-pass-on-every-system-and-the-risks-tried-again), which
+built them, each made to fail once on purpose.
 
-- RS6: a check that every test named in **Tested by** exists.
-- RS3: a check of the imports between folders, as the architecture draws them (R1.4).
-- RS18: thresholds for QA1 to QA4, on the large repository, in a script that fails.
+- RS6: every test named in **Tested by** exists, checked by `npm run check:docs` and `cargo xtask check` (R2.6).
+- RS3: the imports between folders follow the architecture, `test/imports.test.ts` (R1.4, R1.5).
+- RS18: QA1 to QA3 fail above one and a half times their time in `test/perf/vscode.mjs --limits`, which the pipeline
+  runs on Linux; QA4 gives no time (Q1590).
+- RS19: `npm test` runs `npm run check:docs` when Python 3 is there, and says it skipped it when not (Q378).
 
 Exit: each check runs in a command of [06-testing.md](06-testing.md) and fails on purpose once.
 

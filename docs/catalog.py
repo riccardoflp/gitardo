@@ -4,7 +4,7 @@ r"""Checks a feature catalog and writes its index.
 A catalog is a folder of Markdown files, one per area, each card headed `### \`area.action\` — Title`.
 This script finds every card, checks that identifiers are unique, that every identifier written in backticks
 anywhere in the documents names a card, that each card has the lines its kind requires, that no document uses a
-word the glossary says to avoid, and writes the index `README.md` of the catalog, keeping the status each card already
+word the glossary says to avoid, that every test a card names after **Tested by** exists, and writes the index `README.md` of the catalog, keeping the status each card already
 had there.
 
 Usage:
@@ -155,6 +155,83 @@ def find_avoided(documents: list[Path], avoid: dict[str, str]) -> dict[str, list
     return found
 
 
+TEST_FILE = re.compile(r"^(?:test|src|rust)/[\w./-]+\.(?:ts|tsx|mjs|js|rs)$")
+
+
+def tested_by(text: str) -> list[tuple[int, str, list[str]]]:
+    """What each **Tested by** of a document names: its line, and each file with the names of tests given after it.
+
+    The passage runs from the words to the end of their sentence, over the lines that go on the same item or
+    paragraph. A file is a path in backticks, `test/…` and `src/…` from the extension's folder, `rust/…` from the root
+    of the repository; a name is in double quotes or in italics after its file, and may be the start of the names
+    of several tests ("the steps that start …"). Words between them, such as "the steps of the blame", name nothing a
+    program can check.
+    """
+    lines = text.splitlines()
+    found = []
+    for number, line in enumerate(lines):
+        start = line.find("Tested by")
+        if start < 0:
+            continue
+        passage = line[start + len("Tested by"):]
+        for following in lines[number + 1:]:
+            if not following.strip() or following.lstrip().startswith(("- ", "#", "|")) or following.startswith("```"):
+                break
+            passage += " " + following.strip()
+        files: list[tuple[str, list[str]]] = []
+        index, quoted, italic = 0, None, None
+        while index < len(passage):
+            char = passage[index]
+            if char == "`":
+                end = passage.find("`", index + 1)
+                span = passage[index + 1:end] if end > 0 else ""
+                if TEST_FILE.match(span):
+                    files.append((span, []))
+                index = end + 1 if end > 0 else len(passage)
+                continue
+            if passage.startswith("**", index):
+                index += 2
+                continue
+            if char in "\"*":
+                end = passage.find(char, index + 1)
+                if end < 0:
+                    break
+                name = " ".join(passage[index + 1:end].split())
+                if files and name and name != "none" and not name.startswith("*"):
+                    files[-1][1].append(name)
+                index = end + 1
+                continue
+            if char == "." and (index + 1 == len(passage) or passage[index + 1] == " "):
+                break
+            index += 1
+        if files:
+            found.append((number + 1, files))
+    return [(line, file, names) for line, files in found for file, names in files]
+
+
+def names_test(code: str, name: str) -> bool:
+    """Whether the code has a string that starts with the name, as the title of a test or of a step is written."""
+    flat = " ".join(code.replace("\\'", "'").replace('\\"', '"').split())
+    return any(quote + name in flat for quote in ("'", '"', "`"))
+
+
+def find_missing_tests(documents: list[Path], repository: Path) -> list[str]:
+    """Each test that a **Tested by** names and that is not there: a file gone, or no test of that name in it."""
+    missing = []
+    for file in documents:
+        for line, named, names in tested_by(read_text(file)):
+            path = repository / named if named.startswith("rust/") else repository / "extension" / named
+            where = f"{file.name}:{line}"
+            if not path.is_file():
+                missing.append(f"NO TEST {named}, which {where} says it is tested by")
+                continue
+            code = read_text(path)
+            for name in names:
+                if not names_test(code, name):
+                    missing.append(f"NO TEST \"{name}\" in {named}, which {where} says it is tested by")
+    return missing
+
+
 def anchor(heading: str) -> str:
     """The anchor GitHub gives a heading."""
     text = heading.lstrip("#").strip().lower()
@@ -274,6 +351,12 @@ def main() -> int:
         if identifier not in seen and identifier not in ignored and identifier not in known:
             print(f"DANGLING {identifier}: {', '.join(places[:5])}{' ...' if len(places) > 5 else ''}")
             problems += 1
+
+    cards_and_documents = sorted({*documents, *features.glob("[0-9]*.md"),
+                                  *(file for folder in arguments.known for file in folder.resolve().glob("[0-9]*.md"))})
+    for missing in find_missing_tests(cards_and_documents, docs.parent):
+        print(missing)
+        problems += 1
 
     glossary = arguments.glossary or next(iter(sorted(docs.glob("*glossary*.md"))), None)
     if glossary is not None and glossary.exists():

@@ -21,6 +21,7 @@ fn workspace(files: &[(&str, &str)]) -> Workspace {
                 (file, Some((*text).to_owned()))
             })
             .collect(),
+        repository: PathBuf::new(),
     }
 }
 

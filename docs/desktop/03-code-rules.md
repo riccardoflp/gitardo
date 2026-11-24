@@ -52,8 +52,10 @@ first, in its own commit, with the reason.
 - **R2.6** Every line of a card's acceptance list has a test whose name starts with the feature's identifier
   (`branch_create__…`). `cargo xtask check` matches cards, functions and tests. A line that starts with `Extension:`
   is the extension's, tested by the extension's own tests ([extension/06-testing.md](../extension/06-testing.md)),
-  and is not counted here. Rust does not count the double
-  underscore as snake case, so a module of such tests says
+  and is not counted here. Every test a document of the catalog names after **Tested by**, a file of tests in
+  backticks and the names in quotes or italics after it, is there: the file, and a string in it that starts with each
+  name (risk RS6 of the extension); `docs/catalog.py` checks the same for `npm run check:docs`. Rust does not count
+  the double underscore as snake case, so a module of such tests says
   `#![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]`.
 - **R2.7** A card's status in the extension, the column after the desktop's in the index of the catalog, is one of
   Planned, Built, Seen, Differs (with the entries of the differences) or Host only, and is Built, Seen or Differs only
@@ -232,7 +234,7 @@ first, in its own commit, with the reason.
 | --- | --- |
 | No dependency on a folder outside the workspace; no `build.rs` and no procedural macro in the workspace | R1.1, R1.2 |
 | The edges between crates are the allowed ones | R1.3 |
-| Every function that says `/// Feature:` has a card, in the crate and with the name the card gives; every card the index marks *Built* or *Seen* has its function and at least as many tests named after it as its acceptance list has lines; every test named `<feature>__…` has a card; the index and the cards list the same features, of the same kinds | R2.1, R2.6 |
+| Every function that says `/// Feature:` has a card, in the crate and with the name the card gives; every card the index marks *Built* or *Seen* has its function and at least as many tests named after it as its acceptance list has lines; every test named `<feature>__…` has a card; every test a card names after **Tested by** is there; the index and the cards list the same features, of the same kinds | R2.1, R2.6 |
 | The status of each card in the extension is a known one, and not ahead of its status in the desktop | R2.7 |
 | Pure crates use no I/O, time, threads or environment | R3.1, R3.2 |
 | `unsafe` appears only under `crates/platform` and `crates/system`, each block with `// SAFETY:` | R5.1, R5.3 |

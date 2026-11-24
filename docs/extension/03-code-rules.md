@@ -21,13 +21,14 @@ A change that needs to break a rule changes this page first, in its own commit, 
   suite reaches.*
 - **R1.4** The folders use each other as [the architecture](02-architecture.md#who-may-use-whom) draws it:
   `src/shared` imports nothing of the others, and no file of `src` runs `git`; there is no `src/git` (stage 10 of
-  [the transition](../transition/06-roadmap.md)). *Source: project choice. Followed, with the edges marked on that
-  page; no tool checks the imports, and `grep -rn child_process src` finds `src/engine/client.ts` alone.*
+  [the transition](../transition/06-roadmap.md)). *Source: project choice. Enforced by `test/imports.test.ts`, with
+  the edges marked on that page, and nothing bundled into a page of a webview importing Node or VS Code.*
 - **R1.5** The extension runs one program: `gitardo-engine`, from `bin/<platform>/` of the package or from
   `gitardo.engine.path`, started and spoken to by `src/engine` only, which does not import `src/webview`. Git is the
   engine's to run. *Source:
-  [D41](../08-decisions.md#d41--json-rpc-over-the-standard-input-and-output-one-process-per-window). Not checked by a
-  tool.*
+  [D41](../08-decisions.md#d41--json-rpc-over-the-standard-input-and-output-one-process-per-window). Enforced by
+  `test/imports.test.ts`: of `src/engine` only `vscode.ts` imports VS Code, and only `src/engine/client.ts` starts a
+  program.*
 
 ## R2 — Features
 
@@ -196,10 +197,10 @@ Each rule answers a threat of the [security page](10-security.md).
 | Command | Checks | Rules |
 | --- | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` with `strict`, over `src` and `test` | R11.4 |
-| `npm test` | Vitest: parsers, derivations, operations against real repositories | R8.3, R10.1, R10.2, R10.4 |
+| `npm test` | Vitest: parsers, derivations, operations against real repositories; the imports between the folders (`test/imports.test.ts`); `npm run check:docs` when Python 3 is there (`test/docs.test.ts`) | R1.4, R1.5, R8.3, R10.1, R10.2, R10.4 |
 | `npm run test:e2e`, `npm run test:vsix` | The suite inside a real VS Code; on the packed extension | R1.3, R2.1 |
 | `npm run test:ui` | A real window, five themes, errors logged by the webviews | R9.2, R9.4 |
-| `npm run check:docs` | `docs/catalog.py`: cards, identifiers, glossary words | R6.2, R2.5 |
+| `npm run check:docs` | `docs/catalog.py`: cards, identifiers, glossary words, the tests named after **Tested by** | R6.2, R2.5 |
 
 Everything else is checked by review. There is no linter and no formatter in the project; adding them is not planned
 ([D34](../08-decisions.md#d34--no-linter-no-formatter)).

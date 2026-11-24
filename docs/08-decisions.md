@@ -6068,3 +6068,7 @@ planned; each is built as it says until the maintainer answers otherwise.
 - **Q1532** — D91: the risks of the extension that are still true once tried against the engine are fixed in the
   engine. Should their rows move to a page of risks of both apps, in `docs/transition/` or beside the decisions, since
   they are no longer the extension's alone?
+- **Q1590** — D91: `test/perf/vscode.mjs --limits` fails above one and a half times the times of QA1 to QA3 of
+  [12-quality.md](extension/12-quality.md); QA4, typing a message, says "no key waits" and has no time to multiply, so
+  it is printed and not checked. Should QA4 be given a time, such as the 32 letters typed in under a second, and QA2
+  be measured as now, a new file shown less the second the working tree's changes wait?

@@ -25,6 +25,8 @@ pub struct Workspace {
     /// Every file of the workspace and every document of the repository, with its text when it is text the project
     /// writes.
     pub files: Vec<(SourceFile, Option<String>)>,
+    /// The root of the repository around the workspace, where the extension's tests are, which the catalog names.
+    pub repository: std::path::PathBuf,
 }
 
 impl Workspace {
@@ -40,7 +42,12 @@ impl Workspace {
             };
             files.push((file, text));
         }
-        Ok(Workspace { members, files })
+        let repository = root.parent().unwrap_or(root).to_path_buf();
+        Ok(Workspace {
+            members,
+            files,
+            repository,
+        })
     }
 
     /// The Rust files under a folder of the workspace, with their text.

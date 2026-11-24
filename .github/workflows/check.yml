@@ -1,7 +1,7 @@
 # The pipeline of stage 9 of docs/transition/06-roadmap.md: on every push of a branch, the checks of the Rust workspace
-# and of the extension on Windows, Linux and macOS, the engine of every target of the Marketplace, the seven vsix, and
-# the desktop of each system, all kept as artifacts. It publishes, pushes and tags nothing. A tag runs it through
-# release.yml, which publishes what it made once the maintainer approves (D52).
+# and of the extension on Windows, Linux and macOS, the times of the extension on Linux, the engine of every target of
+# the Marketplace, the seven vsix, and the desktop of each system, all kept as artifacts. It publishes, pushes and tags
+# nothing. A tag runs it through release.yml, which publishes what it made once the maintainer approves (D52).
 
 name: Check
 
@@ -216,8 +216,8 @@ jobs:
         run: cargo build -p server -p app --bin gitardo-engine --bin gitardo-cli
       - run: npm ci
       - run: npm run typecheck
+      # It runs npm run check:docs too (test/docs.test.ts), with the Python set up above (Q378).
       - run: npx vitest run
-      - run: npm run check:docs
       # The end-to-end suite runs in a real VS Code, the stable one, downloaded here and named by VSCODE_PATH.
       - name: VS Code
         run: |
@@ -242,6 +242,56 @@ jobs:
       - name: The end-to-end suite, without it
         run: |
           if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a npm run test:e2e -- --no-engine; else npm run test:e2e -- --no-engine; fi
+
+  # The times of docs/extension/12-quality.md, times one and a half, on the large repository, with the minified build
+  # and the engine in release: on Linux alone, whose runners are the steadiest (D91, Q1519).
+  performance:
+    name: Performance (Linux)
+    needs: engine
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - name: The libraries VS Code needs, and a screen for it
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64
+          # Ubuntu's AppArmor refuses the namespaces the sandbox of Electron makes, and VS Code is killed as it starts.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-linux-x64
+          path: binaries/linux-x64
+      - name: Git for the large repository
+        run: |
+          git config --global user.name "Gitardo tests"
+          git config --global user.email "tests@gitardo.invalid"
+          git config --global core.autocrlf false
+      - name: The large repository, looked after as git gc leaves it
+        run: |
+          node test/perf/big-repo.mjs "$RUNNER_TEMP/big" 50000 2000
+          git -C "$RUNNER_TEMP/big" pack-refs --all
+          git -C "$RUNNER_TEMP/big" commit-graph write --reachable
+      - name: VS Code
+        run: |
+          curl -sSL -o "$RUNNER_TEMP/code.tar.gz" "https://update.code.visualstudio.com/latest/linux-x64/stable"
+          mkdir -p "$RUNNER_TEMP/code" && tar -xzf "$RUNNER_TEMP/code.tar.gz" -C "$RUNNER_TEMP/code" --strip-components=1
+          echo "VSCODE_PATH=$RUNNER_TEMP/code/code" >> "$GITHUB_ENV"
+      - run: node esbuild.mjs --production
+      # An artifact loses the mode of its files.
+      - name: The times of 12-quality.md, times one and a half
+        run: |
+          chmod +x "$GITHUB_WORKSPACE/binaries/linux-x64/gitardo-engine"
+          GITARDO_ENGINE="$GITHUB_WORKSPACE/binaries/linux-x64/gitardo-engine" xvfb-run -a node test/perf/vscode.mjs "$RUNNER_TEMP/big" --limits
 
   package:
     name: The vsix of every target

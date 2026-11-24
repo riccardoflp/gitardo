@@ -23,12 +23,12 @@ npm run package      # gitardo-<target>-<version>.vsix for each engine built
 | `npm run build` | Bundles the extension, the webview and the preview server into `dist/`. |
 | `npm run watch` | Rebuilds on change. |
 | `npm run typecheck` | Type-checks with `tsc`. |
-| `npm test` | Runs the tests with Vitest. The scenarios run the engine's features against throwaway repositories (skipped, and said, when the engine is not built), and the conflicts are resolved as marked by git itself, hundreds of them made at random. |
+| `npm test` | Runs the tests with Vitest. The scenarios run the engine's features against throwaway repositories (skipped, and said, when the engine is not built), and the conflicts are resolved as marked by git itself, hundreds of them made at random. It also runs `npm run check:docs` when Python 3 is on the `PATH`, and says it skipped it when not (`test/docs.test.ts`, Q378), and checks the imports between the folders of `src` (`test/imports.test.ts`). |
 | `npm run test:e2e` | Builds, then runs the end-to-end tests inside a real VS Code: see below. |
 | `npm run test:ui` | Builds, then uses the extension in a real VS Code window, with real clicks and keys, saving screenshots: see below. |
 | `npm run package` | Makes a minified build and packs it (`scripts/package.mjs`) into `gitardo-<target>-<version>.vsix` for each of the seven targets whose engine it finds, holding `bin/<target>/gitardo-engine` only; there is no universal vsix, since without its engine Gitardo only says so (D49), and a release waits for the vsix of every target. The engines are looked for in the folder `--binaries` names, laid out by target as the pipeline does, then in `../rust/target/<triple>/release/`, and for this computer in `../rust/target/release/`. `--target <target>` makes that one only, `--every-target` fails when an engine is missing. It prints the size of each, for the release notes. It leaves the minified build in `dist/`; `npm run build` brings the development one back. |
 | `npm run test:vsix` | Packages, then runs the end-to-end tests on what the `.vsix` of this computer's target contains, with the engine packed in it and no `gitardo.engine.path`. |
-| `npm run check:docs` | Runs `docs/catalog.py` on the extension's cards (`docs/features/extension`) and documents: every card has the lines its kind needs, every identifier written in them names a card of either catalog, and none of them uses a word the glossary says to avoid. Needs Python 3. |
+| `npm run check:docs` | Runs `docs/catalog.py` on the extension's cards (`docs/features/extension`) and documents: every card has the lines its kind needs, every identifier written in them names a card of either catalog, none of them uses a word the glossary says to avoid, and every test a card of either catalog names after **Tested by** is there. Needs Python 3; `npm test` runs it too. |
 | `npm run preview -- <folder>...` | Serves the webview at `http://localhost:5174` against the repositories found in the folders, read-only, to work on the UI without an Extension Host. Add `?view=changes`, `commits`, `branches` or `stashes` for a view of the side bar, `?view=worktreeSetup` for the tab that chooses what new worktrees get, `?view=commit&commit=<revision>` for the tab of a commit, `?view=compare&from=<revision>&to=<revision>` for the tab of a comparison, and `?theme=light` for the light theme, `--islands` before the folders for the graph as `gitardo.graph.islands` draws it, and `--port=<number>` before the folders to serve a second one beside it. |
 
 `F5` in VS Code launches an Extension Development Host with Gitardo loaded (`.vscode/launch.json`).
@@ -42,11 +42,12 @@ The commands run in `extension/`. `npm test` there collects only the extension's
 | --- | --- | --- | --- |
 | Types | That the code holds together | `src`, `test` | `npm run typecheck` |
 | Unit | Parsers on recorded git output, the lanes of the graph, the rules of conflicts, the blame's format, messages, menus, folds, the tree of files, the Flow Diff's diffs | `test/*.test.ts`, `test/flow/*.test.ts` | `npm test` |
+| Checks | The imports between the folders of `src`, as [02-architecture.md](02-architecture.md#who-may-use-whom) draws them; the documents, as `npm run check:docs` checks them | `test/imports.test.ts`, `test/docs.test.ts` | `npm test` |
 | Integration | Operations and reads through the engine, on throwaway repositories, and what the repository is after | `test/engine*.test.ts`, `test/reads.test.ts`, `test/review.test.ts`, `test/conflicts.test.ts` | `npm test`, with the engine built |
 | Preview | What a webview shows, against a real repository, in a browser | `src/dev/server.ts` | `node dist/dev-server.js --port=<n> <folder>` |
 | End to end | Commands, the controller and what VS Code is asked, inside a real VS Code with stubbed dialogs | `test/e2e/suite.ts` | `npm run test:e2e`, `npm run test:vsix` |
 | Window | What only a real window shows: context menus, real dialogs, clicks at coordinates, themes, the Content Security Policy | `test/e2e/ui.mjs` | `npm run test:ui` |
-| Performance | Times on a large repository; numbers to read, not a test | `test/perf` | by hand, below |
+| Performance | Times on a large repository; QA1 to QA3 of [12-quality.md](12-quality.md) fail above their time times one and a half | `test/perf` | by hand, below; `vscode.mjs --limits` by the pipeline on Linux |
 
 1. `npm run typecheck` and `npm test` for anything in `src/engine` or `src/shared`. The scenarios of the engine make
    real repositories in a temporary folder: add one when what the extension sends the engine changes; an operation
@@ -105,8 +106,11 @@ so the screenshots do not depend on the screen.
 
 ## Large repositories
 
-Four scripts in `test/perf` show how Gitardo behaves when there is a lot of everything. None of them is a test: they
-print numbers to read. The numbers that matter are the scenarios of [12-quality.md](12-quality.md).
+Four scripts in `test/perf` show how Gitardo behaves when there is a lot of everything. They print numbers to read; the
+numbers that matter are the scenarios of [12-quality.md](12-quality.md), and `vscode.mjs --limits` fails when one of
+QA1 to QA3 takes longer than the time that page gives it, times one and a half
+([D91](../08-decisions.md#d91--the-checks-pass-on-every-system-and-what-was-found-weak-is-checked-again-proposed),
+Q1519).
 
 ```bash
 node test/perf/big-repo.mjs ../big 50000 2000
@@ -126,10 +130,17 @@ node test/perf/graph-load.mjs ../big --commit
   one read whose pages are laid out as they come, D54), the state at 1,000, 5,000 and 20,000 commits, the details of a
   commit, the working tree, each kind of search, the history of a file, blame. `--engine=<binary>` names the engine,
   the release build for the numbers of M15.
-- `vscode.mjs <repository> [--out=<folder>]` opens the repository in the throwaway VS Code of `npm run test:ui` and
-  times what a person waits for: opening the graph, a refresh, a new file showing up, the next pages of commits,
-  selecting a commit, typing a commit message. It saves screenshots to `dist/perf`, and adds and removes one file in the
-  repository.
+- `vscode.mjs <repository> [--out=<folder>] [--limits]` opens the repository in the throwaway VS Code of
+  `npm run test:ui` and times what a person waits for: opening the graph, a refresh, a new file showing up, the next
+  pages of commits, selecting a commit, typing a commit message. It saves screenshots to `dist/perf`, and adds and
+  removes one file in the repository. It says each time against its limit, read from the table of
+  [12-quality.md](12-quality.md) and multiplied by 1.5: QA1, the graph opened once its command is chosen in the
+  Command Palette, its name typed there being the script's time; QA2, a new file shown, less the second the working
+  tree's changes wait (`WORKTREE_REFRESH_DELAY`); QA3, each next page of commits, received and drawn, while the last
+  row says more are loading, which on the large repository is seldom, since the pages come without being asked for
+  (D54). QA4, "no key waits", gives no time and has no limit. With `--limits` a time over its limit fails
+  the run. The pipeline runs it so on Linux alone, on a repository made by `big-repo.mjs <folder> 50000 2000`, with the
+  minified build (`node esbuild.mjs --production`) and the engine in release, `GITARDO_ENGINE` naming it.
 - `graph-load.mjs <repository> [--out=<folder>] [--commit] [--profile]` opens the repository in the same VS Code and
   records how its graph loads, as the eye sees it: every 50 ms, how many commits the list has, where it is scrolled
   to, how many rows are drawn, whether the last row says **Loading more commits…**, how wide the graph is; each message
@@ -171,7 +182,9 @@ times slower, in proportion to the rows. That build, and `npm run package`, leav
 ## From a card to a test
 
 Each acceptance line of a card is checked by one of the kinds above, and the card's **Tested by** line names the test
-by its file and its title. A line with no test says so in **Tested by**. When a change adds a test for a line, it names
+by its file and its title. A line with no test says so in **Tested by**. The file, in backticks, and each title after
+it, in double quotes or in italics, are checked to be there by `npm run check:docs` and by `cargo xtask check`
+(rule R2.6): a title is found as the start of a string of the file, so "the steps that start …" names them all. When a change adds a test for a line, it names
 it on the card in the same commit. The names of the tests are sentences from the user's side; they do not carry the
 identifier of the card (see [D35](../08-decisions.md#d35--tests-are-named-by-what-the-user-sees)).
 
@@ -260,7 +273,7 @@ repositories with git: `test/engine.test.ts` checks the engine's state against w
 
 - Always: `npm run typecheck` and `npm test`.
 - A change in `../rust/` that the extension uses: `cargo xtask check` there, then `npm run test:e2e` here.
-- A change to the documents: `npm run check:docs`.
+- A change to the documents: `npm run check:docs`, which `npm test` runs too when Python 3 is there.
 - A change to a webview: the preview, in a dark and a light theme.
 - A change to commands, the controller or what VS Code is asked: `npm run test:e2e`.
 - A change to menus, dialogs, the look of a view, or the package: `npm run test:ui`, and `npm run test:vsix` before a

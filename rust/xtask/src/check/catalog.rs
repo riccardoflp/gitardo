@@ -1,13 +1,15 @@
 //! Rules R2.1 and R2.6: the catalog and the code name each other. Every function that says it is a feature has a
 //! card, of the crate and name the card gives; every card the index marks built has its function, and at least as many
-//! tests named after it as its acceptance list has lines; the index and the cards agree. Rule R2.7: no card is further
+//! tests named after it as its acceptance list has lines; the index and the cards agree; every test a document names
+//! after **Tested by** is there, in the file it names (risk RS6 of the extension). Rule R2.7: no card is further
 //! on in the extension than in Gitardo Desktop.
 
 use std::collections::BTreeMap;
 
 use super::Workspace;
 use crate::catalog::{
-    Card, FeatureFunction, IndexRow, feature_test_names, parse_cards, parse_feature_functions, parse_index, test_prefix,
+    Card, FeatureFunction, IndexRow, TestedBy, feature_test_names, names_test, parse_cards, parse_feature_functions,
+    parse_index, parse_tested_by, test_prefix,
 };
 use crate::files::{has_extension, is_rust};
 use crate::problem::Problem;
@@ -39,6 +41,11 @@ pub struct Catalog {
     pub functions: Vec<FeatureFunction>,
     /// The names of the tests of features, with their file and line.
     pub tests: Vec<(String, usize, String)>,
+    /// What the cards and the documents of the catalog name after **Tested by**.
+    pub tested_by: Vec<TestedBy>,
+    /// The text of each file of tests they name, by its path from the root of the repository; none when it is not
+    /// there.
+    pub test_files: BTreeMap<String, Option<String>>,
 }
 
 /// Reads the catalog and the code of the workspace.
@@ -48,11 +55,16 @@ pub fn read(workspace: &Workspace) -> Catalog {
         index: Vec::new(),
         functions: Vec::new(),
         tests: Vec::new(),
+        tested_by: Vec::new(),
+        test_files: BTreeMap::new(),
     };
     for (file, text) in &workspace.files {
         let (relative, Some(text)) = (file.relative.as_str(), text) else {
             continue;
         };
+        if relative.starts_with("docs/features/") && has_extension(relative, "md") {
+            catalog.tested_by.extend(parse_tested_by(text, relative));
+        }
         if relative == INDEX {
             catalog.index = parse_index(text);
         } else if is_area(relative) {
@@ -70,6 +82,13 @@ pub fn read(workspace: &Workspace) -> Catalog {
                 .tests
                 .extend(names.into_iter().map(|(line, name)| (relative.to_owned(), line, name)));
         }
+    }
+    for named in &catalog.tested_by {
+        let path = named.path();
+        let _ = catalog
+            .test_files
+            .entry(path)
+            .or_insert_with_key(|path| std::fs::read_to_string(workspace.repository.join(path)).ok());
     }
     catalog
 }
@@ -93,6 +112,27 @@ pub fn problems(catalog: &Catalog) -> Vec<Problem> {
     found.extend(built_problems(catalog));
     found.extend(test_problems(catalog));
     found.extend(extension_problems(catalog));
+    found.extend(tested_by_problems(catalog));
+    found
+}
+
+/// Each test a **Tested by** names that is not there: its file is gone, or has no test of that name.
+fn tested_by_problems(catalog: &Catalog) -> Vec<Problem> {
+    let mut found = Vec::new();
+    for named in &catalog.tested_by {
+        let Some(Some(code)) = catalog.test_files.get(&named.path()) else {
+            let message = format!("{} is named after Tested by, and is not there.", named.file);
+            found.push(Problem::at_line("R2.6", &named.document, named.line, message));
+            continue;
+        };
+        for name in named.names.iter().filter(|name| !names_test(code, name)) {
+            let message = format!(
+                "\"{name}\" is named after Tested by, and {} has no test of that name.",
+                named.file
+            );
+            found.push(Problem::at_line("R2.6", &named.document, named.line, message));
+        }
+    }
     found
 }
 
