@@ -29,7 +29,7 @@ const LABELS: readonly StatePart[] = ['repository', 'refs', 'stashes', 'worktree
 
 /**
  * The parts each kind of view shows. The tabs of a commit and of a comparison show the labels of their commits; the
- * tabs of the conflicts, of a range and of what new worktrees get, and the Repositories view, read what they show
+ * tabs of the conflicts, of a range, of what new worktrees get and of the large files, and the Repositories view, read what they show
  * themselves, and are sent no state.
  */
 const PARTS: Record<ViewKind, readonly StatePart[]> = {
@@ -44,6 +44,7 @@ const PARTS: Record<ViewKind, readonly StatePart[]> = {
   conflicts: [],
   rangeDiff: [],
   worktreeSetup: [],
+  largeFiles: [],
   repositories: [],
 };
 

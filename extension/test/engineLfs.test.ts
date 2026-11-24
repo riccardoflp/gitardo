@@ -1,6 +1,7 @@
 /**
  * Git LFS in the extension (milestone M47), through the engine: a version of a file stored with Git LFS opens as its
- * content or as the text that says it is not downloaded, never as its pointer, and **Download** runs `lfs.download`.
+ * content or as the text that says it is not downloaded, never as its pointer, and **Download** runs `lfs.download`;
+ * the **Large files** tab reads the status and the files, and **Lock** and **Unlock** run `lfs.lock` and `lfs.unlock`.
  * What needs no Git LFS, a pointer whose content is not in the store and the patterns in the state, runs everywhere;
  * what needs the program is skipped where it is missing and says so (Q1198), and runs on the runners of the pipeline,
  * which have it.
@@ -159,4 +160,46 @@ describe.skipIf(!built)('Git LFS, through the engine', { timeout: 120_000 }, () 
       expect((await git(root, ['show', ':data.bin'])).stdout).toContain('version https://git-lfs.github.com/spec/v1');
     },
   );
+
+  it.skipIf(hasLfs)('lfs.lock, lfs.unlock: without Git LFS, Lock and Unlock refuse with its message', async () => {
+    const root = await withPointer();
+    const { finished: locked } = await runFeature(root, 'lfs.lock', { kind: 'file', path: 'art/logo.psd' });
+    expect(locked).toMatchObject({ kind: 'refused', message: 'Git LFS is not installed: install it from git-lfs.com, then try again.' });
+    const lock = { id: '7', path: 'art/logo.psd', owner: 'reviewer', lockedAt: '2026-11-24T10:00:00Z', isOurs: false };
+    const { finished: unlocked } = await runFeature(root, 'lfs.unlock', { kind: 'lfsLock', ...lock });
+    expect(unlocked).toMatchObject({ kind: 'refused' });
+  });
+
+  it.skipIf(!hasLfs)('lfs.page: the tab reads Git LFS, set up, its pattern and the files of the commit checked out', async () => {
+    const root = await repository();
+    await git(root, ['lfs', 'install', '--local']);
+    fs.writeFileSync(path.join(root, '.gitattributes'), '*.psd filter=lfs diff=lfs merge=lfs -text\n');
+    fs.writeFileSync(path.join(root, 'logo.psd'), 'the layers of the logo\n');
+    await git(root, ['add', '--', '.gitattributes', 'logo.psd']);
+    await git(root, ['commit', '--quiet', '-m', 'Add the logo']);
+    const status = await client().lfsStatus(root);
+    expect(status).toMatchObject({ isSetUp: true, patterns: [{ pattern: '*.psd', file: '.gitattributes', line: 1 }] });
+    expect(status.version).toBeTruthy();
+    const { files } = await client().lfsFiles(root, status.version!);
+    expect(files).toMatchObject([{ path: 'logo.psd', size: 'the layers of the logo\n'.length, isDownloaded: true }]);
+  });
+
+  it.skipIf(!hasLfs)('lfs.read-locks: a remote that is a folder answers with no lock, which the tab lists as none', async () => {
+    const { clone } = await cloneWithoutDownloading();
+    const locks = await client().lfsLocks(clone);
+    expect(locks).toEqual({ kind: 'read', locks: [] });
+  });
+
+  it.skipIf(!hasLfs)('lfs.unlock: a lock of someone else asks first with the warning, and nothing runs when it is not confirmed', async () => {
+    const root = await withPointer();
+    const lock = { id: '7', path: 'art/logo.psd', owner: 'reviewer', lockedAt: '2026-11-24T10:00:00Z', isOurs: false };
+    const { finished } = await client().runFeature(
+      { repository: root, feature: 'lfs.unlock', target: { kind: 'lfsLock', ...lock } },
+      { ask: async () => null, confirm: async () => false },
+    );
+    expect(finished.kind).toBe('notConfirmed');
+    if (finished.kind !== 'notConfirmed') return;
+    expect(finished.plan.danger).toEqual({ kind: 'confirm', reason: "The lock is reviewer's, and they are not told: they may be changing the file." });
+    expect(finished.plan.steps.map((step) => step.line)).toEqual(['git lfs unlock --force --id=7']);
+  });
 });

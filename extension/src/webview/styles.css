@@ -2927,6 +2927,68 @@ body.vscode-high-contrast-light .app.islands {
   border-color: var(--vscode-button-background);
 }
 
+/* The Large files tab (`lfs.page`): the patterns and the files stored with Git LFS, laid out as the tab of new worktrees. */
+.lfs-head,
+.lfs-nothing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lfs-page .note .button {
+  margin-left: 8px;
+}
+
+.lfs-summary {
+  font-weight: normal;
+}
+
+.lfs-rows {
+  list-style: none;
+  margin: 0 auto 8px;
+  padding: 0;
+}
+
+.lfs-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.lfs-row:hover,
+.lfs-row:focus-visible {
+  background: var(--vscode-list-hoverBackground);
+  outline: none;
+}
+
+.lfs-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lfs-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 96px;
+}
+
+.lfs-size {
+  min-width: 64px;
+  text-align: right;
+}
+
+.lfs-state {
+  min-width: 104px;
+}
+
+.lfs-locks-note {
+  margin: 0 auto 6px;
+}
+
 /* The tab where what new worktrees get of what git ignores is chosen. */
 .setup-page {
   height: 100%;

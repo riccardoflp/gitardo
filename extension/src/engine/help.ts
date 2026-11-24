@@ -58,6 +58,7 @@ export const FEATURE_COMMANDS: Readonly<Record<string, string>> = {
   'worktree.create': 'gitardo.createWorktree',
   'worktree.switch': 'gitardo.switchWorktree',
   'worktree-setup.page': 'gitardo.worktreeSetup',
+  'lfs.page': 'gitardo.largeFiles',
   'submodule.add': 'gitardo.addSubmodule',
   'patch.apply': 'gitardo.applyPatch',
 };

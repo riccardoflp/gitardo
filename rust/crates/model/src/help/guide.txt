@@ -6733,6 +6733,18 @@ place: the Files page
 show: show where
 Downloads the content of files left as pointers, into the working tree for the commit checked out, or into the store for another commit.
 In VS Code: built: **Download** in the message of a version not downloaded sends `feature/run` of `lfs.download` with the target `lfsFiles` (protocol 1.13), the path and the commit of the version, or none for the index; once it ran, the tabs of the scheme `gitardo` said not downloaded in that repository are read again and show the content.
+@card extension lfs.page
+title: The Large files page
+place: the Files page
+show: page
+A page with what the repository stores with Git LFS: whether Git LFS is there and set up, the patterns, the files with their sizes and whether they are downloaded, and the locks.
+In VS Code: built: the **Large files** editor tab (`gitardo.largeFiles`, `LargeFilesTabs` in), one for each repository as the tab of what new worktrees get is, opened by **Large files…** in the menu of the row of a repository of **Gitardo Repositories** and by **Gitardo: Large Files** in the Command Palette, titled **Large Files · `<repository>`**. It has the head, the patterns, the files and the locks of the page, each read by the engine (`read/lfs.read-status`, `read/lfs.read-files`, `read/lfs.read-locks`, protocol 1.13), and its buttons and menus send `feature/run`. The files are read again once the repository was; double-click on a file opens it, and **Reveal in Explorer View** takes the place of **Show in the Files page**. The tab keeps nothing across a reload of the window.
+@card extension lfs.set-up
+title: Set up Git LFS for a repository
+place: the Files page
+show: show where
+Sets up the filter and the hooks of Git LFS for one repository, so that its files are downloaded at checkout and stored with Git LFS at commit.
+In VS Code: built: **Set up** in the head of the **Large files** tab sends `feature/run` of `lfs.set-up`; **Download all** offered after is shown on the message, and the tab reads again.
 @card extension lfs.track
 title: Store files with Git LFS
 place: the Files page
@@ -6745,3 +6757,27 @@ place: the Files page
 show: show where
 Stages again, as pointers, the files git tracks that a pattern of Git LFS takes but that were committed before the pattern was there, so that the next commit stores them with Git LFS. The commits before keep them as they are.
 In VS Code: built: **Store them with Git LFS in the next commit**, offered on the message after `lfs.track` with the files it read (the answer `names`, protocol 1.13) and in the menu of a pattern of the **Large files** tab, sends `feature/run` of `lfs.store-committed`.
+@card extension lfs.untrack
+title: Stop storing a pattern with Git LFS
+place: the Files page
+show: show where
+Takes a pattern out of the `.gitattributes` at the top, so that the files it took are stored by git from their next commit on.
+In VS Code: built: **Stop storing with Git LFS** in the menu of a pattern of the `.gitattributes` at the top, on the **Large files** tab, sends `feature/run` of `lfs.untrack` with the pattern as the answer `pattern`; a pattern of another file has **Open `<file>`** only.
+@card extension lfs.read-locks
+title: The locks of the files stored with Git LFS
+place: the Files page
+show: none
+The files that someone locked on the server, so that two people do not change a file that cannot be merged, with who holds each lock.
+In VS Code: built: `read/lfs.read-locks` (protocol 1.13), asked by the **Large files** tab when it opens, on **Refresh** and once **Lock** or **Unlock** ran, never when the repository is read again nor when the tab comes back into sight. The note under **Files** says **Reading the locks…**, that the server of the remote of `remote.default` does not support locks, or what git said; a lock of this user is said **You**.
+@card extension lfs.lock
+title: Lock a file stored with Git LFS
+place: the Files page
+show: show where
+Locks a file on the server, so that others know not to change it.
+In VS Code: built: **Lock** in the menu of a file of the **Large files** tab, while the server gave its locks and the file is not locked, sends `feature/run` of `lfs.lock` with the target `file`; the tab reads the locks again after.
+@card extension lfs.unlock
+title: Unlock a file stored with Git LFS
+place: the Files page
+show: show where
+Takes a lock away: one's own, or, after a warning, someone else's.
+In VS Code: built: **Unlock** in the menu of a locked file of the **Large files** tab sends `feature/run` of `lfs.unlock` with the lock as the server gave it (target `lfsLock`, protocol 1.13); someone else's is confirmed with the engine's warning in VS Code's modal message, and **Unlock anyway** comes as the offer after a refusal. The tab reads the locks again after.

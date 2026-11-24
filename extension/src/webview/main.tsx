@@ -55,6 +55,10 @@ const VIEWS: Record<ViewKind, () => Promise<ReactNode>> = {
     const { RepositoriesApp } = await import('./RepositoriesApp');
     return <RepositoriesApp />;
   },
+  largeFiles: async () => {
+    const { LargeFilesApp } = await import('./LargeFilesApp');
+    return <LargeFilesApp />;
+  },
   rangeDiff: async () => {
     const { RangeDiffApp } = await import('./RangeDiffApp');
     return <RangeDiffApp />;

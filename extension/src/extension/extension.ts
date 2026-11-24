@@ -46,7 +46,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   reads.use(() => engine.running);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
   // A version stored with Git LFS and not downloaded offers **Download**, after which the tabs read it again.
-  const fileSystem: GitFileSystem = new GitFileSystem((side) => controller.sayNotDownloaded(side, (root) => fileSystem.readAgain(root)));
+  const fileSystem = new GitFileSystem((side) => controller.sayNotDownloaded(side));
+  controller.readAgainAfterDownload = (root) => fileSystem.readAgain(root);
   controller.useEngine(engine);
   controller.useTokenForgetting((host) => Promise.resolve(context.secrets.delete(hostingTokenKey(host))));
   const blameSource = new BlameSource(log);
@@ -252,6 +253,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.createWorktree', () => controller.action({ kind: 'worktreeAdd' })),
     command('gitardo.switchWorktree', () => controller.command('switchWorktree')),
     command('gitardo.worktreeSetup', () => controller.command('worktreeSetup')),
+    command('gitardo.largeFiles', () => controller.command('largeFiles')),
     ...(
       [
         ['gitardo.linkIntoWorktrees', 'link'],

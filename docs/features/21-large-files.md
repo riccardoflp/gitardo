@@ -225,8 +225,14 @@ their sizes and whether they are downloaded, and the locks.
 - **Reads**: `lfs.read-status`, `lfs.read-files`, `lfs.read-locks`.
 - **Uses**: `lfs.download`, `lfs.set-up`, `lfs.track`, `lfs.untrack`, `lfs.store-committed`, `lfs.lock`,
   `lfs.unlock`, `file-view.page`, `ui.page-trail`.
-- **Extension**: planned, in a later milestone: an editor tab with the same sections, or entries of the **Gitardo
-  Repositories** view (Q1197).
+- **Extension**: built: the **Large files** editor tab (`gitardo.largeFiles`, `LargeFilesApp.tsx`, `LargeFilesTabs` in
+  `src/extension/largeFiles.ts`), one for each repository as the tab of what new worktrees get is, opened by **Large
+  files…** in the menu of the row of a repository of **Gitardo Repositories** and by **Gitardo: Large Files** in the
+  Command Palette, titled **Large Files · `<repository>`**. It has the head, the patterns, the files and the locks of
+  the page, each read by the engine (`read/lfs.read-status`, `read/lfs.read-files`, `read/lfs.read-locks`, protocol
+  1.13), and its buttons and menus send `feature/run` (`src/engine/lfs.ts`). The files are read again once the
+  repository was; double-click on a file opens it, and **Reveal in Explorer View** takes the place of **Show in the
+  Files page**. The tab keeps nothing across a reload of the window (Q1197).
 
 - The page is titled **Large files** in its trail. Its head says **Git LFS `<version>`**, or **Git LFS is not
   installed** with **Open git-lfs.com**, and, when the repository has patterns and is not set up, **Git LFS is not set
@@ -277,7 +283,8 @@ with Git LFS at commit.
 - **After**: offers **Download all** when files are left as pointers. When the repository has hooks of its own of the
   same names, Git LFS leaves them and says so: its message is shown.
 - **Uses**: `lfs.read-status`, `lfs.download`.
-- **Extension**: planned, with `lfs.page`.
+- **Extension**: built: **Set up** in the head of the **Large files** tab sends `feature/run` of `lfs.set-up`;
+  **Download all** offered after is shown on the message, and the tab reads again.
 
 Acceptance:
 
@@ -380,7 +387,9 @@ commit on.
 - **After**: says that the files the pattern took stay as committed until they change, and that `.gitattributes` is to
   be committed.
 - **Uses**: `lfs.read-status`, `lfs.track`.
-- **Extension**: planned, with `lfs.page`.
+- **Extension**: built: **Stop storing with Git LFS** in the menu of a pattern of the `.gitattributes` at the top, on
+  the **Large files** tab, sends `feature/run` of `lfs.untrack` with the pattern as the answer `pattern`; a pattern of
+  another file has **Open `<file>`** only.
 
 Acceptance:
 
@@ -403,7 +412,10 @@ holds each lock.
   when the **Large files** page opens and on **Refresh** there, never with the reads of the repository (Q1195). A server
   that does not support locks is said so, and its message kept.
 - **Uses**: `lfs.read-status`, by `lfs.page`.
-- **Extension**: planned, with `lfs.page`.
+- **Extension**: built: `read/lfs.read-locks` (protocol 1.13), asked by the **Large files** tab when it opens, on
+  **Refresh** and once **Lock** or **Unlock** ran, never when the repository is read again nor when the tab comes back
+  into sight (Q1528). The note under **Files** says **Reading the locks…**, that the server of the remote of
+  `remote.default` does not support locks, or what git said; a lock of this user is said **You**.
 
 Acceptance:
 
@@ -432,7 +444,8 @@ Locks a file on the server, so that others know not to change it.
 - **After**: the page reads the locks again; the file shows this user as its owner.
 - **Refuses**: git-lfs's message when the server refuses, such as a file locked by someone else meanwhile.
 - **Uses**: `lfs.read-locks`, `lfs.unlock`.
-- **Extension**: planned, with `lfs.page`.
+- **Extension**: built: **Lock** in the menu of a file of the **Large files** tab, while the server gave its locks and
+  the file is not locked, sends `feature/run` of `lfs.lock` with the target `file`; the tab reads the locks again after.
 
 Acceptance:
 
@@ -455,7 +468,10 @@ Takes a lock away: one's own, or, after a warning, someone else's.
 - **Undo**: Not taken back by Undo: **Lock** takes it again, while no one else has.
 - **After**: the page reads the locks again.
 - **Uses**: `lfs.read-locks`, `lfs.lock`.
-- **Extension**: planned, with `lfs.page`.
+- **Extension**: built: **Unlock** in the menu of a locked file of the **Large files** tab sends `feature/run` of
+  `lfs.unlock` with the lock as the server gave it (target `lfsLock`, protocol 1.13); someone else's is confirmed with
+  the engine's warning in VS Code's modal message, and **Unlock anyway** comes as the offer after a refusal. The tab
+  reads the locks again after.
 
 Acceptance:
 

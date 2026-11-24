@@ -2,6 +2,7 @@ import type { ImagePair } from './images';
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
 import type { Hosting, HostingService } from './hosting';
+import type { LargeFilesAsk, LargeFilesInfo } from './lfs';
 import type { RangeDiffPairs, RangeDiffTarget } from './rangeDiff';
 import type { RepositoryRow, ShownParts } from './repositories';
 import type { TagMarks } from './tagMarks';
@@ -351,7 +352,8 @@ export interface CompareView {
  * tags or commits compared in an editor tab. `worktreeSetup` is the tab where what new worktrees get of what git
  * ignores is chosen. `conflicts` is the tab where what is proposed for the conflicts is looked at before it is written.
  * `repositories` is the view of the side bar that lists the repositories of the workspace, with their worktrees and
- * their submodules under them and what each is on: it is sent its rows, and no state.
+ * their submodules under them and what each is on: it is sent its rows, and no state. `largeFiles` is the tab of what
+ * a repository stores with Git LFS (`lfs.page`), which reads what it shows itself.
  */
 export type ViewKind =
   | 'graph'
@@ -365,7 +367,8 @@ export type ViewKind =
   | 'worktreeSetup'
   | 'conflicts'
   | 'repositories'
-  | 'rangeDiff';
+  | 'rangeDiff'
+  | 'largeFiles';
 
 /** The pairs of the tab of what a rewrite changed: being read, read, or what git said. */
 export type RangeDiffRead =
@@ -663,7 +666,9 @@ export type HostMessage =
    */
   | { type: 'repositories'; rows: RepositoryRow[] | null; shown?: ShownParts | null; engineMissing?: boolean }
   /** What the tab of what a rewrite changed shows (`range-diff.page`): the pairs while they are read, once read, or why not. */
-  | { type: 'rangeDiff'; read: RangeDiffRead };
+  | { type: 'rangeDiff'; read: RangeDiffRead }
+  /** What the Large files tab shows (`lfs.page`). Null, with `error`, when it could not be read. */
+  | { type: 'largeFiles'; info: LargeFilesInfo | null; error?: string };
 
 /** Things the UI can ask for that need the extension to prompt, pick or open something. */
 export type UiCommand =
@@ -683,7 +688,9 @@ export type UiCommand =
   | 'remotes'
   | 'goToCommit'
   | 'switchWorktree'
-  | 'worktreeSetup';
+  | 'worktreeSetup'
+  /** The Large files tab of the repository shown (`lfs.page`). */
+  | 'largeFiles';
 
 export type WebviewMessage =
   | { type: 'ready' }
@@ -796,6 +803,12 @@ export type WebviewMessage =
   | { type: 'saveWorktreeSetup'; target: SetupTarget; patterns: SetupPatterns | null; alsoVSCode?: boolean; commands?: string[] }
   /** Opens the file of the settings there. */
   | { type: 'editWorktreeSetup'; target: SetupTarget }
+  /** Asks for what the Large files tab shows, as it opens (`lfs.page`). */
+  | { type: 'getLargeFiles' }
+  /** What the Large files tab asks: a read, an operation of the engine, a file opened. */
+  | { type: 'largeFiles'; ask: LargeFilesAsk }
+  /** Opens the Large files tab of a repository, from the menu of its row in the Repositories view (`lfs.page`). */
+  | { type: 'openLargeFiles'; root: string }
   /**
    * Opens the tab of the review of the conflicts, of these files or of all of them, or shows the one open. With `ai`
    * the language model is asked about the conflicts the rules leave.

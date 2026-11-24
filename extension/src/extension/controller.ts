@@ -78,6 +78,7 @@ import { type HostHooks, VscodeAsker, type WindowEngine, sayEngineMissing } from
 import { runSetupCommands } from './worktreeCommands';
 import { type Repository, reads, repositoryName } from '../engine/reads';
 import type { NotDownloaded } from './content';
+import { LargeFilesTabs } from './largeFiles';
 import { LFS_WORDS, notDownloadedMessage } from '../shared/lfs';
 import { completed, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
@@ -295,8 +296,21 @@ export class Controller implements vscode.Disposable {
   private readonly ignoredUnsaved = new Map<string, boolean>();
   /** What `unsaved` was last worked out from: the state, and the files of the editors with edits not saved. */
   private unsavedFrom?: { state: RepoState | null; files: string };
-  /** The files hidden from git the Explorer's menu was last told of, as JSON. */
+  /** Whether the Explorer's menu was last told that the repository stores files with Git LFS (`lfs.track`). */
   private lfsInMenus = false;
+  /** Has the tabs of the scheme `gitardo` said not downloaded read again once a download ran in a repository (M47). */
+  readAgainAfterDownload: (root: string) => void = () => undefined;
+  /** The Large files tabs, one for each repository (`lfs.page`). */
+  private readonly largeFiles = new LargeFilesTabs({
+    attach: (webview, root) => this.attach(webview, 'largeFiles', { root }),
+    post: (message, webview) => this.post(message, webview),
+    run: (runs, repo) => this.runOnEngine(runs, repo),
+    name: (root) => this.repositoryNamed(root),
+    held: (root) => this.heldFor(root),
+    downloaded: (root) => this.readAgainAfterDownload(root),
+    error: (text) => this.log.error(text),
+  });
+  /** The files hidden from git the Explorer's menu was last told of, as JSON. */
   private hiddenInMenus = '';
   private readonly stateEmitter = new vscode.EventEmitter<RepoState | null>();
   private readonly readEmitter = new vscode.EventEmitter<RepoState>();
@@ -1072,16 +1086,22 @@ export class Controller implements vscode.Disposable {
 
   // Milestone M47: the files stored with Git LFS.
 
+  /** Opens the Large files tab of the repository a group shows, or shows the one open for it (`lfs.page`). */
+  async openLargeFiles(on = this.followers): Promise<void> {
+    const repo = (await this.requireState(on)) && on.repo;
+    if (repo) this.largeFiles.open(repo);
+  }
+
   /**
    * Says that a version of a file stored with Git LFS that a tab opened is not downloaded, with **Download**, which
    * downloads it with the engine (`lfs.download`): into the working tree for the commit checked out and the index, into
-   * the store for another commit. `downloaded` has the tabs read it again.
+   * the store for another commit. The tabs of the scheme `gitardo` read it again once it ran.
    */
-  sayNotDownloaded(side: NotDownloaded, downloaded: (root: string) => void): void {
+  sayNotDownloaded(side: NotDownloaded): void {
     void vscode.window.showInformationMessage(notDownloadedMessage(side.path, side.size), LFS_WORDS.download).then(async (choice) => {
       if (choice !== LFS_WORDS.download) return;
       const target: Target = { kind: 'lfsFiles', paths: [{ path: side.path, isFolder: false }], commit: side.commit };
-      if (await this.runOnEngine([{ feature: 'lfs.download', target }], { root: side.root })) downloaded(side.root);
+      if (await this.runOnEngine([{ feature: 'lfs.download', target }], { root: side.root })) this.readAgainAfterDownload(side.root);
     });
   }
 
@@ -1556,6 +1576,7 @@ export class Controller implements vscode.Disposable {
       if (command === 'remotes') return await this.manageRemotes(false, on);
       if (command === 'switchWorktree') return await this.switchWorktree(on);
       if (command === 'worktreeSetup') return await this.openWorktreeSetup(on);
+      if (command === 'largeFiles') return await this.openLargeFiles(on);
     } catch (error) {
       void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
     }
@@ -2234,6 +2255,7 @@ export class Controller implements vscode.Disposable {
       void this.checkUnsaved();
     }
     if (state) this.readEmitter.fire(state);
+    if (state) this.largeFiles.repositoryRead(state.root);
   }
 
   /**
@@ -2913,6 +2935,14 @@ export class Controller implements vscode.Disposable {
         return this.post({ type: 'fileIcons', theme: await this.fileIcons.for(webview) }, webview);
       case 'getWorktreeSetup':
         return this.sendSetup(webview, message.rescan === true);
+      case 'getLargeFiles':
+        return this.largeFiles.opened(webview);
+      case 'largeFiles':
+        return this.largeFiles.ask(webview, message.ask);
+      case 'openLargeFiles':
+        if (typeof message.root !== 'string') return;
+        await this.selectRepo(message.root);
+        return this.openLargeFiles();
       case 'previewWorktreeSetup': {
         if (!repo) return;
         const patterns = { link: cleanPatterns(message.patterns?.link), copy: cleanPatterns(message.patterns?.copy) };

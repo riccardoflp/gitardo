@@ -499,6 +499,11 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.largeFiles",
+        "title": "Large Files",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.stopTracking",
         "title": "Stop Tracking, Keep on Disk…",
         "category": "Gitardo"

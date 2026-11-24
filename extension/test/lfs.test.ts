@@ -4,6 +4,7 @@
  * and its files.
  */
 import { describe, expect, it } from 'vitest';
+import { lfsRun, locksRemote } from '../src/engine/lfs';
 import {
   type LargeFilesInfo,
   type LfsFile,
@@ -100,5 +101,43 @@ describe('The Large files tab', () => {
     expect(ownerText(lock('a.psd', true))).toBe('You');
     expect(ownerText(lock('a.psd', false))).toBe('reviewer');
     expect(ownerText(lock('a.psd', null))).toBe('reviewer');
+  });
+});
+
+describe('What the Large files tab runs', () => {
+  it('lfs.page: Download all downloads every file of the commit checked out, Download one file, Set up and Track a pattern on what is checked out', () => {
+    expect(lfsRun({ kind: 'downloadAll' })?.run).toEqual({ feature: 'lfs.download', target: { kind: 'lfsFiles', paths: [], commit: null } });
+    expect(lfsRun({ kind: 'download', paths: ['art/logo.psd'] })).toMatchObject({
+      run: { feature: 'lfs.download', target: { kind: 'lfsFiles', paths: [{ path: 'art/logo.psd', isFolder: false }], commit: null } },
+      downloads: true,
+    });
+    expect(lfsRun({ kind: 'setUp' })?.run).toMatchObject({ feature: 'lfs.set-up', target: { kind: 'head' } });
+    expect(lfsRun({ kind: 'track' })?.run).toMatchObject({ feature: 'lfs.track', target: { kind: 'head' } });
+    expect(lfsRun({ kind: 'storeCommitted' })?.run).toMatchObject({ feature: 'lfs.store-committed', target: { kind: 'head' } });
+    expect(lfsRun({ kind: 'openSite' })).toBeNull();
+  });
+
+  it('lfs.untrack: Stop storing with Git LFS gives the pattern as the answer pattern', () => {
+    expect(lfsRun({ kind: 'untrack', pattern: '*.psd' })?.run).toEqual({
+      feature: 'lfs.untrack',
+      target: { kind: 'head' },
+      answers: { pattern: { kind: 'text', text: '*.psd' } },
+    });
+  });
+
+  it('lfs.lock, lfs.unlock: Lock names the file, Unlock the lock as the server gave it, and both read the locks again', () => {
+    expect(lfsRun({ kind: 'lock', path: 'art/logo.psd' })).toMatchObject({
+      run: { feature: 'lfs.lock', target: { kind: 'file', path: 'art/logo.psd' } },
+      readLocks: true,
+    });
+    const theirs = lock('art/logo.psd', false);
+    expect(lfsRun({ kind: 'unlock', lock: theirs })).toMatchObject({ run: { feature: 'lfs.unlock', target: { kind: 'lfsLock', ...theirs } }, readLocks: true });
+  });
+
+  it('lfs.read-locks: the note of the locks names origin, or the first remote, as remote.default chooses', () => {
+    expect(locksRemote({ remotes: ['upstream', 'origin'] })).toBe('origin');
+    expect(locksRemote({ remotes: ['upstream', 'fork'] })).toBe('upstream');
+    expect(locksRemote({ remotes: [] })).toBeNull();
+    expect(locksRemote(null)).toBeNull();
   });
 });
