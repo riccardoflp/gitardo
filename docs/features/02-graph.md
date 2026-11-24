@@ -732,8 +732,17 @@ the same action draws, so that the eye finds an action in a long menu and one me
   the menu of a file of the changes and the **…** of their heading (`changes.row-menu`); the menus of the editors of
   the File, Diff and Merge pages; the chooser of the comparison, the sections of the settings.
 - **Uses**: `graph.icons`.
-- **Extension**: the extension draws its own menus in its webviews, with no icons yet (Q619); VS Code's own menus show
-  none.
+- **Extension**: the menus the webviews draw show the codicon nearest to each icon of the desktop
+  ([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed),
+  Q619): `src/webview/menuIcons.ts` keeps the desktop's table of meanings, each with its codicon, and the meaning
+  `operation_icon` gives each operation; an item of `menus.ts` names the card of the operation it runs (`feature`) or
+  the meaning of what it does (`icon`), and an item that switches or chooses shows the check while it is on, and no
+  icon of its own. `ContextMenu.tsx` draws the icon at the left of the words, in a column kept when any item of the
+  menu has one. The menus of a file in conflict in **Gitardo Changes** and of the **Large files** tab draw the icons
+  of the desktop's too. VS Code's own menus show none. Tested by `test/menuIcons.test.ts`, "gives each meaning of the
+  icons of Gitardo Desktop a codicon, in the order of its table", "gives each operation the meaning operation_icon of
+  Gitardo Desktop gives it" and "draws in every menu the icon of the desktop for each item that has one there, and
+  says why each other item has none".
 
 - The icon is at the left of the words, in the column the toolkit keeps for icons in every menu, drawn at 16 logical
   pixels in the color of the words: lit with them under the pointer or the keys, dimmed with them when the item cannot
@@ -1159,9 +1168,14 @@ opens the list of all of them
 - **Entry points**: the pointer resting on `+N`, or on any label of a row that does not show all its labels whole.
 - **Uses**: `graph.labels`, `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `branch.checkout`,
   `ui.menu-scroll`.
-- **Extension**: planned (Q656): the labels come first on the one line of its wide Graph view already, and under the
-  message, before the author and the date, on the two lines of its rows in the side bar, all of them, with no list
-  under the pointer yet.
+- **Extension**: the same rule, `fitLabels` of `src/shared/labelFit.ts`, with the widths of the labels, the message,
+  the author and the date measured in the page with its fonts (`src/webview/labelWidths.ts`), first on the one line of
+  a compact row and starting the line under the message on two lines (D90, Q656). Resting 300 ms on `+N` or on a label
+  of a row that does not show all of them opens their list under it (`LabelList` of `CommitList.tsx`), drawn above the
+  page, and scrolling the commits closes it. A double click on a tag or a remote branch there opens the commit in a
+  tab, as on the row. Tested by `test/labelFit.test.ts`, "keeps room for the message and counts the labels that do not
+  fit, as Gitardo Desktop does", and `test/e2e/suite.ts`, "gives a commit with eight labels all of them in their order,
+  checks out the one chosen from their list, and turns compact rows off and on".
 
 - While the rows are of two lines, the labels start the line under the message, right after the cell of the graph, in
   the order of `graph.labels`, then the author and the date. The author and the date keep their width up to a third of
@@ -1401,8 +1415,16 @@ columns that line up, on rows half as tall, so that twice as many commits are se
 - **Settings**: `graph.compactRows` (off by default), in the user's settings file.
 - **Uses**: `graph.columns`, `graph.labels`, `graph.label-overflow`, `graph.lanes`, `graph.date-separators`,
   `graph.uncommitted-row`, `graph.stashes`.
-- **Extension**: planned (Q655): the rows of its wide Graph view are one line with the columns at the right end
-  already, and two lines in the side bar, by where the view is and not by a setting.
+- **Extension**: `gitardo.graph.compactRows`, on by default there, where the wide view has always been one line
+  ([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed),
+  Q655): on, the **Graph** view in the panel and its tabs have a commit on one line, and **Gitardo Graph** in the side
+  bar keeps its two lines; off, every view of the graph has the desktop's two lines, the message, then the labels, the
+  author and the date (`tall` of `CommitList.tsx`). **Compact rows** is in the menu of the view of its toolbar, right
+  after **Show all commits on one line**, and writes the user's settings. Changed, the commits are read again, as for
+  every switch of the graph there, and those that are the same stay. The last row of a shallow clone is as tall as the
+  others in either. Tested by `test/toolbarMenus.test.ts`, "ticks each switch while it is on" and "writes the columns
+  left when Show the hash is unticked, and turns a switch the other way", and `test/oneLane.test.ts`, "puts
+  graph.compactRows in Timeline, on by default, under the name the desktop gives it".
 
 - On, each row of the timeline is as tall as a row of a list, half the two lines (Q648), and the cell of the graph is
   as tall: the dots and the lines keep their sizes and their lanes, closer from row to row.

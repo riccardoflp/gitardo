@@ -112,6 +112,7 @@ export async function graphState(
     showStashes: stashes,
     firstParent,
     oneLane: false,
+    compactRows: true,
     graphColumns: GRAPH_COLUMNS,
     dateSeparators: true,
     combineUpstream: true,

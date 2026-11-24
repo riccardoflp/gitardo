@@ -1240,7 +1240,6 @@ input:focus-visible,
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  max-width: 180px;
   height: 18px;
   padding: 0 6px;
   border-radius: 3px;
@@ -1370,17 +1369,50 @@ input:focus-visible,
   }
 }
 
-/* As narrow as the side bar: the first label keeps its name, the others are left with their icon, and the message with some room. */
-@container (max-width: 420px) {
-  .message .label {
-    max-width: 55%;
-  }
+/*
+ * The labels a row shows: as many as fit whole, then `+N`, as `src/shared/labelFit.ts` chooses with the sizes of
+ * `src/webview/labelWidths.ts`. They are a list for the screen reader, laid out as the items of the line they are on.
+ */
+.message .labels {
+  display: contents;
+}
 
-  .message .label ~ .label {
-    gap: 0;
-    padding: 0 4px;
-    font-size: 0;
-  }
+/* The count of the labels not shown, in the muted color: it names none of them. */
+.message .label.more {
+  color: var(--vscode-descriptionForeground);
+}
+
+.row.selected .message .label.more {
+  color: inherit;
+}
+
+/* The list of all the labels of a commit whose row does not show them all, under the pointer. */
+.label-list {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-sizing: border-box;
+  max-width: min(420px, calc(100vw - 8px));
+  padding: 4px;
+  overflow-y: auto;
+  border-radius: 4px;
+  color: var(--vscode-menu-foreground);
+  background: var(--vscode-menu-background);
+  border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgb(0 0 0 / 35%));
+}
+
+.label-list .message {
+  flex: none;
+  min-height: 18px;
+}
+
+.label-list .label {
+  flex: 0 1 auto;
+  min-width: 0;
+  cursor: pointer;
 }
 
 /* Details */
@@ -1771,17 +1803,20 @@ input:focus-visible,
 }
 
 /* Room on the left for the check marks of what is switched on. */
-.menu.context.checks button {
+/* The column of the icons and the check marks, in the color of the words, dimmed with them (`ui.menu-icons`). */
+.menu.context.icons button {
   position: relative;
-  padding-left: 26px;
+  padding-left: 28px;
 }
 
-.menu.context button .codicon-check {
+.menu.context button .menu-icon {
   position: absolute;
-  left: 6px;
+  left: 7px;
   top: 50%;
+  display: flex;
   transform: translateY(-50%);
 }
+
 
 .menu.context button:disabled {
   opacity: 0.5;
@@ -2369,22 +2404,24 @@ body.vscode-high-contrast-light .app.islands {
   font-size: 0.9em;
 }
 
-/* Here every label keeps its name, cut short when there are many: a label is told by its name, not by its icon. */
-.row.tall .message .label,
-.row.tall .message .label ~ .label {
-  flex: 0 1 auto;
-  gap: 3px;
-  min-width: 24px;
-  max-width: 60%;
+/* The labels, as wide as on one line, a little less tall. */
+.row.tall .message .label {
   height: 16px;
-  padding: 0 5px;
   font-size: 1em;
 }
 
-/* The count of the ones that are not named. */
-.row.tall .message .label.more {
-  flex: none;
+/* The message, and the arrow that folds the commits of a merge after it. */
+.row.tall .subject-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   min-width: 0;
+}
+
+.row.tall .subject-line .subject {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .message .label .text {

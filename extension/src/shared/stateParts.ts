@@ -134,6 +134,7 @@ export const NO_STATE: ShownState = {
   traceSelected: false,
   firstParent: false,
   oneLane: false,
+  compactRows: true,
   graphColumns: [],
   dateSeparators: false,
   combineUpstream: false,

@@ -14,6 +14,7 @@ const state = (overrides: Partial<RepoState> = {}) =>
     showStashes: true,
     firstParent: false,
     oneLane: false,
+    compactRows: true,
     traceSelected: true,
     dateSeparators: true,
     combineUpstream: true,
@@ -43,6 +44,7 @@ const VIEW = [
   'Show only the first parent of merges',
   '-',
   'Show all commits on one line',
+  'Compact rows',
   'Bring out the history of the selected commit',
   'Separate the days, weeks and months',
   'Put a branch and its upstream on one label',
@@ -90,6 +92,7 @@ describe('the menu of the view of the toolbar', () => {
       'Show tags',
       'Show stashes',
       'Show only the first parent of merges',
+      'Compact rows',
       'Bring out the history of the selected commit',
       'Separate the days, weeks and months',
       'Put a branch and its upstream on one label',
@@ -123,11 +126,13 @@ describe('the menu of the view of the toolbar', () => {
     item(menu, 'Show the hash').run();
     item(menu, 'Show stashes').run();
     item(menu, 'Show all commits on one line').run();
+    item(menu, 'Compact rows').run();
     item(menu, 'Show tags').run();
     expect(posted).toEqual([
       { type: 'setGraphColumns', columns: ['author', 'date'] },
       { type: 'setShowStashes', show: false },
       { type: 'setOneLane', one: true },
+      { type: 'setCompactRows', compact: false },
       { type: 'setScope', scope: { kind: 'kinds', kinds: ['branch', 'remote'] } },
     ]);
   });

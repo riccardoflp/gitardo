@@ -50,6 +50,8 @@ export function viewMenu(state: RepoState, { onFoldAll, folded }: FoldAll): Menu
     },
     'separator',
     { label: 'Show all commits on one line', checked: state.oneLane, run: () => post({ type: 'setOneLane', one: !state.oneLane }) },
+    // On, the Graph view in the panel has a commit on one line; the one of the side bar keeps two lines either way.
+    { label: 'Compact rows', checked: state.compactRows, run: () => post({ type: 'setCompactRows', compact: !state.compactRows }) },
     {
       label: 'Bring out the history of the selected commit',
       checked: state.traceSelected,
@@ -75,7 +77,7 @@ export function viewMenu(state: RepoState, { onFoldAll, folded }: FoldAll): Menu
         disabled: folded !== 'all' && !state.rows.some((row) => row.parents.length > 1),
         run: () => onFoldAll(folded !== 'all'),
       },
-    onFoldAll && !state.oneLane && { label: 'Unfold all merges', disabled: folded === 'none', run: () => onFoldAll(false) },
+    onFoldAll && !state.oneLane && { label: 'Unfold all merges', icon: 'UNFOLD', disabled: folded === 'none', run: () => onFoldAll(false) },
     'separator',
     showColumn('author', 'Show the author'),
     showColumn('date', 'Show the date'),
@@ -90,20 +92,20 @@ export function viewMenu(state: RepoState, { onFoldAll, folded }: FoldAll): Menu
 export function moreMenu(state: RepoState, compact: boolean): MenuEntry[] {
   return [
     // Its button is the first to go when the toolbar is short of room.
-    !compact && { label: 'Refresh', run: () => post({ type: 'refresh' }) },
+    !compact && { label: 'Refresh', icon: 'READ_AGAIN', run: () => post({ type: 'refresh' }) },
     !compact && 'separator',
-    { label: 'Compare branches, tags or commits…', run: () => post({ type: 'compare' }) },
-    { label: 'Go to commit…', run: run('goToCommit') },
-    { label: 'History of the active file', run: run('activeFileHistory') },
-    { label: 'Browse reflog…', run: run('reflog') },
-    { label: 'Clean up branches…', run: run('cleanupBranches') },
-    { label: 'Apply patch…', run: () => act({ kind: 'applyPatch' }) },
-    { label: 'Manage remotes…', run: run('remotes') },
+    { label: 'Compare branches, tags or commits…', feature: 'compare.choose', run: () => post({ type: 'compare' }) },
+    { label: 'Go to commit…', feature: 'search.go-to-commit', icon: 'SEARCH', run: run('goToCommit') },
+    { label: 'History of the active file', feature: 'file-history.file', run: run('activeFileHistory') },
+    { label: 'Browse reflog…', feature: 'reflog.browse', run: run('reflog') },
+    { label: 'Clean up branches…', feature: 'branch.clean-up', run: run('cleanupBranches') },
+    { label: 'Apply patch…', feature: 'patch.apply', run: () => act({ kind: 'applyPatch' }) },
+    { label: 'Manage remotes…', feature: 'remote.manage', run: run('remotes') },
     // With submodules, their section has the same button.
-    !state.submodules.length && { label: 'Add submodule…', run: () => act({ kind: 'submoduleAdd' }) },
-    (state.repos.length > 1 || state.home) && { label: 'Select repository…', run: run('selectRepository') },
+    !state.submodules.length && { label: 'Add submodule…', feature: 'submodule.add', run: () => act({ kind: 'submoduleAdd' }) },
+    (state.repos.length > 1 || state.home) && { label: 'Select repository…', icon: 'CHOOSE', run: run('selectRepository') },
     'separator',
-    { label: 'Switch identity…', run: run('switchIdentity') },
+    { label: 'Switch identity…', feature: 'identity.switch', run: run('switchIdentity') },
     ...hostingEntries(state),
   ];
 }
@@ -118,8 +120,8 @@ function hostingEntries(state: RepoState): MenuEntry[] {
   const service = hosting.service;
   return [
     (service === 'gitHub' || service === 'gitLab' || hosting.canCheckOut) && 'separator',
-    service === 'gitHub' && { label: 'Load pull requests from GitHub', run: run('signInGitHub') },
-    service === 'gitLab' && { label: 'Load merge requests from GitLab', run: run('signInGitLab') },
-    hosting.canCheckOut && { label: `Check out a ${pullWords(service)}…`, run: run('checkOutPullRequest') },
+    service === 'gitHub' && { label: 'Load pull requests from GitHub', feature: 'github.load-pull-requests', run: run('signInGitHub') },
+    service === 'gitLab' && { label: 'Load merge requests from GitLab', feature: 'hosting.load-merge-requests', run: run('signInGitLab') },
+    hosting.canCheckOut && { label: `Check out a ${pullWords(service)}…`, feature: 'hosting.checkout-pull-request', run: run('checkOutPullRequest') },
   ];
 }

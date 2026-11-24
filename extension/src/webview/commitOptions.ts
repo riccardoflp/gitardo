@@ -32,7 +32,7 @@ export function commitOptionsMenu(menu: CommitOptionsMenu): MenuEntry[] {
       title: signsWith(signing),
       run: () => change({ ...options, sign: !options.sign }),
     },
-    !canSign(signing) && { label: 'Switch identity…', title: 'No key to sign with: set one with Switch identity…', run: menu.switchIdentity },
+    !canSign(signing) && { label: 'Switch identity…', feature: 'identity.switch', title: 'No key to sign with: set one with Switch identity…', run: menu.switchIdentity },
     {
       label: 'Add Signed-off-by',
       checked: options.signOff,
@@ -40,10 +40,10 @@ export function commitOptionsMenu(menu: CommitOptionsMenu): MenuEntry[] {
       run: () => change({ ...options, signOff: !options.signOff }),
     },
     'separator',
-    { label: 'Co-authors…', title: 'Choose who made this commit with you', run: menu.pickCoAuthors },
+    { label: 'Co-authors…', icon: 'CO_AUTHORS', title: 'Choose who made this commit with you', run: menu.pickCoAuthors },
     ...options.coAuthors.map((coAuthor) => ({
       label: coAuthor,
-      hint: '×',
+      icon: 'CLOSE' as const,
       title: 'Remove from the co-authors',
       run: () => change({ ...options, coAuthors: options.coAuthors.filter((other) => other !== coAuthor) }),
     })),

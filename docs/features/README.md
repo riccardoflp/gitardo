@@ -108,7 +108,7 @@ earns it.
 | [`graph.view-menu`](02-graph.md#graphview-menu--the-menu-of-the-view-of-the-header) | The menu of the view of the header | View | Built | Built |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
 | [`ui.menu-scroll`](02-graph.md#uimenu-scroll--a-menu-taller-than-the-room-under-it) | A menu taller than the room under it | Derivation | Built | Host only |
-| [`ui.menu-icons`](02-graph.md#uimenu-icons--the-icon-of-each-action-in-the-menus) | The icon of each action in the menus | Derivation | Built | Planned |
+| [`ui.menu-icons`](02-graph.md#uimenu-icons--the-icon-of-each-action-in-the-menus) | The icon of each action in the menus | Derivation | Built | Built |
 | [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Built | Host only |
 | [`ui.page-trail`](02-graph.md#uipage-trail--the-way-back-in-the-title-of-a-page) | The way back, in the title of a page | Derivation | Built | Host only |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
@@ -119,7 +119,7 @@ earns it.
 | [`graph.resize-panes`](02-graph.md#graphresize-panes--resize-the-branch-rail-and-the-inspector) | Resize the branch rail and the inspector | View | Built | Built |
 | [`graph.toggle-references`](02-graph.md#graphtoggle-references--put-the-branch-rail-away) | Put the branch rail away | View | Built | Built |
 | [`graph.labels`](02-graph.md#graphlabels--the-labels-of-each-commit) | The labels of each commit | Derivation | Built | Built |
-| [`graph.label-overflow`](02-graph.md#graphlabel-overflow--all-the-labels-of-a-commit-under-the-pointer) | All the labels of a commit, under the pointer | View | Built | Planned |
+| [`graph.label-overflow`](02-graph.md#graphlabel-overflow--all-the-labels-of-a-commit-under-the-pointer) | All the labels of a commit, under the pointer | View | Built | Built |
 | [`graph.combine-upstream`](02-graph.md#graphcombine-upstream--a-branch-and-its-upstream-on-one-label) | A branch and its upstream on one label | Derivation | Built | Built |
 | [`graph.pull-request-badge`](02-graph.md#graphpull-request-badge--pull-request-on-a-label) | Pull request on a label | View | Built | Built |
 | [`graph.unpushed`](02-graph.md#graphunpushed--commits-not-pushed-yet) | Commits not pushed yet | Derivation | Built | Built |
@@ -127,7 +127,7 @@ earns it.
 | [`graph.hover-history`](02-graph.md#graphhover-history--the-history-of-a-label-under-the-pointer) | The history of a label under the pointer | View | Built | Built |
 | [`graph.trace-selected`](02-graph.md#graphtrace-selected--the-history-of-the-selected-commit) | The history of the selected commit | View | Built | Built |
 | [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Built | Built |
-| [`graph.compact-rows`](02-graph.md#graphcompact-rows--each-commit-on-one-line) | Each commit on one line | View | Built | Planned |
+| [`graph.compact-rows`](02-graph.md#graphcompact-rows--each-commit-on-one-line) | Each commit on one line | View | Built | Built |
 | [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Built | Built |
 | [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Built | Built |
 | [`graph.one-lane`](02-graph.md#graphone-lane--all-commits-on-one-line) | All commits on one line | Derivation | Built | Built |

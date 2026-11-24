@@ -599,6 +599,7 @@ export class Controller implements vscode.Disposable {
       sortOrder: sort,
       traceSelected: vscode.workspace.getConfiguration('gitardo').get('graph.traceSelected') !== false,
       oneLane: vscode.workspace.getConfiguration('gitardo').get('graph.oneLane') === true,
+      compactRows: vscode.workspace.getConfiguration('gitardo').get('graph.compactRows') !== false,
       graphColumns: graphColumns(),
       dateSeparators: vscode.workspace.getConfiguration('gitardo').get('graph.dateSeparators') !== false,
       combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
@@ -2932,6 +2933,8 @@ export class Controller implements vscode.Disposable {
         return vscode.workspace.getConfiguration('gitardo').update('graph.firstParent', message.only === true, vscode.ConfigurationTarget.Global);
       case 'setOneLane':
         return vscode.workspace.getConfiguration('gitardo').update('graph.oneLane', message.one === true, vscode.ConfigurationTarget.Global);
+      case 'setCompactRows':
+        return vscode.workspace.getConfiguration('gitardo').update('graph.compactRows', message.compact === true, vscode.ConfigurationTarget.Global);
       case 'setTraceSelected':
         return vscode.workspace.getConfiguration('gitardo').update('graph.traceSelected', message.trace === true, vscode.ConfigurationTarget.Global);
       case 'setFavorite':

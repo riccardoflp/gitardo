@@ -1313,11 +1313,17 @@
             "description": "Every commit of the graph on one line, without lanes; merges are rings.",
             "order": 8
           },
+          "gitardo.graph.compactRows": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the Graph view in the panel shows each commit on one line: its labels, its message, then the author, the date and the hash in columns. The Graph view of the side bar keeps its two lines. When not, every Graph view has two lines to a commit: the message, then the labels, the author and the date. The menu of the toolbar of the graph has the same switch.",
+            "order": 9
+          },
           "gitardo.graph.traceSelected": {
             "type": "boolean",
             "default": true,
             "description": "Whether the history of the commit selected in the graph stands out, the commits it comes from and the ones made on top of it, while the rest is dimmed. The menu of the toolbar of the graph has the same switch.",
-            "order": 9
+            "order": 10
           }
         }
       },
