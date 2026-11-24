@@ -116,6 +116,19 @@ describe.skipIf(!built)('Changes and commit, through the engine', { timeout: 60_
   });
 });
 
+describe.skipIf(!built)('The Flow Diff, through the engine', { timeout: 60_000 }, () => {
+  it("discards only what is not staged of the file of a diff, and says there is nothing to discard when all of it is staged (A4)", async () => {
+    const root = await repository();
+    await changed(root);
+    const partly = await runFeature(root, 'diff.discard-file', { kind: 'file', path: 'c.txt' });
+    expect(partly.lines).toEqual(['git restore -- c.txt']);
+    expect(fs.readFileSync(path.join(root, 'c.txt'), 'utf8')).toBe('c staged\n');
+    const staged = await runFeature(root, 'diff.discard-file', { kind: 'file', path: 'b.txt' });
+    expect(staged.finished).toEqual(expect.objectContaining({ kind: 'refused', message: 'There is nothing to discard.' }));
+    expect((await git(root, ['status', '--porcelain=v1', '--', 'b.txt'])).stdout).toBe('M  b.txt\n');
+  });
+});
+
 describe.skipIf(!built)('Stashes, through the engine', { timeout: 60_000 }, () => {
   /** Two stashes on top of the changes. */
   const stashed = async (root: string) => {

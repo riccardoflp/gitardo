@@ -473,6 +473,12 @@ Puts back in the working tree what the left side has in place of one change.
 - **After**: the page is computed again; the change is gone.
 - **Refuses**: *The file changed since the diff was shown. Try again.*
 - **Uses**: `diff.edit`, `file-view.save`.
+- **Extension**: the **⟲** button on a change of the Flow Diff edits VS Code's document of the file and saves it, as
+  **Revert lines** does: the lines of the change take the text the left side has, as one edit, so that `Ctrl+Z` in
+  VS Code's editor takes it back, and an editor with unsaved edits of the same file keeps them. No git runs and nothing
+  is logged, as for what is typed in a file (a choice, [A5](../transition/04-differences.md#a5-revert-one-change-in-a-diff),
+  and RS16 of [the extension's risks](../extension/13-risks.md)). In VS Code's diff editor, **Revert Selected Ranges**
+  of VS Code's Git does it.
 
 Acceptance:
 
@@ -790,6 +796,10 @@ Takes the file back to its staged version, or deletes it when it is untracked.
   deleted from disk.*
 - **Undo**: Impossible: what was not staged is not kept anywhere.
 - **Refuses**: *There is nothing to discard.*
+- **Extension**: **Discard changes** in the title bar of the Flow Diff, while its right side is the working tree,
+  sends `feature/run` of `diff.discard-file` to Gitardo's engine (`FlowDiff.fileAction` in `src/flow/flowDiff.ts`):
+  what is staged stays, and a file whose changes are all staged is not discarded but said to have nothing to discard
+  (A4). When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 

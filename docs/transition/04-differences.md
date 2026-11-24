@@ -109,6 +109,10 @@ Four things cut across areas and are best decided once:
   (`rust/crates/features/src/diff/discard_file.rs:27-33`).
 - **Verdict**: **CHANGELOG**: "Discard changes on a diff whose changes are all staged now says there is nothing to
   discard instead of asking and doing nothing."
+- **Settled in M48**: the Flow Diff's **Discard changes** runs `diff.discard-file` on the engine
+  (`extension/src/flow/flowDiff.ts`), where stage 10 had it run `changes.discard`, which took back the staged changes
+  too; it says "There is nothing to discard." when every change of the file is staged, with a test of the engine's
+  scenarios (`extension/test/engineChanges.test.ts`), and the line is in the extension's CHANGELOG.
 
 ### A5. Revert one change in a diff
 
@@ -122,6 +126,10 @@ Four things cut across areas and are best decided once:
   and lose Ctrl+Z, which extension users rely on. Recommendation: the extension keeps applying the reverted lines
   through VS Code's editor (host-side), using the engine only for the check that the change is where it was shown; no
   engine option needed, but the host must be able to take the new text instead of a `Write` step.
+- **Settled in M48**, a choice kept: the extension reverts a change as an edit of the document in VS Code's editor,
+  saved, which `Ctrl+Z` takes back, as M46's **Revert lines** does too (`extension/src/flow/chunks.ts`); no git runs and
+  nothing is logged, as RS16 of [the extension's risks](../extension/13-risks.md) accepts on that ground. The card
+  `diff.revert-change` says so in its **Extension** line.
 
 ### A6. Fix up during a bisect
 
@@ -1224,6 +1232,9 @@ same answer; the model chosen and the effort reach the model the same. What diff
 - **Engine**: the host gives no token, and the feature backs out without a word; the desktop's box that asks for a
   token never shows under the extension, whose sign-in takes its place.
 - **Verdict**: **CHANGELOG**. "Closing GitHub's sign-in that **Sign in to GitHub** opens says nothing."
+- **Settled in M48**: the engine's way is kept (D90): `githubToken` answers `host/githubToken` with no token when the
+  sign-in is closed (`extension/src/extension/github.ts`), and the feature backs out without a word. The line is in the
+  extension's CHANGELOG since 1.0.0.
 
 ### G5. Refusals of the engine around GitHub and the models
 
