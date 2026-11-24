@@ -9,6 +9,11 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - **Stage lines**, **Unstage lines** and **Revert lines** in the context menu of both sides of the Flow Diff stage, unstage or revert only the lines selected, or the line of the cursor, of the changes of a file: a line changed into another is taken whole. The first two run `git apply --cached` with Gitardo's engine, as staging a change does; **Revert lines** gives the lines the text of the left side and saves the file, and `Ctrl`+`Z` takes it back. With no changed line selected, the three are greyed out.
 - **Remember how conflicts are resolved…** in the context menu of the row of the repository in the **Gitardo Repositories** view, ticked while it is on, and **Gitardo: Remember How Conflicts Are Resolved…** and **Gitardo: Stop Remembering How Conflicts Are Resolved** in the Command Palette, have git record how each conflict is resolved and write the same resolution the next time it comes (`git rerere`), leaving the file for you to look at or staging it, as you choose.
 - A file git resolved as before is said: **· git resolved 1 as before** in the banner and in the message of an operation that stopped, and **Resolved as before** on its row in the **Gitardo Changes** view, whose buttons and menu have **Show what git wrote**, the file as git marked it beside what git wrote in the diff editor, **Mark as resolved** and **Forget this resolution…**, which has git forget it and marks the conflicts again. The review of the conflicts lists such files under **Resolved as before**, each on a card with what git wrote, **Accept** and **Forget it…**.
+- In a shallow clone, the line of the oldest commits fetched goes on under their dot, dashed, and the last row of the graph says **The history ends here: this is a shallow clone.**, with **Load more history**, which fetches as many commits further back as you say, and **Load the whole history**; **Gitardo: Load More History** and **Gitardo: Load the Whole History** are in the Command Palette while the repository shown is shallow. Gitardo's engine runs both.
+
+### Fixed
+
+- **Copy message** in the context menu of a commit copies its whole message, body included, as git wrote it, not its subject alone.
 
 ## 1.3.0 - 2026-11-24
 

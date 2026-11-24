@@ -296,6 +296,8 @@ export class Controller implements vscode.Disposable {
   private unsavedFrom?: { state: RepoState | null; files: string };
   /** The files hidden from git the Explorer's menu was last told of, as JSON. */
   private hiddenInMenus = '';
+  /** Whether the repository shown is a shallow clone, as the Command Palette was last told. */
+  private shallowInMenus: boolean | undefined;
   private readonly stateEmitter = new vscode.EventEmitter<RepoState | null>();
   private readonly readEmitter = new vscode.EventEmitter<RepoState>();
   private readonly subscriptions: vscode.Disposable[];
@@ -2220,9 +2222,15 @@ export class Controller implements vscode.Disposable {
 
   /**
    * Tells the context menu of the Explorer which files of the repository shown are hidden from git, for it to offer
-   * **Show Its Changes to Git Again** on them in place of **Hide Its Changes from Git…**.
+   * **Show Its Changes to Git Again** on them in place of **Hide Its Changes from Git…**; and the Command Palette
+   * whether the repository shown is a shallow clone, for it to offer **Load More History** (`sync.deepen`).
    */
   private showHiddenInMenus(state: RepoState | null): void {
+    const shallow = !!state?.shallow?.length;
+    if (shallow !== this.shallowInMenus) {
+      this.shallowInMenus = shallow;
+      void vscode.commands.executeCommand('setContext', 'gitardo.shallow', shallow);
+    }
     const hidden = Object.fromEntries((state?.skipped ?? []).map((file) => [vscode.Uri.file(path.join(state?.root ?? '', file.path)).fsPath, true]));
     const said = JSON.stringify(hidden);
     if (said === this.hiddenInMenus) return;

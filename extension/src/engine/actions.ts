@@ -171,6 +171,13 @@ export function engineRuns(
       return [{ feature: action.start ? 'rerere.turn-on' : 'rerere.turn-off', target: { kind: 'head' } }];
     case 'forgetResolution':
       return [{ feature: 'rerere.forget', target: { kind: 'file', path: action.path } }];
+    // The history of a shallow clone (M46).
+    case 'deepen':
+      return [{ feature: 'sync.deepen', target: { kind: 'head' } }];
+    case 'unshallow':
+      return [{ feature: 'sync.unshallow', target: { kind: 'head' } }];
+    case 'copyMessage':
+      return [{ feature: 'commits.copy-message', target: { kind: 'commit', commit: action.hash } }];
     // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
     case 'merge':
       if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];

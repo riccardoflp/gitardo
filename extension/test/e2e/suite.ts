@@ -1563,6 +1563,54 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('says where the history of a shallow clone ends, and loads more of it, then the whole of it', async () => {
+    const refreshed = async () => vscode.commands.executeCommand('gitardo.refresh');
+    // The commit origin/main points at, its parents taken as not fetched, as a clone made with --depth leaves them.
+    const boundary = (await git(app, ['rev-parse', 'origin/main'])).stdout.trim();
+    const shallowFile = path.join(app, '.git', 'shallow');
+    answer = run;
+    try {
+      fs.writeFileSync(shallowFile, `${boundary}\n`);
+      await refreshed();
+      await until('the state to say where the history ends', () => state().shallow?.includes(boundary));
+      const commands = (extension.packageJSON.contributes.commands as { command: string; title: string }[]).filter((entry) => /History$/.test(entry.title));
+      assert.deepEqual(commands.map((entry) => entry.title), ['Load More History', 'Load the Whole History']);
+
+      // Load more history, as the last row of the graph and the Command Palette ask it, with 3 commits further back.
+      logged.length = 0;
+      inputs = ['3'];
+      await fromWebview({ type: 'action', action: { kind: 'deepen' } });
+      assert.ok(commandsLogged().includes('> git fetch --deepen=3 origin'), commandsLogged().join('\n'));
+
+      // Load the whole history: the repository is a clone like any other, and the graph has no row of its end.
+      logged.length = 0;
+      await vscode.commands.executeCommand('gitardo.loadWholeHistory');
+      assert.ok(commandsLogged().includes('> git fetch --unshallow origin'), commandsLogged().join('\n'));
+      await until('the state to say the history is whole', () => !state().shallow?.length);
+      assert.ok(!fs.existsSync(shallowFile));
+    } finally {
+      inputs = [];
+      fs.rmSync(shallowFile, { force: true });
+      await refreshed();
+    }
+  });
+
+  await step('copies the whole message of a commit, its body included', async () => {
+    const start = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    write('body.txt', 'body\n');
+    await git(app, ['add', 'body.txt']);
+    await git(app, ['commit', '-q', '-m', 'Add a body', '-m', 'The first line of the body\nand the second.']);
+    try {
+      const hash = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+      await vscode.env.clipboard.writeText('');
+      await fromWebview({ type: 'action', action: { kind: 'copyMessage', hash } });
+      assert.equal(await vscode.env.clipboard.readText(), 'Add a body\n\nThe first line of the body\nand the second.');
+    } finally {
+      await git(app, ['reset', '-q', '--hard', start]);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('answers the webviews: commit details and comparisons', async () => {
     const [newest, older] = state().rows;
     posted.length = 0;

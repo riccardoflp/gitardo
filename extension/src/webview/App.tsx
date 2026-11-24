@@ -47,6 +47,8 @@ import { receive } from './received';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 const NONE: ReadonlySet<string> = new Set();
+/** What a repository that is not a shallow clone has of the commits whose parents were not fetched. */
+const NO_SHALLOW: readonly string[] = [];
 /**
  * The widths of the panes beside the commits, in pixels, until they are dragged to others. The graph chooses its own,
  * and the details have a height instead when they are under the commits, where they start with half of the view.
@@ -539,6 +541,7 @@ export function App({ compact = false }: { compact?: boolean }) {
           folded={connected ? folded : NONE}
           onFold={connected ? fold : undefined}
           onUnfold={(merge) => setFolds((previous) => foldMerge(previous, merge, false))}
+          shallow={state.shallow ?? NO_SHALLOW}
         />
         {hasDetail && !compact && (
           <Sash

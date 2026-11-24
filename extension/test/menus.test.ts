@@ -346,6 +346,10 @@ describe('notes and archives', () => {
     expect(chosen(entries, 'Fetch notes from origin')).toEqual([{ type: 'action', action: { kind: 'fetchNotes', remote: 'origin' } }]);
   });
 
+  it('commits.copy-message: copies the whole message through the engine, not the subject of the row', () => {
+    expect(chosen(commitMenu(rows[1], repo(), tools), 'Copy message')).toEqual([{ type: 'action', action: { kind: 'copyMessage', hash: 'c' } }]);
+  });
+
   it('archive.save: saves a commit, a branch, a remote branch and a tag by their full names', () => {
     const main = branchAt('main', 'd', { isCheckedOut: true });
     const shown = repo({ branches: [main] });

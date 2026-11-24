@@ -106,6 +106,8 @@ interface Props {
   onUnfold(merge: string): void;
   /** Folds the commits a merge brought in into one row. Missing where nothing can be folded, among what a search finds. */
   onFold?(merge: string): void;
+  /** The commits whose parents were not fetched, where the history of a shallow clone ends: empty in a whole clone. */
+  shallow: readonly string[];
 }
 
 const ROW_HEIGHT = 24;
@@ -113,6 +115,10 @@ const ROW_HEIGHT = 24;
 const TALL_ROW_HEIGHT = 42;
 /** What names a line of the graph after the tip it comes from: not the marks of a bisect. */
 const LANE_NAMES = new Set<Label['kind']>(['head', 'branch', 'remote', 'tag', 'stash']);
+/** What the dashed line under the dot of a commit whose parents were not fetched says (`graph.shallow-end`). */
+export const SHALLOW_LINE = 'The commits before this one were not fetched: this repository is a shallow clone.';
+/** What the last row of the commits of a shallow clone says, once they are all read (`graph.shallow-end`). */
+export const SHALLOW_END = 'The history ends here: this is a shallow clone.';
 
 /** How many labels a commit shows there, the last of which counts the others when there are more. */
 const TALL_LABELS = 3;
@@ -172,6 +178,8 @@ interface GraphProps {
   trace?: GraphTrace;
   /** For a commit not pushed yet, the upstream it would be pushed to: its dot has a ring around it. */
   unpushed?: string;
+  /** For a commit whose parents were not fetched, in a shallow clone: its line goes on under its dot, dashed. */
+  shallow?: boolean;
 }
 
 /** Whether Shift is held down, wherever the focus is in the page. */
@@ -217,7 +225,7 @@ export function useTrace(): [string | null, (hash: string | null) => void] {
   return [traced, traceLater];
 }
 
-const Graph = memo(function Graph({ graph, width, height, lane, node, trace, unpushed }: GraphProps) {
+const Graph = memo(function Graph({ graph, width, height, lane, node, trace, unpushed, shallow }: GraphProps) {
   const mid = height / 2;
   const laneX = (index: number) => lane / 2 + 3 + index * lane;
   const x = laneX(graph.col);
@@ -241,6 +249,11 @@ const Graph = memo(function Graph({ graph, width, height, lane, node, trace, unp
             : `M${from} ${mid}C${from} ${height} ${to} ${mid} ${to} ${height}`;
         return <path key={`b${index}`} className={trace && !trace.bottom[index] ? 'faded' : undefined} d={d} stroke={laneColor(line.color)} strokeDasharray={line.dashed ? '3 3' : undefined} />;
       })}
+      {shallow && (
+        <path className={nodeClass.trim() || undefined} d={`M${x} ${mid}V${height}`} stroke={laneColor(graph.color)} strokeDasharray="3 3">
+          <title>{SHALLOW_LINE}</title>
+        </path>
+      )}
       {node === 'worktree' && <circle className={`hollow${nodeClass}`} cx={x} cy={mid} r={radius - 0.5} stroke={laneColor(graph.color)} />}
       {node === 'folded' && (
         <circle className={`hollow${nodeClass}`} cx={x} cy={mid} r={radius - 0.5} stroke={laneColor(graph.color)} strokeDasharray="2 1.5" />
@@ -373,6 +386,8 @@ interface CommitRowProps {
   labels: Label[] | undefined;
   /** The upstream the commit would be pushed to, when it is not pushed yet. */
   unpushed: string | undefined;
+  /** Whether the parents of the commit were not fetched, in a shallow clone. */
+  shallow: boolean;
   /** The name of the time further back that starts at this commit. */
   period: string | undefined;
   /** Whether the commits of this merge are folded, or could be. */
@@ -486,6 +501,7 @@ const CommitRow = memo(function CommitRow(props: CommitRowProps) {
         node={worktree ? 'worktree' : row.stash ? 'stash' : props.oneLane && row.parents.length > 1 ? 'merge' : 'commit'}
         trace={trace}
         unpushed={props.unpushed}
+        shallow={props.shallow}
       />
       {tall ? (
         <div className="lines">
@@ -640,7 +656,10 @@ export function CommitList(props: Props) {
   kept.current = held(kept.current, props.listing, props.rows.length, lanes, hasMore);
   // The rows not read again yet, under those that are.
   const awaited = kept.current.loaded - props.rows.length;
-  const length = rows.length + awaited + (hasMore ? 1 : 0);
+  // Once the last commits of a shallow clone are read, one more row says the history was not all fetched.
+  const shallow = useMemo(() => new Set(props.shallow), [props.shallow]);
+  const shallowEnd = shallow.size > 0 && !hasMore && !awaited && rows.length > 0;
+  const length = rows.length + awaited + (hasMore || shallowEnd ? 1 : 0);
   // The rows the list had before the read started again: they are drawn, dimmed, where its own are not read yet.
   const before = useRef<ShownRow[]>(rows);
   if (!awaited) before.current = rows;
@@ -859,6 +878,7 @@ export function CommitList(props: Props) {
               dropTarget={row.hash === dropTarget}
               labels={labels.get(row.hash)}
               unpushed={unpushed.get(row.hash)}
+              shallow={shallow.has(row.hash)}
               period={periods?.get(index)}
               fold={foldedNow.has(row.hash) ? 'folded' : canFold(row) ? 'foldable' : null}
               showAuthor={showAuthor}
@@ -907,6 +927,17 @@ export function CommitList(props: Props) {
           >
             <Icon name="loading" spin />
             Loading more commits…
+          </div>
+        )}
+        {shallowEnd && (
+          <div className="row shallow-end" style={{ top: rows.length * rowHeight, height: rowHeight }}>
+            <span className="said">{SHALLOW_END}</span>
+            <button className="link" onClick={() => post({ type: 'action', action: { kind: 'deepen' } })}>
+              Load more history
+            </button>
+            <button className="link" onClick={() => post({ type: 'action', action: { kind: 'unshallow' } })}>
+              Load the whole history
+            </button>
           </div>
         )}
       </div>

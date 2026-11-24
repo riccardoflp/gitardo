@@ -449,6 +449,16 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.loadMoreHistory",
+        "title": "Load More History",
+        "category": "Gitardo"
+      },
+      {
+        "command": "gitardo.loadWholeHistory",
+        "title": "Load the Whole History",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.setUpstream",
         "title": "Set Upstream of the Current Branch…",
         "category": "Gitardo"
@@ -624,6 +634,14 @@
     ],
     "menus": {
       "commandPalette": [
+        {
+          "command": "gitardo.loadMoreHistory",
+          "when": "gitardo.shallow"
+        },
+        {
+          "command": "gitardo.loadWholeHistory",
+          "when": "gitardo.shallow"
+        },
         {
           "command": "gitardo.folderHistory",
           "when": "false"

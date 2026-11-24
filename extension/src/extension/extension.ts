@@ -249,6 +249,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.checkTags', () => controller.action({ kind: 'checkTags' })),
     command('gitardo.rememberResolutions', () => controller.action({ kind: 'rememberResolutions', start: true })),
     command('gitardo.stopRememberingResolutions', () => controller.action({ kind: 'rememberResolutions', start: false })),
+    command('gitardo.loadMoreHistory', () => controller.action({ kind: 'deepen' })),
+    command('gitardo.loadWholeHistory', () => controller.action({ kind: 'unshallow' })),
     command('gitardo.createWorktree', () => controller.action({ kind: 'worktreeAdd' })),
     command('gitardo.switchWorktree', () => controller.command('switchWorktree')),
     command('gitardo.worktreeSetup', () => controller.command('worktreeSetup')),

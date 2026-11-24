@@ -3685,6 +3685,12 @@ place: Repositories, in the side column
 show: none
 Everything the window shows of a repository but its commits: what is checked out, the branches and how far each is from its upstream, the remotes, the tags, the stashes, the worktrees, the submodules, what is not committed, and the operation that stopped half way.
 In VS Code: `read/repo.read-state` of Gitardo's engine, from `Reads.parts` in, with `refresh` (version 1.8 of the protocol) for **Refresh** and for a repository chosen: the engine keeps what each read counted in the other worktrees, and counts again only those whose git folder changed. `repository/open` counts them all. `gitardo.readOnStartup` is the setting `readOnStartup`.
+@card extension repo.read-shallow
+title: Whether the history is shallow, and where it ends
+place: Repositories, in the side column
+show: none
+Whether the repository is a shallow clone, and the commits whose parents were not fetched, where its history ends.
+In VS Code: with `read/repo.read-state` of the engine, as `shallow` in the state, for `graph.shallow-end` in the graph and for the Command Palette to offer **Gitardo: Load More History** and **Gitardo: Load the Whole History** only in a shallow clone.
 @card extension repo.common-folder
 title: The git folder the worktrees share
 place: Repositories, in the side column
@@ -3965,6 +3971,12 @@ place: the timeline
 show: none
 The commits come a page at a time as they are read, without waiting for the list to be scrolled, so that scrolling does not stop to wait for them; past the 100,000 commits of one read, the next read starts long before the end of those shown.
 In VS Code: the pages `EngineGraph` adds are laid out and sent by to the views that list commits, the graph and Gitardo Graph, those that come within 150 ms together, with only the rows the views do not have; the other views, which the rows of a page change nothing of, are sent nothing; `loadMore` of the list of commits asks for nothing while a read adds its pages, and past 100,000 commits reads from the last one. The pages that come while the rest of the state is read, the newest entry of the journal among it, are laid out under the rows right before the views are given the state (`completed` of), so that a read that ends meanwhile, as in a repository of a little more than a page, leaves no commit waiting for the list to be scrolled (milestone M25). Tested by, "has every commit, and no more to come, when the read ends while the rest of the state is read". While the commits of the history listed are read again from their first page, after a commit, a fetch or **Refresh**, the list keeps the length it had until the read reaches it or ends, so that it stays at the row it is scrolled to: `held` of says how long, and under the commits read so far the rows the list had before are drawn where they were, dimmed after 150 ms, without their labels and taking no click, until the read reaches them. Another repository, other branches, another filter or other parents followed start from the first page as before (`listingOf`), and a read that ends with fewer commits leaves the list as long as they are. `loadMore` asks for nothing either once the read ended at the end of the history, which a list asked for while the last page came. Tested by, "keeps its length and the width of its graph when Refresh reads its commits again from the first page, until they are back"; in a window by `test/perf/graph-load.mjs`, which reports the row the list is at.
+@card extension graph.shallow-end
+title: Where the history of a shallow clone ends
+place: the timeline
+show: none
+In a shallow clone the timeline says where the commits fetched end, and offers to fetch more, so that the last commit listed is not taken for the first commit of the project.
+In VS Code: the same dashed line, with the same tooltip, and the same last row in the **Graph** view, its tabs and Gitardo Graph, its two buttons sending `feature/run` of `sync.deepen` and `sync.unshallow` to the engine. The details beside the graph do not say **Not fetched** yet.
 @card extension graph.lanes
 title: Lay out the lines of the graph
 place: the timeline
@@ -4428,6 +4440,12 @@ place: the inspector and the Commit page
 show: show where
 Puts the full hash of a commit on the clipboard.
 Entry points: **Copy hash** in the context menu of a commit in the timeline, narrowed or not; a click on the hash in the inspector and in the page of a commit.
+@card extension commits.copy-message
+title: Copy the message of a commit
+place: the inspector and the Commit page
+show: show where
+Puts the whole message of a commit on the clipboard, as it was written.
+In VS Code: **Copy message** in the context menu of a commit in the graph and in its tabs, in Gitardo Graph and in the **Commits** view, sending `feature/run` of `commits.copy-message` to the engine, whose message VS Code puts on the clipboard.
 @card extension commit-page.open
 title: Open a commit as a page
 place: the inspector and the Commit page
@@ -4921,6 +4939,18 @@ place: the branch rail
 show: quick search
 Brings what every remote has, and forgets the remote branches deleted there.
 In VS Code: **Fetch** in the toolbar of the graph (tooltip **Fetch: git fetch --all --prune**); **Gitardo: Fetch** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.fetch` to Gitardo's engine (in, `engineRuns` in) through and `syncRuns`; the pull requests are read again after it (`readPullRequests`). When the engine's binary is missing, it says so.
+@card extension sync.deepen
+title: Load more history
+place: the branch rail
+show: quick search
+Fetches more of the history of a shallow clone: a number of commits further back than where it ends now.
+In VS Code: **Load more history** on the last row of the graph, and **Gitardo: Load More History** in the Command Palette while the repository shown is shallow, each sending `feature/run` of `sync.deepen` to the engine, whose question VS Code asks.
+@card extension sync.unshallow
+title: Load the whole history
+place: the branch rail
+show: quick search
+Fetches all the history a shallow clone does not have, so that it is a clone like any other.
+In VS Code: **Load the whole history** on the last row of the graph, and **Gitardo: Load the Whole History** in the Command Palette while the repository shown is shallow, sending `feature/run` of `sync.unshallow` to the engine.
 @card extension sync.pull
 title: Pull
 place: the branch rail

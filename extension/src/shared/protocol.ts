@@ -542,6 +542,10 @@ export type Action =
   | { kind: 'rememberResolutions'; start: boolean }
   /** Has git forget the resolution it recorded for a file it resolved as before, and marks its conflicts again (`rerere.forget`). */
   | { kind: 'forgetResolution'; path: string }
+  /** Fetches more of the history of a shallow clone, as many commits further back as asked, or all of it (`sync.deepen`, `sync.unshallow`). */
+  | { kind: 'deepen' | 'unshallow' }
+  /** Copies the whole message of a commit, its body included, as git wrote it (`commits.copy-message`). */
+  | { kind: 'copyMessage'; hash: string }
   /** Everything, or only these files, or only what is staged. */
   | { kind: 'stashPush'; paths?: string[]; staged?: boolean }
   | { kind: 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch'; ref: string }

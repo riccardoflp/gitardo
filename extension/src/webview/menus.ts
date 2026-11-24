@@ -301,7 +301,7 @@ export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): 
     !state.operation && mark('bad'),
     'separator',
     { label: 'Copy hash', run: () => copy(hash) },
-    { label: 'Copy message', run: () => copy(row.subject) },
+    { label: 'Copy message', run: () => act({ kind: 'copyMessage', hash }) },
     canFormatPatch([row]) && { label: 'Copy as patch', run: () => formatPatch([row]) },
     canFormatPatch([row]) && { label: 'Save as patch…', run: () => formatPatch([row], true) },
     !row.stash && { label: 'Save as archive…', run: () => act({ kind: 'saveArchive', at: hash }) },
@@ -357,7 +357,7 @@ export function logMenu(commit: Commit, state: RepoState): MenuEntry[] {
     !isHead && { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, run: () => act({ kind: 'reset', hash }) },
     'separator',
     { label: 'Copy hash', run: () => copy(hash) },
-    { label: 'Copy message', run: () => copy(commit.subject) },
+    { label: 'Copy message', run: () => act({ kind: 'copyMessage', hash }) },
   ];
 }
 

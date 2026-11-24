@@ -916,8 +916,9 @@ listed is not taken for the first commit of the project
 - **Entry points**: the timeline and the inspector of a shallow repository.
 - **Offered when**: `repo.read-shallow` says the repository is shallow.
 - **Uses**: `repo.read-shallow`, `graph.lanes`, `graph.load-more`, `details.show`, `sync.deepen`, `sync.unshallow`.
-- **Extension**: Planned: the same lines and the same last row in the graph and in Gitardo Graph, its two buttons
-  sending `feature/run` of `sync.deepen` and `sync.unshallow` to the engine.
+- **Extension**: the same dashed line, with the same tooltip, and the same last row in the **Graph** view, its tabs
+  and Gitardo Graph, its two buttons sending `feature/run` of `sync.deepen` and `sync.unshallow` to the engine. The
+  details beside the graph do not say **Not fetched** yet.
 
 - The line of a commit whose parents were not fetched does not end at its dot, as the line of a first commit does: it
   goes on under the dot to the bottom of its row, dashed (Q1062). Its tooltip says **The commits before this one were

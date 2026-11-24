@@ -429,7 +429,9 @@ Whether the repository is a shallow clone, and the commits whose parents were no
   as first commits.
 - **Uses**: by `repo.read-state`, `graph.shallow-end`, `sync.deepen` and `sync.unshallow`. A change of that file asks
   for a read, as a change of the references does (`repo.watch-changes`).
-- **Extension**: Planned: with `read/repo.read-state` of the engine, for `graph.shallow-end` in the graph.
+- **Extension**: with `read/repo.read-state` of the engine, as `shallow` in the state, for `graph.shallow-end` in the
+  graph and for the Command Palette to offer **Gitardo: Load More History** and **Gitardo: Load the Whole History**
+  only in a shallow clone.
 
 Acceptance:
 

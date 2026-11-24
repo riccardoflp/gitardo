@@ -1393,8 +1393,9 @@ Fetches more of the history of a shallow clone: a number of commits further back
 - **Function**: `features::sync::deepen(context, answers) -> Outcome`
 - **Entry points**: **Load more history** on the last row of the timeline and in the inspector of a commit whose
   parents were not fetched (`graph.shallow-end`); **Load More History** in Quick search.
-- **Extension**: Planned: the same buttons in the graph, and **Gitardo: Load More History** in the Command Palette,
-  each sending `feature/run` of `sync.deepen` to the engine.
+- **Extension**: **Load more history** on the last row of the graph, and **Gitardo: Load More History** in the
+  Command Palette while the repository shown is shallow, each sending `feature/run` of `sync.deepen` to the engine,
+  whose question VS Code asks.
 - **Offered when**: the repository is shallow (`repo.read-shallow`).
 - **Asks**: **How many commits further back**, `100` by default (Q1063), refused while typed when it is not a whole
   number of at least 1.
@@ -1425,8 +1426,8 @@ Fetches all the history a shallow clone does not have, so that it is a clone lik
 - **Function**: `features::sync::unshallow(context, answers) -> Outcome`
 - **Entry points**: **Load the whole history** on the last row of the timeline (`graph.shallow-end`); **Load the
   Whole History** in Quick search.
-- **Extension**: Planned: the same button in the graph, and **Gitardo: Load the Whole History** in the Command
-  Palette, sending `feature/run` of `sync.unshallow` to the engine.
+- **Extension**: **Load the whole history** on the last row of the graph, and **Gitardo: Load the Whole History** in
+  the Command Palette while the repository shown is shallow, sending `feature/run` of `sync.unshallow` to the engine.
 - **Offered when**: the repository is shallow (`repo.read-shallow`).
 - **Reads**: `repo.read-shallow`.
 - **Plan**: `git fetch --unshallow <remote>`, from the remote `sync.deepen` fetches from. Titled **Load the whole

@@ -403,6 +403,9 @@ Puts the whole message of a commit on the clipboard, as it was written.
 - **Danger**: None
 - **Undo**: Nothing to take back: nothing changes.
 - **After**: the message is on the clipboard.
+- **Extension**: **Copy message** in the context menu of a commit in the graph and in its tabs, in Gitardo Graph and
+  in the **Commits** view, sending `feature/run` of `commits.copy-message` to the engine, whose message VS Code puts
+  on the clipboard.
 
 Acceptance:
 

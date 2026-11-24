@@ -1091,6 +1091,18 @@ input:focus-visible,
   background: none;
 }
 
+/* The row after the last commit of a shallow clone, which says its history was not all fetched. */
+.row.shallow-end {
+  gap: 10px;
+  padding-left: 10px;
+  cursor: default;
+  color: var(--vscode-descriptionForeground);
+}
+
+.row.shallow-end:hover {
+  background: none;
+}
+
 /* The commits of the filter before, while those of the new one are read; the comparison before, while the new one is made. */
 .compare-page.stale > :not(.commit-head),
 .commits.stale .spacer {

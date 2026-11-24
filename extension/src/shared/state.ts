@@ -270,8 +270,8 @@ export interface RepositoryState {
   /** The submodules and theirs, each after the one it is in. */
   submodules: Submodule[];
   /**
-   * The commits whose parents were not fetched, where the history of a shallow clone ends (protocol 1.11); the graph
-   * does not show them yet (`graph.shallow-end` is Planned in the extension).
+   * The commits whose parents were not fetched, where the history of a shallow clone ends (protocol 1.11): the graph
+   * goes on under their dots, dashed, and says where the history ends (`graph.shallow-end`).
    */
   shallow?: string[];
   /**

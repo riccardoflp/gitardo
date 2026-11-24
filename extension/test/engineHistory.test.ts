@@ -477,3 +477,19 @@ describe.skipIf(!built)('Patches, through the engine', { timeout: 60_000 }, () =
     expect(fs.readFileSync(path.join(applied.root, 'patched.txt'), 'utf8')).toBe('one\ntwo\n');
   });
 });
+
+describe.skipIf(!built)('The message of a commit, through the engine', { timeout: 60_000 }, () => {
+  it('commits.copy-message: Copy message puts the subject, the empty line and the body on the clipboard, as git wrote them', async () => {
+    const root = await repository();
+    fs.writeFileSync(path.join(root, 'body.txt'), 'body\n');
+    await git(root, ['add', 'body.txt']);
+    await git(root, ['commit', '--quiet', '-m', 'Add a body', '-m', 'A first line of the body\nand a second one, as written.']);
+    const hash = (await git(root, ['rev-parse', 'HEAD'])).stdout.trim();
+    const runs = engineRuns({ kind: 'copyMessage', hash }, await engineState(root));
+    expect(runs).toEqual([{ feature: 'commits.copy-message', target: { kind: 'commit', commit: hash } }]);
+    const copied = await runEngine(root, runs!);
+    const written = (await git(root, ['log', '-1', '--format=%B', hash])).stdout.replace(/\n+$/, '');
+    expect(copied.followUps).toContainEqual({ kind: 'copyToClipboard', text: written });
+    expect(written).toContain('\n\nA first line of the body\nand a second one, as written.');
+  });
+});
