@@ -7,7 +7,7 @@
 use engine::ai::{AiError, ConflictReply};
 use model::ai::{Confidence, ConflictAnswer};
 use model::compare::ComparisonPart;
-use model::contract::{FollowUp, SettingWritten, Target};
+use model::contract::{FollowUp, SettingTarget, SettingWritten, Target};
 use protocol::ai::{
     AskConflictParams, AskedConflictJson, ConflictAnswerJson, DraftJson, DraftParams, LanguageModelParams,
     LanguageModelResult, LanguageModelsResult, ModelMessageJson, PurposeJson, RoleJson,
@@ -138,17 +138,25 @@ fn a_setting_to_write_has_its_key_and_its_value_or_null_to_remove_it() {
         FollowUp::WriteSetting(Box::new(SettingWritten {
             key: String::from("ai.model"),
             value: Some(String::from("\"two\"")),
+            target: SettingTarget::User,
         })),
         FollowUp::WriteSetting(Box::new(SettingWritten {
             key: String::from("ai.effort"),
             value: None,
+            target: SettingTarget::User,
+        })),
+        FollowUp::WriteSetting(Box::new(SettingWritten {
+            key: String::from("worktrees.linkFolders"),
+            value: Some(String::from("[\"/node_modules/\"]")),
+            target: SettingTarget::WorkspaceFolder,
         })),
     ];
     assert_eq!(
         serde_json::to_value(FollowUpJson::all_of(&after)).unwrap(),
         json!([
-            { "kind": "writeSetting", "key": "ai.model", "value": "two" },
-            { "kind": "writeSetting", "key": "ai.effort", "value": null }
+            { "kind": "writeSetting", "key": "ai.model", "value": "two", "target": "user" },
+            { "kind": "writeSetting", "key": "ai.effort", "value": null, "target": "user" },
+            { "kind": "writeSetting", "key": "worktrees.linkFolders", "value": ["/node_modules/"], "target": "workspaceFolder" }
         ])
     );
 }

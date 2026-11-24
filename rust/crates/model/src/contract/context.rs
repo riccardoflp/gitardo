@@ -196,6 +196,9 @@ pub struct WorktreeSettings {
     /// `copyFiles` and `setupCommands` (`host` `"vscode"`); none in the desktop, which reads its settings files
     /// (`worktree-setup.settings-in-effect`).
     pub setup: Option<crate::worktree_setup::SetupSettings>,
+    /// Where the host writes the settings of new worktrees of the repository, while it gives them: the settings of the
+    /// workspace folder that has it, or the user's when it is in no folder of the workspace.
+    pub repository_target: crate::contract::SettingTarget,
 }
 
 /// `worktrees.openIn`: where a worktree opens (`worktree.open`).

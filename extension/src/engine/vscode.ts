@@ -7,8 +7,8 @@
 import * as vscode from 'vscode';
 import { findBinary } from './binary';
 import { EngineClient, type EngineOptions, type FeatureAsker } from './client';
-import type { Answer, Choice, OfferedBeforeRun, Plan, Question, Settings } from './messages';
-import { contributedKeys, engineSettings, type Configuration } from './settings';
+import type { Answer, Choice, OfferedBeforeRun, Plan, Question, Settings, WriteSettingFollowUp } from './messages';
+import { contributedKeys, engineSettings, settingLine, type Configuration } from './settings';
 import { NO_ENGINE } from '../shared/protocol';
 import { buttonWords } from '../shared/rangeDiff';
 
@@ -150,7 +150,10 @@ export class VscodeAsker implements FeatureAsker {
   async confirm(plan: Plan): Promise<boolean> {
     const ask = plan.danger.kind === 'destructive' ? vscode.window.showWarningMessage : vscode.window.showInformationMessage;
     const reason = plan.danger.kind === 'none' ? '' : `${plan.danger.reason}\n\n`;
-    const detail = `${reason}Gitardo will run in ${this.repository}:\n\n${plan.steps.map((step) => step.line).join('\n')}`;
+    // The settings VS Code writes in place of steps, as saving what new worktrees get leaves them (M48).
+    const settings = plan.after.filter((followUp) => followUp.kind === 'writeSetting').map((followUp) => settingLine(followUp as unknown as WriteSettingFollowUp));
+    const lines = [...plan.steps.map((step) => step.line), ...settings];
+    const detail = `${reason}Gitardo will run in ${this.repository}:\n\n${lines.join('\n')}`;
     const instead = plan.after.find((followUp): followUp is OfferedBeforeRun => followUp.kind === 'offerBeforeRun');
     const insteadWords = instead && buttonWords(instead.label);
     const chosen = await ask(`${plan.title}?`, { modal: true, detail }, 'Run', ...(insteadWords ? [insteadWords] : []));

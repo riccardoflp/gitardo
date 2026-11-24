@@ -4151,7 +4151,10 @@ start of stage 1, as recommended.
   `settings.json` and the extension with `WorkspaceConfiguration.update`, in place of the steps that write the file.
   *Partly built in stage 4, area 6*: `FollowUp::WriteSetting { key, value }`, without `target` (the user's settings),
   left by `ai.choose-model` only under the extension (`uses_host_models`); the window still writes its file there,
-  and the other features wait.
+  and the other features wait. *Built in M48*: `target` (the workspace folder, the workspace file or the user), which
+  `worktree-setup.save`, `worktree-setup.remove-from` and the four entries of the Explorer leave under the extension in
+  place of their steps; the extension writes each with `WorkspaceConfiguration.update`, shows it first under `all`
+  and logs it. The toggles of the graph are the extension's settings still.
 - **Q400** — The extension's `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` against the desktop's
   `ai.model` and `ai.effort`. Recommended: the extension keeps its keys and sends them as `ai.*`; a `gitardo.ai.*`
   pair only if a second use of AI needs another model.
@@ -6068,3 +6071,7 @@ planned; each is built as it says until the maintainer answers otherwise.
 - **Q1532** — D91: the risks of the extension that are still true once tried against the engine are fixed in the
   engine. Should their rows move to a page of risks of both apps, in `docs/transition/` or beside the decisions, since
   they are no longer the extension's alone?
+- **Q1620** — M48: the extension sends `setup`, what VS Code sets for new worktrees in the repository's folder, only
+  with the features `worktree-setup.*`; `worktree.create` and the others read the settings sent at `initialize`, those
+  of the workspace, not of a folder of it. Should every `feature/run` send it, so that a new worktree of a repository in
+  another folder of a workspace of several gets that folder's settings?

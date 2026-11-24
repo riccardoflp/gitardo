@@ -11,6 +11,7 @@ use model::compare::{CompareSide, ComparisonPart, ComparisonTarget, Side};
 
 use super::diff_change::DiffChangeJson;
 use super::resolutions::{FileResolutionsJson, MergeResultJson};
+use super::setup::SetupSaveJson;
 use crate::reads::{CompareModeJson, ComparisonSideJson};
 use crate::state::FileChangeJson;
 
@@ -113,6 +114,9 @@ pub enum TargetJson {
     },
     /// A change of a diff (1.7, `diff.stage-change` and `diff.unstage-change`).
     DiffChange(DiffChangeJson),
+    /// What the tab of what new worktrees get saves, and where (1.13, `worktree-setup.save`,
+    /// `worktree-setup.remove-from`).
+    SetupSettings(SetupSaveJson),
 }
 
 /// A side of a comparison page: its name, where it is now, and whether it follows its name.
@@ -200,6 +204,7 @@ impl TryFrom<TargetJson> for Target {
                     .map_or(ComparisonPart::Whole, |file| ComparisonPart::File(file.into())),
             })),
             TargetJson::DiffChange(change) => Target::DiffChange(Box::new(change.try_into()?)),
+            TargetJson::SetupSettings(save) => Target::SetupSettings(Box::new(save.into())),
         })
     }
 }

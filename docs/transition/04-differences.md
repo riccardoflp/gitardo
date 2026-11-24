@@ -771,6 +771,14 @@ Four things cut across areas and are best decided once:
   (`server/src/settings.rs`, `features/worktree_setup/files.rs`, `settings_given`). Writing them stays in the
   extension, in VS Code's settings, until `WriteSetting` (Q399): under VS Code the engine refuses `worktree-setup.save`,
   the Explorer's entries and the others that write its own files.
+- **Settled in M48**: `FollowUp::WriteSetting` has a `target`, the workspace folder, the workspace or the user (Q399,
+  protocol 1.13). Under VS Code, `worktree-setup.save`, `worktree-setup.remove-from` and the four entries of the
+  Explorer plan follow-ups in place of the steps that write a file, and the extension writes them with
+  `WorkspaceConfiguration.update` under `gitardo.worktrees.*` (and `git.*` for VS Code's two), each list where it is
+  set; `feature/run` gives them `setup`, what VS Code sets in the repository's folder and where. `saveSetup` and the
+  Explorer's TypeScript are gone from `src/extension/worktreeSettings.ts`. The desktop keeps its steps.
+  `worktree-setup.edit-settings-file` stays refused under VS Code: opening VS Code's own file of the settings is the
+  extension's, which writes nothing.
 
 ### W5. Who decides that the setup commands may run
 
@@ -878,6 +886,10 @@ Four things cut across areas and are best decided once:
   Gitardo." (Depends on W4 for where it is written.)
 - **Not moved in stage 4** (area 5): saving what new worktrees get stays in the extension, in VS Code's settings,
   until `WriteSetting` (Q399, W4); the line goes into the CHANGELOG with that move.
+- **Settled in M48**, with W4: saving is the engine's plan, shown first under `commandPreview` `all` with the settings
+  it writes as its lines, and each setting written is in the log; the line is in the extension's CHANGELOG. **Stop
+  Linking into New Worktrees** now takes out the link pattern of the path alone, and **Stop Copying into New Worktrees**
+  the copy pattern, as in the desktop, where the extension took both out with either.
 
 ## Submodules
 

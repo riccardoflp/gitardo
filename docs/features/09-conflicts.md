@@ -1715,7 +1715,8 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
   `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with
   the desktop's picks, the first saying **The first model** (G2, settled in M48); with `gitardo.commandPreview` set to
   `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and
-  `gitardo.conflicts.aiEffort` in the user settings of VS Code. Nothing changes in the repository, and **Undo** still
+  `gitardo.conflicts.aiEffort` in the user settings of VS Code, each a line of the command log, as every setting the
+  engine has VS Code write (M48). Nothing changes in the repository, and **Undo** still
   takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code.
   Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so
   (D49). The review then names **\<id\>, not available** when the chosen one is gone.
@@ -1738,8 +1739,8 @@ Acceptance:
       `gitardo.conflicts.aiEffort` in the user settings, from the engine's `writeSetting`.
 - [ ] Extension: choosing **Chosen model** then **High** sets `gitardo.conflicts.aiModel` to `test-chosen` and
       `gitardo.conflicts.aiEffort` to `high`.
-- [ ] Extension: it changes nothing in the repository: nothing is written to the log, and it does not change what
-      **Undo** does.
+- [ ] Extension: it changes nothing in the repository: the command log has only the two settings, `> set
+      gitardo.conflicts.aiModel "test-chosen" in the user`, and it does not change what **Undo** does.
 - [ ] Extension: with `gitardo.commandPreview` set to `all`, choosing the model asks nothing more than its two picks.
 
 ### `ai.copilot` — GitHub Copilot as the AI provider

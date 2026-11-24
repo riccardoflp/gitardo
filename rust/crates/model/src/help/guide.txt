@@ -5514,7 +5514,7 @@ title: Choose the model that resolves conflicts
 place: the Conflicts page
 show: quick search
 Chooses which model of the AI provider is asked about conflicts, and how much it thinks before it answers.
-In VS Code: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the model's name at the top of the review, while `gitardo.conflicts.ai` is on. runs `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with the desktop's picks, the first saying **The first model** (G2, settled in M48); with `gitardo.commandPreview` set to `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` in the user settings of VS Code. Nothing changes in the repository, and **Undo** still takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so. The review then names **\<id\>, not available** when the chosen one is gone.
+In VS Code: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the model's name at the top of the review, while `gitardo.conflicts.ai` is on. runs `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with the desktop's picks, the first saying **The first model** (G2, settled in M48); with `gitardo.commandPreview` set to `all`, nothing more is asked than the picks (G6). The extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` in the user settings of VS Code, each a line of the command log, as every setting the engine has VS Code write (M48). Nothing changes in the repository, and **Undo** still takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so. The review then names **\<id\>, not available** when the chosen one is gone.
 @card extension ai.copilot
 title: GitHub Copilot as the AI provider
 place: the Conflicts page
@@ -6089,12 +6089,54 @@ place: Kept aside, in the branch rail
 show: none
 How the buttons of the page change the patterns: by the pattern of a path or of a name, keeping the patterns that take more than the line.
 In VS Code: worked out in the tab, in TypeScript: `patternFor`, `namePattern`, `pathPattern`, `choose`, `chooseAll`, `chooseOne`, `groupEntries`, `statusOf`, `statusNow` and `statusOfAll` in.
+@card extension worktree-setup.save
+title: Save what new worktrees get
+place: Kept aside, in the branch rail
+show: show where
+Writes the patterns and the commands of the page to the settings of the repository or of the user.
+In VS Code: **Save** in the tab of what new worktrees get sends `feature/run` of `worktree-setup.save` to Gitardo's engine (from the message `saveWorktreeSetup`), with the target `setupSettings`, the place chosen, the patterns, the commands and the box, and `setup`, what VS Code sets in the repository's folder (`setupGiven` in). Inside VS Code the plan has no step: it ends in follow-ups `writeSetting`, which the extension writes with VS Code's settings API (`WorkspaceConfiguration.update`), `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles` and `gitardo.worktrees.setupCommands`, in the `.vscode/settings.json` of the workspace folder, or the user's settings when that is chosen or the repository is in no folder of the workspace; with **Also in VS Code's git.worktreeSymlinkFolders and git.worktreeIncludeFiles, for the worktrees VS Code creates**, those two as well, in the same place. With `gitardo.commandPreview` set to `all` the plan is shown first, each setting as a line, `set gitardo.worktrees.linkFolders ["node_modules/"] in the workspace folder`, and each setting written is in the command log (W4, W12, settled in M48). When the engine's binary is missing, it says so.
+@card extension worktree-setup.remove-from
+title: Remove the settings of new worktrees from a place
+place: Kept aside, in the branch rail
+show: show where
+Takes the three settings out of the place chosen on the page, so that what is set elsewhere applies again.
+In VS Code: **Remove from `<workspace folder>`** or **Remove from User** in the tab of what new worktrees get sends `feature/run` of `worktree-setup.remove-from` to Gitardo's engine, with the target `setupSettings` of the place, as **Save** does; its plan has no step, and its follow-ups `writeSetting` have VS Code remove the three `gitardo.worktrees.*` settings from that place, logged and shown first under `all` (W4, settled in M48).
+@card extension worktree-setup.edit-settings-file
+title: Edit the settings of new worktrees in their file
+place: Kept aside, in the branch rail
+show: show where
+Opens the settings file of the place chosen on the page, to edit the patterns and the commands by hand.
+In VS Code: **Edit in settings.json** in the tab of what new worktrees get, done by the extension itself, in TypeScript: `editSetupJson` in, from the message `editWorktreeSetup`, opens the user's `settings.json` or the `.vscode/settings.json` of the workspace folder in VS Code's editor, made by VS Code when it is not there. It writes nothing, so it is not a plan: VS Code's own file of the settings is the extension's to open, and the engine, which has no such file, refuses this feature under VS Code, **Inside VS Code, what new worktrees get is in VS Code's settings: Gitardo changes them there, not in a file of its own.** (W4, kept in M48).
+@card extension worktree-setup.link-into-new-worktrees
+title: Link a folder into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Has new worktrees link a folder of the checkout, chosen in the Files page, by the pattern of its path.
+In VS Code: **Link into New Worktrees** in the context menu of a folder in VS Code's Explorer, for the folders selected, not in the Command Palette (`gitardo.linkIntoWorktrees` in `package.json`, `explorer/context`, group `z_gitardo_worktrees@1`, while the path is not in the context key `gitardo.linkedIntoWorktrees`). in sends `feature/run` of this feature to Gitardo's engine for each repository, on the paths chosen in it (`files`), with `setup`, what VS Code sets in its folder. The plan has no step: its follow-ups `writeSetting` have VS Code write `gitardo.worktrees.linkFolders` where it is set now, the workspace folder or the user's settings, and where it is not set in the workspace folder (the user's when the repository is in no folder of the workspace); it is shown first under `gitardo.commandPreview` `all`, logged, and what became of each is said in an information message with **Choose What New Worktrees Get…**, which opens the tab, or in a warning when nothing changed (W4, W12, settled in M48). A path in no repository says so. The folder of a repository itself counts as in none.
+@card extension worktree-setup.copy-into-new-worktrees
+title: Copy a file or a folder into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Has new worktrees get a copy of a file or a folder of the checkout, chosen in the Files page, by the pattern of its path.
+In VS Code: **Copy into New Worktrees** in the context menu of a file or a folder in VS Code's Explorer, for those selected, not in the Command Palette (`gitardo.copyIntoWorktrees` in `package.json`, `explorer/context`, group `z_gitardo_worktrees@2`, while the path is not in the context key `gitardo.copiedIntoWorktrees`). runs this feature on Gitardo's engine as `worktree-setup.link-into-new-worktrees` does, and VS Code writes `gitardo.worktrees.copyFiles` from its follow-up, shown first under `all` and logged (W4, W12, settled in M48).
+@card extension worktree-setup.stop-linking
+title: Stop linking a folder into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Takes the link pattern of a folder's own path out, from the Files page.
+In VS Code: **Stop Linking into New Worktrees** in the context menu of VS Code's Explorer, not in the Command Palette (`gitardo.stopLinkingIntoWorktrees` in `package.json`), offered by the context key `gitardo.linkedIntoWorktrees` that `showSetupInMenus` and `namedPaths` of set when the workspace folders or the four settings change. runs this feature on Gitardo's engine as `worktree-setup.link-into-new-worktrees` does: the link patterns of the path go, saved where `gitardo.worktrees.linkFolders` is set, shown first under `all` and logged. The extension took the patterns of the path out of both lists with either Stop entry; now each takes out its own, as in Gitardo Desktop (W4, W12, settled in M48, said in the CHANGELOG).
+@card extension worktree-setup.stop-copying
+title: Stop copying into new worktrees
+place: Kept aside, in the branch rail
+show: show where
+Takes the copy pattern of a file's or a folder's own path out, from the Files page.
+In VS Code: **Stop Copying into New Worktrees** in the context menu of VS Code's Explorer (`gitardo.stopCopyingIntoWorktrees` in `package.json`, offered by the context key `gitardo.copiedIntoWorktrees`), run on Gitardo's engine as `worktree-setup.stop-linking` says: it takes the copy patterns of the path out of `gitardo.worktrees.copyFiles` alone (W4, W12, settled in M48).
 @card extension worktree-setup.explain-change
 title: Why a choice from the Files page changes nothing
 place: Kept aside, in the branch rail
 show: none
 What becomes of a file or a folder given to new worktrees, or taken from them, from the Files page, as git works the patterns out, and the sentence that says it.
-In VS Code: worked out in TypeScript for the four entries of VS Code's Explorer, from what the engine reads: and `setupChangeText` in, with `chooseByPath` in, ask the engine what the patterns take before and after (`worktree-setup.read-what-patterns-take`, `Reads.setupTakes` in); when the patterns do not give it what was chosen, `read/worktree-setup.explain-change` (`Reads.pathStatuses`) says whether git tracks or ignores it.
+In VS Code: the same, by the engine: the four entries of VS Code's Explorer run their features on Gitardo's engine (M48), whose plans say what became of each path with these sentences.
 @card extension worktree-setup.bring-into-worktree
 title: Bring ignored files into a worktree
 place: Kept aside, in the branch rail

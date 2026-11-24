@@ -69,7 +69,7 @@ Gitardo writes VS Code settings only when the user changes the same thing from i
 | Setting | Target | Written by |
 | --- | --- | --- |
 | `gitardo.graph.showStashes`, `gitardo.graph.dateSeparators`, `gitardo.graph.combineUpstream`, `gitardo.graph.oneLane`, `gitardo.branches.sortOrder` | User settings | The toggles of the **View** menu of the toolbar and of the references (`Controller.onMessage`) |
-| `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles`, `gitardo.worktrees.setupCommands` | The settings of the workspace folder or the user's, as chosen | The page of what new worktrees get, and **Link into New Worktrees** and **Copy into New Worktrees** in the Explorer (`src/extension/worktreeSettings.ts`) |
+| `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles`, `gitardo.worktrees.setupCommands` | The settings of the workspace folder or the user's, as chosen | The page of what new worktrees get, and **Link into New Worktrees** and **Copy into New Worktrees** in the Explorer, from the engine's `writeSetting` (`Controller.writeSetting`, M48) |
 | `git.worktreeSymlinkFolders`, `git.worktreeIncludeFiles` | The same | The same page, when the user asks for VS Code's worktrees to get the same |
 
 ### Files

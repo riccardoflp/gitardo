@@ -6,6 +6,10 @@
   deleted from disk.", or as many as there are, where the warning spoke of a last commit there is not.
 - With `commandPreview` set to `all`, a plan that changes nothing itself, with no step and no danger, such as **Open on
   GitHub** of a comparison or loading the pull requests, runs without asking: there was nothing to show but its title.
+- Version 1.13 of the protocol of `gitardo-engine --stdio`, for the extension: `feature/run` takes `setup`, what VS
+  Code sets for new worktrees in the repository's folder, the follow-up `writeSetting` says where it is written
+  (`target`), and the tab of what new worktrees get saves with the target `setupSettings`. Saving what new worktrees
+  get, from the page or the Files page, still writes Gitardo's files in the window.
 
 ## 1.3.0 - 2026-11-24
 

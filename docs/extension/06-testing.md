@@ -226,6 +226,9 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   which keeps what it was asked: what the draft of a commit message and the question about a conflict send the model,
   what the same answer gives, that cancelling a read cancels the question to the model, and that choosing the model
   leaves the two settings as `writeSetting`.
+- `test/engineWorktreeSettings.test.ts` runs `worktree-setup.save`, `worktree-setup.remove-from` and
+  `worktree-setup.copy-into-new-worktrees` on the engine as the extension sends them, with `setup`, and checks that the
+  plan has no step and leaves `writeSetting` with its `target`, and the line the log writes of each.
 - `test/engineWithoutGit.test.ts` checks what version 1.7 of the protocol added for the extension to run no git: the
   repositories of the workspace's folders (`repository/discover`), a file of a comparison taken from its second side,
   and a change of the Flow Diff staged and unstaged with the `diffChange` target, or refused when the file no longer

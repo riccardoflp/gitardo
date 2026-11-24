@@ -10,6 +10,8 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Opening on GitHub a comparison of a commit with itself says the two sides are the same commit, and opens nothing.
 - With `gitardo.commandPreview` set to `all`, skipping a cherry-picked commit that changes nothing is now shown and asked first.
 - With `gitardo.commandPreview` set to `all`, choosing the model that resolves conflicts asks nothing more than its picks, and **Open on GitHub** and loading the pull requests ask nothing: there is nothing to show.
+- Saving what new worktrees get, from its tab or with **Link into New Worktrees** and **Copy into New Worktrees** of the Explorer, is now done by Gitardo's engine, as in Gitardo Desktop: each setting saved or taken out is a line of the log, and with `gitardo.commandPreview` set to `all` it is shown first. So are the two settings of the model that resolves conflicts.
+- **Stop Linking into New Worktrees** takes out only the patterns that link the path, and **Stop Copying into New Worktrees** only those that copy it, where each took out both before.
 
 ### Fixed
 

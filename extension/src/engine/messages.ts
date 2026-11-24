@@ -26,9 +26,11 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * (milestone M36), the validation of the number of a pull request and the host question of the token of a GitLab
  * (milestone M37), the files hidden from git and the locks of worktrees (milestone M38), whether git's maintenance
  * looks after the repository and the notes of commits (milestone M40); 1.12 has `commitGraph` in the state, whether
- * git keeps its commit-graph file of the repository (milestone M44).
+ * git keeps its commit-graph file of the repository (milestone M44); 1.13 has `target` in the follow-up `writeSetting`,
+ * the target `setupSettings` and `setup` in `feature/run`, for the settings of new worktrees saved by the engine's plans
+ * (milestone M48).
  */
-export const PROTOCOL = '1.12';
+export const PROTOCOL = '1.13';
 
 /** The names of the methods. */
 export const Method = {
@@ -110,7 +112,34 @@ export type Target =
   // Area 6 of stage 4, from 1.6: a comparison page as a whole, or one of its files from 1.7.
   | ComparisonTarget
   // From 1.7: a change of a diff, which the Flow Diff stages or unstages.
-  | DiffChangeTarget;
+  | DiffChangeTarget
+  // From 1.13: what the tab of what new worktrees get saves, and where (`worktree-setup.save`, `worktree-setup.remove-from`).
+  | SetupSettingsTarget;
+
+/** What the tab of what new worktrees get saves: the repository's place, its workspace folder, or the user's (1.13). */
+export interface SetupSettingsTarget {
+  kind: 'setupSettings';
+  place: 'repository' | 'user';
+  link: string[];
+  copy: string[];
+  commands: string[];
+  alsoVsCode: boolean;
+}
+
+/** Where a list of what new worktrees get is set in VS Code (1.13). */
+export type SetupFrom = 'workspace' | 'user' | 'vscode' | 'none';
+
+/**
+ * What new worktrees get in the folder of a repository, as VS Code resolves its settings there, given to the features
+ * that save it (`setup` of `feature/run`, 1.13).
+ */
+export interface SetupGiven {
+  linkFolders: { values: string[]; from: SetupFrom };
+  copyFiles: { values: string[]; from: SetupFrom };
+  setupCommands: { values: string[]; from: SetupFrom };
+  /** Whether the repository is in a folder of the workspace; else what is set nowhere goes in the user's settings. */
+  inWorkspaceFolder: boolean;
+}
 
 /** The resolutions accepted in a file of the review, and the text they were made from (`FileResolutions` of `model`). */
 export interface FileResolutions {
@@ -227,6 +256,8 @@ export interface FeatureRunParams {
   answers: Record<string, Answer>;
   journal: boolean;
   inputs: Record<string, string>;
+  /** What new worktrees get in the repository's folder, for the features that save it (1.13). */
+  setup?: SetupGiven;
 }
 
 /** The engine's question of a run. */
@@ -704,11 +735,18 @@ export interface DiscoveredRepository {
   commonFolder: string | null;
 }
 
-/** A setting a feature leaves for the extension to write in the user's settings, by the desktop's name; null removes it. */
+/** Where VS Code writes a setting a feature leaves (1.13); the user's settings when an older engine says nothing. */
+export type SettingTarget = 'workspaceFolder' | 'workspace' | 'user';
+
+/**
+ * A setting a feature leaves for the extension to write, by the desktop's name, VS Code's own with their `git.` prefix;
+ * null removes it from that place.
+ */
 export interface WriteSettingFollowUp {
   kind: 'writeSetting';
   key: string;
   value: unknown;
+  target?: SettingTarget;
 }
 
 // Milestone M17, from 1.9 (`rust/crates/protocol/src/mermaid.rs`): a diagram of Mermaid as an SVG, with no repository.

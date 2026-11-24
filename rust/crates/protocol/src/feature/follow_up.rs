@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use model::contract::{FollowUp, OfferedRun, Text};
+use model::contract::{FollowUp, OfferedRun, SettingTarget, Text};
 use serde::{Deserialize, Serialize};
 
 use super::question::AnswerJson;
@@ -110,12 +110,16 @@ pub enum FollowUpJson {
         /// The answers it is given before it asks, by their keys.
         answers: BTreeMap<String, AnswerJson>,
     },
-    /// A setting is written in the user's settings of VS Code, by the desktop's name (1.6, `ai.choose-model`).
+    /// A setting is written in VS Code's settings, by the desktop's name (1.6, `ai.choose-model`), in the place named
+    /// (1.13, `worktree-setup.save`).
     WriteSetting {
-        /// The setting, as the desktop names it: `ai.model`.
+        /// The setting, as the desktop names it: `ai.model`; VS Code's own with their `git.` prefix.
         key: String,
-        /// Its value; null removes it.
+        /// Its value; null removes it from that place.
         value: Option<serde_json::Value>,
+        /// Where it is written; the user's settings when an older engine leaves it out.
+        #[serde(default)]
+        target: SettingTargetJson,
     },
     /// The marks of the tags a remote lacks follow what the operation changed of the tags on it, without asking it
     /// again (1.11, `tag.remote-marks`).
@@ -252,6 +256,7 @@ impl FollowUpJson {
                     Some(text) => Some(serde_json::from_str(text).ok()?),
                     None => None,
                 },
+                target: SettingTargetJson::from(written.target),
             },
             FollowUp::TagsOnRemote(changed) => FollowUpJson::TagsOnRemote {
                 remote: changed.remote.clone(),
@@ -266,5 +271,38 @@ impl FollowUpJson {
     #[must_use]
     pub fn all_of(follow_ups: &[FollowUp]) -> Vec<FollowUpJson> {
         follow_ups.iter().filter_map(FollowUpJson::of).collect()
+    }
+}
+
+/// A place of VS Code's settings a setting is written in (1.13, `SettingTarget` of `model`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SettingTargetJson {
+    /// The settings of the workspace folder that has the repository.
+    WorkspaceFolder,
+    /// The settings of the workspace.
+    Workspace,
+    /// The user's settings.
+    #[default]
+    User,
+}
+
+impl From<SettingTarget> for SettingTargetJson {
+    fn from(target: SettingTarget) -> Self {
+        match target {
+            SettingTarget::WorkspaceFolder => SettingTargetJson::WorkspaceFolder,
+            SettingTarget::Workspace => SettingTargetJson::Workspace,
+            SettingTarget::User => SettingTargetJson::User,
+        }
+    }
+}
+
+impl From<SettingTargetJson> for SettingTarget {
+    fn from(target: SettingTargetJson) -> Self {
+        match target {
+            SettingTargetJson::WorkspaceFolder => SettingTarget::WorkspaceFolder,
+            SettingTargetJson::Workspace => SettingTarget::Workspace,
+            SettingTargetJson::User => SettingTarget::User,
+        }
     }
 }

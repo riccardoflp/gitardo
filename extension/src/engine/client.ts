@@ -69,6 +69,7 @@ import {
   type HostingPage,
   type SetupPreview,
   type Settings,
+  type SetupGiven,
   type Side,
   type StateParams,
   type Submodule,
@@ -139,6 +140,8 @@ export interface FeatureRequest {
   answers?: Record<string, Answer>;
   /** The values of the inputs of `branches.format` used last. */
   inputs?: Record<string, string>;
+  /** What new worktrees get in the repository's folder, for the features that save it. */
+  setup?: SetupGiven;
 }
 
 /** How a feature ended, and the follow-ups the engine left the extension to carry out. */
@@ -270,6 +273,7 @@ export class EngineClient {
       answers: request.answers ?? {},
       journal: true,
       inputs: request.inputs ?? {},
+      ...(request.setup ? { setup: request.setup } : {}),
     };
     const { id, answer } = connection.send<Finished>(Method.featureRun, params, signal);
     this.askers.set(id, asker);

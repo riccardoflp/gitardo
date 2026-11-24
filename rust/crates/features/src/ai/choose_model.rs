@@ -4,7 +4,7 @@
 use model::ai::{AiModel, AiModels, CopilotNeed, Effort, Key};
 use model::contract::{
     Answer, AnswerKey, Answers, Choice, Context, Danger, FeatureId, FollowUp, Outcome, Plan, Query, Question,
-    QuestionKind, Refusal, SettingWritten, Step, Text, Undo, Validation,
+    QuestionKind, Refusal, SettingTarget, SettingWritten, Step, Text, Undo, Validation,
 };
 
 /// The models listed with the key kept.
@@ -143,11 +143,12 @@ fn settings_written(model: Option<&str>, effort: Option<Effort>) -> Vec<FollowUp
     ]
 }
 
-/// A setting for the host to write, its value as a JSON string, or removed.
+/// A setting for the host to write in the user's settings, its value as a JSON string, or removed.
 fn setting_written(key: &str, value: Option<&str>) -> FollowUp {
     FollowUp::WriteSetting(Box::new(SettingWritten {
         key: key.to_owned(),
         value: value.map(|value| json::to_compact_text(&json::Value::String(value.to_owned()))),
+        target: SettingTarget::User,
     }))
 }
 

@@ -35,7 +35,7 @@ fn changes_something(plan: &Plan) -> bool {
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
     use super::needs_confirmation;
-    use model::contract::{CommandPreview, Danger, FollowUp, Plan, SettingWritten, Step, Text, Undo};
+    use model::contract::{CommandPreview, Danger, FollowUp, Plan, SettingTarget, SettingWritten, Step, Text, Undo};
 
     fn plan(danger: Danger, steps: Vec<Step>, after: Vec<FollowUp>) -> Plan {
         Plan {
@@ -93,6 +93,7 @@ mod tests {
         let written = FollowUp::WriteSetting(Box::new(SettingWritten {
             key: String::from("worktrees.linkFolders"),
             value: Some(String::from("[]")),
+            target: SettingTarget::WorkspaceFolder,
         }));
         let setting = plan(Danger::None, Vec::new(), vec![written]);
         assert!(needs_confirmation(&setting, CommandPreview::All));

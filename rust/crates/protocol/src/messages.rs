@@ -76,8 +76,10 @@ pub mod methods {
 /// worktree, the files hidden from git and the reason a worktree is locked; whether git's maintenance looks after the
 /// repository, `notes` in the state, the commits with a note, and `note` in the details of a commit; 1.12 what
 /// milestone M44 needs: `commitGraph` in the state, whether git keeps its commit-graph file of the repository and reads
-/// it.
-pub const VERSION: &str = "1.12";
+/// it; 1.13 what milestone M48 needs: `target` in the follow-up `writeSetting`, where VS Code writes the setting, the
+/// target `setupSettings` and `setup` in `feature/run`, what new worktrees get in the repository's folder, for the
+/// settings of new worktrees saved by the engine's plans.
+pub const VERSION: &str = "1.13";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

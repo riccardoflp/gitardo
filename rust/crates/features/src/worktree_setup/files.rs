@@ -4,7 +4,9 @@
 use std::path::PathBuf;
 
 use json::{Key, Value};
-use model::contract::{Answer, AnswerKey, Answers, Context, Outcome, Query, Refusal, Step};
+use model::contract::{
+    Answer, AnswerKey, Answers, Context, FollowUp, Outcome, Query, Refusal, SettingTarget, SettingWritten, Step,
+};
 use model::worktree_setup::{
     Places, SettingSource, SettingsInput, SettingsPlace, SetupPatterns, SetupSettings, settings_in_effect,
 };
@@ -213,6 +215,43 @@ pub fn place_words(place: SettingsPlace) -> &'static str {
         SettingsPlace::Repository => "the repository",
         SettingsPlace::User => "the user",
     }
+}
+
+/// Whether the host gives the settings of new worktrees and writes them, inside VS Code: the features plan follow-ups
+/// that write its settings in place of the steps that write Gitardo's files.
+#[must_use]
+pub fn host_writes(context: &Context) -> bool {
+    context.settings.worktrees.setup.is_some()
+}
+
+/// The place of the host's settings a place of Gitardo's stands for: the repository's is the workspace folder that has
+/// it, or the user's settings when it is in none.
+#[must_use]
+pub fn host_target(context: &Context, place: SettingsPlace) -> SettingTarget {
+    match place {
+        SettingsPlace::Repository => context.settings.worktrees.repository_target,
+        SettingsPlace::User => SettingTarget::User,
+    }
+}
+
+/// The words of a place of the host's settings, for **Saved in the settings of the workspace folder**.
+#[must_use]
+pub fn host_target_words(target: SettingTarget) -> &'static str {
+    match target {
+        SettingTarget::WorkspaceFolder => "the workspace folder",
+        SettingTarget::Workspace => "the workspace",
+        SettingTarget::User => "the user",
+    }
+}
+
+/// A setting for the host to write in a place of its settings, or to remove from it for none.
+#[must_use]
+pub fn setting_written(key: &str, value: Option<&Value>, target: SettingTarget) -> FollowUp {
+    FollowUp::WriteSetting(Box::new(SettingWritten {
+        key: key.to_owned(),
+        value: value.map(json::to_compact_text),
+        target,
+    }))
 }
 
 /// What is said when the user's settings file has no place.

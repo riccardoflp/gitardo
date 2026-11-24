@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.12** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.13** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -127,6 +127,14 @@ Version 1.12 adds what milestone M44
 needed: `commitGraph` in `RepositoryState`, whether git keeps its commit-graph file of the repository and reads it
 (`upkeep.read-commit-graph`), for the notice and the entry of the row menu that run `upkeep.write-commit-graph` with
 `feature/run`. An older extension leaves the field aside.
+
+Version 1.13 adds what milestone M48
+([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed))
+needed to have the engine's plans save the settings of new worktrees, Q399: `target` in the follow-up `writeSetting`,
+`"workspaceFolder"`, `"workspace"` or `"user"`, where VS Code writes the setting, the user's settings when an engine
+of 1.12 leaves it out; the target `setupSettings` of `worktree-setup.save` and `worktree-setup.remove-from`; and
+`setup` in `feature/run`, what new worktrees get in the folder of the repository, with where each list is set. Other
+milestones add to 1.13 too.
 
 ## Transport
 
@@ -343,10 +351,14 @@ The keys the desktop has and the extension does not (`theme`, `font.*`, `editor.
 [05-stored-data.md](05-stored-data.md#settings), each with what becomes of it.
 
 While `host` is `"vscode"` the engine reads no `settings.json` of its own and no `.gitardo/settings.json`, and the
-features that write a setting (`worktree-setup.save`, `worktree-setup.edit-settings-file`, the toggles of the graph)
-do not write a file: their plan ends in a follow-up `WriteSetting { key, value, target: "user" | "workspace" }`, which
-the extension carries out with `WorkspaceConfiguration.update`, as `src/extension/worktreeSettings.ts` does today. That
-follow-up is new in `model` (Q399).
+features that write a setting do not write a file: their plan has no step for it, and ends in follow-ups
+`writeSetting { key, value, target: "workspaceFolder" | "workspace" | "user" }`, which the extension carries out with
+`WorkspaceConfiguration.update` in that place (Q399): `ai.choose-model` in the user's settings (1.6), and from 1.13
+`worktree-setup.save`, `worktree-setup.remove-from` and the four entries of the Explorer,
+`worktree-setup.link-into-new-worktrees`, `copy-into-new-worktrees`, `stop-linking` and `stop-copying`, where each list
+is set. Such a plan is shown first under `commandPreview` `all`, the settings it writes as its lines, and each setting
+written is logged. `worktree-setup.edit-settings-file` is still refused: the extension opens VS Code's own file of the
+settings.
 
 ## Reads
 
@@ -570,7 +582,8 @@ params: {
   target: Target,                  // what it was asked on
   answers: Record<string, Answer>, // answers given before it asks: from an offer (OfferedRun), or a view that knows them
   journal: boolean,                // false only in the tests that check the plan alone; read from stage 3
-  inputs: Record<string, string>   // the values of the inputs of branches.format used last (worktreeInputs)
+  inputs: Record<string, string>,  // the values of the inputs of branches.format used last (worktreeInputs)
+  setup?: SetupGiven               // 1.13: what new worktrees get in the repository's folder, for worktree-setup.*
 }
 result: Finished
 ```
@@ -587,6 +600,15 @@ An answer in `answers` answers the question of its key without asking it, once. 
 feature that never asks it: **Remove anyway** sends `force` so (1.3). `inputs` is what the desktop keeps in
 the workspace's file and the extension in its workspace state: the engine reads it as `FeatureSettings::branch_values`,
 the defaults of the questions of `branches.format`, and a plan that used them ends with `RememberInputs`.
+
+`setup` (1.13) is what VS Code resolves of `gitardo.worktrees.linkFolders`, `copyFiles` and `setupCommands` in the
+folder of the repository, which `settings/changed` cannot say for each folder of a workspace of several: `{
+linkFolders, copyFiles, setupCommands, inWorkspaceFolder }`, each list `{ values: string[], from: "workspace" | "user"
+| "vscode" | "none" }`, where it is set, VS Code's `git.worktreeSymlinkFolders` or `git.worktreeIncludeFiles` for
+`vscode`; `inWorkspaceFolder` says whether the repository is in a folder of the workspace. The extension sends it with
+the features `worktree-setup.*`, and the engine takes it in place of what `settings/changed` sent of the three, for
+that run: a list is written back where it is set, and one set nowhere in the workspace folder, or in the user's
+settings for a repository in none.
 
 ```ts
 Finished =
@@ -686,7 +708,7 @@ changed`, and asks `read/range-diff.read-pairs` with `ranges`.
 | `OpenRangeDiff` (1.11) | extension | the tab of what a rewrite changed |
 | `OfferBeforeRun` (1.11) | extension | a third button of the modal dialog of `feature/confirm` |
 | `CheckForcePushed` | not sent | the extension compares the upstreams before and after a fetch itself |
-| `WriteSetting` (1.6, Q399) | extension | `WorkspaceConfiguration.update` in the user's settings, `{ key, value }` by the desktop's name, `value` null to remove it; `ai.model` and `ai.effort` are `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400) |
+| `WriteSetting` (1.6, Q399) | extension | `WorkspaceConfiguration.update`, `{ key, value, target }` by the desktop's name, `value` null to remove it, in the settings of the workspace folder of the repository, of the workspace or of the user (`target`, 1.13; the user's when it is left out); `ai.model` and `ai.effort` are `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400), `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` VS Code's own; logged as `set <key> <value> in <place>` or `remove <key> from <place>` |
 
 ## Undo and the journal
 
@@ -822,7 +844,9 @@ The fields are those of `model`; this section says only what the JSON adds or le
   commits }`, `{ kind: "submodule", path }`, `{ kind: "worktree", folder }`, `{ kind: "path", path }`, built at stage
   2, and the kinds with a structure of their own: `diffChange`, `comparison`, `mergeResult`, `resolutions`,
   `fileSave`, `fileSaves`, `fileAt`, `setupSettings`, `lines`, `lineOfFile`, `listedFile`, each with the fields of its
-  type in `model`, built with the stage that moves the area that uses it. Built in 1.3: `{ kind: "resolutions", files:
+  type in `model`, built with the stage that moves the area that uses it. Built in 1.13: `{ kind: "setupSettings",
+  place: "repository" | "user", link: string[], copy: string[], commands: string[], alsoVsCode: boolean }`, what the tab
+  of what new worktrees get saves and where, the repository's place being its workspace folder under the extension. Built in 1.3: `{ kind: "resolutions", files:
   FileResolutions[] }` and `{ kind: "mergeResult", path, unsaved: string | null, marked }` (the text not saved, or
   `null` when the file on disk is the result; how many conflicts git still marks in it). Built in 1.6: `{ kind:
   "comparison", first: CompareSide, second: CompareSide, mode: "sinceDiverged" | "everything", path: string | null,
