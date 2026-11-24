@@ -1,5 +1,5 @@
 import { pullBadgeText } from '../shared/refs';
-import type { Label } from './CommitList';
+import type { Label } from './CommitLabels';
 
 /**
  * How wide the labels of a commit, its message, its author and its date are drawn, measured in the page with the fonts

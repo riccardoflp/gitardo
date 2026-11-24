@@ -3,7 +3,7 @@ import { said, subjectAndBody } from '../shared/message';
 import type { CommitDetail, DiffSource, FilePatch, FilesLayout, RepoState } from '../shared/protocol';
 import { buildLabels } from './labels';
 import { BackToTop } from './BackToTop';
-import { LabelIcons, labelTitle } from './CommitList';
+import { LabelIcons, labelTitle } from './CommitLabels';
 import { FileChanges } from './FileChanges';
 import { FileRow } from './FileRow';
 import { Icon } from './Icon';

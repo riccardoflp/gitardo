@@ -3,7 +3,7 @@ import type { RepoState } from '../shared/protocol';
 import { nameOnRemote, pullOf, pushedName, worktreeOf } from '../shared/refs';
 import { stashName, upstreamBranch, upstreamName } from '../shared/state';
 import { remoteMark } from '../shared/tagMarks';
-import type { Label } from './CommitList';
+import type { Label } from './CommitLabels';
 
 /**
  * The branches, tags, stashes and bisect marks of each commit that has some, with the open pull request of a branch. A

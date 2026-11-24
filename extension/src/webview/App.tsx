@@ -4,7 +4,8 @@ import { WORKTREE, type CommitDetail, type Comparison, type Filter, type Loading
 import { checkedOutBranch, stashName } from '../shared/state';
 import type { ShownState } from '../shared/stateParts';
 import { BisectBanner } from './BisectBanner';
-import { CommitList, useTrace, type Label, type SelectMode } from './CommitList';
+import { CommitList, useTrace } from './CommitList';
+import type { Label, SelectMode } from './CommitLabels';
 import { buildLabels, labelParts, unpushedOf } from './labels';
 import { Compare } from './Compare';
 import { useMenu } from './ContextMenu';
