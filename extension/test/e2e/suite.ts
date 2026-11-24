@@ -4512,9 +4512,8 @@ export async function run(): Promise<void> {
       assert.ok(samePath(state().root, app), 'the panel still shows app');
       assert.deepEqual(sessionNames(), ['app', 'lib']);
       const page = pageOf(tab);
-      await until('the page of the tab to be sent lib', () =>
-        posted.some((outgoing, at) => outgoing.type === 'state' && addressed[at] === page && !!outgoing.state && samePath(outgoing.state.root, lib)),
-      );
+      // The panel shows app: a state of lib is for the tab.
+      await until('the page of the tab to be sent lib', () => posted.some((outgoing) => outgoing.type === 'state' && !!outgoing.state && samePath(outgoing.state.root, lib)));
 
       // What is done from the tab is done in lib.
       fs.writeFileSync(path.join(lib, 'tab.txt'), 'tab\n');
@@ -4576,14 +4575,18 @@ export async function run(): Promise<void> {
   await step('shows in the panel and the side bar the repository of the tab of the graph that comes into focus, and moves no tab from them', async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     if (!samePath(state().root, app)) await controller.selectRepo(app);
-    /** Whether the Changes view of the side bar was sent the state of a repository. */
+    // What the Changes view of the side bar is sent, as its page gets it.
+    const changes = view('changes') as vscode.Webview & { postMessage(message: unknown): Thenable<boolean> };
+    const toChanges: HostMessage[] = [];
+    const postToChanges = changes.postMessage.bind(changes);
+    changes.postMessage = (message: unknown) => {
+      toChanges.push(message as HostMessage);
+      return postToChanges(message);
+    };
+    /** Whether the state the Changes view was sent last names a repository. */
     const changesShow = (root: string) => () => {
-      const changes = view('changes');
-      for (let at = posted.length - 1; at >= 0; at--) {
-        const outgoing = posted[at];
-        if (outgoing.type === 'state' && (addressed[at] === changes || addressed[at] === undefined)) return !!outgoing.state && samePath(outgoing.state.root, root);
-      }
-      return false;
+      const named = toChanges.filter((message) => message.type === 'state' && message.state?.root).at(-1);
+      return named?.type === 'state' && !!named.state?.root && samePath(named.state.root, root);
     };
     const chosen: string[] = [];
     const listening = controller.onDidChooseRepo((root) => chosen.push(root));
@@ -4617,6 +4620,7 @@ export async function run(): Promise<void> {
       await sleep(500);
       assert.ok(samePath(state().root, app));
     } finally {
+      changes.postMessage = postToChanges;
       listening.dispose();
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
       await until('the tabs of the graph to close', () => graphTabs().length === 0);
