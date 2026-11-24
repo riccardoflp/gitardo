@@ -520,7 +520,7 @@ export function App({ compact = false }: { compact?: boolean }) {
           onSelect={onRowSelect}
           onOpen={(hash) => post({ type: 'openCommit', hash })}
           labelOpen={labelOpen}
-          tall={compact}
+          tall={compact || !state.compactRows}
           onRowMenu={onRowMenu}
           onLabelMenu={onLabelMenu}
           dragSource={(label, row) => {

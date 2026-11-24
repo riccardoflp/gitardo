@@ -127,7 +127,7 @@ earns it.
 | [`graph.hover-history`](02-graph.md#graphhover-history--the-history-of-a-label-under-the-pointer) | The history of a label under the pointer | View | Built | Built |
 | [`graph.trace-selected`](02-graph.md#graphtrace-selected--the-history-of-the-selected-commit) | The history of the selected commit | View | Built | Built |
 | [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Built | Built |
-| [`graph.compact-rows`](02-graph.md#graphcompact-rows--each-commit-on-one-line) | Each commit on one line | View | Built | Planned |
+| [`graph.compact-rows`](02-graph.md#graphcompact-rows--each-commit-on-one-line) | Each commit on one line | View | Built | Built |
 | [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Built | Built |
 | [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Built | Built |
 | [`graph.one-lane`](02-graph.md#graphone-lane--all-commits-on-one-line) | All commits on one line | Derivation | Built | Built |

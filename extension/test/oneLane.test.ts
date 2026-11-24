@@ -69,6 +69,12 @@ describe('contributes.configuration (settings.sections)', () => {
     expect(categories.map((category) => category.order)).toEqual([...categories.map((category) => category.order)].sort((one, other) => one - other));
   });
 
+  it('puts graph.compactRows in Timeline, on by default, under the name the desktop gives it', () => {
+    const timeline = categories.find((category) => category.title === 'Timeline');
+    expect(timeline?.properties?.['gitardo.graph.compactRows']).toMatchObject({ type: 'boolean', default: true });
+    expect(contributedKeys(categories)).toContain('graph.compactRows');
+  });
+
   it('puts graph.oneLane in Timeline, off by default, and gives the engine the keys of every category', () => {
     const timeline = categories.find((category) => category.title === 'Timeline');
     expect(timeline?.properties?.['gitardo.graph.oneLane']).toMatchObject({ type: 'boolean', default: false });

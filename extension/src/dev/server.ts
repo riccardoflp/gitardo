@@ -243,6 +243,7 @@ async function main() {
   let dateSeparators = true;
   let combineUpstream = true;
   let oneLane = false;
+  let compactRows = true;
   let branchSort: BranchSort = 'name';
   /** Kept while the server runs, for each repository. */
   const favorites = new Map<string, string[]>();
@@ -374,7 +375,7 @@ async function main() {
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
     // Every part, each time: the preview keeps nothing of what each page was sent.
-    const shown: RepoState = { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, hosting, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false, signOff: false, tagMarks: null };
+    const shown: RepoState = { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, hosting, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, oneLane, compactRows, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false, signOff: false, tagMarks: null };
     return [{ type: 'state', state: partsIn(shown, ALL_PARTS), parts: [...ALL_PARTS] }];
   }
 
@@ -425,6 +426,9 @@ async function main() {
         return state();
       case 'setOneLane':
         oneLane = message.one === true;
+        return state();
+      case 'setCompactRows':
+        compactRows = message.compact === true;
         return state();
       case 'setTraceSelected':
         traceSelected = message.trace === true;

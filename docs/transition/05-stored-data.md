@@ -24,7 +24,10 @@ The names coincide already: the desktop's key is the extension's without `gitard
 lets the extension send its settings to the engine as they are ([02-protocol.md](02-protocol.md#settings)).
 `repositories.keepOpen` is in both since milestone M12, `true` by default in the desktop and `false` in the extension,
 where it is the extension's alone: the engine keeps the state of every repository opened anyway, and reads nothing of
-the setting.
+the setting. `graph.compactRows` is in both since milestone M48, with the same meaning, `false` by default in the
+desktop and `true` in the extension, whose wide Graph view has always been one line
+([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed)):
+only the views read it, and the engine nothing.
 
 Only in the extension, and what becomes of each:
 

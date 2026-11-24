@@ -50,6 +50,8 @@ export function viewMenu(state: RepoState, { onFoldAll, folded }: FoldAll): Menu
     },
     'separator',
     { label: 'Show all commits on one line', checked: state.oneLane, run: () => post({ type: 'setOneLane', one: !state.oneLane }) },
+    // On, the Graph view in the panel has a commit on one line; the one of the side bar keeps two lines either way.
+    { label: 'Compact rows', checked: state.compactRows, run: () => post({ type: 'setCompactRows', compact: !state.compactRows }) },
     {
       label: 'Bring out the history of the selected commit',
       checked: state.traceSelected,

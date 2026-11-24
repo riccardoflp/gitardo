@@ -1401,8 +1401,16 @@ columns that line up, on rows half as tall, so that twice as many commits are se
 - **Settings**: `graph.compactRows` (off by default), in the user's settings file.
 - **Uses**: `graph.columns`, `graph.labels`, `graph.label-overflow`, `graph.lanes`, `graph.date-separators`,
   `graph.uncommitted-row`, `graph.stashes`.
-- **Extension**: planned (Q655): the rows of its wide Graph view are one line with the columns at the right end
-  already, and two lines in the side bar, by where the view is and not by a setting.
+- **Extension**: `gitardo.graph.compactRows`, on by default there, where the wide view has always been one line
+  ([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed),
+  Q655): on, the **Graph** view in the panel and its tabs have a commit on one line, and **Gitardo Graph** in the side
+  bar keeps its two lines; off, every view of the graph has the desktop's two lines, the message, then the labels, the
+  author and the date (`tall` of `CommitList.tsx`). **Compact rows** is in the menu of the view of its toolbar, right
+  after **Show all commits on one line**, and writes the user's settings. Changed, the commits are read again, as for
+  every switch of the graph there, and those that are the same stay. The last row of a shallow clone is as tall as the
+  others in either. Tested by `test/toolbarMenus.test.ts`, "ticks each switch while it is on" and "writes the columns
+  left when Show the hash is unticked, and turns a switch the other way", and `test/oneLane.test.ts`, "puts
+  graph.compactRows in Timeline, on by default, under the name the desktop gives it".
 
 - On, each row of the timeline is as tall as a row of a list, half the two lines (Q648), and the cell of the graph is
   as tall: the dots and the lines keep their sizes and their lanes, closer from row to row.
