@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- With git's rerere turned on after a merge or a rebase stopped, the files in conflict are no longer said to be
+  resolved by git as before: git took note of none of them, and **Resolve with AI** and the review show their conflicts.
 - Discarding a staged file before the first commit warns that it will be deleted from disk, "One staged file will be
   deleted from disk.", or as many as there are, where the warning spoke of a last commit there is not.
 - With `commandPreview` set to `all`, a plan that changes nothing itself, with no step and no danger, such as **Open on

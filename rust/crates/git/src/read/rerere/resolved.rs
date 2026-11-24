@@ -65,7 +65,9 @@ fn is_recorded(rr_cache: &Path, content: &[u8]) -> bool {
 
 /// The files git resolved as before: those in conflict that `git rerere remaining` does not list, and those staged
 /// during the operation, as `rerere.autoUpdate` has git do, whose content is a resolution git recorded. A path with a
-/// line ending in it cannot be told apart in what git prints, and is taken as not resolved (Q1200).
+/// line ending in it cannot be told apart in what git prints, and is taken as not resolved (Q1200). Git lists only the
+/// conflicts it took note of: when rerere was off as the operation stopped, and turned on after, it wrote no `MERGE_RR`
+/// and lists none, though it resolved none, so without that file no file in conflict is resolved as before.
 ///
 /// # Errors
 ///
@@ -74,7 +76,7 @@ fn is_recorded(rr_cache: &Path, content: &[u8]) -> bool {
 /// Feature: rerere.read-resolved
 pub fn read_resolved(git: &Git, request: &ResolvedRequest) -> Result<Vec<ResolvedAsBefore>, GitError> {
     let mut resolved = Vec::new();
-    if !request.conflicted.is_empty() {
+    if !request.conflicted.is_empty() && request.git_folder.join("MERGE_RR").is_file() {
         let printed = git.run_read(&remaining_arguments())?;
         let remaining = parse_remaining(&String::from_utf8_lossy(&printed));
         resolved.extend(

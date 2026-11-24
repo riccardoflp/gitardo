@@ -1934,13 +1934,15 @@ Acceptance:
 - [x] With `rerere.autoUpdate` on, the same merge gives `m.txt`, which is staged.
 - [x] With rerere off it runs nothing and gives nothing.
 - [x] Once the merge is committed or aborted, it gives nothing.
+- [x] With rerere turned on after the merge stopped, it gives nothing: git took note of no conflict, and resolved none.
 
-- As built, the files git staged are not found in what the operation printed, which Gitardo does not run when the user
-  runs it in a terminal, nor in `MERGE_RR`, which drops them: they are the paths of `git ls-files --resolve-undo -z`
-  that are no longer in conflict and whose text on disk is one of the resolutions git recorded, the files
-  `postimage` of the folder `rr-cache`. The index keeps what `--resolve-undo` lists until a commit is checked out, so
-  the read runs only while an operation is under way or files are in conflict, with the read of the repository, and
-  gives each file with whether git staged it.
+- As built, `git rerere remaining` lists only the conflicts git took note of in `MERGE_RR`, which it writes when rerere
+  is on as the operation stops: without that file, no file in conflict is resolved as before. The files git staged are
+  not found in what the operation printed, which Gitardo does not run when the user runs it in a terminal, nor in
+  `MERGE_RR`, which drops them: they are the paths of `git ls-files --resolve-undo -z` that are no longer in conflict
+  and whose text on disk is one of the resolutions git recorded, the files `postimage` of the folder `rr-cache`. The
+  index keeps what `--resolve-undo` lists until a commit is checked out, so the read runs only while an operation is
+  under way or files are in conflict, with the read of the repository, and gives each file with whether git staged it.
 
 ### `rerere.read-marked` — A file as git marked it
 
