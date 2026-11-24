@@ -72,7 +72,11 @@ fn squash(context: &Context, answers: &Answers, selected: &[CommitId]) -> Outcom
         base: line_base(answers),
         sets_aside: true,
         title: format!("Squash {} commits", squashed.len()),
-        note: note(context, (squashed, rest), names),
+        note: format!(
+            "{}\n\nThe message of the commit they become:\n\n{}",
+            note(context, (squashed, rest), names),
+            message.trim_end()
+        ),
         after: vec![FollowUp::SelectBeforeHead(rest.len())],
     };
     match rewrite_plan(context, answers, rewrite) {

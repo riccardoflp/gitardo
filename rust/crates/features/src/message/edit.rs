@@ -216,15 +216,15 @@ fn rebase_plan(
             base: line.base.as_ref(),
             sets_aside: true,
             title: format!("Edit the message of {}", edited.commit.short()),
-            note: rebase_note(context, edited.commit, line.after.len(), note).to_string(),
+            note: rebase_note(context, (edited.commit, edited.message), line.after.len(), note).to_string(),
             after: vec![FollowUp::SelectBeforeHead(line.after.len())],
         },
     )
 }
 
-/// What the confirmation of the rebase says: the note of a commit pushed already, what is made again, and the changes
-/// set aside.
-fn rebase_note(context: &Context, commit: &CommitId, after: usize, pushed: Option<Text>) -> Text {
+/// What the confirmation of the rebase says: the note of a commit pushed already, what is made again, the changes set
+/// aside, and the new message, which the plan writes to a file the rebase reads.
+fn rebase_note(context: &Context, (commit, message): (&CommitId, &str), after: usize, pushed: Option<Text>) -> Text {
     let again = if after == 1 {
         String::from("the commit after it is made again on top of it, with new hashes.")
     } else {
@@ -238,6 +238,7 @@ fn rebase_note(context: &Context, commit: &CommitId, after: usize, pushed: Optio
             "Changes that are not committed are set aside and put back.",
         ));
     }
+    paragraphs.push(format!("The new message:\n\n{}", message.trim_end()));
     Text::from(paragraphs.join("\n\n"))
 }
 

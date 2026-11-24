@@ -951,9 +951,11 @@ after it again.
   - an older commit: `rebase.interactive` with `--autostash` and the steps `reword <hash>` with the whole message, then
     `pick` for each commit after it, oldest first. The title is *Edit the message of `<short hash>`*, and the note *`<short
     hash>` gets the new message, and the commit after it is made again on top of it, with new hashes.* (or *the N commits
-    after it are*), with *Changes that are not committed are set aside and put back.* when there are some. Its files
-    go into `<git folder>/gitardo-rebase`, as for `rebase.interactive`, deleted once no rebase is under way, also when it
-    stopped on a commit made again after it.
+    after it are*), with *Changes that are not committed are set aside and put back.* when there are some, and last
+    *The new message:* followed by the message, which the plan writes to a file the rebase reads. Its files go into
+    `<git folder>/gitardo-rebase`, as for `rebase.interactive`, written by the plan once it is confirmed, each a
+    `write` line of the log, and deleted once no rebase is under way, also when it stopped on a commit made again after
+    it.
 - **Danger**: for the last commit, None; for an older one, Confirm (a rewrite of history). Both become Confirm when the
   commit is pushed, with the note of `rebase.read-pushed` first.
 - **Undo**: by the reflog (`undo.last`): an amend is taken back with `git reset --soft` to the commit before it; a rebase
@@ -1033,8 +1035,9 @@ Makes one commit of several that follow one another before `HEAD`, with the chan
   `squash.join-messages`, `fixup` for each of the others, then `pick` for each commit after them up to `HEAD`. The
   todo is `pick <oldest>`, `exec git commit --amend -F "<file>"`, the `fixup` lines and the `pick` lines. The title is
   *Squash N commits*, and the note *`<short>, <short>, …` become one commit, with the changes of them all.*, then *The
-  commit after them is made again on top of it.* (or *The N commits after them are…*) when there are some, and *Changes
-  that are not committed are set aside and put back.* when there are some.
+  commit after them is made again on top of it.* (or *The N commits after them are…*) when there are some, *Changes
+  that are not committed are set aside and put back.* when there are some, and last *The message of the commit they
+  become:* followed by the message.
 - **Danger**: Confirm, because it rewrites history; with the note of `rebase.read-pushed` first when pushed.
 - **Undo**: the whole squash, by the reflog of the branch (`undo.last`).
 - **After**: the commit they become is selected: as many before `HEAD` as there were commits after them.

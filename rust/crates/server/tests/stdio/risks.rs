@@ -245,6 +245,40 @@ fn conflicts_take_side__a_file_with_lines_typed_in_it_warns_first() {
 }
 
 #[test]
+fn message_edit__an_older_commit_shows_the_new_message_and_writes_the_files_of_the_rebase_only_once_confirmed() {
+    let mut repository = repository();
+    let older = repository.git(&["rev-parse", "HEAD"]).trim().to_owned();
+    let _newer = repository.commit("Add b", &[("b.txt", "b\n")]);
+    let files = repository.path().join(".git").join("gitardo-rebase");
+    let mut engine = opened(&repository);
+    let _read = engine.ask("read/repo.read-state", &json!({ "repository": folder(&repository) }));
+    let id = engine.send(
+        "feature/run",
+        &json!({
+            "repository": folder(&repository),
+            "feature": "message.edit",
+            "target": { "kind": "commit", "commit": older },
+            "answers": { "message": { "kind": "text", "text": "Better words" } }
+        }),
+    );
+    let answer = engine.answer_asked(id, |request| {
+        assert_eq!(request["method"], json!("feature/confirm"), "{request}");
+        assert!(!files.exists(), "nothing is written before the question");
+        let reason = request["params"]["plan"]["danger"]["reason"]
+            .as_str()
+            .unwrap_or_default();
+        assert!(reason.ends_with("The new message:\n\nBetter words"), "{reason}");
+        json!({ "run": true })
+    });
+    assert_eq!(answer["result"]["kind"], json!("ran"), "{answer}");
+    assert_eq!(
+        repository.git(&["log", "-1", "--format=%s", "HEAD~1"]).trim(),
+        "Better words"
+    );
+    assert!(!files.exists(), "the files of the rebase are deleted once it ended");
+}
+
+#[test]
 fn branch_clean_up__a_branch_merged_into_head_but_not_into_its_upstream_is_deleted_with_its_worktree() {
     let mut repository = repository();
     let _remote = testkit::Remote::new(&repository);

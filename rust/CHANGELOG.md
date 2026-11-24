@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The question of editing the message of an older commit shows the new message, and that of squashing commits the
+  message of the commit they become, which the rebase reads from a file the plan writes.
 - **Clean up branches** deletes the branches ticked in one `git branch -D`, after their worktrees: a branch merged into
   the branch checked out but not into its upstream was refused by `git branch -d`, after its worktree was removed,
   and the branches after it were left.

@@ -63,7 +63,8 @@ fn squash_commits__b_c_and_d_become_one_commit_selected_under_e() {
     assert_eq!(
         note.as_str(),
         "2222222, 3333333, 4444444 become one commit, with the changes of them all. The commit after them is made \
-         again on top of it."
+         again on top of it.\n\nThe message of the commit they become:\n\nAdd the login page\n\nWith a form.\n\n\
+         Fix a typo\n\nStyle the form"
     );
 }
 
@@ -108,9 +109,9 @@ fn squash_commits__sets_aside_what_is_not_committed_and_says_so() {
     let Danger::Confirm(note) = &plan.danger else {
         panic!("it asks first")
     };
-    assert!(note.as_str().ends_with(
+    assert!(note.as_str().contains(
         "The 2 commits after them are made again on top of it. Changes that are not committed are set aside and put \
-         back."
+         back.\n\nThe message of the commit they become:\n\nSquashed"
     ));
 }
 

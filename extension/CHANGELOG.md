@@ -16,6 +16,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Changed
 
+- The question of editing the message of an older commit shows the new message, and that of squashing commits the message of the commit they become.
 - Cherry-picking several commits, or a merge commit, works out first which files it will stop on, as picking one commit does, and asks first naming them.
 - Choosing the model that resolves conflicts offers the models as Gitardo Desktop does: **The first model**, then each model by its name, then how much it thinks, **As the model is set up** first.
 - Opening on GitHub a comparison of a commit with itself says the two sides are the same commit, and opens nothing.
