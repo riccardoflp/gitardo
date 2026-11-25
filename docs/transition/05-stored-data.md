@@ -22,8 +22,9 @@ extension's side is [extension/11-data.md](../extension/11-data.md); the desktop
 The names coincide already: the desktop's key is the extension's without `gitardo.` (`settings/src/keys.rs` against
 `extension/package.json`). 33 keys are in both; 10 are only in the extension and 13 only in the desktop. That is what
 lets the extension send its settings to the engine as they are ([02-protocol.md](02-protocol.md#settings)).
-`repositories.keepOpen` is in both since milestone M12, `true` by default in the desktop and `false` in the extension,
-where it is the extension's alone: the engine keeps the state of every repository opened anyway, and reads nothing of
+`repositories.keepOpen` is in both since milestone M12, `true` by default in both since milestone M50
+([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)); in the
+extension it is the extension's alone: the engine keeps the state of every repository opened anyway, and reads nothing of
 the setting. `graph.compactRows` is in both since milestone M48, with the same meaning, `false` by default in the
 desktop and `true` in the extension, whose wide Graph view has always been one line
 ([D90](../08-decisions.md#d90--the-extension-does-what-gitardo-desktop-does-and-the-differences-left-are-settled-proposed)):

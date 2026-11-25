@@ -1239,7 +1239,7 @@
           },
           "gitardo.repositories.keepOpen": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "markdownDescription": "Keep what each repository showed while you look at another: choosing it again in the list of repositories, in the Repositories view of Source Control or with **Show in Gitardo** shows it at once as you left it, with the commit selected, the scroll of the graph, the search, the branches shown, the sections of the references and the message of the Changes view. A repository left is watched, and read again only when it is shown after something changed in it. Off, choosing another repository starts it afresh.",
             "order": 3
           }

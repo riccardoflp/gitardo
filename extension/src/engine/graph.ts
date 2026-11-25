@@ -54,7 +54,9 @@ export type CommitsReader = (asked: GraphAsked) => Promise<GraphCommits>;
  * uncommitted changes above them, and the lines of the graph laid out. The parts that are the window's own, such as
  * the favorites, are left at their defaults for the caller to fill. `previous` is the layout of the rows shown: when
  * the commits are the same read, laid out the same way, it is kept, and only the rows read since are laid out, under
- * its last row (`graph.lanes`).
+ * its last row (`graph.lanes`). `history` is what the commits read are kept by, the folder the worktrees of the repository
+ * share when it is known: the rows of one of them stand for those of another that lists the same commits
+ * (`repo.share-history`).
  */
 export async function graphState(
   client: EngineClient,
@@ -64,6 +66,7 @@ export async function graphState(
   read: CommitsReader,
   signal?: AbortSignal,
   previous?: LaidOutRows,
+  history = root,
 ): Promise<RepoState> {
   const { limit, filter, stashes, firstParent } = asked;
   const head = parts.head.commit;
@@ -87,7 +90,7 @@ export async function graphState(
     const parents = head ? [head] : [];
     worktree = { hash: WORKTREE, parents, author: '', email: '', date: 0, subject: `Uncommitted changes (${changes.length})` };
   }
-  const prefix = `${root}\0${JSON.stringify(filter)}\0${firstParent}\0${connected}\0`;
+  const prefix = `${history}\0${JSON.stringify(filter)}\0${firstParent}\0${connected}\0`;
   const laid = previous?.fits(commits, prefix, worktree) ? previous : new LaidOutRows(commits, prefix, connected, worktree);
   const rows = laid.catchUp();
 
@@ -352,6 +355,33 @@ export async function readCommits(client: EngineClient, repository: string, aske
   return cut({ commits: listedOf(page.rows), hasMore: page.hasMore }, asked.limit);
 }
 
+/** A folder as the reads are told apart by, whatever its slashes and its case. */
+const folderKey = (folder: string) => folder.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+
+/** A reference as the history depends on it: its name and the commit it is on, not what is checked out nor its upstream. */
+type Pointing = { name?: unknown; remote?: unknown; commit?: unknown };
+
+/** The references of a state as the history depends on them, which every worktree of a repository reads the same. */
+function pointsOf(refs: unknown): { commit: unknown }[] | null {
+  if (typeof refs !== 'object' || refs === null) return null;
+  const { branches, remoteBranches, tags } = refs as Record<string, unknown>;
+  if (!Array.isArray(branches) || !Array.isArray(remoteBranches) || !Array.isArray(tags)) return null;
+  return [branches, remoteBranches, tags].flatMap((list: Pointing[], kind) => list.map((ref) => ({ kind, remote: ref.remote, name: ref.name, commit: ref.commit })));
+}
+
+/**
+ * What tells whether the history asked may have moved since it was read: the references, the stashes, and what is
+ * checked out only when it is on none of the references, as in a worktree detached at a commit of its own. The
+ * worktrees of a repository then ask for the same history with the same words, and the commits one read stand for the
+ * other (`repo.share-history`). A history of what is checked out is each worktree's own, and is told by all of it.
+ */
+function movedBy(asked: GraphAsked, own: boolean): unknown {
+  const points = own ? null : pointsOf(asked.refs);
+  if (!points) return [asked.head, asked.refs, asked.stashList];
+  const apart = asked.head !== null && !points.some((ref) => ref.commit === asked.head);
+  return [apart ? asked.head : null, points, asked.stashList];
+}
+
 /** The error of a read of the commits stopped because another took its place, or because it was no longer wanted. */
 function stopped(): EngineError {
   return new EngineError(ErrorCode.cancelled, 'The read was cancelled.');
@@ -501,10 +531,14 @@ class StreamedRead implements GraphCommits {
  * commits and asks git nothing (`repo.schedule-reads`); of other references or stashes, or after `readAgain`, the
  * history is read again over the commits it has, which stay while they are the same (Q781); another history stops it
  * and starts a new one. Past 100,000 commits, the next read starts from the last commit read, when more are asked for
- * (`graph.load-more`).
+ * (`graph.load-more`). The reads are kept by the folder the worktrees of a repository share, once `keepBy` said which
+ * it is, so that a worktree asked for the history another of them read finds its commits (`repo.share-history`).
  */
 export class EngineGraph {
+  /** The read of each repository, by the folder its worktrees share, or by its own while that one is not known. */
   private readonly reads = new Map<string, StreamedRead>();
+  /** The folder the worktrees share, for each repository or worktree it was said of. */
+  private readonly folders = new Map<string, string>();
 
   constructor(private readonly onPage: (repository: string) => void = () => {}) {}
 
@@ -515,10 +549,13 @@ export class EngineGraph {
   async commits(client: EngineClient, repository: string, asked: GraphAsked, pageSize: number, signal?: AbortSignal): Promise<GraphCommits> {
     const history = await historyOf(client, repository, asked.filter, asked.scope, asked.head, asked.firstParent, asked.names, signal);
     const timeline: Timeline = { ...history, pageSize, pages: 1, skip: 0, stashes: asked.stashes };
-    const read = createHash('sha1').update(JSON.stringify([history, asked.stashes, pageSize]));
+    // The history of what is checked out is the worktree's own: another worktree of the repository has another.
+    const own = history.shown?.kind === 'current' || history.shown?.kind === 'upstream';
+    const read = createHash('sha1').update(JSON.stringify([history, asked.stashes, pageSize, own ? folderKey(repository) : null]));
     const historyKey = read.copy().digest('hex');
-    const key = read.update(JSON.stringify([asked.head, asked.refs, asked.stashList])).digest('hex');
-    const known = this.reads.get(repository);
+    const key = read.update(JSON.stringify(movedBy(asked, own))).digest('hex');
+    const place = this.placeOf(repository);
+    const known = this.reads.get(place);
     if (known?.key === key && !known.over && !known.stale) {
       // The same history: its commits are kept, unless more are asked for than one read lists.
       if (known.reading || !known.more || known.count >= asked.limit) return known;
@@ -536,7 +573,7 @@ export class EngineGraph {
     }
     known?.cancel();
     const fresh = new StreamedRead(key, historyKey);
-    this.reads.set(repository, fresh);
+    this.reads.set(place, fresh);
     this.stream(client, repository, fresh, timeline, (listed) => fresh.add(listed));
     await fresh.until(Math.min(asked.limit, pageSize), signal);
     return fresh;
@@ -547,33 +584,62 @@ export class EngineGraph {
    * change of the settings want: the read goes over the commits listed, which stay while they are the same (Q781).
    */
   readAgain(repository?: string): void {
-    for (const [root, read] of this.reads) if (repository === undefined || root === repository) read.stale = true;
+    const place = repository === undefined ? undefined : this.placeOf(repository);
+    for (const [kept, read] of this.reads) if (place === undefined || kept === place) read.stale = true;
+  }
+
+  /**
+   * Keeps the reads of a repository or a worktree by the folder its worktrees share (`repo.common-folder`), with the
+   * read it has when that folder has none: every worktree of the repository then finds the commits another read.
+   */
+  keepBy(repository: string, folder: string): void {
+    const before = this.placeOf(repository);
+    const place = `shared:${folderKey(folder)}`;
+    this.folders.set(folderKey(repository), place);
+    if (before === place) return;
+    const read = this.reads.get(before);
+    if (!read) return;
+    this.reads.delete(before);
+    if (this.reads.has(place)) read.cancel();
+    else this.reads.set(place, read);
+  }
+
+  /** What the reads of a repository are kept by: the folder its worktrees share once it was said, its own until then. */
+  placeOf(repository: string): string {
+    return this.folders.get(folderKey(repository)) ?? folderKey(repository);
+  }
+
+  /** Whether two folders keep their reads together, as two worktrees of a repository do: the commits of one are the other's. */
+  shares(one: string, other: string): boolean {
+    return this.placeOf(one) === this.placeOf(other);
   }
 
   /** Whether a read of the commits of a repository is still adding pages. */
   isReading(repository: string): boolean {
-    return this.reads.get(repository)?.reading === true;
+    return this.reads.get(this.placeOf(repository))?.reading === true;
   }
 
   /** Waits until the read of a repository has `count` commits, or ends. */
   async reached(repository: string, count: number): Promise<void> {
-    await this.reads.get(repository)?.until(count);
+    await this.reads.get(this.placeOf(repository))?.until(count);
   }
 
   /** Stops the read of a repository that is not shown any more, when it still adds pages: it is read again once shown. */
   stop(repository: string): void {
-    const read = this.reads.get(repository);
+    const place = this.placeOf(repository);
+    const read = this.reads.get(place);
     if (!read?.reading) return;
     read.cancel();
-    this.reads.delete(repository);
+    this.reads.delete(place);
   }
 
   /** Forgets the commits read in a repository, or in every one, stopping their reads: the next read asks git again. */
   forget(repository?: string): void {
-    for (const [root, read] of this.reads) {
-      if (repository !== undefined && root !== repository) continue;
+    const place = repository === undefined ? undefined : this.placeOf(repository);
+    for (const [kept, read] of this.reads) {
+      if (place !== undefined && kept !== place) continue;
       read.cancel();
-      this.reads.delete(root);
+      this.reads.delete(kept);
     }
   }
 
@@ -601,7 +667,7 @@ export class EngineGraph {
         (error: unknown) => {
           if (stop.signal.aborted) return;
           read.fail(error);
-          if (this.reads.get(repository) === read) this.reads.delete(repository);
+          this.drop(repository, read);
           this.onPage(repository);
         },
       );
@@ -621,8 +687,14 @@ export class EngineGraph {
       if (listed[0]?.hash === last?.hash) return read.add(listed.slice(1));
       read.stop.abort();
       read.end(true);
-      if (this.reads.get(repository) === read) this.reads.delete(repository);
+      this.drop(repository, read);
     });
+  }
+
+  /** Forgets a read that failed or no longer stands, unless another took its place. */
+  private drop(repository: string, read: StreamedRead): void {
+    const place = this.placeOf(repository);
+    if (this.reads.get(place) === read) this.reads.delete(place);
   }
 }
 

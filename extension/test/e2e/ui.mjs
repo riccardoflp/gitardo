@@ -2560,9 +2560,7 @@ try {
     let tip = git(app, 'rev-parse', 'HEAD').toString().trim();
     for (let index = 1; index <= 80; index++) tip = git(app, 'commit-tree', tree, '-p', tip, '-m', `Long ${String(index).padStart(2, '0')}`).toString().trim();
     git(app, 'branch', 'long', tip);
-    setting('gitardo.repositories.keepOpen', true);
-    // VS Code reads the settings file again on its own, and the views are told.
-    await sleep(1500);
+    // The setting is on by default (D92): nothing is set for it.
     await command('Gitardo: Show Graph');
     const graph = await webview('graph');
     /** Chooses a repository in the menu of the button at the start of the toolbar, as a person picks it there. */
@@ -2605,7 +2603,6 @@ try {
       assert(back.selected === left.selected, `selected ${back.selected}, not ${left.selected}`);
       assert(Math.abs(back.scroll - left.scroll) <= 1, `scrolled to ${back.scroll}, not ${left.scroll}`);
     } finally {
-      setting('gitardo.repositories.keepOpen', undefined);
       git(app, 'branch', '-D', 'long');
     }
   });

@@ -1292,11 +1292,14 @@ What a repository keeps while another is shown, so that coming back to it finds 
 - **Kind**: Derivation
 - **Function**: `app::store::tabs::kept_on_leaving(view: RepositoryView, keep_open: bool) -> (Option<RepositoryView>,
   Vec<JobId>)`: what the tab keeps, and the reads it started that nobody waits for any more
-- **Settings**: `repositories.keepOpen`: `true` in Gitardo Desktop; `gitardo.repositories.keepOpen`, `false`, in the
-  extension.
+- **Settings**: `repositories.keepOpen`: `true` in Gitardo Desktop; `gitardo.repositories.keepOpen`, `true` too, in
+  the extension
+  ([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)): every
+  repository shown since the window opened is kept, with no end (Q1740).
 - **Uses**: by `repo.switch-tab`, `repo.group-tabs` and, in the extension, `repo.select`; `repo.watch-hidden`.
-- **Extension**: with `gitardo.repositories.keepOpen` on, the repository left by the list of `repo.select`, by VS Code's
-  Repositories view (`repo.follow-source-control`) or by **Show in Gitardo** keeps, in memory, the scroll of the graph,
+- **Extension**: with `gitardo.repositories.keepOpen` on, as it is by default, the repository left by the list of
+  `repo.select`, by VS Code's Repositories view (`repo.follow-source-control`) or by **Show in Gitardo** keeps, in
+  memory, the scroll of the graph,
   the commit selected and its details, the search, the branch filter, the references with their sections open or closed,
   and the message of the Changes view; the engine keeps its state as last read. Coming back shows that at once, and
   reads again behind it when it changed meanwhile. The list of `repo.select` puts the worktrees and the submodules of a
@@ -1334,9 +1337,9 @@ Acceptance:
 - [ ] Turning the setting off forgets at once what the tabs not shown kept.
 - [ ] With the setting off, a File page of `api` with edits not saved is there again, with its edits, when `api` is
       shown again.
-- [ ] Extension: with `gitardo.repositories.keepOpen` on, choosing `web` in the list and then `api` again shows `api`
-      with the commit it had selected, at the same scroll.
-- [ ] Extension: with the setting off, its default, coming back to `api` shows it as choosing a repository did before.
+- [ ] Extension: with `gitardo.repositories.keepOpen` on, its default, choosing `web` in the list and then `api` again
+      shows `api` with the commit it had selected, at the same scroll.
+- [ ] Extension: with the setting off, coming back to `api` shows it as choosing a repository did before.
 - [ ] Extension: the list of `repo.select` puts a worktree of `api` and a submodule of `api` under `api`, indented.
 
 ### `repo.group-tabs` — Worktrees and submodules in the tab of their repository
@@ -1423,9 +1426,26 @@ rows another of them has read, and reads only what is its own
 - **Uses**: by `repo.group-tabs`, when a worktree or the repository itself is chosen in the group of a tab and kept
   nothing; `repo.read-first`, read for the worktree chosen behind the rows; `graph.read-commits`, asked only when the
   worktree's `HEAD` is on none of the references or the history asked differs.
-- **Extension**: Planned: a group of views moved to a worktree of the repository it shows keeps the rows it was sent,
-  the reads of the graph being kept by the folder the worktrees share (`repo.common-folder`), and is sent the first
-  step of that worktree.
+- **Extension**: a group of views moved to a worktree of the repository it shows, or back to the repository from one
+  of its worktrees, keeps the rows it was sent. `EngineGraph` (`src/engine/graph.ts`) keeps the reads of the commits by
+  the folder the worktrees share (`repo.common-folder`, `keepBy`), and tells whether a history may have moved by the
+  references and the stashes, and by what is checked out only when it is on none of the references: the worktree asks
+  no `read/graph.read-commits`, and one detached at a commit of its own asks one, over the commits listed, which stay.
+  A worktree is one the list of the worktrees of the state shown has (`sharesHistory` of `src/extension/sessions.ts`);
+  the history asked is the same with nothing searched in either and the same branches shown, which are not those of
+  what is checked out, each worktree having its own (`sameHistory`). The views are then not told to wait for commits,
+  and are sent the parts of the state that are the worktree's own: no row when both have the row of the uncommitted
+  changes on the same commit, or neither has it, and otherwise the rows laid out again under that row, with no read. A
+  worktree that kept what it showed shows that instead (`repo.keep-open`). The state of the worktree is read whole
+  behind the rows, not its first step alone. Tested by `test/graphPages.test.ts`, the tests "gives a worktree the rows
+  its repository has read, with no read of the commits, when its HEAD is on a branch", "lays the rows out again under
+  the row of the uncommitted changes of the worktree, with no read of the commits", "reads the commits of a worktree
+  detached at a commit no reference is on, over the rows of its repository", "reads a worktree as a repository chosen
+  when it shows what is checked out, which is its own" and "keeps the commits of a submodule, or of any repository
+  with a git folder of its own, apart"; `test/sessions.test.ts`, "a worktree that takes the history its repository has
+  read"; `test/stateParts.test.ts`, "sends a graph moved to a worktree of its repository what is its own, and no commit
+  it has"; `test/e2e/suite.ts`, step "a worktree of the repository shown, chosen for the first time, keeps the rows of
+  its repository and reads no commits, and so does the repository chosen back".
 
 The rows are taken when the worktree left has its commits read, wholly or up to a page, for the same branches shown,
 the same search and the same order. They are shown as they are (Q1743): the mark of what is checked out, the row of

@@ -55,10 +55,11 @@ function readDetail(reads: number, cause: string | undefined): string | undefine
 
 /**
  * Whether a repository left keeps what the views showed of it, and is read again only once it is shown when it changed
- * meanwhile, as `gitardo.repositories.keepOpen` asks (`repo.keep-open`, `repo.watch-hidden`). Off by default.
+ * meanwhile, as `gitardo.repositories.keepOpen` asks (`repo.keep-open`, `repo.watch-hidden`). On unless it is turned
+ * off (D92).
  */
 export function keepOpen(): boolean {
-  return vscode.workspace.getConfiguration('gitardo').get('repositories.keepOpen') === true;
+  return vscode.workspace.getConfiguration('gitardo').get('repositories.keepOpen') !== false;
 }
 
 /** How many commits the graph reads at a time, as `gitardo.graph.pageSize` asks. */
@@ -171,19 +172,21 @@ export class ViewGroup {
   async readGraph(client: EngineClient, repo: Repository, parts: RepoParts, stashes: boolean, log: vscode.LogOutputChannel): Promise<RepoState | null> {
     const reader = this.graphReader(client, repo);
     const asked = (filter: Filter | null) => ({ limit: this.limit, filter, scope: this.scope, stashes, firstParent: firstParent() });
-    // The rows shown are kept, and laid out further, when they are of the same read.
-    const shown = this.state && samePath(this.state.root, repo.root) ? laidOutOf(this.state.rows) : undefined;
+    // The rows shown are kept, and laid out further, when they are of the same read: those of this repository, or of
+    // another worktree of it, which lists the same commits (`repo.share-history`).
+    const shown = this.state && this.graph.shares(this.state.root, repo.root) ? laidOutOf(this.state.rows) : undefined;
+    const history = this.graph.placeOf(repo.root);
     try {
-      if (!this.filter) return await graphState(client, repo.root, parts, asked(null), reader, undefined, shown);
+      if (!this.filter) return await graphState(client, repo.root, parts, asked(null), reader, undefined, shown, history);
       try {
-        return await graphState(client, repo.root, parts, asked(this.filter), reader, undefined, shown);
+        return await graphState(client, repo.root, parts, asked(this.filter), reader, undefined, shown, history);
       } catch (error) {
         if (isCancelled(error)) throw error;
         this.filter = null;
         const text = failureText(error);
         log.error(text);
         void vscode.window.showErrorMessage(`Gitardo: the search failed. ${text.split('\n')[0]}`);
-        return await graphState(client, repo.root, parts, asked(null), reader, undefined, shown);
+        return await graphState(client, repo.root, parts, asked(null), reader, undefined, shown, history);
       }
     } catch (error) {
       if (isCancelled(error)) return null;
@@ -196,7 +199,8 @@ export class ViewGroup {
    * views get their rows, laid out under the rows they have (`graph.load-more`, `graph.lanes`).
    */
   private pageRead(repository: string): void {
-    if (!this.state || !samePath(this.state.root, repository)) return;
+    // The pages of a read another worktree of the repository shown started are its own too (`repo.share-history`).
+    if (!this.state || !this.graph.shares(this.state.root, repository)) return;
     if (!this.graph.isReading(repository)) {
       this.showPages();
       // The read of the whole history ended: the commit-graph file is offered when it would make it quicker (M44).
@@ -306,6 +310,13 @@ export class RepositorySession {
   stateHeard = -1;
   /** The next read is a **Refresh**, or the read of a repository chosen: every worktree is counted again, every commit read. */
   everything = false;
+  /**
+   * The next read keeps the commits its groups have, though it counts everything: they are those another worktree of
+   * the repository just read, which a worktree shown for the first time takes (`repo.share-history`).
+   */
+  commitsTaken = false;
+  /** The folder its worktrees share, where its references are (`repo.common-folder`); none until it is asked. */
+  commonFolder?: string;
   /** When the last read ended, for the focus (`repo.watch-changes`). */
   private readAt?: number;
   /** A change came while no view could show it, so that the focus asks for a read. */
@@ -355,6 +366,7 @@ export class RepositorySession {
     const gitDir = await reads.commonDir(this.repo);
     // Let go of meanwhile: nothing is watched for it.
     if (this.disposed) return;
+    this.commonFolder = gitDir;
     this.watcher = this.watch(gitDir);
     await this.detectHosting();
     await this.refresh();
@@ -460,7 +472,11 @@ export class RepositorySession {
     const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
     // **Refresh** reads every commit again; the other reads keep them while the history is the same (Q442). The rows of
     // the commits it finds the same stay as they are, and the views are sent none of them (Q781).
-    if (everything) for (const group of groups) group.graph.readAgain(this.root);
+    const taken = this.commitsTaken;
+    this.commitsTaken = false;
+    // The commits are kept by the folder the worktrees share, so that each of them finds those another read.
+    if (this.commonFolder) for (const group of groups) group.graph.keepBy(this.root, this.commonFolder);
+    if (everything && !taken) for (const group of groups) group.graph.readAgain(this.root);
     const parts = await reads.parts(this.repo, this.host.autoResolve(), everything);
     return Promise.all(groups.map((group) => group.readGraph(client, this.repo, parts, stashes, this.host.log)));
   }

@@ -150,4 +150,27 @@ describe('the parts of the state each view is sent (D88)', () => {
     const again = viewOf('stashes');
     expect(again.send(read())?.parts).toEqual(partsOf('stashes'));
   });
+
+  it('sends a graph moved to a worktree of its repository what is its own, and no commit it has (repo.share-history)', () => {
+    const graph = viewOf('graph');
+    const api = read();
+    graph.send(api);
+    const rows = graph.shown.rows;
+    // The worktree lists the same commits: the same rows, another folder, another branch checked out.
+    const worktree = read({
+      root: '/work/app-fix',
+      name: 'app-fix',
+      head: headAt('c2', 'topic'),
+      branches: [branchAt('main', 'c3'), branchAt('topic', 'c2', { isCheckedOut: true })],
+      worktrees: [worktreeAt('/work/app', 'main', { isMain: true }), worktreeAt('/work/app-fix', 'topic', { isCurrent: true })],
+      rows: api.rows,
+    });
+    const moved = graph.send(worktree)!;
+    expect(moved.parts).toEqual(['repository', 'refs', 'worktrees']);
+    expect(moved.state?.rows).toBeUndefined();
+    expect(graph.shown.root).toBe('/work/app-fix');
+    expect(graph.shown.head).toEqual(headAt('c2', 'topic'));
+    // The rows are the same list: the graph draws none of them again.
+    expect(graph.shown.rows).toBe(rows);
+  });
 });

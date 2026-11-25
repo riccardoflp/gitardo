@@ -712,8 +712,9 @@ while it runs. The island fits a narrow window by narrowing its tabs, then listi
 then becoming one button. A `.code-workspace` file of VS Code can be opened, for its folders.
 
 The extension keeps its list of repositories and gets no tabs: it gets the same keeping, behind
-`gitardo.repositories.keepOpen`, off by default there, and its list groups the worktrees and the submodules under
-their repository. Desktop first ([D39](#d39--desktop-first-and-a-status-for-each-app)), in milestone M12 of
+`gitardo.repositories.keepOpen`, off by default there until
+[D92](#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed) turned it on, and its list
+groups the worktrees and the submodules under their repository. Desktop first ([D39](#d39--desktop-first-and-a-status-for-each-app)), in milestone M12 of
 [the roadmap](desktop/07-roadmap.md#m12--repository-tabs-done).
 
 Rejected: an island for each repository (it does not fit a narrow window); a tab for each repository found, submodules

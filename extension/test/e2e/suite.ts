@@ -40,7 +40,7 @@ interface Internals {
   /** Gitardo's engine, when the extension has it running. */
   engine?: { running?: unknown };
   /** The repositories left that keep what they showed. */
-  kept: { has(root: string): boolean; outOfDate(root: string): string | undefined };
+  kept: { has(root: string): boolean; outOfDate(root: string): string | undefined; forget(which?: (root: string) => boolean): void };
   /** Looks for the repositories of the workspace again, as when its folders change. */
   locate(): Promise<void>;
   /** The workspace state of the extension. */
@@ -979,7 +979,7 @@ export async function run(): Promise<void> {
   });
 
   // What a repository keeps while another is shown (repo.keep-open), and how it follows its changes meanwhile
-  // (repo.watch-hidden), with gitardo.repositories.keepOpen on and off.
+  // (repo.watch-hidden), with gitardo.repositories.keepOpen on, as it is by default (D92), and off.
   const keepOpen = (on: boolean | undefined) => vscode.workspace.getConfiguration('gitardo').update('repositories.keepOpen', on, vscode.ConfigurationTarget.Global);
   /** The reads of the repository each title names, as the status bar says them, from the time this is called. */
   const readsFrom = () => {
@@ -1020,7 +1020,7 @@ export async function run(): Promise<void> {
     internals.scheduleRefresh = (cause, delay) => {
       if (cause !== 'VS Code got the focus') schedule.call(controller, cause, delay);
     };
-    await keepOpen(true);
+    assert.equal(vscode.workspace.getConfiguration('gitardo').get('repositories.keepOpen'), true, 'on by default');
     try {
       // What app shows: the history of a file, the local branches only, and more than a page of it asked for.
       await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
@@ -1033,9 +1033,8 @@ export async function run(): Promise<void> {
 
       await controller.repositories.selectRepo(lib);
       assert.ok(samePath(state().root, lib), state().root);
-      // Shown for the first time, lib is read, nothing narrowed, as before.
+      // What narrows app is app's own: lib is shown with nothing narrowed.
       assert.equal(state().filter, null);
-      assert.ok(counted.of(nameOf(lib)).length > 0, 'lib is read');
       assert.ok(internals.kept.has(app), 'app keeps what it showed');
 
       const from = posted.length;
@@ -1068,13 +1067,13 @@ export async function run(): Promise<void> {
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
       await controller.history.setFilter(null);
       await controller.history.setScope(null);
-      await keepOpen(undefined);
     }
   });
 
   await step('with keeping repositories open on, keeps the message of the Changes view of each repository and gives it back when it is shown again', async () => {
     const changes = view('changes');
-    await keepOpen(true);
+    // The messages the steps before left kept, the setting being on by default, are not what this step looks at.
+    internals.kept.forget();
     try {
       const told = (from: number) => posted.slice(from).filter((message) => message.type === 'keptMessage');
       // The box was pointed from app to lib: lib had none kept, so the box keeps what it has.
@@ -1088,18 +1087,21 @@ export async function run(): Promise<void> {
       from = posted.length;
       await internals.onMessage(changes, { type: 'keepMessage', root: app, message: '', shown: lib });
       assert.deepEqual(told(from), [{ type: 'keptMessage', root: lib, message: 'Update the docs' }]);
+      // With the setting off, nothing is kept and nothing given back.
+      await keepOpen(false);
+      await until('the views to be told nothing is kept', () => internals.state?.keepOpen === false);
+      from = posted.length;
+      await internals.onMessage(changes, { type: 'keepMessage', root: lib, message: 'Update the docs', shown: app });
+      assert.ok(!posted.slice(from).some((message) => message.type === 'keptMessage'));
     } finally {
       await keepOpen(undefined);
+      await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
     }
-    // With the setting off, nothing is kept and nothing given back.
-    const from = posted.length;
-    await internals.onMessage(changes, { type: 'keepMessage', root: lib, message: 'Update the docs', shown: app });
-    assert.ok(!posted.slice(from).some((message) => message.type === 'keptMessage'));
   });
 
-  await step('with keeping repositories open off, its default, coming back to a repository shows it as choosing a repository did before', async () => {
-    assert.equal(vscode.workspace.getConfiguration('gitardo').get('repositories.keepOpen'), false);
-    assert.equal(state().keepOpen, false);
+  await step('with keeping repositories open off, coming back to a repository shows it as choosing a repository did before', async () => {
+    await keepOpen(false);
+    await until('the views to be told nothing is kept', () => internals.state?.keepOpen === false);
     const counted = readsFrom();
     try {
       await controller.history.setFilter({ kind: 'path', path: 'b.txt' });
@@ -1120,11 +1122,12 @@ export async function run(): Promise<void> {
     } finally {
       counted.stop();
       await controller.history.setFilter(null);
+      await keepOpen(undefined);
+      await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
     }
   });
 
   await step('turning keeping repositories open off forgets at once what the repositories not shown kept, and tells the views', async () => {
-    await keepOpen(true);
     try {
       await controller.repositories.selectRepo(lib);
       await controller.repositories.selectRepo(app);
@@ -1140,7 +1143,6 @@ export async function run(): Promise<void> {
 
   await step('with keeping repositories open on, a commit made in a terminal in a repository not shown reads nothing, and showing it reads it once', async () => {
     const counted = readsFrom();
-    await keepOpen(true);
     const first = (await git(lib, ['rev-parse', 'HEAD'])).stdout.trim();
     try {
       await controller.repositories.selectRepo(lib);
@@ -1174,8 +1176,81 @@ export async function run(): Promise<void> {
     } finally {
       counted.stop();
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
-      await keepOpen(undefined);
       await git(lib, ['reset', '--hard', first]);
+    }
+  });
+
+  await step('a worktree of the repository shown, chosen for the first time, keeps the rows of its repository and reads no commits, and so does the repository chosen back', async () => {
+    const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');
+    const taken = `${home}/taken`;
+    const client = internals.engine?.running as EngineClient;
+    // The reads of the commits asked of the engine, by the folder each is asked in.
+    const streams: string[] = [];
+    const graphStream = client.graphStream;
+    client.graphStream = (repository, ...rest) => {
+      streams.push(path.basename(repository));
+      return graphStream.call(client, repository, ...rest);
+    };
+    const commits = () => state().rows.filter((row) => row.hash !== WORKTREE).map((row) => row.hash);
+    /** Once the repository shown is read after the last change heard of, and nothing more is read for a moment. */
+    const quiet = async () => {
+      let since = Date.now();
+      await until('the repository shown to be quiet', () => {
+        const session = internals.followers.session as { isFresh?: boolean; loading?: unknown } | undefined;
+        if (!session || session.loading || !session.isFresh) since = Date.now();
+        return Date.now() - since > 1_500;
+      });
+    };
+    try {
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      await git(app, ['worktree', 'add', '-b', 'taken', taken, 'HEAD~1']);
+      await until('app to list its new worktree', () => internals.state?.worktrees.some((worktree) => samePath(worktree.folder, taken)));
+      await quiet();
+      const listed = commits();
+      assert.ok(listed.length > 1, 'app lists its commits');
+
+      // The worktree, on a branch: the rows stay, the views wait for no commits, and no read of the commits is asked.
+      streams.length = 0;
+      let from = posted.length;
+      await controller.repositories.selectRepo(taken);
+      assert.ok(samePath(state().root, taken), state().root);
+      assert.equal(checkedOutBranch(state()), 'taken');
+      assert.deepEqual(commits(), listed);
+      assert.deepEqual(streams, [], 'no read of the commits for the worktree');
+      assert.ok(!toldFrom(from).includes('loading filter'), toldFrom(from).join(', '));
+      assert.equal(state().worktrees.find((worktree) => worktree.isCurrent)?.branch, 'refs/heads/taken');
+
+      // Back to the repository, with nothing kept of it: it takes the rows of the worktree the same way.
+      internals.kept.forget((root) => samePath(root, app));
+      from = posted.length;
+      await controller.repositories.selectRepo(app);
+      assert.ok(samePath(state().root, app), state().root);
+      assert.deepEqual(commits(), listed);
+      assert.deepEqual(streams, [], 'no read of the commits for the repository chosen back');
+      assert.ok(!toldFrom(from).includes('loading filter'), toldFrom(from).join(', '));
+
+      // Detached at a commit no reference is on, the worktree has a commit of its own: one read, its commit above the rows.
+      await git(taken, ['checkout', '--detach']);
+      await git(taken, ['-c', 'user.name=Test Author', '-c', 'user.email=author@example.com', 'commit', '--allow-empty', '-m', 'Apart in the worktree']);
+      await quiet();
+      internals.kept.forget((root) => samePath(root, taken));
+      streams.length = 0;
+      await controller.repositories.selectRepo(taken);
+      assert.ok(samePath(state().root, taken), state().root);
+      await until('the commit of the worktree above the rows', () => internals.state?.rows.some((row) => row.subject === 'Apart in the worktree'));
+      assert.deepEqual(streams, ['taken'], 'one read of the commits for the commit of its own');
+      assert.deepEqual(
+        commits().filter((hash) => listed.includes(hash)),
+        listed,
+      );
+    } finally {
+      client.graphStream = graphStream;
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      internals.kept.forget((root) => samePath(root, taken));
+      await git(app, ['worktree', 'remove', '--force', taken]).catch(() => undefined);
+      fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await git(app, ['worktree', 'prune']);
+      await git(app, ['branch', '-D', 'taken']).catch(() => undefined);
     }
   });
 
@@ -4254,6 +4329,8 @@ export async function run(): Promise<void> {
     const home = state().root;
     const other = state().repos.find((repo) => repo.root !== home);
     assert.ok(other, 'the workspace has another repository');
+    // One that keeps nothing of what it showed, as one never shown: a repository kept is shown at once (repo.keep-open).
+    internals.kept.forget((root) => samePath(root, other.root));
     const switched = await sequence({ type: 'selectRepo', root: other.root });
     assert.deepEqual(switched.filter((line) => line.startsWith('loading')), ['loading filter', 'loading null']);
     assert.ok(switched.indexOf('state none') < switched.indexOf('loading null'), switched.join(', '));

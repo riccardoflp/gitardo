@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { EngineClient } from '../src/engine/client';
 import { EngineGraph, completed, graphState, laidOutOf } from '../src/engine/graph';
 import type { EngineRow } from '../src/engine/messages';
-import type { RepoParts } from '../src/shared/protocol';
-import { headAt, workingTreeOf } from './states';
+import { WORKTREE, type RepoParts, type RepoState, type Scope } from '../src/shared/protocol';
+import { branchAt, headAt, workingTreeOf } from './states';
 
 /** A line of commits, newest first, each the parent of the one before. */
 function line(count: number): EngineRow[] {
@@ -163,5 +163,147 @@ describe('the pages of a read of the commits, as the views are given them', () =
     const rows = laidOutOf(state.rows)!.catchUp();
     expect(rows).toHaveLength(1200);
     expect(rows.at(-1)?.hash).toBe(shown.rows[1199].hash);
+  });
+
+  /** The state of a worktree of `/api`, in `root`, read with the graph of the group that shows it, as its session reads it. */
+  const worktreeState = (client: EngineClient, graph: EngineGraph, root: string, read: RepoParts, shown?: RepoState, scope: Scope | null = null) => {
+    graph.keepBy(root, '/api/.git');
+    const reader = (wanted: Parameters<EngineGraph['commits']>[2]) => graph.commits(client, root, wanted, 1000);
+    return graphState(client, root, read, { ...asked, scope }, reader, undefined, shown && laidOutOf(shown.rows), graph.placeOf(root));
+  };
+  const tip = (commits: EngineRow[], at: number) => (commits[at].kind === 'commit' ? commits[at].commit.id : '');
+  /** What is read of `/api`, on `main`, and of its worktree on `fix`, a few commits before: the same references, another one checked out. */
+  const worktrees = (commits: EngineRow[]) => {
+    const refs = (checkedOut: string) => [branchAt('fix', tip(commits, 3), { isCheckedOut: checkedOut === 'fix' }), branchAt('main', tip(commits, 0), { isCheckedOut: checkedOut === 'main' })];
+    const of = (branch: string, at: number) => ({ ...parts, head: headAt(tip(commits, at), branch), branches: refs(branch) }) as unknown as RepoParts;
+    return { main: of('main', 0), fix: of('fix', 3) };
+  };
+
+  it('gives a worktree the rows its repository has read, with no read of the commits, when its HEAD is on a branch', async () => {
+    const { client, page, end, reads } = engine();
+    const commits = line(1200);
+    const { main, fix } = worktrees(commits);
+    const graph = new EngineGraph();
+    const reading = worktreeState(client, graph, '/api', main);
+    await turn();
+    page(commits.slice(0, 1000));
+    const api = await reading;
+    const taken = await worktreeState(client, graph, '/api-fix', fix, api);
+    expect(reads(), 'no read of the commits for the worktree').toBe(1);
+    // The rows are those the views have: the same array, so that none of them is sent again.
+    expect(taken.rows).toBe(api.rows);
+    expect(taken.root).toBe('/api-fix');
+    expect(taken.head).toEqual(fix.head);
+    expect(graph.shares('/api', '/api-fix')).toBe(true);
+    // The pages the read of the repository still adds are the worktree's too, and choosing the repository back takes them.
+    page(commits.slice(1000));
+    end(false);
+    await turn();
+    expect(graph.isReading('/api-fix')).toBe(false);
+    const back = await worktreeState(client, graph, '/api', main, taken);
+    expect(reads()).toBe(1);
+    expect(back.rows).toHaveLength(1200);
+    expect(back.rows[999]).toBe(api.rows[999]);
+  });
+
+  it('lays the rows out again under the row of the uncommitted changes of the worktree, with no read of the commits', async () => {
+    const { client, page, end, reads } = engine();
+    const commits = line(500);
+    const { main, fix } = worktrees(commits);
+    const graph = new EngineGraph();
+    const reading = worktreeState(client, graph, '/api', main);
+    await turn();
+    page(commits);
+    end(false);
+    const api = await reading;
+    const changed = { ...fix, workingTree: workingTreeOf({ unstaged: [{ path: 'a.txt', kind: 'modified', originalPath: null }] }) } as unknown as RepoParts;
+    const taken = await worktreeState(client, graph, '/api-fix', changed, api);
+    expect(reads()).toBe(1);
+    expect(taken.rows[0].hash).toBe(WORKTREE);
+    expect(taken.rows[0].parents).toEqual([tip(commits, 3)]);
+    expect(taken.rows.slice(1).map((row) => row.hash)).toEqual(api.rows.map((row) => row.hash));
+  });
+
+  it('reads the commits of a worktree detached at a commit no reference is on, over the rows of its repository', async () => {
+    const { client, page, end, reads } = engine();
+    const commits = line(300);
+    const { main } = worktrees(commits);
+    const graph = new EngineGraph();
+    const reading = worktreeState(client, graph, '/api', main);
+    await turn();
+    page(commits);
+    end(false);
+    const api = await reading;
+    const own = { kind: 'commit' as const, commit: { id: 'd'.repeat(40), parents: [tip(commits, 0)], authorName: 'Test Author', authorEmail: 'author@example.com', authorDate: 999, subject: 'Tried apart' } };
+    const detached = { ...main, head: headAt(own.commit.id), branches: main.branches.map((branch) => ({ ...branch, isCheckedOut: false })) } as unknown as RepoParts;
+    const taking = worktreeState(client, graph, '/api-tried', detached, api);
+    await turn();
+    expect(reads(), 'one read for the commit of its own').toBe(2);
+    page([own, ...commits]);
+    end(false);
+    const taken = await taking;
+    const rows = laidOutOf(taken.rows)!.catchUp();
+    expect(rows[0].subject).toBe('Tried apart');
+    expect(rows.slice(1).map((row) => row.hash)).toEqual(api.rows.map((row) => row.hash));
+  });
+
+  it('reads a worktree as a repository chosen when it shows what is checked out, which is its own', async () => {
+    const { client, page, end, reads } = engine();
+    const commits = line(300);
+    const { main, fix } = worktrees(commits);
+    const graph = new EngineGraph();
+    const current: Scope = { kind: 'current' };
+    const reading = worktreeState(client, graph, '/api', main, undefined, current);
+    await turn();
+    page(commits);
+    end(false);
+    const api = await reading;
+    const taking = worktreeState(client, graph, '/api-fix', fix, api, current);
+    await turn();
+    expect(reads()).toBe(2);
+    page(commits.slice(3));
+    end(false);
+    const taken = await taking;
+    expect(taken.rows).not.toBe(api.rows);
+    expect(taken.rows).toHaveLength(297);
+  });
+
+  it('keeps the commits of a submodule, or of any repository with a git folder of its own, apart', async () => {
+    const { client, page, end, reads } = engine();
+    const commits = line(300);
+    const { main } = worktrees(commits);
+    const graph = new EngineGraph();
+    const reading = worktreeState(client, graph, '/api', main);
+    await turn();
+    page(commits);
+    end(false);
+    const api = await reading;
+    graph.keepBy('/api/vendor/lib', '/api/.git/modules/lib');
+    expect(graph.shares('/api', '/api/vendor/lib')).toBe(false);
+    const reader = (wanted: Parameters<EngineGraph['commits']>[2]) => graph.commits(client, '/api/vendor/lib', wanted, 1000);
+    const submodule = graphState(client, '/api/vendor/lib', main, asked, reader, undefined, undefined, graph.placeOf('/api/vendor/lib'));
+    await turn();
+    expect(reads()).toBe(2);
+    page(commits);
+    end(false);
+    expect((await submodule).rows).not.toBe(api.rows);
+    // The read of the repository is still there, by the folder its worktrees share.
+    expect((await worktreeState(client, graph, '/api', main, api)).rows).toBe(api.rows);
+    expect(reads()).toBe(2);
+  });
+
+  it('moves the read a repository has to the folder its worktrees share once it is known', async () => {
+    const { client, page, end, reads } = engine();
+    const commits = line(300);
+    const { main, fix } = worktrees(commits);
+    const graph = new EngineGraph();
+    const reading = graphState(client, '/api', main, asked, (wanted) => graph.commits(client, '/api', wanted, 1000));
+    await turn();
+    page(commits);
+    end(false);
+    await reading;
+    graph.keepBy('/api', '/api/.git');
+    await worktreeState(client, graph, '/api-fix', fix);
+    expect(reads()).toBe(1);
   });
 });

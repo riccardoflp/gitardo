@@ -4,7 +4,8 @@
  * its folder.
  */
 import { describe, expect, it } from 'vitest';
-import { Sessions, keptTab, tabTitle } from '../src/extension/sessions';
+import { Sessions, keptTab, sameHistory, sharesHistory, tabTitle } from '../src/extension/sessions';
+import { worktreeAt } from './states';
 import type { RepoInfo } from '../src/shared/protocol';
 
 /** A session as the registry sees it: its folder, and whether it was let go and by which group last. */
@@ -130,5 +131,35 @@ describe('what a tab of the graph comes back on after a reload', () => {
     expect(keptTab({ refsWidth: 200 })).toEqual({});
     expect(keptTab({ tab: { root: 42 } })).toEqual({});
     expect(keptTab({ tab: { root: '/work/web', filter: 'author', scope: [] } })).toEqual({ root: '/work/web' });
+  });
+});
+
+describe('a worktree that takes the history its repository has read', () => {
+  const shown = { root: '/work/api', worktrees: [worktreeAt('/work/api', 'main', { isMain: true, isCurrent: true }), worktreeAt('/work/api-fix', 'fix'), worktreeAt('/work/gone', 'old', { isMissing: true })] };
+
+  it('shares the commits of the repository shown when it is one of its worktrees, and the repository those of its worktree', () => {
+    expect(sharesHistory(shown, '/work/api', '/work/api-fix')).toBe(true);
+    expect(sharesHistory(shown, '/work/api', '\\work\\API-fix')).toBe(true);
+    const fromWorktree = { root: '/work/api-fix', worktrees: shown.worktrees };
+    expect(sharesHistory(fromWorktree, '/work/api-fix', '/work/api')).toBe(true);
+  });
+
+  it('shares nothing with a submodule, another repository, a worktree whose folder is gone, or with no state shown of the one left', () => {
+    expect(sharesHistory(shown, '/work/api', '/work/api/vendor/lib')).toBe(false);
+    expect(sharesHistory(shown, '/work/api', '/work/web')).toBe(false);
+    expect(sharesHistory(shown, '/work/api', '/work/gone')).toBe(false);
+    expect(sharesHistory(null, '/work/api', '/work/api-fix')).toBe(false);
+    // The views still show another repository than the one left: its worktrees are not those of the list.
+    expect(sharesHistory(shown, '/work/web', '/work/api-fix')).toBe(false);
+    expect(sharesHistory(shown, '/work/api', '/work/api')).toBe(false);
+  });
+
+  it('asks for the same history only with nothing searched and the same branches shown, which are not those of what is checked out', () => {
+    const main = { kind: 'refs' as const, refs: ['refs/heads/main'] };
+    expect(sameHistory({ filter: null, scope: null }, { filter: null, scope: null })).toBe(true);
+    expect(sameHistory({ filter: null, scope: main }, { filter: null, scope: { kind: 'refs', refs: ['refs/heads/main'] } })).toBe(true);
+    expect(sameHistory({ filter: null, scope: main }, { filter: null, scope: null })).toBe(false);
+    expect(sameHistory({ filter: { kind: 'message', query: 'fix' }, scope: null }, { filter: null, scope: null })).toBe(false);
+    expect(sameHistory({ filter: null, scope: { kind: 'current' } }, { filter: null, scope: { kind: 'current' } })).toBe(false);
   });
 });

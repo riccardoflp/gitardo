@@ -1,5 +1,5 @@
 import { samePath } from '../shared/paths';
-import type { Filter, RepoInfo, Scope } from '../shared/protocol';
+import type { Filter, RepoInfo, RepoState, Scope } from '../shared/protocol';
 
 /**
  * Which repository each group of views shows, and the session of each repository shown (D89, `repo.tab-repository`):
@@ -80,6 +80,29 @@ export class Sessions<Session extends { readonly root: string }, Group> {
     this.byRoot.delete(key(session.root));
     this.hooks.letGo(session, group);
   }
+}
+
+/**
+ * Whether a folder shares its commits and its references with the repository a group shows: a worktree of it, or the
+ * repository itself from one of its worktrees, as the list of the worktrees of the state shown says. A submodule is
+ * another repository, and shares nothing (`repo.share-history`).
+ */
+export function sharesHistory(shown: Pick<RepoState, 'root' | 'worktrees'> | null, left: string, chosen: string): boolean {
+  if (!shown || !samePath(shown.root, left) || samePath(left, chosen)) return false;
+  return shown.worktrees.some((worktree) => !worktree.isMissing && samePath(worktree.folder, chosen));
+}
+
+/** What narrows the history a group lists: its search and the branches it shows. */
+type Narrowed = { filter: Filter | null; scope: Scope | null };
+
+/**
+ * Whether a worktree chosen asks for the history the worktree left listed: nothing searched in either, and the same
+ * branches shown, which are not those of what is checked out, each worktree having its own.
+ */
+export function sameHistory(left: Narrowed, chosen: Narrowed): boolean {
+  if (left.filter || chosen.filter) return false;
+  if (left.scope?.kind === 'current' || chosen.scope?.kind === 'current') return false;
+  return JSON.stringify(left.scope) === JSON.stringify(chosen.scope);
 }
 
 const forward = (folder: string) => folder.replace(/\\/g, '/').replace(/\/+$/, '');

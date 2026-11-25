@@ -13,7 +13,7 @@ import { submoduleFolder } from '../shared/submodules';
 import type { ControllerHost } from './controllerHost';
 import type { KeptRepository } from './keptRepositories';
 import { type RepositorySession, ViewGroup, errorText, keepOpen } from './repositorySession';
-import { tabTitle } from './sessions';
+import { sameHistory, sharesHistory, tabTitle } from './sessions';
 
 /** The repository of the workspace the panel and the side bar show, which they show again when the window opens. */
 export const REPO_KEY = 'gitardo.repository';
@@ -158,8 +158,11 @@ export class RepositoriesShown {
       if (!again) return;
       this.host.sessions.leave(group);
     }
+    // A worktree of the repository left, or that repository from one of its worktrees, shares its commits.
+    const shares = !!before && !!root && sharesHistory(group.state, before.root, root);
+    const narrowed = { filter: group.filter, scope: group.scope };
     // A repository left reads no more pages: it reads its commits again once it is shown (Q437).
-    if (before) group.graph.stop(before.root);
+    if (before && !shares) group.graph.stop(before.root);
     if (!root) {
       this.host.sessions.leave(group);
       group.session = undefined;
@@ -170,13 +173,24 @@ export class RepositoriesShown {
     group.session = session;
     const kept = made && keepOpen() ? this.host.kept.take(root) : undefined;
     group.reset(this.host.memento.get<Record<string, Scope>>(SCOPE_KEY, {})[root] ?? null);
-    if (kept) return this.comeBack(group, session, kept);
+    // A tab brought back after a reload shows what its page kept, not what the repository kept when it was left.
+    const ownShown = shown.filter !== undefined || shown.scope !== undefined;
+    if (kept && !ownShown) return this.comeBack(group, session, kept);
+    kept?.watcher?.dispose();
     if (shown.filter) group.filter = shown.filter;
     if (shown.scope !== undefined) group.scope = shown.scope;
-    // A repository chosen counts every worktree again, as **Refresh** does.
+    // A repository chosen that was not watched meanwhile counts every worktree again, as **Refresh** does (Q1744).
     if (made) session.everything = true;
+    const read = () => (made ? session.open() : session.refresh());
+    // A worktree of the repository left asks for the same history when nothing narrows either and both show the same
+    // branches: it keeps the rows the views have, which are its own, and reads only what differs in it
+    // (`repo.share-history`). The views are not told to wait for commits (Q1743).
+    if (shares && sameHistory(narrowed, group)) {
+      session.commitsTaken = made;
+      return read();
+    }
     // The commits of the repository before stay in the views until those of this one come.
-    await this.host.reload(group, 'filter', () => (made ? session.open() : session.refresh()));
+    await this.host.reload(group, 'filter', read);
   }
 
   /**
@@ -188,7 +202,8 @@ export class RepositoriesShown {
     // A change seen just before is the repository left's, not the next one's.
     const pending = session.takePending();
     const state = last.state;
-    if (!state || !samePath(state.root, session.root) || !keepOpen()) return session.dispose();
+    // A folder that is no longer there, as a worktree removed, has nothing to come back to.
+    if (!state || !samePath(state.root, session.root) || !keepOpen() || !fs.existsSync(session.root)) return session.dispose();
     this.host.kept.keep(session.root, {
       state,
       filter: last.filter,
@@ -197,6 +212,7 @@ export class RepositoriesShown {
       hosting: session.hosting,
       pulls: session.pulls,
       pullsAt: session.pullsAt,
+      commonFolder: session.commonFolder,
       watcher: session.watcher,
       changed: pending,
     });
@@ -214,12 +230,13 @@ export class RepositoriesShown {
     session.hosting = kept.hosting;
     session.pulls = kept.pulls;
     session.pullsAt = kept.pullsAt;
+    session.commonFolder = kept.commonFolder;
     session.watcher = kept.watcher;
     // The repositories of the workspace may have changed while it was not shown.
     this.host.setState(group, { ...kept.state, repos: this.host.repos, home: this.host.homeOf(group, kept.state.root), keepOpen: true });
     if (kept.changed) {
+      // It was watched while it was not shown: the worktrees are not all counted again, nor every commit read (Q1744).
       session.cause = kept.changed;
-      session.everything = true;
       await session.detectHosting().catch((error) => this.host.log.warn(`Could not read the remotes of ${session.root}: ${errorText(error)}`));
       await session.refresh();
     } else {

@@ -16,6 +16,8 @@ export interface KeptRepository {
   hosting: Hosting | null;
   pulls: Record<string, PullRequest>;
   pullsAt: number;
+  /** The folder its worktrees share, which the commits read of it are kept by (`repo.share-history`). */
+  commonFolder?: string;
   /** The watchers of its files, kept with it: while it is not shown they only mark it out of date (`repo.watch-hidden`). */
   watcher?: vscode.Disposable;
   /** The last change seen in it since it was left, which it is read again for once it is shown; none when nothing changed. */
