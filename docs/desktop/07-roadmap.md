@@ -2138,6 +2138,7 @@ the rows of its repository in about 100 ms and then marks what it has checked ou
 first rows in about 300 ms, after at most eight processes of git; no state is read twice for one choice; **Refresh**
 still reads everything again; QA1 to QA4 are at least as quick as on 2026-11-24, and every card of the milestone passes
 its tests.
+
 ## M51 — The toolbar of the graph: fitting its width, one way to choose, buttons that show on the ground (done)
 
 Three fixes of the toolbar above the graph of the extension, asked by the maintainer on 2026-11-25: its buttons do not

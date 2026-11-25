@@ -158,7 +158,7 @@ node test/perf/graph-load.mjs ../big --commit
   shown when the window opens, and `worktrees/worktree-1` to `worktree-3`, three worktrees of the large one, each on
   one of its branches.
 - `vscode.mjs <folder> --switch` (`switch.mjs`) opens `workspace` of that folder in three windows, one after the
-  other, and in each chooses, in the list of the repositories and in the menu of the worktrees of the graph: the large
+  other, and in each chooses, in the menu of the repositories and in that of the worktrees of the graph: the large
   repository, never shown in the window; one of its worktrees, never shown; the large repository again after the
   small one, with `gitardo.repositories.keepOpen` as it is by default, and then with it on. Each choice is made once
   every commit of the history has come and two seconds have passed, and is timed until the view has the first state

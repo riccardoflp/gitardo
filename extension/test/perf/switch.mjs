@@ -70,12 +70,12 @@ const CHOSEN = `(root, act, own) => new Promise((resolve) => {
   act();
 })`;
 
-/** Chooses a repository in the list at the start of the toolbar, as a person picks it there. */
-const IN_LIST = `(root) => () => {
-  const list = document.querySelector('select.repo');
-  list.value = root;
-  list.dispatchEvent(new Event('change', { bubbles: true }));
-}`;
+/** Chooses a repository in the menu of the repositories already open, by its folder, as a person picks it there. */
+const IN_LIST = `(root) => () => [...document.querySelectorAll('[role="menuitemcheckbox"]')].find((item) => item.title === root).click()`;
+
+/** The button of the toolbar that names the repository shown and opens the menu of them all, and the one of the worktrees. */
+const REPOSITORIES = 'button.place.pick.repo';
+const WORKTREES = 'button.place.pick:not(.repo)';
 
 /** Chooses, in the menu of the worktrees already open, the one that has a branch checked out. */
 const IN_MENU = `(branch) => () => [...document.querySelectorAll('[role="menuitemcheckbox"]')].find((item) => item.textContent.includes(branch)).click()`;
@@ -141,11 +141,11 @@ async function oneWindow({ places, worktree, out, codePath, options, run }) {
     await window.ready();
     await window.command('Gitardo: Show Graph');
     const graph = await window.webview('graph');
-    const shown = () => graph.evaluate(`document.querySelector('select.repo')?.title ?? ''`);
+    const shown = () => graph.evaluate(`document.querySelector('${REPOSITORIES}')?.title.split('\\n')[0] ?? ''`);
     /** Waits until nothing is read any more: every commit of the history has come, and no choice is refused. */
     const quiet = async () => {
       await until('the commits', () => graph.evaluate(`document.querySelectorAll('.commits .row').length > 5`), 60_000);
-      await until('the whole history', () => graph.evaluate(`!document.querySelector('.commits .row.more') && !document.querySelector('select.repo')?.disabled`), 120_000);
+      await until('the whole history', () => graph.evaluate(`!document.querySelector('.commits .row.more') && !document.querySelector('${REPOSITORIES}')?.disabled`), 120_000);
       await sleep(2000);
     };
     const choose = async (root, act, own = false) => {
@@ -156,13 +156,17 @@ async function oneWindow({ places, worktree, out, codePath, options, run }) {
       await quiet();
       return timing;
     };
-    const inList = (root) => choose(root, `(${IN_LIST})(${JSON.stringify(root)})`);
+    const inList = async (root) => {
+      await graph.evaluate(`document.querySelector('${REPOSITORIES}').click()`);
+      await until('the menu of the repositories', () => graph.evaluate(`[...document.querySelectorAll('[role="menuitemcheckbox"]')].some((item) => item.title === ${JSON.stringify(root)})`));
+      return choose(root, `(${IN_LIST})(${JSON.stringify(root)})`);
+    };
 
     await quiet();
     if (path.resolve(await shown()) !== path.resolve(places.beside)) throw new Error(`The window opened on ${await shown()}, not on ${places.beside}`);
     timings.never = await inList(places.large);
 
-    await graph.evaluate(`document.querySelector('button.current.pick').click()`);
+    await graph.evaluate(`document.querySelector('${WORKTREES}').click()`);
     await until('the menu of the worktrees', () => graph.evaluate(`document.querySelectorAll('[role="menuitemcheckbox"]').length > 1`));
     timings.worktree = await choose(worktree.folder, `(${IN_MENU})(${JSON.stringify(worktree.branch)})`, true);
 

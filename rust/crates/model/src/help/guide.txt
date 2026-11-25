@@ -3810,7 +3810,7 @@ title: Worktrees and submodules in the tab of their repository
 place: Repositories, in the side column
 show: none
 Which repositories share a tab: a repository, its worktrees and its submodules are one tab, whose row in **Repositories** has theirs under it, and a click on one of those shows it in the tab.
-In VS Code: no tabs; the list of `repo.select` follows the first three rules, each member indented under its repository, its worktrees first (`groupRepositories` in, tested by). The rows of the Repositories view (`repo.tabs`) follow the rules of the rows: under a repository, the worktrees git lists for it, a folder of the workspace or not, then its submodules found in the workspace, the chevron, the folds remembered for the workspace in the state of the view, and the folded row that says the member shown after ` › ` (`repositoryRows` and `drawnRows` in, tested by). With no tab to keep a member, a folded row whose members are not shown stands for the folder of its repository.
+In VS Code: no tabs; the menu of `repo.select` follows the first three rules, each member indented under its repository, its worktrees first (`groupRepositories` in, tested by). The rows of the Repositories view (`repo.tabs`) follow the rules of the rows: under a repository, the worktrees git lists for it, a folder of the workspace or not, then its submodules found in the workspace, the chevron, the folds remembered for the workspace in the state of the view, and the folded row that says the member shown after ` › ` (`repositoryRows` and `drawnRows` in, tested by). With no tab to keep a member, a folded row whose members are not shown stands for the folder of its repository.
 @card extension repo.share-history
 title: A worktree takes the history its repository has read
 place: Repositories, in the side column
@@ -3908,7 +3908,7 @@ title: The header
 place: the timeline
 show: none
 Where one is and what applies to the whole repository, in a bar across the top of the window, always shown.
-Entry points: the top of the window.
+In VS Code: the toolbar above the graph, `Toolbar` of, has more buttons than the header: the repository and the worktree shown, **Fetch**, **Pull** and **Push** with their other ways, **Branch**, **Stash**, **Undo**, the branches shown, the search, **Refresh**, **View** and **…**. Short of room, it gives up as little as makes it fit, measured from what it holds and not from the width of the view (`fit` of), in this order: the words of the button of the branches shown; the words of the other buttons; **Refresh**, which **…** has too; one line, the search and what follows it going across a second, where the names of the repository and of the branch are cut before a button goes; **Branch**, **Stash** and **Undo**, which **…** then has; and last the first line, which breaks between where one is and the buttons. No button is outside the view, over another or alone on a line, and what was given up comes back as soon as it fits. Tested by `test/e2e/ui.mjs`, step "the toolbar gives up its words, Refresh, one line and then three buttons as the panel narrows, with nothing out of the view, and takes them back", and, "has Branch, Stash and Undo after Refresh while the toolbar is too narrow for their buttons, greyed out as the buttons are" (M51).
 @card extension graph.where
 title: Where one is, in the header
 place: the timeline
@@ -3939,7 +3939,7 @@ title: The islands of the window
 place: the timeline
 show: none
 The side column, the timeline, the inspector and the page shown are each a rounded card on the ground of the window, under the header.
-In VS Code: with `gitardo.graph.islands` on, the references, the commits and the details of the Graph view are each an island, on a ground one step darker than the panel's background in the dark themes and one step deeper in the light ones, with the radius and the border of VS Code's widgets and a gap of 8 pixels between them, 4 in a panel narrower than 900 pixels; the gap is the line dragged to resize them, and the details under the commits in a narrow panel are an island too. The toolbar stays above them, on the ground. Off, the view is as it was. The other views keep their look. The class `islands` of the Graph view's `App` and the rules under it in; the ground is mixed from `--vscode-panel-background` with black. Tested by `test/e2e/ui.mjs`, step "with islands on, the references, the commits and the details are rounded islands on a darker ground, the gap between two is dragged to resize them, and off the graph is as it was".
+In VS Code: with `gitardo.graph.islands` on, the references, the commits and the details of the Graph view are each an island, on a ground one step darker than the panel's background in the dark themes and one step deeper in the light ones, with the radius and the border of VS Code's widgets and a gap of 8 pixels between them, 4 in a panel narrower than 900 pixels; the gap is the line dragged to resize them, and the details under the commits in a narrow panel are an island too. The toolbar stays above them, on the ground, where its buttons with words and its search box have the background of an island and a line made from the color of the text around them, the border of the theme in the high contrast ones: the colors a theme gives its buttons are chosen against the background of the panel, and in some, as Light 2026, they are the ground's own. A button pressed in keeps its colors, and one of an icon alone has no shape until the pointer is over it. The step of the islands of `test/e2e/ui.mjs` measures each of them against the ground in six themes (M51). Off, the view is as it was. The other views keep their look. The class `islands` of the Graph view's `App` and the rules under it in; the ground is mixed from `--vscode-panel-background` with black. Tested by `test/e2e/ui.mjs`, step "with islands on, the references, the commits and the details are rounded islands on a darker ground, the gap between two is dragged to resize them, and off the graph is as it was".
 @card extension graph.view-bar
 title: The bar of views
 place: the timeline
@@ -3971,7 +3971,7 @@ title: The … menu of the header
 place: the timeline
 show: none
 The actions on the repository and the ways to what is not elsewhere in the header, apart from the switches of the timeline, which are in the menu of the view (`graph.view-menu`).
-In VS Code: **…** at the end of the toolbar of the graph, with the actions alone (`moreMenu` in): **Refresh**, but in the side bar, where the header of the view has it; the entries of group 2, with **Browse reflog…**; **Switch identity…**; **Load pull requests from GitHub**. It has neither **Branch**, **Stash** and **Undo**, which are buttons of the toolbar, nor **Settings** and **Theme…**, which are VS Code's.
+In VS Code: **…** at the end of the toolbar of the graph, with the actions alone (`moreMenu` in): **Refresh**, but in the side bar, where the header of the view has it; the entries of group 2, with **Browse reflog…**; **Switch identity…**; **Load pull requests from GitHub**. It has **Branch**, **Stash** and **Undo** after **Refresh** only while the toolbar is too narrow for their buttons (`graph.toolbar`), and neither **Settings** nor **Theme…**, which are VS Code's.
 @card extension ui.menu-scroll
 title: A menu taller than the room under it
 place: the timeline
@@ -4229,7 +4229,7 @@ title: The search box
 place: the header, Search and Quick search
 show: none
 The box at the top of the timeline searches in one of five ways, chosen from the list next to it, and steps through what it finds.
-Entry points: the search box at the top of the timeline, also in the narrow layout of the window.
+In VS Code: the box of the toolbar of the graph, in `Toolbar` of. The list before it is a button that names the mode, with a chevron, and opens the menu the webviews draw, the five modes in their order, the one chosen ticked, each with its tooltip: as the repository and the worktree are chosen in the same toolbar (`repo.select`, M51). Tested by `test/e2e/ui.mjs`, step "the search counts what it finds and steps through it, in the loaded commits and in the whole history", which chooses **Message** and **Loaded** from that menu.
 @card extension search.loaded
 title: Find among the loaded commits
 place: the header, Search and Quick search

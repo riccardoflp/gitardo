@@ -48,7 +48,7 @@ Q1519): a time changed here changes the limit.
 | QA12 | The resolution of conflicts is worked out on a large file | It gives up rather than hang | 50,000 lines, 1,500 edits | `MAX_LINES`, `MAX_EDITS` in `src/shared/conflicts.ts`; `test/conflicts.test.ts` |
 | QA13 | Every view in each of the five default themes | Buttons have a shape against the panel; labels in the color of their line | screenshots | `npm run test:ui` |
 | QA14 | Any operation that can lose work, with `gitardo.commandPreview` `off` | It asks first | 100% of the list in the README's Command preview | the cards' Danger lines; `test/e2e/suite.ts` for some |
-| QA15 | A repository shown before is chosen again in the large workspace, in the list of the graph | Its first commits are drawn as it was left, and no process of git starts before them | about 100 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
+| QA15 | A repository shown before is chosen again in the large workspace, in the menu of the repositories of the graph | Its first commits are drawn as it was left, and no process of git starts before them | about 100 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
 | QA16 | A worktree of the repository shown is chosen for the first time | The commits of its repository are under its name, none sent again; what it has checked out is marked once its first step is read | about 100 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
 | QA17 | A repository never shown in the window is chosen | Its first page of commits is drawn; read ahead, it starts no process of git, and otherwise at most eight before them | about 300 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
 
