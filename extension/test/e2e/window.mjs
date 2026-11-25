@@ -99,41 +99,70 @@ export async function startWindow({ workspace, temp, out, codePath, settings: ex
   }
 
   /**
-   * How many presses of the mouse the workbench got on the frame of a webview itself. A press over a webview goes to
-   * the page inside it, which is another process, and the workbench never sees it. A screenshot taken while that page
-   * draws can leave Chromium not knowing where the page is until the next frame it draws, which may be seconds away:
-   * a press there is then given to the frame instead, and the page inside gets nothing.
+   * How many moves and presses of the mouse the workbench got on the frame of a webview itself. What the mouse does
+   * over a webview goes to the page inside it, which is another process, and the workbench never sees it. A screenshot
+   * taken while that page draws can leave Chromium not knowing where the page is until the next frame it draws, which
+   * may be seconds away: a move or a press there is then given to the frame instead, and the page inside gets nothing.
    */
-  const LOST_PRESSES = `(() => {
-    if (window.gitardoLostPresses === undefined) {
-      window.gitardoLostPresses = 0;
-      window.addEventListener('mousedown', (event) => { if (event.target?.tagName === 'IFRAME') window.gitardoLostPresses++; }, true);
+  const LOST_ON_FRAMES = `(() => {
+    if (window.gitardoLostOnFrames === undefined) {
+      window.gitardoLostOnFrames = 0;
+      const count = (event) => { if (event.target?.tagName === 'IFRAME') window.gitardoLostOnFrames++; };
+      window.addEventListener('mousemove', count, true);
+      window.addEventListener('mousedown', count, true);
     }
-    return window.gitardoLostPresses;
+    return window.gitardoLostOnFrames;
   })()`;
-  /** How many times a press that was lost is made again. */
-  const PRESSES = 5;
+  /**
+   * Has the workbench say again that its webviews take what the mouse does: for the time of two frames they do not,
+   * and then they do, which Chromium is told of with the frame drawn after each.
+   */
+  const FRAMES_AGAIN = `(async () => {
+    const frames = [...document.querySelectorAll('iframe')];
+    const drawn = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const before = frames.map((frame) => frame.style.pointerEvents);
+    for (const frame of frames) frame.style.pointerEvents = 'none';
+    await drawn();
+    frames.forEach((frame, index) => (frame.style.pointerEvents = before[index]));
+    await drawn();
+  })()`;
+  /** How many times the pointer is moved to a point before giving up on the webview there. */
+  const MOVES = 6;
+  /** How many moves of the pointer were lost on the frame of a webview and made again. */
+  let lostMoves = 0;
 
   /**
-   * Presses a button of the mouse at a point, as a hand that got there does. A press lost on the frame of a webview is
-   * let go and made again, once a frame captured has told Chromium where the page of the webview is.
+   * Moves the pointer to a point, as a hand gets there. A move lost on the frame of a webview is made again, once a
+   * frame captured has told Chromium where the page of the webview is: the press that follows then reaches the page.
+   * It is the move that is made again, not the press, which the workbench answers by giving the frame the focus, and
+   * a menu open in the page closes at that.
    */
-  async function press(x, y, button = 'left', clickCount = 1) {
-    const buttons = button === 'left' ? 1 : 2;
+  async function moveTo(x, y) {
     for (let attempt = 1; ; attempt++) {
-      const lost = await page.evaluate(LOST_PRESSES);
+      // The first move may come from outside the frame, which the workbench is told of: the second is the one counted.
+      await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: x - 1, y });
+      const lost = await page.evaluate(LOST_ON_FRAMES);
       await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
-      await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button, buttons, clickCount });
-      if ((await page.evaluate(LOST_PRESSES)) === lost) return;
-      if (attempt === PRESSES) throw new Error(`The press at ${Math.round(x)}, ${Math.round(y)} did not reach the webview there, ${PRESSES} times`);
-      await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button, clickCount });
+      if ((await page.evaluate(LOST_ON_FRAMES)) === lost) return;
+      if (attempt === MOVES) throw new Error(`The pointer at ${Math.round(x)}, ${Math.round(y)} did not reach the webview there, ${MOVES} times`);
+      lostMoves++;
+      // A frame captured is enough most times; when it is not, the webviews are said again to take the mouse.
+      if (attempt > 1) await page.evaluate(FRAMES_AGAIN);
       await page.send('Page.captureScreenshot', { format: 'png' });
-      await sleep(100);
+      await sleep(100 * attempt);
     }
   }
 
+  /** Moves the pointer to a point and presses the left button there, to drag from it. */
+  async function press(x, y) {
+    await moveTo(x, y);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1 });
+  }
+
   async function mouse(x, y, button = 'left', clickCount = 1) {
-    await press(x, y, button, clickCount);
+    const buttons = button === 'left' ? 1 : 2;
+    await moveTo(x, y);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button, buttons, clickCount });
     await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button, clickCount });
   }
 
@@ -260,5 +289,23 @@ export async function startWindow({ workspace, temp, out, codePath, settings: ex
     await sleep(1500);
   }
 
-  return { ready, resize, shot, setting, mouse, press, drag, clickText, key, type, prompt, command, webview, close, problems };
+  return {
+    ready,
+    resize,
+    shot,
+    setting,
+    mouse,
+    press,
+    drag,
+    clickText,
+    key,
+    type,
+    prompt,
+    command,
+    webview,
+    close,
+    problems,
+    /** How many moves of the pointer were lost on the frame of a webview and made again. */
+    lostMoves: () => lostMoves,
+  };
 }

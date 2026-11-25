@@ -64,6 +64,7 @@ async function finish(error) {
   }
   const failed = results.filter((result) => !result.ok).length;
   if (problems.length) console.log(`\nErrors inside the views:\n${problems.join('\n')}`);
+  if (window.lostMoves()) console.log(`\n${window.lostMoves()} moves of the pointer were lost on the frame of a webview, and made again.`);
   console.log(`\n${results.length - failed} passed, ${failed} failed. Screenshots are in ${out}`);
   await window.close();
   remove(temp);
