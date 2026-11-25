@@ -104,6 +104,14 @@ A screenshot of each step is saved to `dist/ui`, or to the folder given with `--
 the point. Errors thrown or logged inside the webviews are printed at the end. The window is sized through the protocol,
 so the screenshots do not depend on the screen.
 
+A press of the mouse over a webview goes to the page inside it, which is another process. A screenshot taken while
+that page draws can leave Chromium not knowing where the page is, until the next frame is drawn, which in a window
+that nothing moves in may be seconds away: a press is then given to the frame of the webview in the workbench, and the
+page gets nothing, on a machine that is busy more often than on one that is not. `press` of `test/e2e/window.mjs`
+counts the presses the workbench gets on such a frame, and makes again one that was lost, once a frame captured has
+put things right; a press lost five times fails the step by its name. One step that loses a click fails those after
+it that count on what it did, such as the commit of the step that stages a file.
+
 ## Large repositories
 
 Four scripts in `test/perf` show how Gitardo behaves when there is a lot of everything. They print numbers to read; the

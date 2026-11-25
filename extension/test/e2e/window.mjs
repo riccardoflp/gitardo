@@ -98,17 +98,48 @@ export async function startWindow({ workspace, temp, out, codePath, settings: ex
     writeSettings();
   }
 
-  async function mouse(x, y, button = 'left', clickCount = 1) {
+  /**
+   * How many presses of the mouse the workbench got on the frame of a webview itself. A press over a webview goes to
+   * the page inside it, which is another process, and the workbench never sees it. A screenshot taken while that page
+   * draws can leave Chromium not knowing where the page is until the next frame it draws, which may be seconds away:
+   * a press there is then given to the frame instead, and the page inside gets nothing.
+   */
+  const LOST_PRESSES = `(() => {
+    if (window.gitardoLostPresses === undefined) {
+      window.gitardoLostPresses = 0;
+      window.addEventListener('mousedown', (event) => { if (event.target?.tagName === 'IFRAME') window.gitardoLostPresses++; }, true);
+    }
+    return window.gitardoLostPresses;
+  })()`;
+  /** How many times a press that was lost is made again. */
+  const PRESSES = 5;
+
+  /**
+   * Presses a button of the mouse at a point, as a hand that got there does. A press lost on the frame of a webview is
+   * let go and made again, once a frame captured has told Chromium where the page of the webview is.
+   */
+  async function press(x, y, button = 'left', clickCount = 1) {
     const buttons = button === 'left' ? 1 : 2;
-    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
-    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button, buttons, clickCount });
+    for (let attempt = 1; ; attempt++) {
+      const lost = await page.evaluate(LOST_PRESSES);
+      await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+      await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button, buttons, clickCount });
+      if ((await page.evaluate(LOST_PRESSES)) === lost) return;
+      if (attempt === PRESSES) throw new Error(`The press at ${Math.round(x)}, ${Math.round(y)} did not reach the webview there, ${PRESSES} times`);
+      await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button, clickCount });
+      await page.send('Page.captureScreenshot', { format: 'png' });
+      await sleep(100);
+    }
+  }
+
+  async function mouse(x, y, button = 'left', clickCount = 1) {
+    await press(x, y, button, clickCount);
     await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button, clickCount });
   }
 
   /** Presses at one point and lets go at another, getting there in a few moves as a hand does. */
   async function drag(from, to, moves = 5) {
-    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: from.x, y: from.y });
-    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: from.x, y: from.y, button: 'left', buttons: 1, clickCount: 1 });
+    await press(from.x, from.y);
     for (let move = 1; move <= moves; move++) {
       const x = from.x + ((to.x - from.x) * move) / moves;
       const y = from.y + ((to.y - from.y) * move) / moves;
@@ -229,5 +260,5 @@ export async function startWindow({ workspace, temp, out, codePath, settings: ex
     await sleep(1500);
   }
 
-  return { ready, resize, shot, setting, mouse, drag, clickText, key, type, prompt, command, webview, close, problems };
+  return { ready, resize, shot, setting, mouse, press, drag, clickText, key, type, prompt, command, webview, close, problems };
 }

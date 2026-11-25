@@ -22,7 +22,7 @@ const { workspace, app, lib } = createWorkspace(temp);
 const engine = engineSetting(temp, options);
 console.log(`Testing ${engine.said}`);
 const window = await startWindow({ workspace, temp, out, codePath, settings: engine.settings, width: WIDTH, height: HEIGHT });
-const { shot, setting, mouse, drag, clickText, key, type, prompt, command, webview, problems } = window;
+const { shot, setting, mouse, press, drag, clickText, key, type, prompt, command, webview, problems } = window;
 
 /** Opens the sections of the references that are closed: they all are when VS Code starts, and new ones start closed. */
 const unfold = (view) => view.evaluate(`document.querySelectorAll('.refs .section[aria-expanded="false"]').forEach((section) => section.click())`);
@@ -907,8 +907,7 @@ try {
     const to = await graph.locate('.row', 'Commit from the UI');
     const dragged = new Promise((resolve) => page.on('Input.dragIntercepted', resolve));
     await page.send('Input.setInterceptDrags', { enabled: true });
-    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: from.x, y: from.y });
-    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: from.x, y: from.y, button: 'left', buttons: 1, clickCount: 1 });
+    await press(from.x, from.y);
     for (let moved = 1; moved <= 5; moved++) {
       await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: from.x + moved * 6, y: from.y + moved * 4, button: 'left', buttons: 1 });
     }
