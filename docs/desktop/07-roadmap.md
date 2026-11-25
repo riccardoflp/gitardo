@@ -2077,12 +2077,36 @@ Desktop first, then the extension.
    table of [06-testing.md](06-testing.md); the CHANGELOG of each app under **Unreleased**; the README of each app
    where choosing a repository and keeping the repositories open are described.
 
+Phase 1, measured on 2026-11-25, on Linux with VS Code in Xvfb, the minified build and the engine in release, before
+anything of the milestone was built: `test/perf/vscode.mjs <folder> --switch` on the workspace
+`test/perf/switch-fixture.mjs` makes, the large repository (56,120 commits, with git's commit-graph file and its
+references packed) with three worktrees and a repository of 40 commits beside it. Each time is from the choice, in the
+list of the repositories or in the menu of the worktrees of the graph, until the view has drawn the first state of
+what was chosen that has commits, the median of three windows; each choice is made once every commit of the history
+shown has come, which is why a repository chosen again is sent its 56,120 commits again, kept or not, and takes five
+times as long as one never shown, which is sent 1,000. The processes of git are those the engine started between the
+choice and the rows drawn, counted from git's events of trace2, not from the log of the engine, which does not say
+the git of a read. Other lanes were building on the machine meanwhile: a run before gave 1,513 ms and 1,386 ms for
+the two times of a repository chosen again, and the same counts. Not measured: Gitardo Desktop until its rows are
+laid out, which `cargo xtask perf` cannot do without a window and no test of `app` left out of the suite does yet;
+`cargo xtask perf` times the engine alone, an engine just started asked `repository/open`, the first page of
+`graph.read-commits` and then `repo.read-state`, the median of three.
+
 | | Before | After |
 | --- | ---: | ---: |
-| A repository shown before, chosen again | | |
-| A worktree of the repository shown, chosen for the first time | | |
-| A repository never shown | | |
-| Processes of git before the first row of a repository never shown | | |
+| A repository shown before, chosen again | 1,892 ms | |
+| A worktree of the repository shown, chosen for the first time | 227 ms | |
+| A repository never shown | 279 ms | |
+| Processes of git before the first row of a repository never shown | 59 | |
+| A repository shown before, chosen again, with `gitardo.repositories.keepOpen` on | 1,277 ms | |
+| Processes of git before the first row of a repository chosen again | 32 | |
+| The same, with `gitardo.repositories.keepOpen` on | 0 | |
+| Processes of git before the first row of a worktree chosen for the first time | 59 | |
+| Commits sent to the graph with a repository chosen again | 56,120 | |
+| The engine alone: `repository/open` and the first page of commits | 100.7 ms | |
+| Its processes of git | 28 | |
+| The engine alone: `repo.read-state` after them | 43.5 ms | |
+| Its processes of git | 19 | |
 
 Exit: in both apps, on the large repository, a repository shown before and chosen again draws its rows in about
 100 ms and starts no process of git before them; a worktree of the repository shown, chosen for the first time, draws
