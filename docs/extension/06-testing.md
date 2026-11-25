@@ -162,8 +162,10 @@ node test/perf/graph-load.mjs ../big --commit
   repository, never shown in the window; one of its worktrees, never shown; the large repository again after the
   small one, with `gitardo.repositories.keepOpen` as it is by default, and then with it on. Each choice is made once
   every commit of the history has come and two seconds have passed, and is timed until the view has the first state
-  of the folder chosen with commits, and from there until it has drawn it; it prints the median of the three windows,
-  how many commits each state sent, and the git processes the engine started between the choice and the rows drawn,
+  of the folder chosen that leaves it with commits of it, the first page of a history or, for a worktree whose rows
+  the view has, a state with no commit, and from there until it has drawn it; for the worktree it times the state
+  after that one too, its first step, with what it has checked out. It prints the median of the three windows, how
+  many commits that first state carried, and the git processes the engine started between the choice and the rows drawn,
   by command, counted from the events git writes when `GIT_TRACE2_EVENT` names a file, which a shell script that
   starts the engine sets; on Windows they are not counted. The choices have no limit yet: `CHOICES` of `switch.mjs`
   names the scenario of each once [12-quality.md](12-quality.md) has one.

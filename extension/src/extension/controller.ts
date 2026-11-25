@@ -27,10 +27,11 @@ import { MenuContext } from './menuContext';
 import { LFS_WORDS, notDownloadedMessage } from '../shared/lfs';
 import { completed, graphState, readCommits } from '../engine/graph';
 import { RangeDiffTab } from './rangeDiffTab';
-import { type GroupHost, REFRESH_DELAY, RepositorySession, type SessionHost, ViewGroup, errorText, firstParent, keepOpen } from './repositorySession';
+import { type GroupHost, REFRESH_DELAY, RepositorySession, type SessionHost, ViewGroup, errorText, firstParent, keepOpen, pageSize } from './repositorySession';
 import { Sessions, tabTitle } from './sessions';
 import { RepositoriesAhead } from './repositoriesAhead';
 import { type Sent, rowsKey, stateFor } from './sentParts';
+import { ROWS_PIECE, RowsBehind } from './rowsBehind';
 import { partsOf } from '../shared/stateParts';
 import { Commands, defaultPull } from './commands';
 import { ChangesSeen } from './changesSeen';
@@ -149,6 +150,11 @@ export class Controller implements vscode.Disposable {
   private readonly focused = new Set<vscode.Webview>();
   /** What each view was last sent of the state: the key of each part, and how many commits (D88). */
   private readonly sent = new WeakMap<vscode.Webview, Sent>();
+  /** The views that are sent the commits of a long history behind its first page, a piece at a time (QA6). */
+  private readonly behind = new RowsBehind<vscode.Webview>((view) => {
+    const state = this.views.has(view) ? this.groupOf(view)?.state : null;
+    if (state) this.post({ type: 'state', state }, view);
+  });
   /** The files with edits not saved in an editor. */
   private readonly unsaved: UnsavedFiles;
   /** The repositories of the list read ahead, while no view shows them (`repo.watch-hidden`). */
@@ -295,6 +301,7 @@ export class Controller implements vscode.Disposable {
       activity: this.activity,
       views: this.views,
       sent: this.sent,
+      behind: this.behind,
       pinned: this.pinned,
       colored: this.colored,
       iconed: this.iconed,
@@ -879,18 +886,23 @@ export class Controller implements vscode.Disposable {
       if (!state) {
         // Without a state, the views say whether it is for want of the engine; the next state is sent them whole.
         this.sent.delete(view);
+        this.behind.sent(view, false);
         void view.postMessage(reads.available ? { type: 'state', state: null } : { type: 'state', state: null, engineMissing: true });
         continue;
       }
       const keys = new Map<number, string>();
       const filter = this.groupOf(view)?.filter ?? null;
       const keyOf = (count: number) => keys.get(count) ?? keys.set(count, rowsKey(state, filter, count)).get(count)!;
-      const { message: posted, sent } = stateFor(kind, state, this.sent.get(view), keyOf);
+      // A long history is not sent in one message: its first page, and the rest behind it in pieces (QA6).
+      const { message: posted, sent, more } = stateFor(kind, state, this.sent.get(view), keyOf, { first: pageSize(), piece: ROWS_PIECE });
       this.sent.set(view, sent);
+      this.behind.sent(view, more);
       if (!posted) continue;
       void view.postMessage(posted).then((delivered) => {
         // A view that is not there to receive it asks again when it comes back, and gets everything.
-        if (!delivered && this.sent.get(view) === sent) this.sent.delete(view);
+        if (this.sent.get(view) !== sent) return;
+        if (!delivered) this.sent.delete(view);
+        this.behind.reached(view, delivered);
       });
     }
   }

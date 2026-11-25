@@ -26,6 +26,7 @@ import type { RangeDiffTab } from './rangeDiffTab';
 import type { RepositoriesShown } from './repositoriesShown';
 import type { RepositoriesView } from './repositoriesView';
 import type { GroupHost, RepositorySession, ViewGroup } from './repositorySession';
+import type { RowsBehind } from './rowsBehind';
 import type { Sent } from './sentParts';
 import type { Sessions } from './sessions';
 import type { UnsavedFiles } from './unsavedFiles';
@@ -45,6 +46,8 @@ export interface ControllerHost {
   readonly views: ReadonlyMap<vscode.Webview, ViewKind>;
   /** What each view was last sent of the state (D88). */
   readonly sent: WeakMap<vscode.Webview, Sent>;
+  /** The views that are still sent the commits of their state, behind its first page (QA6). */
+  readonly behind: RowsBehind<vscode.Webview>;
   /** The repository of each tab that shows one of its own: a commit's, a comparison's and the like. */
   readonly pinned: ReadonlyMap<vscode.Webview, Repository>;
   /** The pages that color code, and those that show files with the icons of the file icon theme. */

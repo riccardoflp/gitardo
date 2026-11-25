@@ -212,6 +212,10 @@ export class RepositoriesShown {
     // (`repo.share-history`). The views are not told to wait for commits (Q1743).
     if (shares && sameHistory(narrowed, group)) {
       session.commitsTaken = made;
+      // The rows the views have are the worktree's too: they are shown under its folder at once, as they are, with what
+      // the worktree left has checked out (Q1743), and before anything is read; the first step of the worktree chosen
+      // then puts what is checked out there, and what is not committed, in their place.
+      if (made && group.state) this.host.groupHost.post(group, { type: 'state', state: { ...group.state, root, name: path.basename(root) } });
       await read();
       return whole;
     }

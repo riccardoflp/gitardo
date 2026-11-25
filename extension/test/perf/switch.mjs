@@ -26,27 +26,43 @@ const CHOICES = {
 };
 
 /**
- * Runs inside the graph view: makes a choice, and waits for the first state of the folder chosen that has commits, and
- * for the view to have drawn it. The commits of the repository left stay in the view until then. `from` and `to` are
- * the clock's times of the choice and of the rows drawn, to count what the engine ran between them.
+ * Runs inside the graph view: makes a choice, and waits for the first state of the folder chosen that leaves the view
+ * with commits of it, and for the view to have drawn it. That state carries the first page of the commits, the rest
+ * coming behind it in pieces; or the commits that differ from those the view has, between the ones it keeps; or no
+ * commit at all, for a worktree whose rows are the ones the view has. The commits of the repository left stay in the
+ * view until then. `sent` is how many commits that first state carried. `from` and `to` are the clock's times of the
+ * choice and of the rows drawn, to count what the engine ran between them. With `own`, it waits for the state after
+ * that one too, which for a worktree of the repository shown is its first step, with what it has checked out: `own`
+ * is then the same times for it.
  */
-const CHOSEN = `(root, act) => new Promise((resolve) => {
+const CHOSEN = `(root, act, own) => new Promise((resolve) => {
   const same = (one, other) => one.replace(/\\\\/g, '/').toLowerCase() === other.replace(/\\\\/g, '/').toLowerCase();
   let chosen = false;
-  const listener = (event) => {
-    const state = event.data?.type === 'state' ? event.data.state : null;
-    if (!state) return;
-    if (typeof state.root === 'string') chosen = same(state.root, root);
-    if (!chosen || !((state.rows?.length ?? 0) + (event.data.kept ?? 0))) return;
-    removeEventListener('message', listener);
+  let first = null;
+  const drawn = (state, then) => {
     const received = performance.now();
-    requestAnimationFrame(() => setTimeout(() => resolve({
+    requestAnimationFrame(() => setTimeout(() => then({
       wait: Math.round(received - started),
       draw: Math.round(performance.now() - received),
       sent: state.rows?.length ?? 0,
       from,
       to: Date.now(),
     }), 0));
+  };
+  const listener = (event) => {
+    const state = event.data?.type === 'state' ? event.data.state : null;
+    if (!state) return;
+    if (typeof state.root === 'string') chosen = same(state.root, root);
+    if (first) {
+      removeEventListener('message', listener);
+      return drawn(state, (timing) => first.then((rows) => resolve({ ...rows, own: timing })));
+    }
+    // A state that names no rows leaves the view the ones it has, which are those of the folder chosen.
+    const keeps = Array.isArray(event.data.parts) && !event.data.parts.includes('rows');
+    if (!chosen || !(keeps || (state.rows?.length ?? 0) + (event.data.kept ?? 0) + (event.data.keptLast ?? 0))) return;
+    if (!own) removeEventListener('message', listener);
+    first = new Promise((timed) => drawn(state, timed));
+    if (!own) first.then(resolve);
   };
   addEventListener('message', listener);
   const from = Date.now();
@@ -132,10 +148,11 @@ async function oneWindow({ places, worktree, out, codePath, options, run }) {
       await until('the whole history', () => graph.evaluate(`!document.querySelector('.commits .row.more') && !document.querySelector('select.repo')?.disabled`), 120_000);
       await sleep(2000);
     };
-    const choose = async (root, act) => {
-      const timing = await graph.evaluate(`(${CHOSEN})(${JSON.stringify(root)}, (${act}))`);
+    const choose = async (root, act, own = false) => {
+      const timing = await graph.evaluate(`(${CHOSEN})(${JSON.stringify(root)}, (${act}), ${own})`);
       if (path.resolve(await shown()) !== path.resolve(root)) throw new Error(`The graph shows ${await shown()}, not ${root}`);
       if (traced) timing.processes = processesBetween(traced.trace, timing.from, timing.to);
+      if (traced && timing.own) timing.own.processes = processesBetween(traced.trace, timing.own.from, timing.own.to);
       await quiet();
       return timing;
     };
@@ -147,7 +164,7 @@ async function oneWindow({ places, worktree, out, codePath, options, run }) {
 
     await graph.evaluate(`document.querySelector('button.current.pick').click()`);
     await until('the menu of the worktrees', () => graph.evaluate(`document.querySelectorAll('[role="menuitemcheckbox"]').length > 1`));
-    timings.worktree = await choose(worktree.folder, `(${IN_MENU})(${JSON.stringify(worktree.branch)})`);
+    timings.worktree = await choose(worktree.folder, `(${IN_MENU})(${JSON.stringify(worktree.branch)})`, true);
 
     // The large repository shown again, so that it is left as a repository and not as one of its worktrees.
     await inList(places.beside);
@@ -197,10 +214,20 @@ export async function measureSwitches({ folder, out, codePath, options, limit })
   for (const [name, choice] of Object.entries(CHOICES)) {
     const each = runs.map((timings) => timings[name]);
     const times = each.map((timing) => timing.wait + timing.draw);
-    console.log(`${`${median(times)} ms`.padStart(10)}  ${choice.what} (${each.map((timing) => `${timing.wait} + ${timing.draw} ms`).join(', ')}; ${each.map((timing) => timing.sent).join(', ')} commits sent)`);
+    console.log(`${`${median(times)} ms`.padStart(10)}  ${choice.what} (${each.map((timing) => `${timing.wait} + ${timing.draw} ms`).join(', ')}; ${each.map((timing) => timing.sent).join(', ')} commits in the first state sent)`);
     if (each[0].processes) {
       const counts = each.map((timing) => total(timing.processes));
       console.log(`${String(median(counts)).padStart(10)}  processes of git before those rows (${counts.join(', ')}; in the first window: ${said(each[0].processes) || 'none'})`);
+    }
+    // The worktree shows the rows of its repository first, and then what it has checked out, once its first step is read.
+    const own = each.map((timing) => timing.own).filter(Boolean);
+    if (own.length) {
+      const marked = own.map((timing) => timing.wait + timing.draw);
+      console.log(`${`${median(marked)} ms`.padStart(10)}  until it shows what it has checked out, after its first step (${own.map((timing) => `${timing.wait} + ${timing.draw} ms`).join(', ')}; ${own.map((timing) => timing.sent).join(', ')} commits in that state)`);
+      if (own[0].processes) {
+        const counts = own.map((timing) => total(timing.processes));
+        console.log(`${String(median(counts)).padStart(10)}  processes of git before that (${counts.join(', ')}; in the first window: ${said(own[0].processes) || 'none'})`);
+      }
     }
     if (choice.scenario) limit(choice.scenario, choice.what, median(times));
   }

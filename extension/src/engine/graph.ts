@@ -166,6 +166,14 @@ export function laidOutOf(rows: Row[]): LaidOutRows | undefined {
 }
 
 /**
+ * What a row is identified by among those laid out: its commit, and for the row of the uncommitted changes the commit
+ * it is made on too, which the lines of the rows under it depend on.
+ */
+export function keyedBy(row: Pick<Row, 'hash' | 'parents'>): string {
+  return row.hash === WORKTREE ? `${WORKTREE}\0${row.parents[0] ?? ''}` : row.hash;
+}
+
+/**
  * The rows of a read of the commits laid out, the row of the uncommitted changes first when there is one, with the
  * lanes as they stand under the last of them (`graph.lanes`, D54): each page the read adds is laid out alone from
  * there, which gives the cells a layout of every row gives. It also says what identifies the first rows given, so that
@@ -229,7 +237,7 @@ export class LaidOutRows {
     let key = this.keys.get(count);
     if (key === undefined) {
       const hash = createHash('sha1').update(this.prefix);
-      for (const row of this.rows.slice(0, count)) hash.update(row.hash);
+      for (let index = 0; index < count && index < this.rows.length; index++) hash.update(keyedBy(this.rows[index]));
       key = hash.digest('hex');
       this.keys.set(count, key);
     }
@@ -249,7 +257,7 @@ export class LaidOutRows {
   }
 
   private add(rows: Row[]): void {
-    for (const row of rows) this.hash.update(row.hash);
+    for (const row of rows) this.hash.update(keyedBy(row));
     this.rows = this.rows.length ? this.rows.concat(rows) : rows;
     this.keys.set(this.rows.length, this.hash.copy().digest('hex'));
     layouts.set(this.rows, this);

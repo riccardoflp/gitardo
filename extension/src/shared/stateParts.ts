@@ -158,9 +158,10 @@ function laidOutAlike(one: Row | null, other: Row | null): boolean {
 
 /**
  * The state of a view once it is sent some parts: those take the place of the ones it had, whole, and every other part
- * stays the same object. With `kept`, the commits sent come after the first `kept` it has.
+ * stays the same object. With `kept`, the commits sent come after the first `kept` it has, and before the last
+ * `keptLast` it has when that is given.
  */
-export function withParts(previous: ShownState | null, sent: SentState, parts: readonly StatePart[], kept?: number): ShownState {
+export function withParts(previous: ShownState | null, sent: SentState, parts: readonly StatePart[], kept?: number, keptLast = 0): ShownState {
   const base = previous ?? NO_STATE;
   const next: Record<string, unknown> = { ...base };
   for (const part of parts) {
@@ -174,7 +175,7 @@ export function withParts(previous: ShownState | null, sent: SentState, parts: r
   if (parts.includes('rows') && sentRows) {
     if (kept === undefined) commits = sentRows;
     // The same commits stay the same list, for what is worked out from them.
-    else if (kept !== commits.length || sentRows.length) commits = commits.slice(0, kept).concat(sentRows);
+    else if (kept + keptLast !== commits.length || sentRows.length) commits = commits.slice(0, kept).concat(sentRows, keptLast ? commits.slice(-keptLast) : []);
   }
   const draft = parts.includes('draft') ? (sentDraft ?? null) : base.draft;
   const sameRows = commits === base.commits && laidOutAlike(draft, draftOf(base.rows));

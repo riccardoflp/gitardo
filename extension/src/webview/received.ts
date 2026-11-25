@@ -9,6 +9,6 @@ let held: ShownState | null = null;
  * of the ones it had, and the others as they were, the same objects (D88). A message that names no parts is a state whole.
  */
 export function receive(message: Extract<HostMessage, { type: 'state' }>): ShownState | null {
-  held = message.state ? withParts(held, message.state, message.parts ?? ALL_PARTS, message.kept) : null;
+  held = message.state ? withParts(held, message.state, message.parts ?? ALL_PARTS, message.kept, message.keptLast) : null;
   return held;
 }

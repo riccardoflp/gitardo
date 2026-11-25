@@ -1416,6 +1416,92 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('sends a graph pointed at a repository whose long history is read its first page and the rest behind it in pieces, and a worktree with the same history no commit of it', async () => {
+    const graph = view('graph');
+    const sent: Extract<HostMessage, { type: 'state' }>[] = [];
+    const postMessage = graph.postMessage.bind(graph);
+    graph.postMessage = (outgoing: HostMessage) => {
+      if (outgoing.type === 'state') sent.push(outgoing);
+      return postMessage(outgoing);
+    };
+    /** The states that carry commits, from one on. */
+    const withRows = (from: number) => sent.slice(from).filter((outgoing) => outgoing.state?.rows !== undefined);
+    /** Once the graph was sent the last commits of the history shown, from a state on. */
+    const whole = (from: number) => until('every commit sent to the graph', () => withRows(from).at(-1)?.state?.hasMore === false && withRows(from));
+    const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');
+    const beside = `${home}/beside`;
+    const first = Number(vscode.workspace.getConfiguration('gitardo').get('graph.pageSize'));
+    /** The most commits a piece carries, `ROWS_PIECE` of the extension. */
+    const piece = 5000;
+    const long = 6200;
+    try {
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      // A branch of commits enough for the first page and two pieces, made by one process of git.
+      const tip = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+      const commit = (index: number) => {
+        const text = `Long ${index}\n`;
+        return `commit refs/heads/long\ncommitter Test Author <author@example.com> ${1_700_000_000 + index} +0000\ndata ${text.length}\n${text}${index ? '' : `from ${tip}\n`}\n`;
+      };
+      execFileSync('git', ['fast-import', '--quiet'], { cwd: app, input: Array.from({ length: long }, (_, index) => commit(index)).join('') });
+      await until('the long branch read to its end', () => !!internals.state && !internals.state.hasMore && internals.state.rows.length > long, 60_000);
+      await sleep(1_500);
+      const commits = state().rows.filter((row) => row.hash !== WORKTREE).length;
+      // The pages of the read came to the graph as they were read, none with more commits than a piece carries.
+      for (const outgoing of withRows(0)) assert.ok(outgoing.state!.rows!.length <= piece, `${outgoing.state!.rows!.length} commits in one message`);
+
+      await controller.repositories.selectRepo(lib);
+      await until('the graph to show lib', () => sent.some((outgoing) => !!outgoing.state?.root && samePath(outgoing.state.root, lib)));
+      await sleep(500);
+
+      // Chosen again, it keeps what it showed, every commit read: the graph is sent the first page, then the rest.
+      let from = sent.length;
+      await controller.repositories.selectRepo(app);
+      const pages = await whole(from);
+      assert.ok(samePath(pages[0].state!.root ?? '', app), 'the first page comes with the repository');
+      assert.equal(pages[0].kept, undefined);
+      assert.equal(pages[0].state!.rows!.length, first, 'the first page');
+      assert.equal(pages[0].state!.hasMore, true);
+      assert.ok(pages.length >= 3, `${pages.length} messages with commits`);
+      let had = first;
+      for (const behind of pages.slice(1)) {
+        assert.equal(behind.kept, had, 'each piece comes after the commits the graph has');
+        assert.ok(behind.state!.rows!.length <= piece, `${behind.state!.rows!.length} commits in one piece`);
+        had += behind.state!.rows!.length;
+      }
+      assert.equal(had, commits, 'every commit is sent once');
+      assert.equal(state().rows.filter((row) => row.hash !== WORKTREE).length, commits);
+
+      // A worktree on the same commit: its rows are those the graph has, shown under its folder at once.
+      await git(app, ['worktree', 'add', '-b', 'beside', beside, 'HEAD']);
+      // With changes not committed in both, or in neither, the row of the uncommitted changes is on the same commit in
+      // both: in one alone it moves the lines of the commits above the one checked out, which are then sent again.
+      if (state().changes) fs.writeFileSync(path.join(beside, 'beside.txt'), 'Not committed either.\n');
+      await until('app to list its new worktree', () => internals.state?.worktrees.some((worktree) => samePath(worktree.folder, beside)));
+      await sleep(1_500);
+      from = sent.length;
+      await controller.repositories.selectRepo(beside);
+      assert.ok(samePath(state().root, beside), state().root);
+      await sleep(1_500);
+      const moved = sent.slice(from);
+      assert.ok(samePath(moved[0]?.state?.root ?? '', beside), 'the graph is told of the worktree first');
+      assert.ok(!moved[0].parts?.includes('rows'), 'with the rows it has');
+      const again = moved.reduce((count, outgoing) => count + (outgoing.state?.rows?.length ?? 0), 0);
+      assert.equal(again, 0, `${again} commits sent to the graph for the worktree`);
+      assert.ok(samePath(moved.findLast((outgoing) => outgoing.state?.root)?.state?.root ?? '', beside));
+      assert.equal(checkedOutBranch(state()), 'beside');
+      assert.equal(state().rows.filter((row) => row.hash !== WORKTREE).length, commits);
+    } finally {
+      graph.postMessage = postMessage;
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      internals.kept.forget((root) => samePath(root, beside));
+      await git(app, ['worktree', 'remove', '--force', beside]).catch(() => undefined);
+      fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await git(app, ['worktree', 'prune']);
+      await git(app, ['branch', '-D', 'beside', 'long']).catch(() => undefined);
+      await until('the long branch gone from the graph', () => !!internals.state && internals.state.rows.length < long, 60_000);
+    }
+  });
+
   await step('lists the worktrees of a repository of the workspace under it in the list of the repositories', async () => {
     const login = path.join(workspace, 'app-login');
     await git(app, ['worktree', 'add', '-b', 'login-page', login, 'main']);
@@ -4376,9 +4462,11 @@ export async function run(): Promise<void> {
       const commits = state().rows.length;
       write('first.txt', '1\n');
       let outgoing = await latest('the state with one change', (told) => told.changes === 1);
-      // The row of the uncommitted changes is new, and moves the lines of the graph: every commit is sent.
-      assert.equal(outgoing.kept, undefined);
-      assert.equal(outgoing.state!.rows?.length, commits);
+      // The row of the uncommitted changes is new, and its line comes down to the commit checked out: the rows down to
+      // that one are drawn otherwise, and are sent again before the commits the graph keeps.
+      assert.equal(outgoing.kept, 0);
+      assert.ok(outgoing.state!.rows!.length <= 3, `${outgoing.state!.rows!.length} commits sent`);
+      assert.equal(outgoing.state!.rows!.length + outgoing.keptLast!, commits);
       assert.equal(outgoing.state!.draft?.subject, 'Uncommitted changes (1)');
 
       write('second.txt', '2\n');
@@ -4393,10 +4481,11 @@ export async function run(): Promise<void> {
       await git(app, ['add', '.']);
       await git(app, ['commit', '-m', 'Two files']);
       outgoing = await latest('the state with the new commit', (told) => told.changes === 0);
-      assert.equal(outgoing.kept, undefined);
+      // The new commit, with the rows drawn otherwise now that no line of uncommitted changes comes down among them:
+      // every one when that line had the others a lane further, as a row above the commit checked out makes it.
       const committed = outgoing.state!;
       assert.equal(committed.rows?.[0].subject, 'Two files');
-      assert.equal(committed.rows?.length, commits + 1);
+      assert.equal(committed.rows!.length + (outgoing.kept ?? 0) + (outgoing.keptLast ?? 0), commits + 1);
       assert.ok(committed.draft === null, 'no row of the uncommitted changes');
 
       // Refresh reads every commit again as git prints them (D54): the same commits are not sent again.

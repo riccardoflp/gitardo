@@ -157,8 +157,17 @@ marks.
    sent the parts it shows (`partsOf` of `src/shared/stateParts.ts`), and of those only the ones whose key changed
    since it was last sent them (`stateFor` of `src/extension/sentParts.ts`); of the commits, only those it does not
    have yet, and the row of the uncommitted changes apart from them, so that a new count of files sends no commit and
-   the page keeps the same rows, the row first in them laid out as it was and its count drawn from the one sent. A
-   view that was sent nothing new is sent no message. The tabs of a commit and of a comparison are sent what the
+   the page keeps the same rows, the row first in them laid out as it was and its count drawn from the one sent. The
+   commits a view has not got are those after the ones it has, when the rows are the same as far as that (`kept`), or
+   else those between the rows it keeps at the start and at the end of its list (`kept` and `keptLast`), found by
+   comparing the rows it has with those of the state: a commit made on top sends that commit, and a worktree whose
+   uncommitted changes are on the newest commit the row of that commit. No message carries a whole long history
+   (QA6): a view that keeps none of its rows, as one pointed at another repository or just opened, is sent the first
+   page, `gitardo.graph.pageSize` commits, with `hasMore` true, and the rest in pieces of 5,000 commits at most, each
+   made once the one before reached the view (`RowsBehind` of `src/extension/rowsBehind.ts`), by sending the view the
+   state of its group again; a view that is still sent pieces asks for no more of the history. The list of the
+   commits of a repository shown again keeps the length and the scroll it had while they come
+   (`src/webview/CommitList.tsx`). A view that was sent nothing new is sent no message. The tabs of a commit and of a comparison are sent what the
    labels of their commits need; the tabs that read what they show themselves, no state. The page puts the parts it is
    sent in place of the ones it had (`receive` of `src/webview/received.ts`, D88), so that what did not change keeps
    its identity and is not worked out again.

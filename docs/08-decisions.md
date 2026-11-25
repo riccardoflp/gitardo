@@ -6204,3 +6204,17 @@ each is built as it says until the maintainer answers otherwise.
 - **Q1745** — D92: the times of QA15 to QA17 are checked by `test/perf/vscode.mjs --limits` at one and a half times,
   as QA1 to QA3 are. Should they fail the pipeline's job `performance`, whose machines start a process of git more
   slowly than the maintainer's?
+- **Q1790** — `repo.share-history`, `graph.lanes`: the row of the uncommitted changes takes the first lane, down to
+  the commit they are made on, so the same commits are laid out otherwise with it than without it from the first row
+  to that commit, and with other colors after it. Between two worktrees of which one alone has changes not committed,
+  or which have them on two commits, the extension lays the rows out again and sends the graph those drawn otherwise:
+  the row of the newest commit alone when the changes are made on it, every row, a page and then pieces, when they
+  are made on an older one. Should the row of the uncommitted changes be laid out apart from the commits, in a lane
+  after theirs, so that the rows of the commits are the same in every worktree and none is ever sent again? It would
+  change where that row is drawn in both apps when the commit checked out is not the newest. Built as today: the
+  layout is the one of Gitardo Desktop.
+- **Q1791** — QA6, `repo.keep-open`: a graph pointed at a repository whose long history is read is sent its first
+  page, and the rest behind it in pieces of 5,000 commits. A list that was scrolled further down than the first page
+  keeps its length and its scroll, and shows the rows there once their piece comes, a moment later, empty until
+  then. Should the first message carry the rows in sight instead, which the extension host does not know, or the
+  page keep the rows of the repositories it showed, some megabytes for each? Built with the first page.

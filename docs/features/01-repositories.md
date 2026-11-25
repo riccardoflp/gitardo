@@ -1320,7 +1320,10 @@ What a repository keeps while another is shown, so that coming back to it finds 
   memory, the scroll of the graph,
   the commit selected and its details, the search, the branch filter, the references with their sections open or closed,
   and the message of the Changes view; the engine keeps its state as last read. Coming back shows that at once, and
-  reads again behind it when it changed meanwhile. The list of `repo.select` puts the worktrees and the submodules of a
+  reads again behind it when it changed meanwhile. Of a long history the graph is sent the first page at once and the
+  rest behind it in pieces (QA6, `stateFor` of `src/extension/sentParts.ts`, `RowsBehind` of
+  `src/extension/rowsBehind.ts`): the list of the commits is as long as it was and scrolled where it was from the
+  first page on, the rows further down drawn as they come (`src/webview/CommitList.tsx`). The list of `repo.select` puts the worktrees and the submodules of a
   repository under it, indented, as `repo.group-tabs` groups them. With the setting off, choosing another repository is
   as it was before it. Each view keeps what it showed of each repository in the memory of its page, by folder (`useKept`
   of `src/webview/kept.ts`), and the extension host keeps the state the views were last sent, what the graph was
@@ -1452,19 +1455,29 @@ rows another of them has read, and reads only what is its own
   A worktree is one the list of the worktrees of the state shown has (`sharesHistory` of `src/extension/sessions.ts`);
   the history asked is the same with nothing searched in either and the same branches shown, which are not those of
   what is checked out, each worktree having its own (`sameHistory`). The views are then not told to wait for commits,
-  and are sent the parts of the state that are the worktree's own: no row when both have the row of the uncommitted
-  changes on the same commit, or neither has it, and otherwise the rows laid out again under that row, with no read. A
-  worktree that kept what it showed shows that instead (`repo.keep-open`). The state of the worktree is read in two
+  and are told of the folder chosen at once, before anything is read, with the rows they have and what the worktree
+  left has checked out (Q1743, `RepositoriesShown.point`). They are then sent the parts of the state that are the
+  worktree's own: no row when both have the row of the uncommitted changes on the same commit, or neither has it;
+  otherwise the rows are laid out again under that row, with no read, and of them only those drawn otherwise are sent,
+  between the ones the view keeps (`stateFor` of `src/extension/sentParts.ts`): the row of the newest commit alone when
+  the changes are made on it, and the rows from the first on, a page and then pieces (QA6), when they are made on an
+  older commit, whose line moves the lanes of every row under it (Q1790). A worktree that kept what it showed shows
+  that instead (`repo.keep-open`). The state of the worktree is read in two
   steps behind the rows (`repo.read-first`): its first step puts what is checked out there and what is not committed
   in their place, and the rest follows. Tested by `test/graphPages.test.ts`, the tests "gives a worktree the rows
-  its repository has read, with no read of the commits, when its HEAD is on a branch", "lays the rows out again under
+  its repository has read, with no read of the commits, when its HEAD is on a branch", "lays out a worktree with
+  uncommitted changes on the newest commit as its repository but for the row of that commit, the only one a graph is
+  sent", "lays the rows out again under
   the row of the uncommitted changes of the worktree, with no read of the commits", "reads the commits of a worktree
   detached at a commit no reference is on, over the rows of its repository", "reads a worktree as a repository chosen
   when it shows what is checked out, which is its own" and "keeps the commits of a submodule, or of any repository
   with a git folder of its own, apart"; `test/sessions.test.ts`, "a worktree that takes the history its repository has
   read"; `test/stateParts.test.ts`, "sends a graph moved to a worktree of its repository what is its own, and no commit
-  it has"; `test/e2e/suite.ts`, step "a worktree of the repository shown, chosen for the first time, keeps the rows of
-  its repository and reads no commits, and so does the repository chosen back".
+  it has" and "sends a graph moved to a worktree with other uncommitted changes only the row they are made on, between
+  the rows it keeps"; `test/e2e/suite.ts`, steps "a worktree of the repository shown, chosen for the first time, keeps
+  the rows of its repository and reads no commits, and so does the repository chosen back" and "sends a graph pointed
+  at a repository whose long history is read its first page and the rest behind it in pieces, and a worktree with the
+  same history no commit of it".
 
 The rows are taken when the worktree left has its commits read, wholly or up to a page, for the same branches shown,
 the same search and the same order. They are shown as they are (Q1743): the mark of what is checked out, the row of
@@ -1524,7 +1537,8 @@ How the repositories of the tabs not shown follow their changes without reading 
   read thrown away, and waits for its turn again (`ReadAhead` of `src/extension/readAhead.ts`, `RepositoriesAhead` of
   `src/extension/repositoriesAhead.ts`, `RepositorySession.readAhead`). A change seen in a repository while it is
   read ahead leaves what it keeps out of date. Nothing of a repository read ahead is sent to a view; chosen for the
-  first time, it is shown at once from what it keeps, with no read when nothing changed. A repository whose read
+  first time, it is shown at once from what it keeps, with no read when nothing changed: the first page of its commits
+  first, and the rest behind it in pieces (QA6). A repository whose read
   ahead failed is read when it is chosen, the failure said in the log. With the setting off, nothing is read ahead.
   The watchers of the repositories kept stay, and a change marks them out of date (`ChangesSeen.changedIn`); one out
   of date that is shown is read again without counting every other worktree again, having been watched (Q1744).

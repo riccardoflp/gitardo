@@ -611,10 +611,12 @@ export type HostMessage =
   /**
    * The parts of the state named in `parts`, which take the place of those the view has; the others are as they were.
    * With `kept` the first `kept` commits are the ones sent before, and are not sent again: `state.rows` only has the
-   * commits after them. Without a state, `engineMissing` says that there is no engine to read one with (D49), and the
-   * next state sends every part again.
+   * commits after them; with `keptLast` too, the last `keptLast` commits the view has stay after those sent, which are
+   * the ones between. No message carries a whole long history: its first page comes first, and the rest in pieces
+   * behind it, `hasMore` being true until the last (QA6). Without a state, `engineMissing` says that there is no engine
+   * to read one with (D49), and the next state sends every part again.
    */
-  | { type: 'state'; state: SentState | null; parts?: StatePart[]; kept?: number; engineMissing?: boolean }
+  | { type: 'state'; state: SentState | null; parts?: StatePart[]; kept?: number; keptLast?: number; engineMissing?: boolean }
   /** The commits of what is checked out, for the view that asked. */
   | { type: 'log'; log: BranchLog }
   | { type: 'detail'; hash: string; detail: CommitDetail | null }

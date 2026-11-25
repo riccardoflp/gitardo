@@ -3,6 +3,7 @@ import type { EngineClient } from '../src/engine/client';
 import { EngineGraph, completed, graphState, laidOutOf } from '../src/engine/graph';
 import type { EngineRow } from '../src/engine/messages';
 import { WORKTREE, type RepoParts, type RepoState, type Scope } from '../src/shared/protocol';
+import { rowsKey, stateFor } from '../src/extension/sentParts';
 import { branchAt, headAt, workingTreeOf } from './states';
 
 /** A line of commits, newest first, each the parent of the one before. */
@@ -222,6 +223,39 @@ describe('the pages of a read of the commits, as the views are given them', () =
     expect(taken.rows[0].hash).toBe(WORKTREE);
     expect(taken.rows[0].parents).toEqual([tip(commits, 3)]);
     expect(taken.rows.slice(1).map((row) => row.hash)).toEqual(api.rows.map((row) => row.hash));
+  });
+
+  it('lays out a worktree with uncommitted changes on the newest commit as its repository but for the row of that commit, the only one a graph is sent', async () => {
+    const { client, page, end, reads } = engine();
+    const commits = line(500);
+    const { main } = worktrees(commits);
+    const graph = new EngineGraph();
+    const reading = worktreeState(client, graph, '/api', main);
+    await turn();
+    page(commits);
+    end(false);
+    const api = await reading;
+    // The graph has every row of the repository, sent as `Controller.post` sends them.
+    const key = (state: RepoState) => (count: number) => rowsKey(state, null, count);
+    const first = stateFor('graph', api, undefined, key(api));
+    expect(first.message?.type === 'state' && first.message.state?.rows).toHaveLength(500);
+
+    // Another worktree on the same commit, with a file changed: the row of the changes, and its line into the first commit.
+    const changed = { ...main, workingTree: workingTreeOf({ unstaged: [{ path: 'a.txt', kind: 'modified', originalPath: null }] }) } as unknown as RepoParts;
+    const taken = await worktreeState(client, graph, '/api-fix', changed, api);
+    expect(reads()).toBe(1);
+    expect(taken.rows).toHaveLength(501);
+    const moved = stateFor('graph', taken, first.sent, key(taken));
+    const message = moved.message?.type === 'state' ? moved.message : undefined;
+    expect(message?.state?.rows?.map((row) => row.hash)).toEqual([tip(commits, 0)]);
+    expect([message?.kept, message?.keptLast]).toEqual([0, 499]);
+    expect(message?.state?.draft?.hash).toBe(WORKTREE);
+    expect(moved.more).toBe(false);
+
+    // The same changes on another commit are another row: what identifies the rows tells them apart.
+    const { fix } = worktrees(commits);
+    const lower = await worktreeState(client, graph, '/api-low', { ...fix, workingTree: changed.workingTree } as unknown as RepoParts, taken);
+    expect(rowsKey(lower, null, 1)).not.toBe(rowsKey(taken, null, 1));
   });
 
   it('reads the commits of a worktree detached at a commit no reference is on, over the rows of its repository', async () => {

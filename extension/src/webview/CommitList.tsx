@@ -261,11 +261,6 @@ export function CommitList(props: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
-  // Coming back to a repository that kept what it showed, the commits are where they were scrolled to.
-  useKept(props.root, props.keepOpen, 'scroll', scrollTop, (top) => {
-    if (scroller.current) scroller.current.scrollTop = top;
-    setScrollTop(top);
-  });
 
   // The fonts of the page, which the labels, the messages and the authors are measured in; they change with the zoom of VS Code.
   const [fonts, setFonts] = useState<RowFonts | null>(null);
@@ -291,6 +286,22 @@ export function CommitList(props: Props) {
   // list keeps the length it had, so that it stays where it is scrolled to, and the graph its width (D72).
   const kept = useRef<Held | null>(null);
   kept.current = held(kept.current, props.listing, props.rows.length, lanes, hasMore);
+  // Coming back to a repository that kept what it showed, the commits are where they were scrolled to, in a list as
+  // long as it was: its first page comes first and the rest of its commits behind it (QA6), each where it was.
+  const comingBack = useRef<number | null>(null);
+  const [, drawAgain] = useState(0);
+  // Before the layout effect of `useKept`, so that the list is scrolled once it is drawn as long as it was.
+  useLayoutEffect(() => {
+    if (comingBack.current === null || !scroller.current) return;
+    scroller.current.scrollTop = comingBack.current;
+    comingBack.current = null;
+  });
+  useKept(props.root, props.keepOpen, 'scroll', { top: scrollTop, held: kept.current }, (back) => {
+    kept.current = back.held;
+    comingBack.current = back.top;
+    setScrollTop(back.top);
+    drawAgain((count) => count + 1);
+  });
   // The rows not read again yet, under those that are.
   const awaited = kept.current.loaded - props.rows.length;
   // Once the last commits of a shallow clone are read, one more row says the history was not all fetched.

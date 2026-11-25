@@ -144,7 +144,8 @@ export class ViewMessages {
       case 'loadMore': {
         // While a read adds its pages, the next ones come without asking (`graph.load-more`); and a list that asked while
         // the last page came has nothing left to ask for once the read ended at the end of the history.
-        if (!on.repo || on.graph.isReading(on.repo.root) || on.state?.hasMore === false) return;
+        // Nor has a view that is still sent the commits read, behind its first page: they come without asking too.
+        if (!on.repo || on.graph.isReading(on.repo.root) || on.state?.hasMore === false || this.host.behind.has(webview)) return;
         on.cancelGraphRead();
         const listed = on.state?.rows.filter((row) => row.hash !== WORKTREE && row.stash === undefined).length ?? 0;
         on.limit = Math.max(on.limit, listed) + pageSize();
