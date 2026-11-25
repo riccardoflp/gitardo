@@ -145,6 +145,18 @@ Where one is and what applies to the whole repository, in a bar across the top o
 - **Uses**: `graph.where`, `repo.tabs`, `repo.group-tabs`, `sync.sync`, `sync.fetch`, `sync.pull`, `sync.pull-with`,
   `sync.push`, `branch.create`, `stash.push`, `undo.last`, `graph.search-button`, `repo.schedule-reads`,
   `graph.view-menu`, `graph.more-menu`.
+- **Extension**: the toolbar above the graph, `Toolbar` of `src/webview/Toolbar.tsx`, has more buttons than the
+  header: the repository and the worktree shown, **Fetch**, **Pull** and **Push** with their other ways, **Branch**,
+  **Stash**, **Undo**, the branches shown, the search, **Refresh**, **View** and **…**. Short of room, it gives up as
+  little as makes it fit, measured from what it holds and not from the width of the view (`fit` of
+  `src/webview/give.ts`), in this order: the words of the button of the branches shown; the words of the other
+  buttons; **Refresh**, which **…** has too; one line, the search and what follows it going across a second, where
+  the names of the repository and of the branch are cut before a button goes; **Branch**, **Stash** and **Undo**,
+  which **…** then has; and last the first line, which breaks between where one is and the buttons. No button is
+  outside the view, over another or alone on a line, and what was given up comes back as soon as it fits. Tested by
+  `test/e2e/ui.mjs`, step "the toolbar gives up its words, Refresh, one line and then three buttons as the panel
+  narrows, with nothing out of the view, and takes them back", and `test/toolbarMenus.test.ts`, "has Branch, Stash and
+  Undo after Refresh while the toolbar is too narrow for their buttons, greyed out as the buttons are" (M51).
 
 The header is not an island: it is a bar on the ground of the window, as high as a button and its margins, across the
 whole width on the right of the bar of views, above the side column, the timeline, the inspector and the pages, and it
@@ -647,9 +659,9 @@ timeline, which are in the menu of the view (`graph.view-menu`,
 - **Entry points**: **…** at the end of the header.
 - **Extension**: **…** at the end of the toolbar of the graph, with the actions alone (`moreMenu` in
   `src/webview/toolbarMenus.ts`): **Refresh**, but in the side bar, where the header of the view has it; the entries
-  of group 2, with **Browse reflog…**; **Switch identity…**; **Load pull requests from GitHub**. It has neither
-  **Branch**, **Stash** and **Undo**, which are buttons of the toolbar, nor **Settings** and **Theme…**, which are VS
-  Code's.
+  of group 2, with **Browse reflog…**; **Switch identity…**; **Load pull requests from GitHub**. It has **Branch**,
+  **Stash** and **Undo** after **Refresh** only while the toolbar is too narrow for their buttons (`graph.toolbar`),
+  and neither **Settings** nor **Theme…**, which are VS Code's.
 
 In this order, separated in groups:
 

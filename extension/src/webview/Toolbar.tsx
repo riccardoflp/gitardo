@@ -3,6 +3,7 @@ import type { PullAction, RepoState, Search, SyncAction } from '../shared/protoc
 import { hasDiverged } from '../shared/rangeDiff';
 import { type MenuEntry, useMenu } from './ContextMenu';
 import { Icon } from './Icon';
+import { GIVE, given, useGive } from './give';
 import { RepoSelect } from './RepoSelect';
 import { ScopeButton } from './ScopeButton';
 import { WorktreeSelect } from './WorktreeSelect';
@@ -85,6 +86,8 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   // Whether a search of the whole history replaces the graph with what it finds, rather than highlight it there.
   const [only, setOnly] = useState(() => loadUiState({ searchOnly: false }).searchOnly);
   const input = useRef<HTMLInputElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  useGive(bar);
   // Coming back to a repository that kept what it showed, its search is in the box again.
   useKept(state.root, state.keepOpen, 'search', { text, mode }, (kept) => {
     setText(kept.text);
@@ -252,7 +255,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       <button className="button icon" onClick={(event) => openMenu(event, viewMenu(state, { onFoldAll, folded }))} aria-label="View" title="View">
         <Icon name="settings" />
       </button>
-      <button className="button icon" onClick={(event) => openMenu(event, moreMenu(state, !!compact))} aria-label="More actions" title="More actions">
+      <button className="button icon" onClick={(event) => openMenu(event, moreMenu(state, !!compact, given(bar.current) >= GIVE.actions))} aria-label="More actions" title="More actions">
         <Icon name="ellipsis" />
       </button>
     </>
@@ -276,95 +279,103 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   }
 
   return (
-    <div className="toolbar">
-      {onToggleRefs && (
-        <button
-          className={`button icon refs-toggle${refsHidden ? '' : ' on'}`}
-          aria-pressed={!refsHidden}
-          aria-label={refsHidden ? 'Show the branches' : 'Hide the branches'}
-          title={refsHidden ? 'Show the branches, tags and stashes beside the commits' : 'Hide the branches, tags and stashes beside the commits'}
-          onClick={onToggleRefs}
-        >
-          <Icon name={refsHidden ? 'layout-sidebar-left-off' : 'layout-sidebar-left'} />
-        </button>
-      )}
-      <RepoSelect state={state} disabled={!!busy} />
-      <WorktreeSelect state={state} disabled={!!busy} />
+    <div className="toolbar" ref={bar}>
+      <div className="line first">
+        <div className="group where">
+          {onToggleRefs && (
+            <button
+              className={`button icon refs-toggle${refsHidden ? '' : ' on'}`}
+              aria-pressed={!refsHidden}
+              aria-label={refsHidden ? 'Show the branches' : 'Hide the branches'}
+              title={refsHidden ? 'Show the branches, tags and stashes beside the commits' : 'Hide the branches, tags and stashes beside the commits'}
+              onClick={onToggleRefs}
+            >
+              <Icon name={refsHidden ? 'layout-sidebar-left-off' : 'layout-sidebar-left'} />
+            </button>
+          )}
+          <RepoSelect state={state} disabled={!!busy} />
+          <WorktreeSelect state={state} disabled={!!busy} />
+        </div>
 
-      {/* The words are hidden when the panel is narrow, so each button also says what it is in its tooltip. */}
-      <button className="button" disabled={!!busy} onClick={() => sync('fetch')} title="Fetch: git fetch --all --prune" aria-label="Fetch">
-        <Icon name="repo-fetch" />
-        <span className="label">Fetch</span>
-      </button>
-      <div className="split">
-        <button className="button" disabled={!!busy} onClick={() => sync(pull.action)} title={`Pull: ${pull.command}`} aria-label="Pull">
-          <Icon name="repo-pull" />
-          <span className="label">Pull</span>
-          {!!upstream?.behind && <span className="count">{upstream.behind}</span>}
-        </button>
-        <button className="button" disabled={!!busy} onClick={variants(PULL_VARIANTS, pull.action)} aria-label="More pull options">
-          <Icon name="chevron-down" />
-        </button>
+        {/* The words are hidden when the toolbar is short of room, so each button also says what it is in its tooltip. */}
+        <div className="group actions">
+          <button className="button" disabled={!!busy} onClick={() => sync('fetch')} title="Fetch: git fetch --all --prune" aria-label="Fetch">
+            <Icon name="repo-fetch" />
+            <span className="label">Fetch</span>
+          </button>
+          <div className="split">
+            <button className="button" disabled={!!busy} onClick={() => sync(pull.action)} title={`Pull: ${pull.command}`} aria-label="Pull">
+              <Icon name="repo-pull" />
+              <span className="label">Pull</span>
+              {!!upstream?.behind && <span className="count">{upstream.behind}</span>}
+            </button>
+            <button className="button" disabled={!!busy} onClick={variants(PULL_VARIANTS, pull.action)} aria-label="More pull options">
+              <Icon name="chevron-down" />
+            </button>
+          </div>
+          <div className="split">
+            <button className="button" disabled={!!busy} onClick={() => sync('push')} title="Push: git push" aria-label="Push">
+              <Icon name="repo-push" />
+              <span className="label">Push</span>
+              {!!upstream?.ahead && <span className="count">{upstream.ahead}</span>}
+            </button>
+            <button className="button" disabled={!!busy} onClick={variants(PUSH_VARIANTS, 'push')} aria-label="More push options">
+              <Icon name="chevron-down" />
+            </button>
+          </div>
+
+          <button
+            className="button later"
+            disabled={!!busy || !state.head.commit}
+            onClick={() => act({ kind: 'createBranch', at: 'HEAD' })}
+            title="Branch: create a branch at HEAD"
+            aria-label="Branch"
+          >
+            <Icon name="git-branch" />
+            <span className="label">Branch</span>
+          </button>
+          <button
+            className="button later"
+            disabled={!!busy || !state.changes || !state.head.commit}
+            onClick={() => act({ kind: 'stashPush' })}
+            title="Stash: git stash push --include-untracked"
+            aria-label="Stash"
+          >
+            <Icon name="git-stash" />
+            <span className="label">Stash</span>
+          </button>
+
+          <button
+            className="button later"
+            disabled={!!busy || !state.head.commit}
+            onClick={() => act({ kind: 'undo' })}
+            title={
+              state.undo
+                ? state.undo.undoable
+                  ? `Undo "${state.undo.title}"`
+                  : `"${state.undo.title}" cannot be undone`
+                : 'Undo the last commit, checkout, merge, rebase, reset, branch deletion or stash drop'
+            }
+            aria-label="Undo"
+          >
+            <Icon name="discard" />
+            <span className="label">Undo</span>
+          </button>
+
+          {working}
+        </div>
       </div>
-      <div className="split">
-        <button className="button" disabled={!!busy} onClick={() => sync('push')} title="Push: git push" aria-label="Push">
-          <Icon name="repo-push" />
-          <span className="label">Push</span>
-          {!!upstream?.ahead && <span className="count">{upstream.ahead}</span>}
-        </button>
-        <button className="button" disabled={!!busy} onClick={variants(PUSH_VARIANTS, 'push')} aria-label="More push options">
-          <Icon name="chevron-down" />
-        </button>
-      </div>
-
-      <button
-        className="button"
-        disabled={!!busy || !state.head.commit}
-        onClick={() => act({ kind: 'createBranch', at: 'HEAD' })}
-        title="Branch: create a branch at HEAD"
-        aria-label="Branch"
-      >
-        <Icon name="git-branch" />
-        <span className="label">Branch</span>
-      </button>
-      <button
-        className="button"
-        disabled={!!busy || !state.changes || !state.head.commit}
-        onClick={() => act({ kind: 'stashPush' })}
-        title="Stash: git stash push --include-untracked"
-        aria-label="Stash"
-      >
-        <Icon name="git-stash" />
-        <span className="label">Stash</span>
-      </button>
-
-      <button
-        className="button"
-        disabled={!!busy || !state.head.commit}
-        onClick={() => act({ kind: 'undo' })}
-        title={
-          state.undo
-            ? state.undo.undoable
-              ? `Undo "${state.undo.title}"`
-              : `"${state.undo.title}" cannot be undone`
-            : 'Undo the last commit, checkout, merge, rebase, reset, branch deletion or stash drop'
-        }
-        aria-label="Undo"
-      >
-        <Icon name="discard" />
-        <span className="label">Undo</span>
-      </button>
-
-      {working}
 
       <span className="spacer" />
 
-      <ScopeButton state={state} />
-      {search}
-      <button className="button icon refresh" onClick={() => post({ type: 'refresh' })} aria-label="Refresh" title="Refresh">
-        <Icon name="refresh" />
-      </button>
-      {menuButtons}
+      <div className="line">
+        <ScopeButton state={state} />
+        {search}
+        <button className="button icon refresh" onClick={() => post({ type: 'refresh' })} aria-label="Refresh" title="Refresh">
+          <Icon name="refresh" />
+        </button>
+        {menuButtons}
+      </div>
     </div>
   );
 }

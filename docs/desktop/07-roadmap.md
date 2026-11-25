@@ -2059,12 +2059,14 @@ Built in five phases, each one commit, each ending with its tests passing; Gitar
    down to 500 px, and the window is never narrower than 480 px, every button of the header is inside the window and
    none is over another; the worktree and then the branch are cut at their start to make the room, as `graph.where`
    says. No card changes.
-3. **The toolbar fits, in the extension.** `Toolbar.tsx` and its styles give way by what the toolbar holds, in one
-   order: the words of the button of the branches shown, the words of the other buttons, **Refresh**, which **…** has
-   too, then a second line, which the search and the buttons after it take whole; no button is ever outside the view,
-   under another or alone on a line, and no words are given up while they fit. The step of `test/e2e/ui.mjs` narrows
-   the view through the widths of phase 1 and asks that of each. Cards: `graph.toolbar`, what the extension does when
-   narrow.
+3. **The toolbar fits, in the extension (done).** `fit` of `src/webview/give.ts` gives up as little as makes the
+   toolbar fit, measured from what it holds after each time it is drawn and when its width changes, in one order: the
+   words of the button of the branches shown, the words of the other buttons, **Refresh**, which **…** has too, then a
+   second line, which the search and the buttons after it take whole; narrower than its first line, **Branch**,
+   **Stash** and **Undo** go into **…**, and last the first line breaks between where one is and the buttons. No
+   button is ever outside the view, under another or alone on a line, and what was given up comes back as soon as it
+   fits. The step of `test/e2e/ui.mjs` narrows the view from 1,800 px of window to 700 px with a branch of a long name
+   and asks that of each. Cards: `graph.toolbar` and `graph.more-menu`, their lines of the extension.
 4. **One way to choose, in the extension.** The repository is a button as the worktree is, with the icon of a
    repository, its name and a chevron, which opens the menu the webviews draw: the repositories of the workspace, the
    worktrees and the submodules of each indented under it with their icons, the one shown ticked; in the toolbar and

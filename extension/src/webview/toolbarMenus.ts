@@ -87,13 +87,26 @@ export function viewMenu(state: RepoState, { onFoldAll, folded }: FoldAll): Menu
 
 /**
  * The **…** menu of the toolbar (`graph.more-menu`): the actions alone, the switches being in the menu of the view.
- * **Refresh** is in it but where the toolbar is `compact`, in the side bar, where the header of the view has it.
+ * **Refresh** is in it but where the toolbar is `compact`, in the side bar, where the header of the view has it; and
+ * **Branch**, **Stash** and **Undo** while the toolbar is too `narrow` for their buttons.
  */
-export function moreMenu(state: RepoState, compact: boolean): MenuEntry[] {
+export function moreMenu(state: RepoState, compact: boolean, narrow = false): MenuEntry[] {
+  // Asked only where the buttons are in the menu: before the first commit none of the three can be chosen.
+  const committed = narrow && !!state.head.commit;
   return [
     // Its button is the first to go when the toolbar is short of room.
     !compact && { label: 'Refresh', icon: 'READ_AGAIN', run: () => post({ type: 'refresh' }) },
     !compact && 'separator',
+    narrow && { label: 'Branch', feature: 'branch.create', disabled: !committed, title: 'Create a branch at HEAD', run: () => act({ kind: 'createBranch', at: 'HEAD' }) },
+    narrow && {
+      label: 'Stash',
+      feature: 'stash.push',
+      disabled: !committed || !state.changes,
+      title: 'git stash push --include-untracked',
+      run: () => act({ kind: 'stashPush' }),
+    },
+    narrow && { label: 'Undo', feature: 'undo.last', disabled: !committed, run: () => act({ kind: 'undo' }) },
+    narrow && 'separator',
     { label: 'Compare branches, tags or commits…', feature: 'compare.choose', run: () => post({ type: 'compare' }) },
     { label: 'Go to commit…', feature: 'search.go-to-commit', icon: 'SEARCH', run: run('goToCommit') },
     { label: 'History of the active file', feature: 'file-history.file', run: run('activeFileHistory') },

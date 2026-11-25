@@ -104,17 +104,40 @@ try {
     const box = await until(`the box of ${name}`, () => changeBox(changes, name));
     await mouse(changes.frame.x + box.x, changes.frame.y + box.y);
   };
-  /** What the toolbar looks like: whether the name of the branch can be read, and whether everything fits. */
+  /**
+   * What the toolbar looks like: whether the name of the branch can be read, what it gave up, and whether everything
+   * fits: nothing outside the view, no part over the one before it on its line, none alone on a line of several, and
+   * the search no narrower than it can be typed in.
+   */
   const toolbar = (graph) =>
     graph.evaluate(`(() => {
       const bar = document.querySelector('.toolbar');
       const name = document.querySelector('.current .name');
-      const last = bar.lastElementChild.getBoundingClientRect();
+      const view = document.documentElement.clientWidth;
+      const said = (element) => element.getAttribute('aria-label') ?? element.className;
+      const parts = [...bar.querySelectorAll('.group > *, .line:not(.first) > *')]
+        .map((element) => ({ name: said(element), box: element.getBoundingClientRect() }))
+        .filter((part) => part.box.width > 0);
+      // The parts of a line have their middles at one height, whatever their own heights.
+      const lines = new Map();
+      for (const part of parts) {
+        const line = Math.round((part.box.top + part.box.bottom) / 16);
+        lines.set(line, [...(lines.get(line) ?? []), part]);
+      }
+      const outside = parts.filter((part) => part.box.left < -1 || part.box.right > view + 1).map((part) => part.name);
+      const over = [...lines.values()].flatMap((line) => line.filter((part, index) => index > 0 && part.box.left < line[index - 1].box.right - 1).map((part) => part.name));
+      const alone = lines.size > 1 ? [...lines.values()].filter((line) => line.length === 1).map((line) => line[0].name) : [];
       return {
         branch: name.textContent,
         branchWidth: Math.round(name.getBoundingClientRect().width),
         clipped: name.scrollWidth > name.clientWidth,
-        fits: last.right <= bar.getBoundingClientRect().right + 1 && bar.scrollWidth <= bar.clientWidth + 1,
+        give: bar.dataset.give ?? '',
+        lines: lines.size,
+        outside,
+        over,
+        alone,
+        fits: !outside.length && !over.length && !alone.length && bar.scrollWidth <= bar.clientWidth + 1,
+        words: [...bar.querySelectorAll('.button .label')].filter((label) => label.getBoundingClientRect().width > 0).map((label) => label.textContent),
         width: Math.round(bar.getBoundingClientRect().width),
         search: Math.round(document.querySelector('.search').getBoundingClientRect().width),
       };
@@ -187,21 +210,56 @@ try {
    */
   const aside = () => page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 600, y: 300 });
 
-  await step('the toolbar still names the branch and fits when the panel is narrow', async () => {
+  await step('the toolbar gives up its words, Refresh, one line and then three buttons as the panel narrows, with nothing out of the view, and takes them back', async () => {
+    // A branch of a long name, with commits to push: the toolbar holds as much as it may.
+    const long = 'checkout/redesign-with-saved-payment-methods-and-wallets';
+    const narrowed = async (width) => {
+      await page.send('Emulation.setDeviceMetricsOverride', { width, height: HEIGHT, deviceScaleFactor: 1, mobile: false });
+      await sleep(700);
+      return toolbar(await webview('graph'));
+    };
     try {
       await aside();
-      for (const width of [1050, 800]) {
-        await page.send('Emulation.setDeviceMetricsOverride', { width, height: HEIGHT, deviceScaleFactor: 1, mobile: false });
-        await sleep(700);
-        const graph = await webview('graph');
-        const bar = await toolbar(graph);
-        await shot(`narrow-${width}`);
-        assert(bar.branch === 'main' && bar.branchWidth > 20 && bar.fits, `at ${width}px: ${JSON.stringify(bar)}`);
+      git(app, 'checkout', '-q', '-b', long);
+      await command('Gitardo: Refresh');
+      await until('the long branch', async () => (await toolbar(await webview('graph'))).branch === long);
+      const steps = [];
+      let two = null;
+      for (let width = 1800; width >= 700; width -= 100) {
+        const bar = await narrowed(width);
+        if (width % 300 === 0) await shot(`narrow-${width}`);
+        assert(bar.branch === long && bar.branchWidth > 20 && bar.fits, `at ${width}px: ${JSON.stringify(bar)}`);
         assert(bar.search >= 150, `the search box is ${bar.search}px wide at ${width}px`);
+        steps.push(bar.give.split(' ').filter(Boolean).length);
+        if (bar.lines === 2) two ??= { width, ...bar };
       }
+      // Wide, nothing is given up but the name of the branches shown; narrow, the last steps are taken; never one back.
+      assert(steps[0] <= 1 && steps.at(-1) >= 5, `the steps given up from wide to narrow: ${steps}`);
+      assert(steps.every((taken, index) => index === 0 || taken >= steps[index - 1]), `the steps given up from wide to narrow: ${steps}`);
+      // On two lines, the search and what follows it are across the second.
+      assert(two && two.search > 300, `the first width with two lines: ${JSON.stringify(two)}`);
+      // Too narrow for Branch, Stash and Undo, the menu at the end has them.
+      const narrow = await narrowed(700);
+      const graph = await webview('graph');
+      assert(!(await graph.evaluate(`document.querySelector('.toolbar button[aria-label="Stash"]').getBoundingClientRect().width > 0`)), `Stash at 700px: ${JSON.stringify(narrow)}`);
+      await graph.click('.toolbar button[aria-label="More actions"]');
+      const entries = await until('the menu', () => graph.evaluate(`[...document.querySelectorAll('.menu.context button')].map((entry) => entry.textContent)`).then((found) => found.length && found));
+      await shot('narrow-menu');
+      await key('Escape');
+      assert(['Branch', 'Stash', 'Undo'].every((entry) => entries.includes(entry)), `the menu at 700px: ${entries}`);
+      // Wide again, the words are back, and the menu has the three no more.
+      const wide = await narrowed(1800);
+      assert(['Fetch', 'Pull', 'Push', 'Branch', 'Stash', 'Undo'].every((word) => wide.words.includes(word)), `at 1800px: ${JSON.stringify(wide)}`);
     } finally {
+      // Whatever failed above is what the step says: the branch may not be there to delete.
+      try {
+        git(app, 'checkout', '-q', 'main');
+        git(app, 'branch', '-q', '-D', long);
+      } catch {}
       await page.send('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: HEIGHT, deviceScaleFactor: 1, mobile: false });
       await sleep(700);
+      await command('Gitardo: Refresh');
+      await until('the branch main', async () => (await toolbar(await webview('graph'))).branch === 'main');
     }
   });
 

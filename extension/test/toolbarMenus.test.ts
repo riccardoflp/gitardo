@@ -150,6 +150,20 @@ describe('the … menu of the toolbar', () => {
     expect(words(moreMenu(state(), true))).toEqual(MORE);
   });
 
+  it('has Branch, Stash and Undo after Refresh while the toolbar is too narrow for their buttons, greyed out as the buttons are', () => {
+    const narrow = moreMenu(state({ head: { commit: 'aaa' } as RepoState['head'], changes: 0 }), false, true);
+    expect(words(narrow)).toEqual(['Refresh', '-', 'Branch', 'Stash', 'Undo', '-', ...MORE]);
+    expect(item(narrow, 'Branch').disabled).toBe(false);
+    // Nothing to stash.
+    expect(item(narrow, 'Stash').disabled).toBe(true);
+    item(narrow, 'Undo').run();
+    expect(posted).toContainEqual(expect.objectContaining({ action: { kind: 'undo' } }));
+    // Before the first commit none of the three can be chosen.
+    const empty = moreMenu(state({ head: { commit: null } as RepoState['head'], changes: 0 }), false, true);
+    expect(['Branch', 'Stash', 'Undo'].map((label) => item(empty, label).disabled)).toEqual([true, true, true]);
+    expect(words(moreMenu(state({ head: { commit: 'aaa' } as RepoState['head'] }), false))).not.toContain('Stash');
+  });
+
   it('leaves out what its condition does not hold for', () => {
     const menu = words(moreMenu(state({ submodules: [{}] as RepoState['submodules'], repos: [{}] as RepoState['repos'], hosting: null }), false));
     expect(menu).not.toContain('Add submodule…');
