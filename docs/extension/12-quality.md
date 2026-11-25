@@ -48,6 +48,9 @@ Q1519): a time changed here changes the limit.
 | QA12 | The resolution of conflicts is worked out on a large file | It gives up rather than hang | 50,000 lines, 1,500 edits | `MAX_LINES`, `MAX_EDITS` in `src/shared/conflicts.ts`; `test/conflicts.test.ts` |
 | QA13 | Every view in each of the five default themes | Buttons have a shape against the panel; labels in the color of their line | screenshots | `npm run test:ui` |
 | QA14 | Any operation that can lose work, with `gitardo.commandPreview` `off` | It asks first | 100% of the list in the README's Command preview | the cards' Danger lines; `test/e2e/suite.ts` for some |
+| QA15 | A repository shown before is chosen again in the large workspace, in the list of the graph | Its first commits are drawn as it was left, and no process of git starts before them | about 100 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
+| QA16 | A worktree of the repository shown is chosen for the first time | The commits of its repository are under its name, none sent again; what it has checked out is marked once its first step is read | about 100 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
+| QA17 | A repository never shown in the window is chosen | Its first page of commits is drawn; read ahead, it starts no process of git, and otherwise at most eight before them | about 300 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
 
 Measured again on 2026-11-24, after milestone M44, with VS Code in Xvfb on Linux: QA1 2.8 s; QA2 900 ms until the
 view has a new state, since a refresh that finds the same history now sends nothing until the whole history is read
@@ -58,3 +61,11 @@ QA1 to QA3 fail the pipeline above one and a half times their time; QA4 is print
 2026-11-24, with the minified build and the engine in release, in Xvfb on Linux: QA1 1.8 s from the command chosen
 (at most 2.25 s); QA2 225 ms once the second of the working tree's wait is over (at most 375 ms); QA3 not reached, every
 commit being loaded before the list was scrolled to its end.
+
+QA15 to QA17, measured on 2026-11-26 after milestone M50, with the minified build and the engine in release, in Xvfb
+on Linux, on the workspace `test/perf/switch-fixture.mjs` makes, the median of three windows: QA15 66 ms, and 54 ms
+with the setting written on; QA16 16 ms, and 257 ms until the worktree shows what it has checked out; QA17 116 ms,
+the repository having been read ahead. No process of git started before the rows of QA15 and QA17, and seven before
+those of QA16. Before the milestone: 1,892 ms, 227 ms and 279 ms. They are checked by hand, with
+`test/perf/vscode.mjs <folder> --switch --limits`; whether the pipeline should is Q1745. The details are in the
+[roadmap](../desktop/07-roadmap.md#m50--a-repository-chosen-is-shown-at-once-done).

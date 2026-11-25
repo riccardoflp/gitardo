@@ -16,13 +16,13 @@ const RUNS = 3;
 
 /**
  * The choices timed. `scenario` is the one of docs/extension/12-quality.md whose time, times the margin, the median
- * may not pass with --limits: none until the table has one for the choice.
+ * may not pass with --limits.
  */
 const CHOICES = {
-  never: { what: 'a repository never shown in this window, chosen for the first time', scenario: null },
-  worktree: { what: 'a worktree of the repository shown, chosen for the first time', scenario: null },
-  again: { what: 'a repository shown before, chosen again', scenario: null },
-  againKept: { what: 'a repository shown before, chosen again, with gitardo.repositories.keepOpen on', scenario: null },
+  never: { what: 'a repository never shown in this window, chosen for the first time', scenario: 'QA17' },
+  worktree: { what: 'a worktree of the repository shown, chosen for the first time', scenario: 'QA16' },
+  again: { what: 'a repository shown before, chosen again', scenario: 'QA15' },
+  againKept: { what: 'a repository shown before, chosen again, with gitardo.repositories.keepOpen on', scenario: 'QA15' },
 };
 
 /**

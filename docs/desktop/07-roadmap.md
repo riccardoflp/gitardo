@@ -2012,7 +2012,7 @@ is narrowed, RS16 is accepted, RS1 is left to the stylesheet (Q1700); `controlle
 `test/e2e/suite.ts` passes every step in Xvfb, and `npm run test:ui` 36 of 36 with a `GIT_CONFIG_GLOBAL` holding
 only an identity and `LANGUAGE=en`; the job `performance` of the pipeline has not run yet. Q1590 was asked.
 
-## M50 — A repository chosen is shown at once
+## M50 — A repository chosen is shown at once (done)
 
 A repository, a worktree or a submodule chosen shows its rows at once: what the timeline needs is read first and the
 rest behind it, a worktree takes the history its repository has read, and the extension keeps the repositories left and
@@ -2094,19 +2094,43 @@ laid out, which `cargo xtask perf` cannot do without a window and no test of `ap
 
 | | Before | After |
 | --- | ---: | ---: |
-| A repository shown before, chosen again | 1,892 ms | |
-| A worktree of the repository shown, chosen for the first time | 227 ms | |
-| A repository never shown | 279 ms | |
-| Processes of git before the first row of a repository never shown | 59 | |
-| A repository shown before, chosen again, with `gitardo.repositories.keepOpen` on | 1,277 ms | |
-| Processes of git before the first row of a repository chosen again | 32 | |
-| The same, with `gitardo.repositories.keepOpen` on | 0 | |
-| Processes of git before the first row of a worktree chosen for the first time | 59 | |
-| Commits sent to the graph with a repository chosen again | 56,120 | |
-| The engine alone: `repository/open` and the first page of commits | 100.7 ms | |
-| Its processes of git | 28 | |
-| The engine alone: `repo.read-state` after them | 43.5 ms | |
-| Its processes of git | 19 | |
+| A repository shown before, chosen again | 1,892 ms | 66 ms |
+| A worktree of the repository shown, chosen for the first time | 227 ms | 16 ms |
+| A repository never shown | 279 ms | 116 ms |
+| Processes of git before the first row of a repository never shown | 59 | 0 |
+| A repository shown before, chosen again, with `gitardo.repositories.keepOpen` on | 1,277 ms | 54 ms |
+| Processes of git before the first row of a repository chosen again | 32 | 0 |
+| The same, with `gitardo.repositories.keepOpen` on | 0 | 0 |
+| Processes of git before the first row of a worktree chosen for the first time | 59 | 7 |
+| Commits sent to the graph with a repository chosen again | 56,120 | 1,000, the rest behind them |
+| The engine alone: `repository/open` and the first page of commits | 100.7 ms | 125.3 ms |
+| Its processes of git | 28 | 28 |
+| The engine alone: `repo.read-state` after them | 43.5 ms | 54.5 ms |
+| Its processes of git | 19 | 19 |
+| A worktree chosen for the first time, until it shows what it has checked out | | 257 ms |
+| Processes of git before that | | 30 |
+
+Phase 8, measured on 2026-11-26 with the same tools, on the same machine and workspace, other work running on the
+machine as before. The time of a choice is in what the graph is sent, no longer in git: a repository kept or read
+ahead starts no process of git and is sent the first page of its commits, the rest coming behind in pieces of 5,000,
+and a worktree is sent no commit, only its folder, and then its first step. A repository never shown is one the
+extension read ahead while the small one was shown, which is why it starts no process of git either; with
+`gitardo.repositories.keepOpen` off it is read when chosen, in the two steps. Short of the exit, or not measured:
+
+- A worktree chosen for the first time has the rows under its name in 16 ms, and shows what it has checked out
+  257 ms after the choice: the engine starts the rest of the state as soon as the first step is answered, so 30
+  processes of git start before that state is drawn, 7 of them the first step, and the graph takes about 130 ms to
+  draw one row changed among 56,120.
+- A worktree whose uncommitted changes are made on a commit that is not the newest is sent every row again, a page
+  and then pieces (Q1790); a list scrolled past the first page shows empty rows until their piece comes (Q1791).
+- The engine alone is timed by `cargo xtask perf` asking `repository/open` without `first`, the whole state as
+  before, so its times and counts are those of phase 1, slower here by what else ran on the machine; the first step
+  alone is seven processes of git, which the tests of `git` and of `server` count.
+- Gitardo Desktop until its rows are laid out is still not timed, for want of a window in the tools; its two steps
+  and the history a worktree takes are checked by its tests, by the commands logged.
+- QA1 to QA4 were not measured again, and Windows and macOS not at all: the pipeline measures QA1 to QA3 on Linux.
+- QA15 to QA17 are checked by `test/perf/vscode.mjs <folder> --switch --limits`, by hand: the pipeline does not run
+  it until Q1745 is answered.
 
 Exit: in both apps, on the large repository, a repository shown before and chosen again draws its rows in about
 100 ms and starts no process of git before them; a worktree of the repository shown, chosen for the first time, draws
