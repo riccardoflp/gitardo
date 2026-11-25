@@ -6,7 +6,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -37,15 +37,45 @@ pub struct Repository {
     /// What the last read of its state counted in the other worktrees, kept by the next read where nothing changed in
     /// their git folders (`repo.read-state`, M15).
     counted: Mutex<CountedWorktrees>,
+    /// The reads of the rest of its state under way, behind a first step answered (`repo.read-first`).
+    rests: Mutex<Rests>,
+    /// Told when a read of the rest ends.
+    rest_ended: Condvar,
+}
+
+/// The reads of the rest of a state under way.
+#[derive(Debug, Default)]
+struct Rests {
+    /// How many run.
+    under_way: usize,
+    /// Whether all of them count what is not committed in every other worktree again.
+    count_all: bool,
+}
+
+/// A read of the rest of a state under way: when it is dropped, the read ended, and what waits for it goes on.
+#[derive(Debug)]
+pub struct RestUnderWay(Arc<Repository>);
+
+impl Drop for RestUnderWay {
+    fn drop(&mut self) {
+        let mut rests = locked(&self.0.rests);
+        rests.under_way = rests.under_way.saturating_sub(1);
+        drop(rests);
+        self.0.rest_ended.notify_all();
+    }
 }
 
 /// The state of the last read of a repository, kept (M15) so that `journal/last` checks what Undo would take back
 /// against it, and the reads of the graph take what is checked out, the references and the stashes from it, instead
-/// of reading the repository again.
+/// of reading the repository again. It may be the first step of a state whose rest is still read
+/// (`repo.read-first`): what takes it, the journal, the reads of the graph and the worktrees nested in this one,
+/// takes only what is checked out, the references, the stashes and the worktrees, all of the first step.
 #[derive(Debug, Default)]
 struct KeptState {
     /// The state; none before the first read, and once an operation ran since it.
     state: Option<Arc<RepositoryState>>,
+    /// Whether it is a whole state, and not the first step of one.
+    is_whole: bool,
     /// How many operations ran in the repository: a read that started before one of them ended is not kept.
     operations: u64,
 }
@@ -124,6 +154,8 @@ impl Repository {
             is_closed: AtomicBool::new(false),
             kept: Mutex::new(KeptState::default()),
             counted: Mutex::new(CountedWorktrees::default()),
+            rests: Mutex::new(Rests::default()),
+            rest_ended: Condvar::new(),
         }
     }
 
@@ -134,11 +166,54 @@ impl Repository {
 
     /// Keeps the state a read found, unless an operation ended since the read started: that read may be half from
     /// before the operation and half from after it.
-    pub fn keep_state(&self, started: ReadStarted, state: Arc<RepositoryState>) {
+    /// Says whether it was kept.
+    pub fn keep_state(&self, started: ReadStarted, state: Arc<RepositoryState>) -> bool {
+        self.keep(started, state, true)
+    }
+
+    /// Keeps the first step of a state, as [`Repository::keep_state`] keeps a whole one, until its rest is read.
+    pub fn keep_first(&self, started: ReadStarted, state: Arc<RepositoryState>) -> bool {
+        self.keep(started, state, false)
+    }
+
+    /// Keeps a state, whole or the first step of one, unless an operation ended since its read started.
+    fn keep(&self, started: ReadStarted, state: Arc<RepositoryState>, is_whole: bool) -> bool {
         let mut kept = locked(&self.kept);
-        if kept.operations == started.0 {
+        let is_kept = kept.operations == started.0;
+        if is_kept {
             kept.state = Some(state);
+            kept.is_whole = is_whole;
         }
+        is_kept
+    }
+
+    /// Notes that the rest of a state is read behind its first step, until what this gives is dropped.
+    pub fn rest_starts(self: &Arc<Self>, counts_all: bool) -> RestUnderWay {
+        let mut rests = locked(&self.rests);
+        rests.count_all = counts_all && (rests.under_way == 0 || rests.count_all);
+        rests.under_way += 1;
+        RestUnderWay(Arc::clone(self))
+    }
+
+    /// The whole state the rest under way gives, waited for: none when no rest is under way, when a **Refresh** is
+    /// asked and the rest under way does not count every other worktree again, or when the rest failed or an
+    /// operation ran meanwhile. A read of the state asked while the first step was just answered reads nothing again.
+    pub fn state_after_rest(&self, refresh: bool) -> Option<Arc<RepositoryState>> {
+        let mut rests = locked(&self.rests);
+        if rests.under_way == 0 || (refresh && !rests.count_all) {
+            return None;
+        }
+        while rests.under_way > 0 {
+            rests = self.rest_ended.wait(rests).unwrap_or_else(PoisonError::into_inner);
+        }
+        drop(rests);
+        let kept = locked(&self.kept);
+        kept.state.clone().filter(|_| kept.is_whole)
+    }
+
+    /// Whether `repository/close` dropped it.
+    pub fn is_closed(&self) -> bool {
+        self.is_closed.load(Ordering::SeqCst)
     }
 
     /// The state the last read found, when no operation ran since it.
@@ -294,16 +369,46 @@ mod tests {
         let repository = Repository::new(PathBuf::from("/work/app"));
         assert!(repository.kept_state().is_none());
         let started = repository.read_starts();
-        repository.keep_state(started, Arc::new(RepositoryState::default()));
+        assert!(repository.keep_state(started, Arc::new(RepositoryState::default())));
         assert!(repository.kept_state().is_some());
         let across = repository.read_starts();
         repository.operation_ran();
         assert!(repository.kept_state().is_none(), "an operation drops it");
-        repository.keep_state(across, Arc::new(RepositoryState::default()));
+        assert!(!repository.keep_state(across, Arc::new(RepositoryState::default())));
         assert!(
             repository.kept_state().is_none(),
             "a read that started before the operation is not kept"
         );
+    }
+
+    #[test]
+    fn a_state_asked_while_the_rest_is_read_waits_for_it_and_none_under_way_gives_nothing() {
+        let repository = Arc::new(Repository::new(PathBuf::from("/work/app")));
+        assert!(repository.state_after_rest(false).is_none(), "no rest is under way");
+        let started = repository.read_starts();
+        assert!(repository.keep_first(started, Arc::new(RepositoryState::default())));
+        let under_way = repository.rest_starts(false);
+        assert!(
+            repository.state_after_rest(true).is_none(),
+            "a Refresh counts them all itself"
+        );
+        let reading = Arc::clone(&repository);
+        let rest = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(100));
+            let whole = RepositoryState {
+                remotes: vec![String::from("origin")],
+                ..RepositoryState::default()
+            };
+            assert!(reading.keep_state(started, Arc::new(whole)));
+            drop(under_way);
+        });
+        let state = repository.state_after_rest(false);
+        assert_eq!(
+            state.map(|state| state.remotes.clone()),
+            Some(vec![String::from("origin")])
+        );
+        rest.join().unwrap();
+        assert!(repository.state_after_rest(false).is_none(), "the rest ended");
     }
 
     #[test]

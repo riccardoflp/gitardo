@@ -397,7 +397,10 @@ operation that stopped half way.
 - **Extension**: `read/repo.read-state` of Gitardo's engine, from `Reads.parts` in `src/engine/reads.ts`, with
   `refresh` (version 1.8 of the protocol) for **Refresh** and for a repository chosen: the engine keeps what each read
   counted in the other worktrees, and counts again only those whose git folder changed (Q462). `repository/open` counts
-  them all. `gitardo.readOnStartup` is the setting `readOnStartup`.
+  them all. From version 1.14 a `read/repo.read-state` asked while the engine reads the rest of a state whose first
+  step it answered (`repo.read-first`) waits for that rest and reads nothing again, so that a repository opened with
+  `first` has its state read once; the extension does not open with `first` yet. `gitardo.readOnStartup` is the
+  setting `readOnStartup`.
 
 Acceptance:
 
@@ -436,8 +439,11 @@ that a repository chosen shows its first commits after a few reads and not after
   these seven, and the one `git stash list` starts itself.
 - **Uses**: by `repo.read-state`, whose `read_rest` reads the rest from what it found and reads none of it again;
   `graph.read-commits`, asked as soon as it ends; `repo.schedule-reads`; `repo.share-history`.
-- **Extension**: Planned: `read/repo.read-first` of Gitardo's engine, version 1.14 of the protocol, and `first` of
-  `repository/open`; the views are sent its parts and the first rows, and the other parts when the rest is read.
+- **Extension**: Planned. The engine has it, version 1.14 of [the protocol](../transition/02-protocol.md#the-state-in-two-steps):
+  `repository/open` asked with `first: true` answers `{ state, first: true }`, the first step, and
+  `read/repo.read-first` answers it for a repository opened; the whole state then comes in a `repository/state` with
+  the reason `rest`. The extension is still to ask them: the views are to be sent the parts of the first step and the
+  first rows, and the other parts when the rest comes.
 
 The rest of the state is read at the same time as the commits: the count of what is not committed in each other
 worktree, the remotes, who commits are made as, the order of the branches, the reflog, the submodules, the bisect in

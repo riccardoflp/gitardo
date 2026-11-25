@@ -2,7 +2,7 @@
 //! tokens, how much the log says, and what runs; and the answer of each method.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -20,7 +20,7 @@ use model::state::RepositoryState;
 use protocol::feature::{FeatureRunParams, SettingsParams, ValidateParams};
 use protocol::messages::{
     ActivityJson, ActivityParams, CancelParams, ChangedParams, EngineInfo, HostAbilities, InitializeParams,
-    InitializeResult, LogEntryJson, LogLineParams, OpenResult, ReadStateParams, RepositoryParams, StateParams,
+    InitializeResult, LogEntryJson, LogLineParams, ReadFirstParams, ReadStateParams, RepositoryParams, StateParams,
     StateReason, VERSION, is_compatible, methods,
 };
 use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, error_message, notification_message, result_message};
@@ -32,6 +32,7 @@ use serde_json::{Map, Value};
 use crate::outgoing::Outgoing;
 use crate::repository::{Next, Repository};
 
+mod steps;
 mod summaries;
 
 /// The engine speaking to one extension.
@@ -225,45 +226,24 @@ impl Session {
             methods::READ_STATE => {
                 let ReadStateParams { repository, refresh } = parameters(params)?;
                 let opened = self.opened(&repository)?;
+                if let Some(state) = opened.state_after_rest(refresh) {
+                    return json(&StateJson::from(&*state));
+                }
                 let reading = Counting {
                     cause: "The extension asked for it",
                     refresh,
                 };
                 json(&self.read_kept(&opened, &repository, &reading, cancel)?)
             }
+            methods::READ_FIRST => {
+                let ReadFirstParams { repository, refresh } = parameters(params)?;
+                json(&self.read_first_of(&repository, refresh, cancel)?)
+            }
             _ => Err(ResponseError::new(
                 codes::METHOD_NOT_FOUND,
                 format!("Gitardo's engine has no method named {method}."),
             )),
         }
-    }
-
-    /// The answer of `repository/open`: the repository read, opened unless it was, and its state kept. Every other
-    /// worktree is counted, as on the first read of a repository chosen.
-    fn open(
-        &self,
-        RepositoryParams { repository }: RepositoryParams,
-        cancel: &CancelToken,
-    ) -> Result<Value, ResponseError> {
-        let folder = PathBuf::from(&repository);
-        let started = self.opened(&repository).ok().map(|opened| opened.read_starts());
-        let counted = Counted {
-            cause: "The extension opened it",
-            before: &CountedWorktrees::default(),
-        };
-        let (state, counted) = self.read(&repository, &folder, &counted, cancel)?;
-        let state = Arc::new(state);
-        let opened = Arc::clone(
-            locked(&self.repositories)
-                .entry(repository)
-                .or_insert_with(|| Arc::new(Repository::new(folder))),
-        );
-        let answer = OpenResult {
-            state: StateJson::from(&*state),
-        };
-        opened.keep_counted(counted);
-        opened.keep_state(started.unwrap_or_else(|| opened.read_starts()), state);
-        json(&answer)
     }
 
     /// The answer of `initialize`: the engine's version, or the error of a major version it does not speak.
@@ -368,7 +348,7 @@ impl Session {
         let state = Arc::new(state);
         let answer = StateJson::from(&*state);
         opened.keep_counted(counted);
-        opened.keep_state(started, state);
+        let _kept = opened.keep_state(started, state);
         Ok(answer)
     }
 

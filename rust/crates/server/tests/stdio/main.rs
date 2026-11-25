@@ -6,6 +6,7 @@
 
 mod ai;
 mod feature;
+mod first;
 mod harness;
 mod help;
 mod hosting;

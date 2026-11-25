@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.13** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.14** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -159,6 +159,15 @@ the kinds `"input"` of a [`log/line`](#logline), a line of what the step above w
 indented by two spaces as the preview shows it, and `"output"`, a line of what git printed under the step above once
 it succeeded. An older extension writes them as it writes a line of a kind it does not know.
 
+Version 1.14 adds what milestone M50
+([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed))
+needed to show a repository chosen after a few reads (`repo.read-first`): `first` in the parameters of
+[`repository/open`](#repositoryopen) and in its answer, the read
+[`read/repo.read-first`](#the-state-in-two-steps), and the reason `"rest"` of
+[`repository/state`](#repositorystate), the whole state of a repository whose first step was answered. An older
+extension asks neither and is never sent the reason; an older engine leaves `first` aside and answers the whole state,
+with no `first` in its answer, which is how the extension tells.
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -268,12 +277,14 @@ none; the extension also asks it with the folder of a file alone, to find the re
 ### `repository/open`
 
 ```ts
-params: { repository: string }
-result: { state: RepositoryState }
+params: { repository: string, first?: boolean }       // first: 1.14, false when left out
+result: { state: RepositoryState, first?: true }      // first: 1.14, there only when the state is a first step
 ```
 
-Makes an `Engine` for the repository and reads its state (`repo.read-state`). Opening one already open answers its
-state.
+Makes an `Engine` for the repository and reads its state (`repo.read-state`), every other worktree counted. Opening
+one already open answers its state. Asked with `first: true` (1.14), it answers [the first step](#the-state-in-two-steps)
+of the state, with `first: true` beside it, and sends the whole state in a `repository/state` with the reason
+`"rest"`. A repository that cannot be read is an error and is not opened, with `first` or without.
 
 ### `repository/close`
 
@@ -287,8 +298,54 @@ what git's `fsmonitor` writes, reads again once per burst, and sends `repository
 
 ### `repository/state`
 
-Notification from the engine: `{ repository, state: RepositoryState, reason: "changed" | "ran" | "opened" }`. Sent
-after a read again, and after every plan that ran.
+Notification from the engine: `{ repository, state: RepositoryState, reason: "changed" | "ran" | "opened" | "rest" }`.
+Sent after a read again, after every plan that ran, and, with the reason `"rest"` (1.14), once the rest of a state
+whose first step was answered is read: its `state` is the whole state, which takes the place of the first step.
+
+### The state in two steps
+
+Version 1.14, `repo.read-first`. Two requests answer the first step of the state of a repository, and the engine reads
+the rest behind the answer:
+
+```ts
+// repository/open
+params: { repository: string, first: true }
+result: { state: RepositoryState, first: true }
+
+// read/repo.read-first, of a repository opened
+params: { repository: string, refresh?: boolean }     // refresh: false when left out
+result: RepositoryState
+
+// then, once for each of the two, the notification repository/state
+params: { repository: string, state: RepositoryState, reason: "rest" }
+```
+
+- **The first step** is a `RepositoryState` with these fields read: `folder`, `gitFolder`, `head`, `branches`,
+  `remoteBranches`, `tags`, `stashes`, `worktrees`, `workingTree` and `operation`. Every other field is there, with
+  the value it has before anything is read: the lists empty (`remotes`, `reflogSubjects`, `submodules`, `shallow`,
+  `skipped`, `resolvedAsBefore`), what may be `null` `null`, the flags `false`. So an empty `remotes` in a first step
+  does not say the repository has no remote. In `worktrees`, the one with `isCurrent` has its `uncommitted`,
+  and every other has `uncommitted: null`, which is no count, not a count of zero. Each of `remoteBranches` has as
+  `remote` its name up to the first `/`, which the rest corrects for a remote whose own name has a `/`. Nothing in
+  the JSON of the state says it is a first step: the request asked says so, and `first: true` in the answer of
+  `repository/open`.
+- **The rest** is the whole `RepositoryState`, as `read/repo.read-state` answers it, read from what the first step
+  found with none of its commands started again. It is sent once, to whoever listens to `repository/state`, and is
+  not an answer: it names no request. It is not sent when its read fails, when the repository was closed meanwhile,
+  or when a plan ran in the repository meanwhile, whose own `repository/state`, with the reason `"ran"`, carries the
+  whole state then. `$/cancel` of the request cancels the first step only.
+- **The counts of the other worktrees** in the rest: after `repository/open` every other worktree is counted; after
+  `read/repo.read-first` each keeps the count of the read before while nothing changed in its own git folder, unless
+  `refresh` is true, as in `read/repo.read-state`.
+- **A read of the state asked meanwhile**: `read/repo.read-state` asked while the rest is read waits for it and
+  answers that same whole state, starting no command of git. So a client that opens with `first` and then asks the
+  state reads it once. With `refresh: true` it waits only for a rest that counts every other worktree, that of
+  `repository/open` or of a `read/repo.read-first` asked with `refresh`; otherwise it reads the state again. When the
+  rest failed, or a plan ran meanwhile, it reads the state itself.
+- **What the engine keeps**: the first step is kept at once as the state of the last read, so
+  `read/graph.read-commits`, `read/repo.watch-changes` and `journal/last` asked right after the answer take what is
+  checked out, the references, the stashes and the worktrees from it and ask git nothing again; the whole state takes
+  its place when the rest is read.
 
 ### What the repositories are on
 
@@ -391,7 +448,8 @@ change the repository and run at the same time as each other and as an operation
 
 | Method | Parameters besides `repository` | Result | Card (desktop) |
 | --- | --- | --- | --- |
-| `read/repo.read-state` | `{ refresh: boolean }`, false when left out (1.8) | `RepositoryState` | `repo.read-state` |
+| `read/repo.read-state` | `{ refresh: boolean }`, false when left out (1.8) | `RepositoryState`; asked while the rest of [a state in two steps](#the-state-in-two-steps) is read, that state once read, with nothing read again (1.14) | `repo.read-state` |
+| `read/repo.read-first` | `{ refresh: boolean }`, false when left out | `RepositoryState`, [its first step](#the-state-in-two-steps); the rest follows in `repository/state` | `repo.read-first` (1.14) |
 | `read/graph.read-commits` | `TimelineRequest` | `CommitPage` | `graph.read-commits` |
 | `read/graph.read-position` | `{ commit, timeline: TimelineRequest }` | `{ index: number \| null }` | `graph.read-position` |
 | `read/search.read-matches` | `{ text, mode: SearchMode, timeline: TimelineRequest }` | `{ commits: CommitId[], hasMore }` | `search.read-matches` |

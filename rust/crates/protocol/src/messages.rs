@@ -30,6 +30,9 @@ pub mod methods {
     pub const STATE: &str = "repository/state";
     /// The state of a repository, read now (`repo.read-state`).
     pub const READ_STATE: &str = "read/repo.read-state";
+    /// The first step of the state of a repository, read now, the rest following in `repository/state`
+    /// (`repo.read-first`, 1.14).
+    pub const READ_FIRST: &str = "read/repo.read-first";
     /// A line of the log, as it is written.
     pub const LOG_LINE: &str = "log/line";
     /// What runs, whenever it changes.
@@ -84,8 +87,10 @@ pub mod methods {
 /// an operation offered is given; `target` in the follow-up `writeSetting`, where VS Code writes the setting, the
 /// target `setupSettings` and `setup` in `feature/run`, what new worktrees get in the repository's folder, for the
 /// settings of new worktrees saved by the engine's plans; and the kinds `input` and `output` of a line of the log, what
-/// a step was given on its standard input and what git printed under a step that succeeded.
-pub const VERSION: &str = "1.13";
+/// a step was given on its standard input and what git printed under a step that succeeded; 1.14 what milestone M50
+/// needs: the state in two steps, `first` in `repository/open` and in its answer, `read/repo.read-first`, and the
+/// reason `rest` of `repository/state`, the whole state of a repository whose first step was answered.
+pub const VERSION: &str = "1.14";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]
@@ -206,6 +211,30 @@ pub struct ReadStateParams {
     pub refresh: bool,
 }
 
+/// The parameters of `repository/open`: the repository, and from 1.14 whether its state is answered in two steps.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenParams {
+    /// The folder of the top of its working tree.
+    pub repository: String,
+    /// Whether the answer is the first step of the state (`repo.read-first`), the whole state following in
+    /// `repository/state` with the reason `rest`; false when left out, and the answer is then the whole state.
+    #[serde(default)]
+    pub first: bool,
+}
+
+/// The parameters of `read/repo.read-first` (1.14): the repository, and whether every other worktree is counted again
+/// by the rest that follows, as `refresh` of `read/repo.read-state` has it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadFirstParams {
+    /// The folder of the top of its working tree.
+    pub repository: String,
+    /// Whether every other worktree is counted again.
+    #[serde(default)]
+    pub refresh: bool,
+}
+
 /// The parameters of `repository/discover`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -241,6 +270,9 @@ pub struct DiscoveredRepositoryJson {
 pub struct OpenResult {
     /// The state read.
     pub state: StateJson,
+    /// Whether the state is its first step only (1.14), as asked with `first`: left out of a whole state.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub first: bool,
 }
 
 /// The parameters of `repository/changed`.
@@ -276,6 +308,9 @@ pub enum StateReason {
     Ran,
     /// It was opened.
     Opened,
+    /// Its first step was answered, by `repository/open` with `first` or by `read/repo.read-first`, and this is the
+    /// whole state (1.14).
+    Rest,
 }
 
 /// The parameters of `$/cancel`.

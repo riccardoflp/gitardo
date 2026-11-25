@@ -34,7 +34,7 @@ fn read_and_keep(repository: &Repository) -> Result<Arc<RepositoryState>, Respon
     let folder = repository.folder().to_path_buf();
     let read = read_state(&Git::new(&folder), &StateRequest { folder }).map_err(|error| git_failure(&error))?;
     let state = Arc::new(read);
-    repository.keep_state(started, Arc::clone(&state));
+    let _kept = repository.keep_state(started, Arc::clone(&state));
     Ok(state)
 }
 

@@ -3694,7 +3694,7 @@ title: Read the state of the repository
 place: Repositories, in the side column
 show: none
 Everything the window shows of a repository but its commits: what is checked out, the branches and how far each is from its upstream, the remotes, the tags, the stashes, the worktrees, the submodules, what is not committed, and the operation that stopped half way.
-In VS Code: `read/repo.read-state` of Gitardo's engine, from `Reads.parts` in, with `refresh` (version 1.8 of the protocol) for **Refresh** and for a repository chosen: the engine keeps what each read counted in the other worktrees, and counts again only those whose git folder changed. `repository/open` counts them all. `gitardo.readOnStartup` is the setting `readOnStartup`.
+In VS Code: `read/repo.read-state` of Gitardo's engine, from `Reads.parts` in, with `refresh` (version 1.8 of the protocol) for **Refresh** and for a repository chosen: the engine keeps what each read counted in the other worktrees, and counts again only those whose git folder changed. `repository/open` counts them all. From version 1.14 a `read/repo.read-state` asked while the engine reads the rest of a state whose first step it answered (`repo.read-first`) waits for that rest and reads nothing again, so that a repository opened with `first` has its state read once; the extension does not open with `first` yet. `gitardo.readOnStartup` is the setting `readOnStartup`.
 @card extension repo.read-shallow
 title: Whether the history is shallow, and where it ends
 place: Repositories, in the side column

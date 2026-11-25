@@ -107,7 +107,7 @@ fn read_kept(repository: &Repository, cancel: &CancelToken) -> Result<Arc<Reposi
     let git = Git::new(&folder).with_cancel(cancel.clone());
     let started = repository.read_starts();
     let state = Arc::new(read_state(&git, &StateRequest { folder }).map_err(|error| git_failure(&error))?);
-    repository.keep_state(started, Arc::clone(&state));
+    let _kept = repository.keep_state(started, Arc::clone(&state));
     Ok(state)
 }
 

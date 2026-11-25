@@ -162,7 +162,14 @@ fn the_state_of_a_repository_is_written_as_the_protocol_says_and_read_back() {
     let state = StateJson::from(&repository());
     assert_golden(golden("state.json"), pretty(&state));
     round_trip(&state);
-    round_trip(&OpenResult { state: state.clone() });
+    round_trip(&OpenResult {
+        state: state.clone(),
+        first: false,
+    });
+    round_trip(&OpenResult {
+        state: state.clone(),
+        first: true,
+    });
     round_trip(&StateParams {
         repository: String::from("/work/app"),
         state,
