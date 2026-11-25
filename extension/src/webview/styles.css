@@ -106,7 +106,7 @@ input:focus-visible,
 
 /* The name of the branch is the one thing the toolbar must always say, so it does not shrink to make room for the rest
    while the toolbar is on one line. */
-.toolbar .current {
+.place {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -117,13 +117,13 @@ input:focus-visible,
   white-space: nowrap;
 }
 
-.toolbar .current .name {
+.place .name {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* The branch shown, as a button that shows another worktree when the repository has several. */
-.toolbar .current.pick {
+.place.pick {
   height: 24px;
   padding: 0 4px;
   font: inherit;
@@ -135,16 +135,16 @@ input:focus-visible,
   cursor: pointer;
 }
 
-.toolbar .current.pick:hover:not(:disabled) {
+.place.pick:hover:not(:disabled) {
   background: var(--vscode-toolbar-hoverBackground);
 }
 
-.toolbar .current.pick:focus-visible {
+.place.pick:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
 }
 
-.toolbar .current.pick:disabled {
+.place.pick:disabled {
   cursor: default;
   opacity: 0.6;
 }
@@ -261,22 +261,35 @@ input:focus-visible,
   border: 1px solid var(--vscode-input-border, transparent);
 }
 
-.search select {
+/* Where to search: a button that names it and opens the menu of the others, as the ones of the repository and of the
+   worktree do. */
+.search .mode {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   max-width: 45%;
-  /* As wide as the chosen option, not as the longest one. */
-  field-sizing: content;
   padding: 0;
   font: inherit;
   color: var(--vscode-descriptionForeground);
-  background: var(--vscode-input-background);
+  background: none;
   border: 0;
   outline: 0;
   cursor: pointer;
 }
 
-.search select:hover,
-.search select:focus-visible {
+.search .mode .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search .mode .codicon {
+  font-size: 12px;
+}
+
+.search .mode:hover,
+.search .mode:focus-visible {
   color: inherit;
 }
 
@@ -538,8 +551,7 @@ input:focus-visible,
   display: contents;
 }
 
-.toolbar[data-give~='4'] .current,
-.toolbar[data-give~='4'] .repo {
+.toolbar[data-give~='4'] .place {
   flex: 0 1 auto;
   min-width: 96px;
 }
@@ -1923,25 +1935,28 @@ input:focus-visible,
   border-bottom-color: var(--vscode-panel-border);
 }
 
-/* Repository of a workspace that has several */
+/* Repository of a workspace that has several: a button as the one of the worktree, before it. */
 
-.repo {
-  flex: none;
+.place.repo {
   max-width: 180px;
-  height: 24px;
-  padding: 0 4px;
-  font: inherit;
-  color: var(--vscode-input-foreground);
-  background: var(--vscode-input-background);
-  border: 1px solid var(--vscode-input-border, transparent);
-  border-radius: 3px;
-  field-sizing: content;
+  margin-right: 0;
 }
 
-.changes > .repo {
-  max-width: none;
+.place .codicon-chevron-down {
+  flex: none;
+  font-size: 12px;
+}
+
+.changes > .place.repo {
+  align-self: flex-start;
+  max-width: calc(100% - 24px);
   margin: 8px 12px 0;
-  field-sizing: fixed;
+}
+
+/* What a menu lists under another of its entries. */
+.menu .menu-indent {
+  display: inline-block;
+  flex: none;
 }
 
 .identity {

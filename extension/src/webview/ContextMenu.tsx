@@ -28,6 +28,8 @@ export interface MenuItem {
   feature?: string;
   /** The meaning of what it does, for an item that runs no operation of the catalog: it draws the icon of that meaning. */
   icon?: Meaning;
+  /** How far its words are set in from those above it, in steps: what is listed under another entry. */
+  indent?: number;
 }
 
 /** Falsy entries are dropped, so menus can be written with `condition && item`. */
@@ -140,6 +142,7 @@ function Menu({ menu, onClose }: { menu: OpenState; onClose(): void }) {
                 <Icon name={icons[index]} />
               </span>
             )}
+            {!!item.indent && <span className="menu-indent" style={{ width: item.indent * 16 }} />}
             {item.label}
             {item.hint && <span className="hint">{item.hint}</span>}
           </button>

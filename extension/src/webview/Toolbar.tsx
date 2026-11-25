@@ -181,18 +181,26 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   const search = (
     <div className="search">
       <Icon name="search" />
-      <select
-        value={mode}
-        aria-label="Where to search"
+      <button
+        className="mode"
+        aria-haspopup="menu"
+        aria-label={`Where to search: ${SEARCH_MODES[mode].label}`}
         title={SEARCH_MODES[mode].title}
-        onChange={(event) => changeMode(event.target.value as SearchMode)}
+        onClick={(event) =>
+          openMenu(
+            event,
+            (Object.keys(SEARCH_MODES) as SearchMode[]).map((key) => ({
+              label: SEARCH_MODES[key].label,
+              title: SEARCH_MODES[key].title,
+              checked: key === mode,
+              run: () => changeMode(key),
+            })),
+          )
+        }
       >
-        {Object.entries(SEARCH_MODES).map(([key, { label }]) => (
-          <option key={key} value={key}>
-            {label}
-          </option>
-        ))}
-      </select>
+        <span className="name">{SEARCH_MODES[mode].label}</span>
+        <Icon name="chevron-down" />
+      </button>
       <input
         ref={input}
         type="text"

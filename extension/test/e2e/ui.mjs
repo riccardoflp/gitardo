@@ -112,7 +112,7 @@ try {
   const toolbar = (graph) =>
     graph.evaluate(`(() => {
       const bar = document.querySelector('.toolbar');
-      const name = document.querySelector('.current .name');
+      const name = document.querySelector('.place:not(.repo) .name');
       const view = document.documentElement.clientWidth;
       const said = (element) => element.getAttribute('aria-label') ?? element.className;
       const parts = [...bar.querySelectorAll('.group > *, .line:not(.first) > *')]
@@ -709,13 +709,13 @@ try {
       await graph.evaluate(`document.querySelector('.search input').select()`);
       await type(text);
     };
-    /** The list beside the box, set the way a choice from it sets it. */
-    const mode = (value) =>
-      graph.evaluate(`(() => {
-        const list = document.querySelector('.search select');
-        list.value = ${JSON.stringify(value)};
-        list.dispatchEvent(new Event('change', { bubbles: true }));
-      })()`);
+    /** Where to search, chosen from the menu of the button beside the box. */
+    const MODES = { loaded: 'Loaded', message: 'Message', author: 'Author', pickaxe: 'Changes', regex: 'Changes (regex)' };
+    const mode = async (value) => {
+      await graph.click('.search .mode');
+      await graph.click('.menu.context button', MODES[value]);
+      await until(`searching in ${MODES[value]}`, () => graph.evaluate(`document.querySelector('.search .mode .name').textContent === ${JSON.stringify(MODES[value])}`));
+    };
     // Nothing selected, to begin with.
     if ((await seen()).selected) await graph.click('.detail .close');
     const everything = (await seen()).rows;
@@ -2520,14 +2520,11 @@ try {
     await sleep(1500);
     await command('Gitardo: Show Graph');
     const graph = await webview('graph');
-    /** Chooses a repository in the list at the start of the toolbar, as a person picks it there. */
-    const choose = (name) =>
-      graph.evaluate(`(() => {
-        const list = document.querySelector('select.repo');
-        const option = [...list.options].find((candidate) => candidate.textContent.trim().endsWith(${JSON.stringify(name)}));
-        list.value = option.value;
-        list.dispatchEvent(new Event('change', { bubbles: true }));
-      })()`);
+    /** Chooses a repository in the menu of the button at the start of the toolbar, as a person picks it there. */
+    const choose = async (name) => {
+      await graph.click('.toolbar .place.repo');
+      await graph.click('.menu.context button', name);
+    };
     const shown = () =>
       graph.evaluate(`({
         scroll: Math.round(document.querySelector('.commits').scrollTop),

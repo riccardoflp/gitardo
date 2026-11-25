@@ -1300,7 +1300,7 @@ Which repositories share a tab: a repository, its worktrees and its submodules a
   submodules, the same choice (`graph.where`).
 - **Uses**: `repo.common-folder`, `repo.keep-open`, `repo.worktree-summary`, `worktree.show-in-gitardo`,
   `submodule.show-in-gitardo`.
-- **Extension**: no tabs; the list of `repo.select` follows the first three rules, each member indented under its
+- **Extension**: no tabs; the menu of `repo.select` follows the first three rules, each member indented under its
   repository, its worktrees first (`groupRepositories` in `src/shared/repositoryGroups.ts`, tested by
   `test/repositoryGroups.test.ts`). The rows of the Repositories view (`repo.tabs`) follow the rules of the rows:
   under a repository, the worktrees git lists for it, a folder of the workspace or not, then its submodules found in

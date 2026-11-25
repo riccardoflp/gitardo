@@ -2067,12 +2067,12 @@ Built in five phases, each one commit, each ending with its tests passing; Gitar
    button is ever outside the view, under another or alone on a line, and what was given up comes back as soon as it
    fits. The step of `test/e2e/ui.mjs` narrows the view from 1,800 px of window to 700 px with a branch of a long name
    and asks that of each. Cards: `graph.toolbar` and `graph.more-menu`, their lines of the extension.
-4. **One way to choose, in the extension.** The repository is a button as the worktree is, with the icon of a
+4. **One way to choose, in the extension (done).** The repository is a button as the worktree is, with the icon of a
    repository, its name and a chevron, which opens the menu the webviews draw: the repositories of the workspace, the
-   worktrees and the submodules of each indented under it with their icons, the one shown ticked; in the toolbar and
-   at the top of the **Gitardo Changes** view. Where to search is chosen from the same menu. What each lists, and
-   what a choice does, stay as they are. Steps of `test/e2e/ui.mjs` that choose a repository and where to search by
-   their menus. Cards: `repo.select`, of the extension; `repo.group-tabs` and `search.box`, their lines of the
+   worktrees and the submodules of each indented under it, the one shown ticked; in the toolbar and at the top of the
+   **Gitardo Changes** view. Where to search is chosen from a menu of the same kind. What each lists, and what a
+   choice does, stay as they are. The steps of `test/e2e/ui.mjs` that choose a repository and where to search do it
+   by their menus. Cards: `repo.select`, of the extension; `repo.group-tabs` and `search.box`, their lines of the
    extension.
 5. **Buttons that show on the ground, in the extension.** With the islands on, the buttons with words, the two lists
    and the search box of the toolbar have a background and a border told apart from the ground in every theme, the

@@ -22,7 +22,7 @@ export function WorktreeSelect({ state, disabled }: { state: RepoState; disabled
   const name = checkedOutBranch(state) ?? (head ? `detached at ${head.slice(0, 7)}` : 'no commits yet');
   if (worktrees.length < 2) {
     return (
-      <span className="current" title={state.root}>
+      <span className="place" title={state.root}>
         <Icon name="git-branch" />
         <span className="name">{name}</span>
       </span>
@@ -31,7 +31,7 @@ export function WorktreeSelect({ state, disabled }: { state: RepoState; disabled
   const shown = worktrees.find((worktree) => worktree.isCurrent);
   return (
     <button
-      className="current pick"
+      className="place pick"
       disabled={disabled}
       aria-haspopup="menu"
       aria-label={`Worktree: ${name}`}

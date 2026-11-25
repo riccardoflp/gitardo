@@ -18,6 +18,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Changed
 
+- The repository shown is chosen as the worktree is: a button of the toolbar of the graph, and of the **Gitardo Changes** view, names it and opens a menu of the repositories of the workspace, their worktrees and submodules under each, the one shown ticked. Where the search looks, **Loaded**, **Message** and the others, is chosen from a menu of the same kind. Both were lists of the system before, which looked like nothing else in the toolbar.
 - The labels of a commit that do not fit on its row are counted in `+N`, as in Gitardo Desktop: the row shows as many as fit whole, in their order, its message keeping up to three fifths of a line of its own and the author and the date up to a third of the line under the message. Resting the pointer on `+N`, or on any label of such a row, opens the list of all of them, each with its menu, its double click and its history brought out. Before, the wide graph cut each label to 180 pixels and to its icon in a narrow panel, and Gitardo Graph named two of them and the others in a tooltip.
 
 ### Changed

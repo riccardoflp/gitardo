@@ -8,12 +8,15 @@ desktop's cards, in [../01-repositories.md](../01-repositories.md), each with a 
 ### `repo.select` — Choose the repository shown
 
 The list of the repositories of the workspace, which points every view at the one chosen and remembers it for the
-workspace.
+workspace. It is the menu of a button that names the repository shown, with the icon of a repository before the name
+and a chevron after it, as the button of the worktree beside it is (`worktree.show-in-gitardo`): the menu the webviews
+draw, the one shown ticked (M51).
 
 - **Kind**: View
 - **Function**: `RepoSelect` in `src/webview/RepoSelect.tsx`, which posts `selectRepo`;
   `RepositoriesShown.selectRepo(root)` in `src/extension/repositoriesShown.ts`.
-- **Entry points**: the list at the start of the toolbar of the graph and at the top of the Changes view; **Gitardo:
+- **Entry points**: the button at the start of the toolbar of the graph and at the top of the Changes view, and its
+  menu; **Gitardo:
   Select Repository** in the Command Palette and **Select repository…** in the **…** of the toolbar (`pickRepo`), a
   picker titled `Repository shown in Gitardo`; a click on a row of the Repositories view (`repo.tabs`), which posts
   the same `selectRepo`, for a repository, a worktree or a submodule, of the repository shown or of another.
@@ -34,12 +37,13 @@ workspace.
 
 Acceptance:
 
-- [ ] The list names each repository as the workspace has it, and its tooltip is the path of what the views show.
+- [ ] The button names the repository shown as the workspace has it, and its tooltip is the path of what the views
+  show; its menu names each repository, the one shown ticked.
 - [ ] Choosing another repository points the graph, the Changes view, the Commits view and the Branches view at it,
   and the next time the workspace opens, it is the one shown.
 - [ ] While the views show a worktree that is not in the workspace, the repository it is of stays chosen in the list;
   the worktree is chosen with the branch in the toolbar of the graph (`worktree.show-in-gitardo`).
-- [ ] The list is disabled while an operation runs.
+- [ ] The button is disabled while an operation runs.
 - [ ] The list puts a worktree of a repository and a submodule of it under it, indented, the worktree first, and
   **Gitardo: Select Repository** lists them in the same order.
 - [ ] A click on a row of the Repositories view shows its repository, worktree or submodule in every view and marks

@@ -18,6 +18,11 @@ it finds.
 - **Function**: `views::search::box_view(state: &SearchBox, ui) -> Vec<Intent>`
 - **Entry points**: the search box at the top of the timeline, also in the narrow layout of the window.
 - **Uses**: `search.loaded`, `search.history`, `search.step`, `search.list-mode`, `search.go-to-hash`.
+- **Extension**: the box of the toolbar of the graph, in `Toolbar` of `src/webview/Toolbar.tsx`. The list before it is
+  a button that names the mode, with a chevron, and opens the menu the webviews draw, the five modes in their order,
+  the one chosen ticked, each with its tooltip: as the repository and the worktree are chosen in the same toolbar
+  (`repo.select`, M51). Tested by `test/e2e/ui.mjs`, step "the search counts what it finds and steps through it, in
+  the loaded commits and in the whole history", which chooses **Message** and **Loaded** from that menu.
 
 - The list before the box chooses the mode; each says in its tooltip what it runs, and the box has a placeholder of its
   own:
