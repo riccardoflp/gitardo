@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 586 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 588 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -17,7 +17,7 @@ earns it.
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 43 |
+| [01-repositories.md](01-repositories.md) | Repositories | 45 |
 | [02-graph.md](02-graph.md) | Graph | 59 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 32 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 26 |
@@ -54,6 +54,7 @@ earns it.
 | [`repo.owner-of-file`](01-repositories.md#repoowner-of-file--the-repository-a-file-is-in) | The repository a file is in | Derivation | Built | Built |
 | [`repo.no-repository`](01-repositories.md#repono-repository--no-repository-in-the-workspace) | No repository in the workspace | View | Built | Built |
 | [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built | Built |
+| [`repo.read-first`](01-repositories.md#reporead-first--read-what-a-repository-shows-first) | Read what a repository shows first | Read | Specified | Planned |
 | [`repo.read-shallow`](01-repositories.md#reporead-shallow--whether-the-history-is-shallow-and-where-it-ends) | Whether the history is shallow, and where it ends | Read | Built | Built |
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
 | [`repo.read-git-version`](01-repositories.md#reporead-git-version--read-the-version-of-git) | Read the version of git | Read | Built | Built |
@@ -74,6 +75,7 @@ earns it.
 | [`repo.switch-tab`](01-repositories.md#reposwitch-tab--show-another-tab) | Show another tab | Operation | Built | Host only |
 | [`repo.keep-open`](01-repositories.md#repokeep-open--keep-what-each-repository-showed) | Keep what each repository showed | Derivation | Built | Built |
 | [`repo.group-tabs`](01-repositories.md#repogroup-tabs--worktrees-and-submodules-in-the-tab-of-their-repository) | Worktrees and submodules in the tab of their repository | Derivation | Built | Built |
+| [`repo.share-history`](01-repositories.md#reposhare-history--a-worktree-takes-the-history-its-repository-has-read) | A worktree takes the history its repository has read | Derivation | Specified | Planned |
 | [`repo.watch-hidden`](01-repositories.md#repowatch-hidden--keep-the-tabs-not-shown-up-to-date) | Keep the tabs not shown up to date | Derivation | Built | Built |
 | [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built | Host only |
 | [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built | Host only |

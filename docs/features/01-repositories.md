@@ -416,6 +416,43 @@ Acceptance:
 - [ ] No read takes `index.lock`: while it runs, `git commit` in a terminal does not fail because of it.
 - [ ] With `readOnStartup` off, starting the window runs no git command until **Read the repository** is clicked.
 
+### `repo.read-first` — Read what a repository shows first
+
+What the timeline, the branch rail and the Changes page need of a repository, read before the rest of its state, so
+that a repository chosen shows its first commits after a few reads and not after all of them
+([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)).
+
+- **Kind**: Read
+- **Function**: `git::read::repo::read_first(git: &Git, request: &StateRequest) -> Result<FirstState, GitError>`
+- **Reads**: all at once, with `GIT_OPTIONAL_LOCKS=0`, in the folder of the repository, as `repo.read-state` reads
+  them: `git rev-parse --show-toplevel --absolute-git-dir`, then `git for-each-ref`, `git rev-parse --verify --quiet
+  HEAD`, `git symbolic-ref --quiet HEAD`, `git stash list`, `git worktree list --porcelain` without the count of the
+  other worktrees, `git status --porcelain=v2 --branch -z --untracked-files=all` of this worktree (Q1741), and the
+  operation in progress, from the files git leaves in the folder of this worktree. Eight processes of git at most.
+- **Uses**: by `repo.read-state`, which reads the rest from what it found and reads none of it again;
+  `graph.read-commits`, asked as soon as it ends; `repo.schedule-reads`; `repo.share-history`.
+- **Extension**: Planned: `read/repo.read-first` of Gitardo's engine, version 1.14 of the protocol, and `first` of
+  `repository/open`; the views are sent its parts and the first rows, and the other parts when the rest is read.
+
+The rest of the state is read at the same time as the commits: the count of what is not committed in each other
+worktree, the remotes, who commits are made as, the order of the branches, the reflog, the submodules, the bisect in
+progress, where a shallow history ends, the commit-graph file, the notes, Git LFS and the resolutions remembered.
+Until it comes, what shows it shows nothing of it: another worktree has no count, not a count of zero, and the recent
+branches are not listed. A read that follows a change, and **Refresh**, read both steps and show them together, as
+before: only a repository shown for the first time, or shown again after it changed, is shown in two steps.
+
+Acceptance:
+
+- [ ] On a repository with three other worktrees, it starts eight processes of git at most, and no `git status` in
+      another worktree.
+- [ ] What it reads is what `repo.read-state` reads of the same things: the two give the same references, the same
+      commit and branch checked out, the same stashes, the same files not committed and the same operation.
+- [ ] `repo.read-state` given what it found starts none of its commands again.
+- [ ] A repository opened shows its first commits before the count of another worktree is read; the count is then
+      shown, and no row of the timeline moves.
+- [ ] Until the rest is read, another worktree with three files not committed shows no count; after, 3.
+- [ ] After a change to a file, the read that follows shows the state once, whole.
+
 ### `repo.read-shallow` — Whether the history is shallow, and where it ends
 
 Whether the repository is a shallow clone, and the commits whose parents were not fetched, where its history ends
@@ -1348,6 +1385,41 @@ Acceptance:
       `api` says `api › feature/login` while that worktree is shown.
 - [ ] `Enter` on the chevron, which has the keyboard, folds or unfolds it; the screen reader is told each row, the one
       shown as selected, and whether the chevron is unfolded.
+
+### `repo.share-history` — A worktree takes the history its repository has read
+
+The worktrees of a repository share its commits and its references: one shown for the first time shows at once the
+rows another of them has read, and reads only what is its own
+([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)).
+
+- **Kind**: Derivation
+- **Function**: `model::repo::shared_history(read: &HistoryRead, asked: &CommitsRequest) -> Option<SharedHistory>`: the
+  rows and the references a worktree may take from another of its repository, none when the history asked differs
+- **Settings**: none: it does not wait for `repositories.keepOpen`, since the rows are those of the view left.
+- **Uses**: by `repo.group-tabs`, when a worktree or the repository itself is chosen in the group of a tab and kept
+  nothing; `repo.read-first`, read for the worktree chosen behind the rows; `graph.read-commits`, asked only when the
+  worktree's `HEAD` is on none of the references or the history asked differs.
+- **Extension**: Planned: a group of views moved to a worktree of the repository it shows keeps the rows it was sent,
+  the reads of the graph being kept by the folder the worktrees share (`repo.common-folder`), and is sent the first
+  step of that worktree.
+
+The rows are taken when the worktree left has its commits read, wholly or up to a page, for the same branches shown,
+the same search and the same order. They are shown as they are (Q1743): the mark of what is checked out, the row of
+the uncommitted changes and the branch in bold are those of the worktree left until the first step of the worktree
+chosen is read, a few reads later, and are then put where they belong. A worktree detached at a commit that no branch,
+remote branch or tag reaches has commits of its own: they are read then, and their rows added. A submodule is another
+repository and takes nothing.
+
+Acceptance:
+
+- [ ] With `api` shown and its 1,000 commits read, choosing its worktree `api-fix`, on the branch `fix`, shows the
+      same rows with no `git log` run, then `fix` as checked out and the uncommitted changes of `api-fix`.
+- [ ] Choosing back `api`, with nothing kept, takes the rows of `api-fix` the same way.
+- [ ] A worktree detached at a commit no reference reaches shows the rows of its repository, then its own commit
+      above them after one `git log`.
+- [ ] With `api` narrowed to the branch `main`, its worktree shown for the first time shows the rows of `main` only
+      when it is narrowed to `main` too; otherwise it is read as a repository chosen.
+- [ ] A submodule of `api` chosen takes no row of `api`.
 
 ### `repo.watch-hidden` — Keep the tabs not shown up to date
 

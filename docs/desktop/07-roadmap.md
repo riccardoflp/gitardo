@@ -2012,6 +2012,84 @@ is narrowed, RS16 is accepted, RS1 is left to the stylesheet (Q1700); `controlle
 `test/e2e/suite.ts` passes every step in Xvfb, and `npm run test:ui` 36 of 36 with a `GIT_CONFIG_GLOBAL` holding
 only an identity and `LANGUAGE=en`; the job `performance` of the pipeline has not run yet. Q1590 was asked.
 
+## M50 — A repository chosen is shown at once
+
+A repository, a worktree or a submodule chosen shows its rows at once: what the timeline needs is read first and the
+rest behind it, a worktree takes the history its repository has read, and the extension keeps the repositories left and
+reads the others ahead, as Gitardo Desktop does
+([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed),
+Q1740–Q1745). Asked by the maintainer on 2026-11-24, who found the graph of the extension slower than the **Graph**
+view of VS Code when changing repository.
+
+Read in the code on 2026-11-24, not yet measured in the apps, which phase 1 does:
+
+| | VS Code's Graph view | Gitardo, the extension |
+| --- | --- | --- |
+| Commits of a first read | 50 | those of `gitardo.graph.pageSize`, 1,000, awaited; up to 100,000 behind them |
+| References | the branch checked out, its upstream, its base | every branch, remote branch and tag |
+| Processes of git before the first row | 2 | about 30, and one for each other worktree; about 55 the first time |
+| The state of the repository | in memory already | read whole, twice the first time |
+| A repository left | forgotten | forgotten, unless `gitardo.repositories.keepOpen` is on |
+
+In this repository, of 853 commits, on Linux: `git log` of the whole history 20 ms, `git status` 15 to 21 ms, each
+other read of the state 4 to 7 ms. The time is in the number of processes and in their order, not in the history.
+
+Built in eight phases, each one commit or more, each ending with its cards built and their tests passing; Gitardo
+Desktop first, then the extension.
+
+1. **Measured first.** `cargo xtask perf` times, on the large repository with a second repository and three worktrees
+   beside it, a tab shown again, a worktree of the tab shown for the first time, and a repository never shown, each
+   until its first rows are laid out; `test/perf/vscode.mjs` times the same three in VS Code, until the graph has
+   drawn them, and counts the processes of git before the first row from the log of the engine. The times and the
+   counts go in the table below, as *Before*. No card changes.
+2. **The state in two steps, in Gitardo Desktop.** `git::read::repo::read_first`, and `read_state` reading the rest
+   from what it found; `app::work::pages::read_repository` sends the first step, asks the commits at once and reads the
+   rest beside them; the store puts each in its place, and what waits for the rest shows nothing meanwhile. Unit tests
+   of what each step runs, by the commands logged. Cards: `repo.read-first`; `repo.read-state`, its lines of what is
+   read in which step.
+3. **A worktree takes the history of its repository, in Gitardo Desktop.** `app::store::tabs::members::show_member`
+   with nothing kept for the worktree chosen: the rows and the references of the view left when the history asked is
+   the same, then its own first step. A test that counts no `git log` when the worktree's `HEAD` is on a branch.
+   Cards: `repo.share-history`; `repo.group-tabs`, its line of a worktree first shown.
+4. **The engine under the extension.** `read/repo.read-first` in the crate `server`, version 1.14 of
+   [the protocol](../transition/02-protocol.md); `repository/open` takes `first`, and then answers with the first step
+   and sends the rest as a `state` notification; a read of the state asked while the one of `repository/open` is under
+   way waits for it and reads nothing. Tests of the server by the commands logged. No card changes but the
+   **Extension** lines of `repo.read-first` and `repo.read-state`.
+5. **The first rows sooner, in the extension.** `RepositorySession.open` asks the folder the worktrees share, the
+   hosting service and the first step at once, sends the views the first step and the first rows, and asks the last
+   entry of the journal and the rest of the state while they are drawn; a session made for a repository the engine
+   opened in the same call asks no `refresh`. A step of `test/e2e/suite.ts` counts one read of the state for a
+   repository chosen for the first time. Cards: `repo.read-first` Built in the extension; `repo.select`.
+6. **Kept, and a worktree's history, in the extension.** `gitardo.repositories.keepOpen` on by default in
+   `package.json`; `Sessions` keeps the session of a repository left with its watchers; the reads of `EngineGraph` are
+   kept by the folder the worktrees share, so that a group moved to a worktree of the same repository is sent the
+   first step of that worktree and no row it has. The steps of the suite that start "with keeping repositories open"
+   run with the default, and those of the setting off set it. Cards: `repo.keep-open`, its default;
+   `repo.share-history` Built in the extension; [11-data.md](../extension/11-data.md), the default of the setting.
+7. **Read ahead, in the extension.** Once the repository shown has its first read, the others of the list are read
+   one after the other by the rules of `repo.watch-hidden`, as the engine already reads what the rows of the
+   **Gitardo Repositories** view say: none while an operation runs or the repository shown is read. A step of the suite
+   chooses a repository never shown and counts no read of its state after the choice. Cards: `repo.watch-hidden`, its
+   **Extension** line.
+8. **Measured and said.** The three times and the counts of phase 1 again, as *After*, in the table below and as QA15
+   to QA17 of [12-quality.md](../extension/12-quality.md), checked by `test/perf/vscode.mjs --limits` (Q1745); the
+   table of [06-testing.md](06-testing.md); the CHANGELOG of each app under **Unreleased**; the README of each app
+   where choosing a repository and keeping the repositories open are described.
+
+| | Before | After |
+| --- | ---: | ---: |
+| A repository shown before, chosen again | | |
+| A worktree of the repository shown, chosen for the first time | | |
+| A repository never shown | | |
+| Processes of git before the first row of a repository never shown | | |
+
+Exit: in both apps, on the large repository, a repository shown before and chosen again draws its rows in about
+100 ms and starts no process of git before them; a worktree of the repository shown, chosen for the first time, draws
+the rows of its repository in about 100 ms and then marks what it has checked out; a repository never shown draws its
+first rows in about 300 ms, after at most eight processes of git; no state is read twice for one choice; **Refresh**
+still reads everything again; QA1 to QA4 are at least as quick as on 2026-11-24, and every card of the milestone passes
+its tests.
 ## M51 — The toolbar of the graph: fitting its width, one way to choose, buttons that show on the ground (done)
 
 Three fixes of the toolbar above the graph of the extension, asked by the maintainer on 2026-11-25: its buttons do not

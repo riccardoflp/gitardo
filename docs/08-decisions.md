@@ -2435,6 +2435,74 @@ Rejected: running past the failures until they are looked at one by one (they hi
 extension's code where the engine runs the operation (the desktop would keep it); a threshold on every system (the
 times of the runners of macOS and Windows vary too much to fail on).
 
+## D92 — A repository chosen is shown at once, and read behind what it shows (proposed)
+
+*Asked by the maintainer on 2026-11-24 for milestone M50: "our graph, beside the one of VS Code, is slower: why? When I
+change repository or worktree I want it to be practically instant". The details proposed while planning. It changes one
+line of [D50](#d50--repository-tabs-and-what-each-repository-keeps), the default of
+`gitardo.repositories.keepOpen` in the extension, and one of
+[D89](#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed), a session let go with its
+last view; it keeps [D54](#d54--the-timeline-is-read-by-one-git-log-as-it-prints) as it is.*
+
+Read in the code of both apps and of VS Code 1.147 on 2026-11-24. The **Graph** view of VS Code's own Git extension
+asks one `git log -n50 --topo-order` of at most three references, the branch checked out, its upstream and its base,
+and one `git merge-base`: two processes of git for each repository chosen, with what is checked out and the references
+already in memory. It keeps nothing of a repository left, and reads again at every change. Gitardo shows every branch,
+remote branch and tag, and up to 100,000 commits; that is not what makes it wait. In this repository, of 853 commits,
+`git log` of the whole history takes 20 ms, and each other read of the state 4 to 20 ms. What makes it wait is what is
+done before the first row is shown:
+
+- the state is read whole first (`repo.read-state`): about 24 processes of git, and one `git status` in each other
+  worktree, of which the timeline needs five. On Windows each process takes 80 to 150 ms to start (M15);
+- in the extension a repository chosen for the first time has its state read twice, by `repository/open` and then by
+  `read/repo.read-state` with `refresh`, which reads again what was read a moment before;
+- in the extension the folder the worktrees share, the hosting service of the remote, the state, the commits and the
+  last entry of the journal are asked one after the other, and the views are sent the rows after the last of them;
+- in the extension a repository left is forgotten, since `gitardo.repositories.keepOpen` is off by default, so coming
+  back to it a moment later is a first read; in Gitardo Desktop it is kept, and shown at once;
+- a worktree shown for the first time reads the commits of its repository again, though they are those of the worktree
+  left, already read.
+
+So:
+
+- **What the timeline needs is read first.** The state is read in two steps. The first reads what the timeline, the
+  branch rail and the Changes page show: where the repository is, the references, what is checked out, the stashes, the
+  list of the worktrees, what is not committed in this worktree and the operation stopped half way
+  (`repo.read-first`). The commits are asked as soon as it ends, and the first page is shown. The rest of
+  `repo.read-state`, the count of each other worktree, the remotes, the configuration, the reflog, the submodules, the
+  shallow end, the commit-graph file, the notes, Git LFS and the resolutions remembered, is read at the same time as
+  the commits and put in its place when it comes. What waits for it says nothing meanwhile: a count of another
+  worktree is empty, not zero.
+- **A worktree takes the history its repository has read.** The worktrees of a repository share its commits and its
+  references. A worktree, or the repository itself, shown while another of them has its commits read for the same
+  history is shown with those rows at once (`repo.share-history`); its own first step then puts what is checked out
+  there, its uncommitted changes and its own commits, when its `HEAD` is on none of the references, in their place.
+- **A repository left is kept, in the extension too.** `gitardo.repositories.keepOpen` is on by default in the
+  extension, as `repositories.keepOpen` is in Gitardo Desktop: a repository chosen again shows what it showed at once,
+  and is read again only when something changed in it meanwhile (`repo.keep-open`, `repo.watch-hidden`). Turned off, a
+  repository left is forgotten as today.
+- **The repositories of the workspace are read ahead, in the extension too.** Once the repository shown has its first
+  read, the others of the list are read one after the other, never while an operation runs or the repository shown is
+  read, as the tabs of Gitardo Desktop are (`repo.watch-hidden`): a repository chosen for the first time is then
+  already read.
+- **Nothing is asked twice, nor in a row when it can be asked at once.** `repository/open` is not followed by a read of
+  the same state; **Refresh** counts every other worktree again, and a repository chosen only when it was not watched
+  meanwhile (it changes Q462 there, Q1744);
+  the hosting service and the last entry of the journal are asked while the rows are shown, not before.
+- **Measured first, and held.** Three times are measured before anything is built, in both apps, on the large
+  repository of `cargo xtask perf`: a repository shown before chosen again, a worktree of the repository shown chosen
+  for the first time, and a repository never shown. They become QA15 to QA17 of
+  [12-quality.md](extension/12-quality.md): about 100 ms, 100 ms and 300 ms until the first rows are drawn, the first
+  two with no process of git before them.
+
+Rejected: reading only the branch checked out and its upstream by default, as VS Code does (every branch in one graph
+is what Gitardo is for, and the branches shown are already the user's choice, `filter.show-only`); a first page of 50
+commits (the page is not what waits, and a short one makes the first scroll wait instead); a cache of the state or of
+the history on disk, shown when the window opens (stale rows shown as true, and another stored file, as D54 and D88
+said); an engine process for each repository (one process already keeps an `Engine` for each, D41); keeping every
+repository ever shown with no end (Q1740 asks where the end is); showing the rows of the repository left, dimmed, under
+the name of the one chosen (the rows of another repository under the wrong name, for the time of one read).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -6106,3 +6174,32 @@ Questions of milestone M47, asked while it was built; each is built as it says u
 - **Q1564** — `lfs.page`: the menu of a file of the tab has **Reveal in Explorer View** in place of the desktop's
   **Show in the Files page**, and a double-click opens the file. Should it also have **Open the file at this revision**
   and **Show history** of Gitardo, as the files of a commit have?
+
+### Of a repository shown at once, from Q1740
+
+Questions of milestone M50
+([D92](#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)), asked while it is planned;
+each is built as it says until the maintainer answers otherwise.
+
+- **Q1740** — `repo.keep-open`: with `gitardo.repositories.keepOpen` on by default, the extension keeps the state, the
+  rows and two watchers of every repository shown since the window opened. Should it keep them all, as the tabs of
+  Gitardo Desktop do, or let go of the one shown longest ago past a number, such as eight? Until answered, all.
+- **Q1741** — `repo.read-first`: the first step reads what is not committed in this worktree, so that the row of the
+  uncommitted changes is there with the first commits and no row moves after. In a working tree of very many files
+  `git status` is the slowest of its reads. Should it move to the second step when the read before took long, the row
+  then coming after the commits? Until answered, it stays in the first.
+- **Q1742** — `repo.watch-hidden`: the extension reads ahead the repositories of its list, one after the other. Should
+  their worktrees and submodules be read ahead too, or only when their repository is shown, and should a workspace of
+  very many repositories read ahead only some? Until answered, the repositories of the list, all of them, and a
+  worktree or a submodule when it is first shown.
+- **Q1743** — `repo.share-history`: a worktree shown for the first time takes the rows its repository has read, and
+  its own read then moves what is checked out and the uncommitted changes. Should the rows be dimmed until that read
+  ends, as the rows of a history being read again are (D54)? Until answered, they are not: they are its history.
+- **Q1744** — `repo.read-state`: a repository chosen no longer counts every other worktree again, as Q462 had it:
+  each keeps its count while nothing changed in its git folder, and **Refresh** counts them all. A worktree changed
+  while its repository was neither shown nor kept, with `keepOpen` off, is then counted at the next change seen there
+  or at **Refresh**. Is that enough, or should a repository that was not watched count them all when it is chosen?
+  Until answered, one that was not watched counts them all when it is chosen, and one that was kept does not.
+- **Q1745** — D92: the times of QA15 to QA17 are checked by `test/perf/vscode.mjs --limits` at one and a half times,
+  as QA1 to QA3 are. Should they fail the pipeline's job `performance`, whose machines start a process of git more
+  slowly than the maintainer's?
