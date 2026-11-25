@@ -2012,46 +2012,81 @@ is narrowed, RS16 is accepted, RS1 is left to the stylesheet (Q1700); `controlle
 `test/e2e/suite.ts` passes every step in Xvfb, and `npm run test:ui` 36 of 36 with a `GIT_CONFIG_GLOBAL` holding
 only an identity and `LANGUAGE=en`; the job `performance` of the pipeline has not run yet. Q1590 was asked.
 
-## M51 — The toolbar of the graph fits the width it has
+## M51 — The toolbar of the graph: fitting its width, one way to choose, buttons that show on the ground
 
-A fix, asked by the maintainer on 2026-11-25: the buttons of the toolbar above the graph of the extension do not follow
-the width of the view as they should. Whether the header of Gitardo Desktop has the same fault is not known, and phase 1
-finds out. Nothing changes in the engine.
+Three fixes of the toolbar above the graph of the extension, asked by the maintainer on 2026-11-25: its buttons do not
+follow the width of the view as they should; the repository is chosen in one way and the worktree in another; and with
+`gitardo.graph.islands` on the buttons are lost in the ground under them. Whether the header of Gitardo Desktop has the
+first fault is not known, and phase 1 finds out; it has not the second, since `graph.where` shows the repository, the
+worktree and the branch as parts of one line, each opening a list of the same kind. Nothing changes in the engine.
 
-Read in the code on 2026-11-25, not yet seen in the apps, which phase 1 does:
+Read in the code and in the screenshots of `npm run test:ui` on 2026-11-25, not yet seen in the apps of the day, which
+phase 1 does:
 
 | | The extension | Gitardo Desktop |
 | --- | --- | --- |
-| What decides | the width of the view, at three fixed widths (`.toolbar` in `src/webview/styles.css`) | the width of the window, at one (`views::line::is_narrow`, 900 px) |
-| What gives way | under 1200 px the words of the button of the branches shown; under 1040 px the words of every button, and **Refresh**; under 800 px the search, to a line of its own | the words of **Sync**, and the parts of where one is, each cut at its start (`graph.where`) |
+| What decides what gives way | the width of the view, at three fixed widths (`.toolbar` in `src/webview/styles.css`) | the width of the window, at one (`views::line::is_narrow`, 900 px) |
+| What gives way | under 1200 px the words of the button of the branches shown; under 1040 px the words of every button, and **Refresh**; under 800 px the toolbar wraps, and the search takes what is left of a line | the words of **Sync**, and the parts of where one is, each cut at its start (`graph.where`) |
 | What is not counted | what the toolbar holds: the repository and the worktree to choose, the name of the branch, up to 220 px and never shrunk, the counts beside **Pull** and **Push**, the words of what is running | what the header holds, and the bar of views and the brand beside it |
-| Tested narrow | by no test | by the snapshot `brand-header-narrow-dark`, for the brand |
+| Tested narrow | at windows of 1050 px and 800 px, by "the toolbar still names the branch and fits when the panel is narrow" of `test/e2e/ui.mjs`, which asks only that nothing is outside the toolbar | by the snapshot `brand-header-narrow-dark`, for the brand |
 
-So a toolbar with all it may hold can be longer than a view wider than 1040 px, and its last buttons pushed out of
-sight, while one that holds little gives up words it has the room for.
+What was found:
 
-Built in three phases, each one commit, each ending with its tests passing; Gitardo Desktop first, then the extension.
+- **A button alone on a line.** In a window of 800 px, `03-narrow-800.png`, the toolbar wraps wherever it ends:
+  **Undo** is alone at the start of the second line, far from **Stash**, and the test passes, since nothing is outside
+  the toolbar. A toolbar that holds more can also be longer than a view wider than 1040 px, and one that holds little
+  gives up words it has the room for.
+- **Three ways to choose.** The repository is a `<select>` of the browser, a box of text with the list of the system,
+  its worktrees and submodules indented with spaces (`RepoSelect.tsx`, in the toolbar and at the top of the **Gitardo
+  Changes** view); the worktree is a button with its icon, the name and a chevron, which opens the menu the webviews
+  draw, each entry with its folder and the one shown ticked (`WorktreeSelect.tsx`); where to search, **Loaded**, is a
+  `<select>` again, inside the search box.
+- **Buttons on the ground.** With the islands the toolbar is on the ground, which is the background of the panel made
+  darker, while its buttons keep the colors they have on that background: the ones with words the background and the
+  border of VS Code's secondary buttons, the ones of an icon alone no shape at all, the list of the repositories and
+  the search box the background of an input. The step of `test/e2e/ui.mjs` on the islands looks at the islands and
+  their gaps, not at the toolbar.
+
+Built in five phases, each one commit, each ending with its tests passing; Gitardo Desktop first, then the extension.
 
 1. **Seen first.** In both apps, with a repository, a worktree and a branch of long names, commits to pull and to push,
    and an operation running: the toolbar at each width from 1,400 px down to 300 px, in steps of 100 px, in the
-   **Gitardo** view of the panel and in an editor tab for the extension, and in the window for the desktop. What is
-   pushed out of sight, cut, covered or wrapped at each width, and the words given up with room for them, go in a
-   table here, with whether the desktop has the fault. No card changes.
-2. **The header, in Gitardo Desktop.** Only if phase 1 found the fault there: `views::graph::toolbar_view` gives up
-   its words by what the header holds, not by the width of the window alone, and nothing of it is drawn outside the
-   window or over another part. Snapshots of `app/tests/places` at the widths phase 1 found. Cards: `graph.toolbar`,
-   its line of a narrow window and its acceptance; `graph.where`. If phase 1 found nothing, this phase says so here
-   and builds nothing.
-3. **The toolbar, in the extension.** `Toolbar.tsx` and its styles give way by what the toolbar holds, in one order:
-   the words of the button of the branches shown, the words of the other buttons, **Refresh**, which **…** has too,
-   then the search to a line of its own; no button is ever outside the view or under another, and no words are given
-   up while they fit. A step of `npm run test:ui` narrows the view through the widths of phase 1 and finds every
-   button of the toolbar inside it. Cards: `graph.toolbar`, what the extension does when narrow;
-   `extension/CHANGELOG.md` under **Unreleased**, and `rust/CHANGELOG.md` if phase 2 built.
+   **Gitardo** view of the panel and in an editor tab for the extension, and in the window for the desktop; and, in the
+   extension, with the islands on in each theme the suite tries, the contrast of each button, of its border and of
+   each box against the ground, measured. What is pushed out of sight, cut, covered or left alone on a line at each
+   width, the words given up with room for them, the contrasts, whether the desktop has the first fault, and whatever
+   else of the toolbar is found at fault, go in a table here. No card changes.
+2. **The header, in Gitardo Desktop.** Only if phase 1 found a fault there: `views::graph::toolbar_view` gives up its
+   words by what the header holds, not by the width of the window alone, and nothing of it is drawn outside the window
+   or over another part. Snapshots of `app/tests/places` at the widths phase 1 found. Cards: `graph.toolbar`, its line
+   of a narrow window and its acceptance; `graph.where`. If phase 1 found nothing, this phase says so here and builds
+   nothing.
+3. **The toolbar fits, in the extension.** `Toolbar.tsx` and its styles give way by what the toolbar holds, in one
+   order: the words of the button of the branches shown, the words of the other buttons, **Refresh**, which **…** has
+   too, then a second line, which the search and the buttons after it take whole; no button is ever outside the view,
+   under another or alone on a line, and no words are given up while they fit. The step of `test/e2e/ui.mjs` narrows
+   the view through the widths of phase 1 and asks that of each. Cards: `graph.toolbar`, what the extension does when
+   narrow.
+4. **One way to choose, in the extension.** The repository is a button as the worktree is, with the icon of a
+   repository, its name and a chevron, which opens the menu the webviews draw: the repositories of the workspace, the
+   worktrees and the submodules of each indented under it with their icons, the one shown ticked; in the toolbar and
+   at the top of the **Gitardo Changes** view. Where to search is chosen from the same menu. What each lists, and
+   what a choice does, stay as they are. Steps of `test/e2e/ui.mjs` that choose a repository and where to search by
+   their menus. Cards: `repo.select`, of the extension; `repo.group-tabs` and `search.box`, their lines of the
+   extension.
+5. **Buttons that show on the ground, in the extension.** With the islands on, the buttons with words, the two lists
+   and the search box of the toolbar have a background and a border told apart from the ground in every theme, the
+   high contrast ones too, by the contrast phase 1 measured against; a button of an icon alone still has no shape
+   until the pointer is over it, as in VS Code's own toolbars. The step of the islands of `test/e2e/ui.mjs` measures
+   them in each theme. Cards: `graph.islands`, its line of the extension. Then `extension/CHANGELOG.md` under
+   **Unreleased** and the README of the extension where the toolbar is described, and `rust/CHANGELOG.md` if phase 2
+   built.
 
 Exit: in the extension, and in Gitardo Desktop if it had the fault, at every width of phase 1 and with the longest
-names, every button of the toolbar is inside the view and can be clicked, none is under another, and the words of a
-button are shown whenever there is room for them.
+names, every button of the toolbar is inside the view and can be clicked, none is under another or alone on a line,
+and the words of a button are shown whenever there is room for them; in the extension the repository, the worktree
+and where to search are chosen from buttons and menus of one look; and with the islands on, in every theme the suite
+tries, each button with words and each box of the toolbar is told from the ground.
 
 ## Before a release
 
