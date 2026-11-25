@@ -50,6 +50,23 @@ describe('the repositories kept by the extension', () => {
     expect(repositories.has('/work/docs')).toBe(false);
   });
 
+  it('note the last change seen in a repository while it is read ahead, which what it keeps is then out of date for', () => {
+    const repositories = new KeptRepositories();
+    // Before its read starts, a repository that keeps nothing has nothing to note.
+    repositories.changed('/work/web', 'a.txt changed');
+    repositories.readingAhead('/work/web');
+    expect(repositories.has('/work/web')).toBe(false);
+    repositories.changed('/Work/Web', '.git/HEAD changed');
+    repositories.changed('/work/web', 'b.txt changed');
+    repositories.keep('/work/web', { ...kept('/work/web'), changed: repositories.readAhead('/work/web') });
+    expect(repositories.outOfDate('/work/web')).toBe('b.txt changed');
+    // Read with nothing seen meanwhile, it is up to date; and nothing is noted once the read is over.
+    repositories.readingAhead('/work/api');
+    expect(repositories.readAhead('/work/api')).toBeUndefined();
+    repositories.changed('/work/api', 'a.txt changed');
+    expect(repositories.readAhead('/work/api')).toBeUndefined();
+  });
+
   it('mark all of them out of date at once, as when the settings change', () => {
     const repositories = new KeptRepositories();
     repositories.keep('/work/web', kept('/work/web'));

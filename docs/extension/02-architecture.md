@@ -239,8 +239,11 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
   graph in the editor; it holds what narrows its graph (filter, branches shown, how many commits), its pages of commits
   and the repository it came from (`home`). `Sessions` (`src/extension/sessions.ts`) says which session each group is
   on: one is made when the first group comes to a repository and let go when the last one leaves it, its state kept by
-  `KeptRepositories` while `gitardo.repositories.keepOpen` is on. Two tabs on one repository share its session and read
-  it once. `Controller.groupOf` says which group a view is in; what a view asks acts on its group's repository, and a
+  `KeptRepositories` while `gitardo.repositories.keepOpen` is on, as it is by default. The other repositories of the
+  list are read ahead, one after the other, by a session of their own that no group is on, and kept the same way
+  (`RepositoriesAhead`, `repo.watch-hidden`). The commits a group read are kept by the folder the worktrees share, so
+  that a worktree takes those of its repository (`EngineGraph.keepBy`, `repo.share-history`). Two tabs on one
+  repository share its session and read it once. `Controller.groupOf` says which group a view is in; what a view asks acts on its group's repository, and a
   tab of a commit or a comparison stays with the repository it was opened for, sent what the group showing it reads.
 - **Which repository each group shows**: the followers show the repository chosen in the toolbar's list, remembered
   under `gitardo.repository`, and follow the tab of the graph that last came into focus (`RepositoriesShown.followTab`,

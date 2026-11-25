@@ -1180,6 +1180,75 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('reads ahead a repository of the workspace never shown, and shows it at once when it is chosen, with no read of its state or of its commits after the choice', async () => {
+    const ahead = path.join(workspace, 'ahead');
+    const client = internals.engine?.running as EngineClient;
+    // What is asked of the engine in the repository read ahead: its state, and the commits of its history.
+    const asked: string[] = [];
+    const { currentState, graphStream } = client;
+    client.currentState = (repository, ...rest) => {
+      if (samePath(repository, ahead)) asked.push('state');
+      return currentState.call(client, repository, ...rest);
+    };
+    client.graphStream = (repository, ...rest) => {
+      if (samePath(repository, ahead)) asked.push('commits');
+      return graphStream.call(client, repository, ...rest);
+    };
+    const counted = readsFrom();
+    try {
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      fs.mkdirSync(ahead);
+      await git(ahead, ['init', '-b', 'main']);
+      fs.writeFileSync(path.join(ahead, 'a.txt'), 'a\n');
+      await git(ahead, ['add', 'a.txt']);
+      await git(ahead, ['-c', 'user.name=Test Author', '-c', 'user.email=author@example.com', 'commit', '-m', 'Read ahead']);
+      // What making it wrote is over before it is watched: the changes this step looks for are those after its read.
+      await git(ahead, ['status']);
+      await sleep(1500);
+      // The workspace has a repository more, as when a folder is added to it: it is read behind the one shown.
+      await internals.locate();
+      assert.ok(samePath(state().root, app), state().root);
+      assert.ok(state().repos.some((repo) => samePath(repo.root, ahead)), 'the list has the repository');
+      await until('the repository to be read ahead', () => internals.kept.has(ahead));
+      assert.deepEqual(asked, ['state', 'commits']);
+      // Longer than the watchers take to tell of a change: none was seen in it since it was read.
+      await sleep(1500);
+      assert.equal(internals.kept.outOfDate(ahead), undefined);
+      // Nothing of it was sent to the views, which show app.
+      assert.ok(samePath(state().root, app), state().root);
+
+      // Chosen for the first time: shown at once from what was read, and nothing is read for it.
+      asked.length = 0;
+      const from = posted.length;
+      await controller.repositories.selectRepo(ahead);
+      assert.ok(samePath(state().root, ahead), state().root);
+      assert.deepEqual(subjects(), ['Read ahead']);
+      assert.deepEqual(toldFrom(from), ['state ahead']);
+      await sleep(1500);
+      const why = counted.of(nameOf(ahead)).map(({ task }) => task.detail ?? 'no reason said');
+      assert.deepEqual(asked, [], `nothing is read after the choice: ${why.join('; ')}`);
+      assert.equal(why.length, 0, 'the status bar says no read of it as a repository shown');
+
+      // With the setting off, nothing is read ahead.
+      await controller.repositories.selectRepo(app);
+      await keepOpen(false);
+      await until('the views to be told nothing is kept', () => internals.state?.keepOpen === false);
+      await internals.locate();
+      await sleep(1500);
+      assert.ok(!internals.kept.has(ahead) && !internals.kept.has(lib), 'nothing is kept, nor read ahead');
+      assert.deepEqual(asked, []);
+    } finally {
+      counted.stop();
+      client.currentState = currentState;
+      client.graphStream = graphStream;
+      await keepOpen(undefined);
+      await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      fs.rmSync(ahead, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await internals.locate();
+    }
+  });
+
   await step('a worktree of the repository shown, chosen for the first time, keeps the rows of its repository and reads no commits, and so does the repository chosen back', async () => {
     const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');
     const taken = `${home}/taken`;

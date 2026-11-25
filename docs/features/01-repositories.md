@@ -1492,11 +1492,30 @@ How the repositories of the tabs not shown follow their changes without reading 
 - **Uses**: `repo.watch-changes`, `repo.schedule-reads`, `repo.keep-open`, `activity.describe-task`.
 - **Extension**: with `gitardo.repositories.keepOpen` on, the repositories the extension keeps follow these rules, the
   window of VS Code taking the place of the tab shown. The repositories it keeps are those left since the window
-  opened: none is read in the background, so the rule of the reads one after the other once the workspace opens has
-  nothing to read there. Their watchers stay, and a change marks them out of date (`ChangesSeen.changedIn`). Tested by
-  `test/e2e/suite.ts`, steps "with keeping repositories open on, a commit made in a terminal in a repository not shown
-  reads nothing, and showing it reads it once" and "with keeping repositories open on, shows a repository chosen again
-  at once as it was left, and reads nothing for it when nothing changed". What the rows of its Repositories view say of
+  opened and, of the list of `repo.select`, those read ahead
+  ([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)): once
+  the repository the panel shows has its first read, which waits for the first view when `gitardo.readOnStartup` is
+  off, each other repository of the list that no view shows and that keeps nothing is read, one after the other, in
+  the order of the list: the folder its worktrees share, the hosting service of its main remote, its state and its
+  commits to the end of the history, as a repository shown is read, the status bar saying **Reading `<name>`**, and it
+  is kept as if it had been shown and left, with its watchers. Its worktrees and its submodules are not read ahead
+  (Q1742), nor a worktree of a repository shown, which takes its history when it is chosen (`repo.share-history`).
+  None is read while an operation runs, while the state of a repository shown is read or while the pages of its
+  history still come: one being read when an operation or a read of a repository shown starts is stopped, what it
+  read thrown away, and waits for its turn again (`ReadAhead` of `src/extension/readAhead.ts`, `RepositoriesAhead` of
+  `src/extension/repositoriesAhead.ts`, `RepositorySession.readAhead`). A change seen in a repository while it is
+  read ahead leaves what it keeps out of date. Nothing of a repository read ahead is sent to a view; chosen for the
+  first time, it is shown at once from what it keeps, with no read when nothing changed. A repository whose read
+  ahead failed is read when it is chosen, the failure said in the log. With the setting off, nothing is read ahead.
+  The watchers of the repositories kept stay, and a change marks them out of date (`ChangesSeen.changedIn`); one out
+  of date that is shown is read again without counting every other worktree again, having been watched (Q1744).
+  Tested by `test/e2e/suite.ts`, steps "with keeping repositories open on, a commit made in a terminal in a repository
+  not shown reads nothing, and showing it reads it once", "with keeping repositories open on, shows a repository
+  chosen again at once as it was left, and reads nothing for it when nothing changed" and "reads ahead a repository of
+  the workspace never shown, and shows it at once when it is chosen, with no read of its state or of its commits after
+  the choice"; `test/readAhead.test.ts`, the turns: one after the other, none while an operation runs or a repository
+  shown is read, the one stopped given its turn again; `test/kept.test.ts`, "note the last change seen in a repository
+  while it is read ahead, which what it keeps is then out of date for". What the rows of its Repositories view say of
   the repositories not shown is not their state: it is read by the engine in the background, as
   `repo.worktree-summary` says, whatever the setting, and never while an operation runs or a state is read.
 

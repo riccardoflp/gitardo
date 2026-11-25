@@ -107,6 +107,10 @@ export interface ControllerHost {
   requireState(on?: ViewGroup): Promise<RepoState | null>;
   /** The state of a group, sent to its views. */
   setState(group: ViewGroup, state: RepoState | null): void;
+  /** A session for a repository no group shows, which reads it ahead and is let go (`repo.watch-hidden`). */
+  makeSession(root: string): RepositorySession;
+  /** The state read ahead of a repository of the list, with what the window adds to it, as a group that shows it has it. */
+  completeAhead(session: RepositorySession, read: RepoState): Promise<RepoState>;
   /** The hosting service of the main remote of a repository shown. */
   hostingOf(root: string): Hosting | null | undefined;
   /** Keeps the marks of the tags of a repository, and shows them while it is shown. */

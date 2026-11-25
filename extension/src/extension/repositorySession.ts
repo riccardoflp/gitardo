@@ -281,6 +281,10 @@ export interface SessionHost {
   pullsRead(session: RepositorySession): void;
   /** Forgets the token of a GitLab that the GitLab refused, so that signing in asks for another (`hosting.token`). */
   forgetToken?(host: string): Promise<void>;
+  /** A repository shown starts being read: no other is read ahead meanwhile (`repo.watch-hidden`). */
+  readStarts?(): void;
+  /** The read of a repository shown ended: the others may be read ahead. */
+  readEnded?(): void;
 }
 
 /**
@@ -396,6 +400,7 @@ export class RepositorySession {
   }
 
   private async load(): Promise<void> {
+    this.host.readStarts?.();
     const task = this.host.activity.start(this.readTitle());
     let waiting: (() => void)[] = [];
     try {
@@ -458,6 +463,7 @@ export class RepositorySession {
       this.loading = undefined;
       for (const resolve of [...waiting, ...this.waiters.splice(0)]) resolve();
       task.end();
+      this.host.readEnded?.();
     }
     // Not for the read at the start of VS Code: GitHub is asked only once a view can show what it says.
     if (this.host.hasViews(this) && !this.disposed) void this.refreshPulls(false);
@@ -479,6 +485,42 @@ export class RepositorySession {
     if (everything && !taken) for (const group of groups) group.graph.readAgain(this.root);
     const parts = await reads.parts(this.repo, this.host.autoResolve(), everything);
     return Promise.all(groups.map((group) => group.readGraph(client, this.repo, parts, stashes, this.host.log)));
+  }
+
+  /**
+   * Reads the repository while no view shows it, so that it is there once it is chosen (`repo.watch-hidden`, D92): the
+   * folder its worktrees share, watched from then on, the hosting service of its main remote, its state, counting every
+   * worktree, and the commits of its history to their end, kept by `graph`. The status bar says it is read. Null when
+   * `stop` stopped it, or when `shown` says a repository shown has that folder: it then takes its history when chosen.
+   */
+  async readAhead(graph: EngineGraph, scope: Scope | null, stop: AbortSignal, shown: (folder: string) => boolean): Promise<RepoState | null> {
+    const task = this.host.activity.start(this.readTitle(), 'Ahead, so that it is there once it is chosen.');
+    try {
+      const gitDir = await reads.commonDir(this.repo);
+      if (stop.aborted || shown(gitDir)) return null;
+      this.commonFolder = gitDir;
+      this.watcher = this.watch(gitDir);
+      await this.detectHosting();
+      const parts = stop.aborted ? null : await reads.parts(this.repo, this.host.autoResolve(), true);
+      if (!parts || stop.aborted) return null;
+      const client = reads.client();
+      const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
+      graph.keepBy(this.root, gitDir);
+      const asked = { limit: pageSize(), filter: null, scope, stashes, firstParent: firstParent() };
+      const reader: CommitsReader = (wanted) => graph.commits(client, this.root, wanted, pageSize(), stop);
+      const state = await graphState(client, this.root, parts, asked, reader, stop, undefined, graph.placeOf(this.root));
+      // To the end of its history, as a repository shown is read: the next one waits for it.
+      await new Promise<void>((resolve) => {
+        stop.addEventListener('abort', () => resolve(), { once: true });
+        void graph.reached(this.root, Number.MAX_SAFE_INTEGER).then(resolve, resolve);
+      });
+      return stop.aborted ? null : state;
+    } catch (error) {
+      if (stop.aborted || isCancelled(error)) return null;
+      throw error;
+    } finally {
+      task.end();
+    }
   }
 
   /** What the status bar says the repository is read for, by the name the list of repositories gives it. */

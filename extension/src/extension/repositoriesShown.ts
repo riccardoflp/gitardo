@@ -18,7 +18,7 @@ import { sameHistory, sharesHistory, tabTitle } from './sessions';
 /** The repository of the workspace the panel and the side bar show, which they show again when the window opens. */
 export const REPO_KEY = 'gitardo.repository';
 /** The branches chosen for the graph of each repository, by its folder. */
-const SCOPE_KEY = 'gitardo.scope';
+export const SCOPE_KEY = 'gitardo.scope';
 
 /** The kind of the tabs of the graph in the editor, which VS Code brings back after a reload (`repo.keep-tabs`). */
 export const GRAPH_TAB = 'gitardo.graphEditor';

@@ -34,6 +34,8 @@ const key = (root: string) => root.replace(/\\/g, '/').toLowerCase();
 export class KeptRepositories {
   private readonly kept = new Map<string, KeptRepository & { root: string }>();
   private readonly messages = new Map<string, string>();
+  /** The repositories being read ahead, each with the last change seen in it since its read started (`repo.watch-hidden`). */
+  private readonly ahead = new Map<string, string | undefined>();
 
   /** Keeps what a repository showed as it is left, in place of what it kept before. */
   keep(root: string, kept: KeptRepository): void {
@@ -59,15 +61,32 @@ export class KeptRepositories {
     return this.kept.get(key(root))?.changed;
   }
 
-  /** Marks a repository kept as out of date, with the change seen last, and reads nothing (`repo.watch-hidden`). */
+  /**
+   * Marks a repository kept as out of date, with the change seen last, and reads nothing (`repo.watch-hidden`). In one
+   * being read ahead the change is noted, for what it keeps once it is read.
+   */
   changed(root: string, cause: string): void {
     const kept = this.kept.get(key(root));
     if (kept) kept.changed = cause;
+    else if (this.ahead.has(key(root))) this.ahead.set(key(root), cause);
   }
 
   /** Marks every repository kept as out of date, as when the settings they were read with change. */
   changedAll(cause: string): void {
     for (const kept of this.kept.values()) kept.changed = cause;
+    for (const folder of this.ahead.keys()) this.ahead.set(folder, cause);
+  }
+
+  /** A repository no view shows starts being read ahead: a change seen in it from now on is noted. */
+  readingAhead(root: string): void {
+    this.ahead.set(key(root), undefined);
+  }
+
+  /** The read ahead of a repository is over: the last change seen in it meanwhile, which what was read is out of date for. */
+  readAhead(root: string): string | undefined {
+    const changed = this.ahead.get(key(root));
+    this.ahead.delete(key(root));
+    return changed;
   }
 
   /** Keeps the message the commit box had in a repository it was pointed away from. */

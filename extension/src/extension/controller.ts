@@ -29,6 +29,7 @@ import { completed, graphState, readCommits } from '../engine/graph';
 import { RangeDiffTab } from './rangeDiffTab';
 import { type GroupHost, REFRESH_DELAY, RepositorySession, type SessionHost, ViewGroup, errorText, firstParent, keepOpen } from './repositorySession';
 import { Sessions, tabTitle } from './sessions';
+import { RepositoriesAhead } from './repositoriesAhead';
 import { type Sent, rowsKey, stateFor } from './sentParts';
 import { partsOf } from '../shared/stateParts';
 import { Commands, defaultPull } from './commands';
@@ -150,6 +151,8 @@ export class Controller implements vscode.Disposable {
   private readonly sent = new WeakMap<vscode.Webview, Sent>();
   /** The files with edits not saved in an editor. */
   private readonly unsaved: UnsavedFiles;
+  /** The repositories of the list read ahead, while no view shows them (`repo.watch-hidden`). */
+  private readonly ahead: RepositoriesAhead;
   /** What a change seen asks for: a read of a repository shown, or a repository kept marked out of date. */
   private readonly changesSeen: ChangesSeen;
   /** What the menus of VS Code are told of the repository the panel shows. */
@@ -243,6 +246,8 @@ export class Controller implements vscode.Disposable {
         for (const [view, kind] of this.views) if (state && showsGraph(kind) && this.groupOf(view) === group) this.post({ type: 'state', state }, view);
       },
       historyRead: (group) => {
+        // The history of a repository shown is read to its end: the others may be read ahead (`repo.watch-hidden`).
+        this.ahead.turns.next();
         const ask = (message: string, ...buttons: string[]) => vscode.window.showInformationMessage(message, ...buttons);
         void offerCommitGraph(group.state, { memento: this.memento, ask, write: () => this.action({ kind: 'writeCommitGraph' }, group) });
       },
@@ -270,6 +275,8 @@ export class Controller implements vscode.Disposable {
         for (const group of this.sessions.groupsOn(session)) if (group.state) this.setState(group, { ...group.state, pulls: session.pulls });
       },
       forgetToken: (host) => this.forgetToken?.(host) ?? Promise.resolve(),
+      readStarts: () => this.ahead.turns.stop(),
+      readEnded: () => this.ahead.turns.next(),
     };
     this.sessions = new Sessions<RepositorySession, ViewGroup>({
       make: (root) => new RepositorySession(root, sessionHost),
@@ -330,6 +337,8 @@ export class Controller implements vscode.Disposable {
       stateOf: (repo) => this.stateOf(repo),
       requireState: (on) => this.requireState(on),
       setState: (group, state) => this.setState(group, state),
+      makeSession: (root) => new RepositorySession(root, sessionHost),
+      completeAhead: (session, read) => this.completeFor(session, null, read),
       hostingOf: (root) => this.sessions.find(root)?.hosting,
       markTags: (root, marks) => this.markTags(root, marks),
       whenLocated: () => this.whenLocated(),
@@ -356,6 +365,7 @@ export class Controller implements vscode.Disposable {
       reviewConflicts: (paths, ai, on) => this.conflictReviews.reviewConflicts(paths, ai, on),
     };
     this.repositories = new RepositoriesShown(host);
+    this.ahead = new RepositoriesAhead(host);
     this.history = new HistoryShown(host);
     this.commands = new Commands(host);
     this.runFollowUps = new RunFollowUps(host);
@@ -407,7 +417,12 @@ export class Controller implements vscode.Disposable {
           // The repositories kept were read with the settings before: each is read again once it is shown.
           this.kept.changedAll('the settings changed');
         }
-        if (event.affectsConfiguration('gitardo.repositories.keepOpen')) this.changesSeen.keepOpenChanged();
+        if (event.affectsConfiguration('gitardo.repositories.keepOpen')) {
+          this.changesSeen.keepOpenChanged();
+          // Turned off, nothing is read ahead any more; turned on, the repositories of the list are.
+          this.ahead.turns.stop();
+          this.ahead.turns.next();
+        }
         // After the engine is told of the settings, in a listener of its own that may come after this one.
         if (event.affectsConfiguration('gitardo.hosting')) setTimeout(() => void this.changesSeen.hostingChanged(), 0);
         if (event.affectsConfiguration('gitardo.conflicts')) void this.conflictReviews.tab?.reload();
@@ -426,6 +441,7 @@ export class Controller implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.ahead.turns.stop();
     for (const group of this.allGroups()) {
       this.sessions.leave(group);
       group.dispose();
@@ -516,9 +532,13 @@ export class Controller implements vscode.Disposable {
   }
 
   /** The state read for a group, with what the window adds to it: its favorites, its settings, its pull requests. */
-  private async complete(group: ViewGroup, state: RepoState): Promise<RepoState> {
+  private complete(group: ViewGroup, state: RepoState): Promise<RepoState> {
+    return this.completeFor(group.session, this.homeOf(group, state.root), state);
+  }
+
+  /** A state read of a repository, for the session that read it, with what the window adds to it. */
+  private async completeFor(session: RepositorySession | undefined, home: RepoInfo | null, state: RepoState): Promise<RepoState> {
     const sort = branchSort();
-    const session = group.session;
     // The pages of the read that come while the rest is read are laid out under its rows once it is: a read that
     // ended meanwhile would not be told to the views after.
     return completed(sortRefs(state, sort), async () => ({
@@ -541,7 +561,7 @@ export class Controller implements vscode.Disposable {
       combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
       islands: vscode.workspace.getConfiguration('gitardo').get('graph.islands') === true,
       resolveWithAI: resolveWithAI(),
-      home: this.homeOf(group, state.root),
+      home,
       keepOpen: keepOpen(),
       signOff: vscode.workspace.getConfiguration('gitardo').get('commit.signOff') === true,
       tagMarks: this.tagMarks.get(state.root) ?? null,
@@ -655,6 +675,8 @@ export class Controller implements vscode.Disposable {
       const asker = new VscodeAsker(client, repo.root, hooks);
       this.operation = { feature, root: repo.root, asker };
       this.operations++;
+      // Nothing is read ahead while an operation runs: the read that follows it gives the others their turn again.
+      this.ahead.turns.stop();
       this.post({ type: 'busy', title: feature });
       this.repositoriesView.ran(repo.root);
       let result: Awaited<ReturnType<typeof client.runFeature>> | undefined;
@@ -762,6 +784,7 @@ export class Controller implements vscode.Disposable {
     this.locating = locating;
     const done = () => {
       if (this.locating === locating) this.locating = undefined;
+      this.ahead.turns.next();
     };
     locating.then(done, done);
     return locating;
@@ -785,6 +808,9 @@ export class Controller implements vscode.Disposable {
     // Each worktree and submodule under its repository, as the list of the repositories shows them (`repo.group-tabs`).
     const grouped = groupRepositories(found).map(({ repository, depth }) => ({ repository: { ...repository, name: repositoryName(repository.folder, folders) }, depth }));
     this.repos = grouped.map(({ repository, depth }) => ({ root: repository.folder, name: repository.name, depth }));
+    // The list is another: what was being read ahead may not be in it, and each repository gets its turn again.
+    this.ahead.turns.stop();
+    this.ahead.turns.again();
     this.repositoriesView.found(grouped);
     for (const group of this.allGroups()) this.repositories.retitle(group);
     // A repository that is no longer in the workspace keeps nothing.
