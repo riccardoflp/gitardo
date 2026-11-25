@@ -81,7 +81,8 @@ pub fn show_in_tab(state: &mut State, index: usize, folder: &Path) -> Vec<Effect
 
 /// Shows in the tab shown another repository of its group, a worktree or a submodule, or its own again: what the one
 /// left showed is kept apart, as `repositories.keepOpen` says, and the one shown finds what it kept, read again behind
-/// it, or is read for the first time.
+/// it; with nothing kept, a worktree of the repository left takes the rows that one has read (`repo.share-history`),
+/// and anything else is read for the first time.
 pub fn show_member(state: &mut State, folder: &Path) -> Vec<Effect> {
     if state.is_operation_running {
         return Vec::new();
@@ -95,6 +96,8 @@ pub fn show_member(state: &mut State, folder: &Path) -> Vec<Effect> {
     if same_folder(&current, folder) {
         return Vec::new();
     }
+    // What the worktree chosen may take of the view left is asked while that view is whole, its pages still coming.
+    let offer = super::share::offered(state, folder);
     let mut effects = workspace::cancel_reads(state);
     let keep_open = state.settings.keep_open;
     let (left, not_wanted) = kept_on_leaving(take_view(state), keep_open);
@@ -120,7 +123,10 @@ pub fn show_member(state: &mut State, folder: &Path) -> Vec<Effect> {
         if !same_folder(folder, &tab_folder) {
             state.worktrees.window_folder = Some(tab_folder);
         }
-        effects.extend(workspace::show_folder(state, folder));
+        effects.extend(match offer {
+            Some(offer) => super::share::show_shared(state, folder, offer),
+            None => workspace::show_folder(state, folder),
+        });
         return effects;
     };
     put_view(state, *member.kept);

@@ -54,17 +54,31 @@ pub fn history_of(repository: &RepositoryState, shown: Option<&BranchesShown>, p
 /// commit checked out, references and stashes, and the same arguments for git (`repo.schedule-reads`).
 #[must_use]
 pub fn is_same_history(before: &RepositoryState, after: &RepositoryState, request: &TimelineRequest) -> bool {
-    before.head.commit == after.head.commit
-        && same(&before.branches, &after.branches, |one, other| {
-            one.name == other.name && one.commit == other.commit
-        })
-        && same(&before.remote_branches, &after.remote_branches, |one, other| {
-            one.name == other.name && one.commit == other.commit
-        })
-        && same(&before.tags, &after.tags, |one, other| {
-            one.name == other.name && one.commit == other.commit
-        })
-        && same(&before.stashes, &after.stashes, |one, other| one.commit == other.commit)
+    before.head.commit == after.head.commit && is_same_but_checked_out(before, after, request)
+}
+
+/// Whether a read of the timeline lists for a worktree the rows another worktree of its repository has
+/// (`repo.share-history`): the same references and stashes, the same arguments for git, and either the same commit
+/// checked out or, in both, a commit a reference the timeline lists is at, so that neither adds commits of its own.
+#[must_use]
+pub fn is_shared_history(before: &RepositoryState, after: &RepositoryState, request: &TimelineRequest) -> bool {
+    let is_on_reference = |state: &RepositoryState| {
+        let shown = checked(request.shown.as_ref(), &References::of(state));
+        request.alone.is_some() || model::repo::is_on_reference(state, shown.as_ref())
+    };
+    is_same_but_checked_out(before, after, request)
+        && (before.head.commit == after.head.commit || (is_on_reference(before) && is_on_reference(after)))
+}
+
+/// Whether two states have the same references and stashes, and ask git the same commits.
+fn is_same_but_checked_out(before: &RepositoryState, after: &RepositoryState, request: &TimelineRequest) -> bool {
+    same(&before.branches, &after.branches, |one, other| {
+        one.name == other.name && one.commit == other.commit
+    }) && same(&before.remote_branches, &after.remote_branches, |one, other| {
+        one.name == other.name && one.commit == other.commit
+    }) && same(&before.tags, &after.tags, |one, other| {
+        one.name == other.name && one.commit == other.commit
+    }) && same(&before.stashes, &after.stashes, |one, other| one.commit == other.commit)
         && commits_request(before, request) == commits_request(after, request)
 }
 

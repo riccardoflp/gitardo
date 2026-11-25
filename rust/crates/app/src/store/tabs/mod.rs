@@ -12,6 +12,7 @@ mod members;
 mod menu;
 mod open;
 mod operation;
+mod share;
 mod summaries;
 mod view;
 

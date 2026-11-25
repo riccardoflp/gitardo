@@ -11,7 +11,7 @@ use model::state::RepositoryState;
 
 use super::pages::{ReadingRepository, Sender, seconds_now, whole};
 use crate::store::{JobId, Message, ReadResult, commits_request};
-use engine::timeline::is_same_history;
+use engine::timeline::is_shared_history;
 
 /// What the thread that reads the rest of the state gives.
 type Rest = Result<(RepositoryState, CountedWorktrees), GitError>;
@@ -38,7 +38,7 @@ pub fn read_in_steps(job: JobId, read: &ReadingRepository<'_>, cancel: &CancelTo
     };
     let is_kept = read
         .kept
-        .is_some_and(|kept| is_same_history(kept, &first.state, read.request));
+        .is_some_and(|kept| is_shared_history(kept, &first.state, read.request));
     let commits = whole(commits_request(&first.state, read.request));
     let git = git.in_directory(&first.state.folder);
     let rest_message = |result: Rest| Message::RestRead {

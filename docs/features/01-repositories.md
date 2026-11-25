@@ -1366,7 +1366,9 @@ The rules:
   a folder of the workspace or not.
 - A submodule is in the group of the repository around it, and so is a submodule of a submodule.
 - A repository of the workspace that is neither is a group of its own, and so a tab of its own.
-- Each member of a group keeps what it showed apart from the others, as `repo.keep-open` says.
+- Each member of a group keeps what it showed apart from the others, as `repo.keep-open` says. A worktree, or the
+  repository itself, shown for the first time or with nothing kept, takes the rows the member left has read when the
+  history asked is the same (`repo.share-history`); a submodule is read as a repository chosen.
 - The rows of the members are indented under the row of their repository, by the width of an icon and a gap, and a
   submodule of a submodule by one more. The row of a worktree has the icon of a worktree, the row of a submodule the
   icon of a submodule. A worktree not read yet says the branch git listed for it.
@@ -1407,8 +1409,10 @@ rows another of them has read, and reads only what is its own
 ([D92](../08-decisions.md#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)).
 
 - **Kind**: Derivation
-- **Function**: `model::repo::shared_history(read: &HistoryRead, asked: &CommitsRequest) -> Option<SharedHistory>`: the
-  rows and the references a worktree may take from another of its repository, none when the history asked differs
+- **Function**: `model::repo::shared_history(read: &HistoryRead<Asked>, asked: &Asked) -> Option<SharedHistory>`: the
+  rows and the references a worktree may take from another of its repository, none when the history asked differs.
+  `HistoryRead` is what the worktree left asked and read, its state and the folder chosen; what is asked is whatever
+  the app asks its timeline with, compared as a whole
 - **Settings**: none: it does not wait for `repositories.keepOpen`, since the rows are those of the view left.
 - **Uses**: by `repo.group-tabs`, when a worktree or the repository itself is chosen in the group of a tab and kept
   nothing; `repo.read-first`, read for the worktree chosen behind the rows; `graph.read-commits`, asked only when the
@@ -1423,6 +1427,23 @@ the uncommitted changes and the branch in bold are those of the worktree left un
 chosen is read, a few reads later, and are then put where they belong. A worktree detached at a commit that no branch,
 remote branch or tag reaches has commits of its own: they are read then, and their rows added. A submodule is another
 repository and takes nothing.
+
+What makes the history another:
+
+- The worktree chosen is narrowed otherwise, by the branches kept for its folder (`filter.remember`); it starts with
+  no search, so a worktree left while a search narrows its timeline gives nothing.
+- The timeline shows **Current** or **Upstream**: it follows what is checked out, which is not the same in two
+  worktrees.
+- The worktree left is reading its commits again for another history.
+- The folder chosen is not among the worktrees git listed for the repository left, or its folder is gone.
+
+The read of the worktree chosen (`repo.read-first`) then tells whether the rows hold, from its first step and the
+state of the worktree left (`engine::timeline::is_shared_history`): the same references and stashes, and in both
+worktrees either the same commit checked out or a commit that a reference the timeline lists is at. Otherwise it
+reads the commits, one `git log`, and the timeline takes them as it takes a read of the same repository: a commit
+checked out that is under a branch but at the tip of none is read again too, and finds the same rows. The rest of
+the state follows as for any repository shown in two steps; meanwhile the state shown is that of the worktree left,
+in the folder of the worktree chosen.
 
 Acceptance:
 

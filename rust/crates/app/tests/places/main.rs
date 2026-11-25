@@ -126,6 +126,7 @@ mod settings_reveal;
 mod settings_search;
 mod settings_values;
 mod shallow;
+mod share_history;
 mod show_in_graph;
 mod side_column;
 mod side_room;

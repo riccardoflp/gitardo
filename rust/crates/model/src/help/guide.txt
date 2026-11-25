@@ -217,6 +217,11 @@ place: Repositories, in the side column
 show: none
 Which repositories share a tab: a repository, its worktrees and its submodules are one tab, whose row in **Repositories** has theirs under it, and a click on one of those shows it in the tab.
 Entry points: the rows under the row of a repository in **Repositories**, folded and unfolded by the chevron at its left: its other worktrees, each by the name of its folder, then its submodules, each by its path, a submodule's own submodules indented further; each is one line, as the row of a repository is, and says what it is on on its right, `feature/login ● 3 ↓2 ↑1` (`repo.worktree-summary`), ending where the rows of the repositories end. The one the tab shows is marked as the row shown is. A click on one shows it in the tab, as `worktree.show-in-gitardo` and `submodule.show-in-gitardo` do. The worktree in the header lists the repository, its worktrees and its submodules, the same choice (`graph.where`).
+@card desktop repo.share-history
+title: A worktree takes the history its repository has read
+place: Repositories, in the side column
+show: none
+The worktrees of a repository share its commits and its references: one shown for the first time shows at once the rows another of them has read, and reads only what is its own.
 @card desktop repo.watch-hidden
 title: Keep the tabs not shown up to date
 place: Repositories, in the side column

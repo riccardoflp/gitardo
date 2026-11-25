@@ -81,7 +81,7 @@ fn is_main_worktree(repository: &Repository) -> bool {
 }
 
 /// Whether two folders are the same: on Windows the case and the slashes do not count.
-fn same_folder(first: &Path, second: &Path) -> bool {
+pub(super) fn same_folder(first: &Path, second: &Path) -> bool {
     let key = |folder: &Path| {
         let text = folder.to_string_lossy().replace('\\', "/");
         let text = text.trim_end_matches('/').to_owned();

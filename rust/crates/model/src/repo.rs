@@ -5,6 +5,7 @@ mod clone;
 mod group;
 mod hidden;
 mod schedule;
+mod share;
 mod summary;
 pub(crate) mod watch;
 
@@ -14,6 +15,7 @@ pub use clone::{CloneFolderRule, clone_folder, folder_from_url};
 pub use group::{TabGroup, group_tabs};
 pub use hidden::{HiddenTab, schedule_hidden};
 pub use schedule::{ReadAction, ReadEvent, ReadSchedule, StartedRead, schedule_reads};
+pub use share::{HistoryRead, SharedHistory, is_on_reference, shared_history};
 pub use summary::{SummaryHead, WorktreeSummary};
 pub use watch::{
     Change, FOCUS_AFTER, FilesChange, FocusChange, LATER, ReadCause, ReadRequest, SOON, TreeChange, nested_worktrees,

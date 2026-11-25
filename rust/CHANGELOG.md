@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A worktree chosen in the tab of its repository for the first time shows the commits at once: it takes the rows the
+  repository, or the worktree shown before it, has read, and then marks what it has checked out and its own
+  uncommitted changes. Its commits are read only when it is detached at a commit no branch or tag is at, or shows
+  other branches.
 - A repository chosen shows its first commits sooner: the references, what is checked out, the stashes, the worktrees
   and what is not committed are read first, in seven git commands, and the rest of its state, the count of what is
   not committed in each other worktree among it, is read beside the commits and shown when it comes. A read after a
