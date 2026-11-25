@@ -2012,7 +2012,7 @@ is narrowed, RS16 is accepted, RS1 is left to the stylesheet (Q1700); `controlle
 `test/e2e/suite.ts` passes every step in Xvfb, and `npm run test:ui` 36 of 36 with a `GIT_CONFIG_GLOBAL` holding
 only an identity and `LANGUAGE=en`; the job `performance` of the pipeline has not run yet. Q1590 was asked.
 
-## M51 — The toolbar of the graph: fitting its width, one way to choose, buttons that show on the ground
+## M51 — The toolbar of the graph: fitting its width, one way to choose, buttons that show on the ground (done)
 
 Three fixes of the toolbar above the graph of the extension, asked by the maintainer on 2026-11-25: its buttons do not
 follow the width of the view as they should; the repository is chosen in one way and the worktree in another; and with
@@ -2074,12 +2074,14 @@ Built in five phases, each one commit, each ending with its tests passing; Gitar
    choice does, stay as they are. The steps of `test/e2e/ui.mjs` that choose a repository and where to search do it
    by their menus. Cards: `repo.select`, of the extension; `repo.group-tabs` and `search.box`, their lines of the
    extension.
-5. **Buttons that show on the ground, in the extension.** With the islands on, the buttons with words, the two lists
-   and the search box of the toolbar have a background and a border told apart from the ground in every theme, the
-   high contrast ones too, by the contrast phase 1 measured against; a button of an icon alone still has no shape
-   until the pointer is over it, as in VS Code's own toolbars. The step of the islands of `test/e2e/ui.mjs` measures
-   them in each theme. Cards: `graph.islands`, its line of the extension. Then `extension/CHANGELOG.md` under
-   **Unreleased** and the README of the extension where the toolbar is described.
+5. **Buttons that show on the ground, in the extension (done).** With the islands on, the buttons with words and the
+   search box of the toolbar have the background of an island and a line made from the color of the text, the border
+   of the theme in the high contrast ones; a button pressed in keeps its colors, and a button of an icon alone, as the
+   ones of the repository and of the worktree, still has no shape until the pointer is over it, as in VS Code's own
+   toolbars. The step of the islands of `test/e2e/ui.mjs` measures them against the ground in the six themes of
+   phase 1 and asks for 30 of 765 at least. Cards: `graph.islands`, its line of the extension. The CHANGELOG of the
+   extension under **Unreleased** and its README, where the toolbar and the islands are described, changed with each
+   phase.
 
 The toolbar of the extension, seen in phase 1, with the repository `customer-portal-frontend` of a workspace of two, its
 branch `feature/checkout-redesign-with-saved-payment-methods`, a second worktree, three commits to pull and two to push:

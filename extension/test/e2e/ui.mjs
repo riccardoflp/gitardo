@@ -1045,6 +1045,51 @@ try {
         await page.send('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: HEIGHT, deviceScaleFactor: 1, mobile: false });
         await sleep(700);
       }
+      /**
+       * The toolbar is on the ground: each button with words and the search box are told from it in every theme, by
+       * their filling or their border painted over the ground, as far from it as the buttons are asked to be from the
+       * background of the panel without the islands, of 765.
+       */
+      const onGround = () =>
+        graph.evaluate(`(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = 1;
+          const context = canvas.getContext('2d', { willReadFrequently: true });
+          const ground = getComputedStyle(document.querySelector('.app')).backgroundColor;
+          const over = (color) => {
+            context.fillStyle = ground;
+            context.fillRect(0, 0, 1, 1);
+            context.fillStyle = color;
+            context.fillRect(0, 0, 1, 1);
+            return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
+          };
+          const apart = (color) => over(color).reduce((sum, channel, index) => sum + Math.abs(channel - over('transparent')[index]), 0);
+          const parts = [...document.querySelectorAll('.toolbar .button:not(.icon), .toolbar .search')].map((part) => {
+            const style = getComputedStyle(part);
+            return { name: part.getAttribute('aria-label') ?? part.className, filling: apart(style.backgroundColor), border: style.borderTopWidth === '0px' ? 0 : apart(style.borderTopColor) };
+          });
+          return { ground, faintest: parts.sort((one, other) => Math.max(one.filling, one.border) - Math.max(other.filling, other.border))[0] };
+        })()`);
+      let { ground } = await onGround();
+      try {
+        // The one VS Code starts with comes first; its name is not set.
+        for (const theme of [undefined, 'Dark Modern', 'Light 2026', 'Default Light Modern', 'Default High Contrast', 'Default High Contrast Light']) {
+          if (theme) {
+            setting('workbench.colorTheme', theme);
+            const previous = ground;
+            await until(`the ground of ${theme}`, async () => (await onGround()).ground !== previous);
+            await sleep(600);
+          }
+          const seen = await onGround();
+          ground = seen.ground;
+          await shot(`islands-${(theme ?? 'default').replace(/\W+/g, '-').toLowerCase()}`);
+          assert(Math.max(seen.faintest.filling, seen.faintest.border) >= 30, `${theme}: on the ground, ${JSON.stringify(seen.faintest)}`);
+        }
+      } finally {
+        setting('workbench.colorTheme', undefined);
+        await until('the dark theme', () => page.evaluate(`document.querySelector('.monaco-workbench').classList.contains('vs-dark')`));
+        await sleep(600);
+      }
     } finally {
       setting('gitardo.graph.islands', undefined);
       await until('no islands', async () => !(await look()).islands);

@@ -2152,6 +2152,8 @@ input:focus-visible,
   --island-border: var(--vscode-widget-border, var(--vscode-panel-border));
   /* One step darker than the islands in the dark themes. */
   --ground: color-mix(in srgb, var(--island) 78%, black);
+  /* The line around what is on the ground itself. */
+  --on-ground: color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
   background: var(--ground);
 }
 
@@ -2165,11 +2167,25 @@ body.vscode-high-contrast .app.islands,
 body.vscode-high-contrast-light .app.islands {
   --ground: var(--island);
   --island-border: var(--vscode-contrastBorder, var(--vscode-panel-border));
+  --on-ground: var(--vscode-contrastBorder, var(--vscode-foreground));
 }
 
 /* The toolbar stays on the ground, above the islands, with no line under it. */
 .app.islands .toolbar {
   border-bottom-color: transparent;
+}
+
+/* On the ground the buttons with words and the search box are islands too, with a line made from the color of the
+   text: the colors a theme gives its buttons are chosen against the background of the panel, and some are the
+   ground's own. A button pressed in keeps its colors, and one of an icon alone has no shape, as anywhere. */
+.app.islands .toolbar .button:not(.icon):not(.on),
+.app.islands .toolbar .search {
+  background: var(--island);
+  border-color: var(--on-ground);
+}
+
+.app.islands .toolbar .button:not(.icon):not(.on):hover:not(:disabled) {
+  background: color-mix(in srgb, var(--island) 90%, var(--vscode-foreground));
 }
 
 .app.islands .main {

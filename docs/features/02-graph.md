@@ -363,8 +363,12 @@ under the header.
   an island, on a ground one step darker than the panel's background in the dark themes and one step deeper in the
   light ones, with the radius and the border of VS Code's widgets and a gap of 8 pixels between them, 4 in a panel
   narrower than 900 pixels; the gap is the line dragged to resize them, and the details under the commits in a narrow
-  panel are an island too. The toolbar stays above them, on the ground. Off, the view is as it was. The other views
-  keep their look
+  panel are an island too. The toolbar stays above them, on the ground, where its buttons with words and its search
+  box have the background of an island and a line made from the color of the text around them, the border of the
+  theme in the high contrast ones: the colors a theme gives its buttons are chosen against the background of the
+  panel, and in some, as Light 2026, they are the ground's own. A button pressed in keeps its colors, and one of an
+  icon alone has no shape until the pointer is over it. The step of the islands of `test/e2e/ui.mjs` measures each of
+  them against the ground in six themes (M51). Off, the view is as it was. The other views keep their look
   ([D53](../08-decisions.md#d53--pages-beside-the-inspector-a-bottom-panel-the-icons-of-lucide-islands-in-the-extension)).
   The class `islands` of the Graph view's `App` (`src/webview/App.tsx`) and the rules under it in
   `src/webview/styles.css`; the ground is mixed from `--vscode-panel-background` with black. Tested by

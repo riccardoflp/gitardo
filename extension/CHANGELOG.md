@@ -34,6 +34,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Fixed
 
+- With `gitardo.graph.islands` on, the buttons of the toolbar of the graph and its search box show on the ground in every theme: they have the background of an island and a line around them. Before, they kept the colors the theme gives its buttons on the background of the panel, which in Light 2026 are those of the ground, so that a button was its words alone.
 - The toolbar of the graph no longer pushes its last buttons out of the view. With a long name of repository or of branch, **View**, **…**, **Refresh** and part of the search could not be reached in a panel from about 900 to 1,300 pixels wide, and narrower the toolbar broke wherever it ended, a button alone on a line. It now gives up as little as makes it fit, whatever it holds: the words of its buttons, then **Refresh**, then one line, the search going across a second, and last **Branch**, **Stash** and **Undo**, which the **…** menu then has.
 - **Clean Up Branches** deletes the branches ticked in one `git branch -D`, after their worktrees: a branch merged into the current one but not into its upstream was refused by `git branch -d`, after its worktree was removed, and the branches after it were left.
 - **Commit** with nothing staged refuses while a file is in conflict, where staging everything first would have taken the file as resolved and committed its markers.
