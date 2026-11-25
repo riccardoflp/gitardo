@@ -129,7 +129,8 @@ pub fn repositories_found(state: &mut State, job: JobId, found: Found) -> Vec<Ef
         (Some(shown), _) if !opening.is_refresh => shown,
         (kept, Some(folder)) => {
             effects.extend(cancel_reads(state));
-            effects.push(start_read(state, folder.clone()));
+            // The repository shown, looked at again, keeps what it shows until it is read, whole.
+            effects.push(start_read_in(state, folder.clone(), kept.is_none()));
             kept.unwrap_or(Shown::Reading { folder })
         }
         (_, None) => Shown::NoRepository,
@@ -191,6 +192,7 @@ pub fn repository_read(
                 generation,
             });
             state.reads.counted = counted;
+            state.reads.rest = None;
             let mut effects = Vec::new();
             let is_changed = match commits {
                 Some(commits) => {
@@ -330,11 +332,20 @@ fn find_repository<'a>(repositories: &'a [Repository], folder: &Path) -> Option<
         .find(|repository| same_folder(&repository.folder, folder))
 }
 
-/// Starts a read of a repository with the settings in force.
+/// Starts a read of a repository with the settings in force: in two steps when it shows nothing yet
+/// (`repo.read-first`); behind what it shows, and shown once, whole, when it shows what it kept.
 pub(super) fn start_read(state: &mut State, folder: PathBuf) -> Effect {
+    let in_steps = !state
+        .shown_read()
+        .is_some_and(|read| same_folder(&read.folder, &folder));
+    start_read_in(state, folder, in_steps)
+}
+
+/// Starts a read of a repository with the settings in force, in two steps or whole.
+fn start_read_in(state: &mut State, folder: PathBuf, in_steps: bool) -> Effect {
     let mut request = super::timeline::read_request(state);
     request.shown = super::timeline::kept_shown(state, &folder);
-    // A repository chosen is read whole: every other worktree is counted again.
+    // Every other worktree of a repository chosen is counted again.
     let counted = git::read::worktree::CountedWorktrees::default();
     let job = start_job(
         state,
@@ -343,6 +354,7 @@ pub(super) fn start_read(state: &mut State, folder: PathBuf) -> Effect {
             request,
             kept: None,
             counted,
+            in_steps,
         },
     );
     super::reads::adopt(state, job.id, model::repo::ReadCause::RepositoryChosen);

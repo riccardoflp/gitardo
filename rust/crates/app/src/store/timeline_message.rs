@@ -18,7 +18,7 @@ pub fn job_done(message: &Message) -> Option<JobId> {
         | Message::SignatureRead { job, .. }
         | Message::RemoteTagsRead(job, _)
         | Message::AuthorsRead { job, .. } => Some(*job),
-        Message::RepositoryRead { job, result, .. } => {
+        Message::RepositoryRead { job, result, .. } | Message::FirstRead { job, result, .. } => {
             let follows = result
                 .as_ref()
                 .is_ok_and(|read| read.1.as_ref().is_some_and(|page| page.follows));

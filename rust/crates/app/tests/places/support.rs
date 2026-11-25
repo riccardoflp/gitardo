@@ -289,15 +289,37 @@ pub fn run_asking(state: &mut State, message: Message) -> Vec<Effect> {
 
 /// Reduces a message and runs at once every job it starts, as [`run_asking`] does, but holds the messages a job sends
 /// after its first: the pages after the first of a read of the timeline, still coming, to be given with [`give_held`].
+/// The rest of the state of a repository read in two steps is not a page, and is given at once after the first.
 pub fn run_holding(state: &mut State, message: Message, held: &mut VecDeque<Message>) -> Vec<Effect> {
+    run_holding_what(state, message, held, false)
+}
+
+/// Reduces a message as [`run_holding`] does, and holds the rest of the state of a repository read in two steps too
+/// (`repo.read-first`), with the pages, in the order the job sent them.
+pub fn run_holding_rest(state: &mut State, message: Message, held: &mut VecDeque<Message>) -> Vec<Effect> {
+    run_holding_what(state, message, held, true)
+}
+
+/// Reduces a message and runs the jobs it starts, holding what each sends after its first message: the rest of a
+/// state too, or only the pages.
+fn run_holding_what(
+    state: &mut State,
+    message: Message,
+    held: &mut VecDeque<Message>,
+    holds_rest: bool,
+) -> Vec<Effect> {
     let mut all = Vec::new();
     let mut waiting = vec![message];
     while let Some(message) = waiting.pop() {
         for effect in reduce(state, message) {
             if let Effect::Start(job) = &effect {
                 let mut messages = jobs::messages(job, &CancelToken::new()).into_iter();
-                waiting.extend(messages.next());
-                held.extend(messages);
+                let first = messages.next();
+                let is_given = |message: &Message| !holds_rest && matches!(message, Message::RestRead { .. });
+                let (given, later): (Vec<Message>, Vec<Message>) = messages.partition(is_given);
+                waiting.extend(given);
+                waiting.extend(first);
+                held.extend(later);
             }
             all.push(effect);
         }

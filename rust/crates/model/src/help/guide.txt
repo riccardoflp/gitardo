@@ -92,6 +92,11 @@ title: Read the state of the repository
 place: Repositories, in the side column
 show: none
 Everything the window shows of a repository but its commits: what is checked out, the branches and how far each is from its upstream, the remotes, the tags, the stashes, the worktrees, the submodules, what is not committed, and the operation that stopped half way.
+@card desktop repo.read-first
+title: Read what a repository shows first
+place: Repositories, in the side column
+show: none
+What the timeline, the branch rail and the Changes page need of a repository, read before the rest of its state, so that a repository chosen shows its first commits after a few reads and not after all of them.
 @card desktop repo.read-shallow
 title: Whether the history is shallow, and where it ends
 place: Repositories, in the side column

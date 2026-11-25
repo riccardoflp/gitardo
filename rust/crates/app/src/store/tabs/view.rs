@@ -88,6 +88,8 @@ impl Answered {
     pub(super) fn of(message: &Message) -> Option<Answered> {
         let job = match message {
             Message::RepositoryRead { job, .. }
+            | Message::FirstRead { job, .. }
+            | Message::RestRead { job, .. }
             | Message::TimelineRead { job, .. }
             | Message::CommitsRead { job, .. }
             | Message::PagesRead { job, .. }
@@ -127,6 +129,7 @@ impl Answered {
         match self {
             Answered::Job(job) => {
                 view.jobs.contains_key(job)
+                    || view.reads.rest == Some(*job)
                     || view.timeline.stream.as_ref().is_some_and(|stream| stream.job == *job)
                     || view.rail.stashes.jobs.contains_key(job)
                     || view.github.detecting == Some(*job)

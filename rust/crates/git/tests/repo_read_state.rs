@@ -5,6 +5,8 @@
 #![cfg(test)]
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
+#[path = "repo_read_state/first.rs"]
+mod first;
 #[path = "repo_read_state/golden.rs"]
 mod golden;
 #[path = "repo_read_state/notes.rs"]

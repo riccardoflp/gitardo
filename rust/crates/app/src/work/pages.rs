@@ -16,18 +16,18 @@ use crate::store::{JobId, Known, Message, MorePages, ReadResult, TimelineRequest
 use engine::timeline::is_same_history;
 
 /// What the first page of a read is sent in, and the pages after it.
-struct Sender<'a, First> {
+pub(super) struct Sender<'a, First> {
     /// The job.
-    job: JobId,
+    pub(super) job: JobId,
     /// Makes the message of the first page; none once it is sent.
-    first: Option<First>,
+    pub(super) first: Option<First>,
     /// Where the messages go.
-    send: &'a mut dyn FnMut(Message),
+    pub(super) send: &'a mut dyn FnMut(Message),
 }
 
 impl<First: FnOnce(Result<CommitPage, String>) -> Message> Sender<'_, First> {
     /// Sends a page: in the message of the read when it is the first, in a message of its own otherwise.
-    fn page(&mut self, result: Result<CommitPage, String>) {
+    pub(super) fn page(&mut self, result: Result<CommitPage, String>) {
         let message = match self.first.take() {
             Some(first) => first(result),
             None => Message::PagesRead { job: self.job, result },
@@ -36,13 +36,13 @@ impl<First: FnOnce(Result<CommitPage, String>) -> Message> Sender<'_, First> {
     }
 
     /// Sends what git said of a read that failed, in the message of the read when no page was sent yet.
-    fn failed(&mut self, error: &GitError) {
+    pub(super) fn failed(&mut self, error: &GitError) {
         self.page(Err(error.to_string()));
     }
 }
 
 /// The commits of a read of the window: every commit up to 100,000, a page at a time.
-fn whole(request: CommitsRequest) -> CommitsRequest {
+pub(super) fn whole(request: CommitsRequest) -> CommitsRequest {
     CommitsRequest {
         count: READ_LIMIT,
         skip: 0,
@@ -216,7 +216,7 @@ pub fn read_repository_at_once(
 }
 
 /// The moment, in seconds since 1970.
-fn seconds_now() -> i64 {
+pub(super) fn seconds_now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |since| i64::try_from(since.as_secs()).unwrap_or(i64::MAX))

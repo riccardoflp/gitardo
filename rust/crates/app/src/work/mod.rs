@@ -21,6 +21,7 @@ mod persist;
 mod repository_watch;
 pub mod review;
 mod setting_writer;
+mod steps;
 pub mod summaries;
 pub mod task_runs;
 mod terminals;
@@ -155,8 +156,9 @@ fn work(receiver: &Mutex<Receiver<Task>>, activities: &Activities, deliver: &Del
         let (description, cause) = task.words.clone().unwrap_or_else(|| words(&task.job.kind));
         let _activity = activities.track_read(description, cause, now());
         jobs::run(&task.job, &task.cancel, &mut |message| {
-            // A job cancelled is no longer wanted: what it still says, such as the next page of a read, is dropped.
-            if !task.cancel.is_cancelled() {
+            // A job cancelled is no longer wanted: what it still says, such as the next page of a read, is dropped. The
+            // rest of a state whose first step is shown is wanted all the same, the pages being what was cancelled.
+            if !task.cancel.is_cancelled() || matches!(message, Message::RestRead { .. }) {
                 deliver(message);
             }
         });

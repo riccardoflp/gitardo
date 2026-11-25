@@ -111,7 +111,7 @@ pub fn changed(state: &mut State, folder: &Path, changes: &[Change], at: Duratio
 
 /// An answer kept for a tab not shown: the end of its read, when it is the read of the tab under way.
 pub(super) fn answered(state: &mut State, index: usize, message: &Message) {
-    let Message::RepositoryRead { job, .. } = message else {
+    let (Message::RepositoryRead { job, .. } | Message::FirstRead { job, .. }) = message else {
         return;
     };
     let Some(read) = state.tabs.background.reading.take_if(|read| read.job == *job) else {

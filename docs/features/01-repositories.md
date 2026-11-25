@@ -344,7 +344,11 @@ operation that stopped half way.
 
 - **Kind**: Read
 - **Function**: `git::read::repo::read_state(git, request: &StateRequest) -> Result<RepositoryState, GitError>`
-- **Reads**: all at once, with `GIT_OPTIONAL_LOCKS=0`, in the folder of the repository:
+- **Reads**: all at once, with `GIT_OPTIONAL_LOCKS=0`, in the folder of the repository. The references, what is
+  checked out, the stashes, the list of the worktrees, what is not committed here and the operation in progress are
+  its first step, which `repo.read-first` reads alone for a repository that shows nothing yet; the rest is its second
+  step, which `git::read::repo::read_rest(git, first, before)` reads from what the first found, starting none of the
+  commands of the first again. A read that follows a change, and **Refresh**, run both steps at once:
   - `git for-each-ref --format=…` with, NUL-separated, `%(refname)`, `%(objectname)`, `%(*objectname)`,
     `%(upstream)`, `%(upstream:remotename)`, `%(upstream:remoteref)`, `%(upstream:track)`, `%(HEAD)` and
     `%(creatordate:unix)`: the local branches with their upstream (its name, its remote, its branch there, how many
@@ -428,8 +432,9 @@ that a repository chosen shows its first commits after a few reads and not after
   them: `git rev-parse --show-toplevel --absolute-git-dir`, then `git for-each-ref`, `git rev-parse --verify --quiet
   HEAD`, `git symbolic-ref --quiet HEAD`, `git stash list`, `git worktree list --porcelain` without the count of the
   other worktrees, `git status --porcelain=v2 --branch -z --untracked-files=all` of this worktree (Q1741), and the
-  operation in progress, from the files git leaves in the folder of this worktree. Eight processes of git at most.
-- **Uses**: by `repo.read-state`, which reads the rest from what it found and reads none of it again;
+  operation in progress, from the files git leaves in the folder of this worktree. Eight processes of git at most:
+  these seven, and the one `git stash list` starts itself.
+- **Uses**: by `repo.read-state`, whose `read_rest` reads the rest from what it found and reads none of it again;
   `graph.read-commits`, asked as soon as it ends; `repo.schedule-reads`; `repo.share-history`.
 - **Extension**: Planned: `read/repo.read-first` of Gitardo's engine, version 1.14 of the protocol, and `first` of
   `repository/open`; the views are sent its parts and the first rows, and the other parts when the rest is read.
@@ -438,8 +443,17 @@ The rest of the state is read at the same time as the commits: the count of what
 worktree, the remotes, who commits are made as, the order of the branches, the reflog, the submodules, the bisect in
 progress, where a shallow history ends, the commit-graph file, the notes, Git LFS and the resolutions remembered.
 Until it comes, what shows it shows nothing of it: another worktree has no count, not a count of zero, and the recent
-branches are not listed. A read that follows a change, and **Refresh**, read both steps and show them together, as
-before: only a repository shown for the first time, or shown again after it changed, is shown in two steps.
+branches are not listed; a remote branch is of the remote its name starts with up to the first `/`, which is wrong
+only for a remote whose own name has a `/`, until the remotes are read. What follows a read, the pull requests asked
+of the hosting service among it, waits for the rest. A read that follows a change, and **Refresh**, read both steps
+and show them together, as before: only a repository that shows nothing yet is shown in two steps, one shown for the
+first time or shown again with nothing kept of it. One that shows what it kept (`repo.keep-open`) keeps showing it
+while it is read again, and is then shown once, whole.
+
+In Gitardo Desktop the first step comes with the first page of the commits, and the rest is read on a thread of its
+own beside `git log`: it is put in its place as soon as it is read and the first page is shown, the timeline keeping
+its rows. The rest of a read whose pages were cancelled, as when the timeline is narrowed meanwhile, is still taken;
+the rest of a read that a whole read has overtaken is not.
 
 Acceptance:
 

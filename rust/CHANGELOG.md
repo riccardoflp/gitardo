@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A repository chosen shows its first commits sooner: the references, what is checked out, the stashes, the worktrees
+  and what is not committed are read first, in seven git commands, and the rest of its state, the count of what is
+  not committed in each other worktree among it, is read beside the commits and shown when it comes. A read after a
+  change and **Refresh** show everything at once, as before.
 - A file in conflict is said to be resolved as before only while its text is the resolution git recorded: a resolution
   forgotten, or a file changed after git wrote it, is no longer said to be one where `git rerere remaining` leaves it
   out, as it did on Windows.

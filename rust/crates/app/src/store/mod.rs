@@ -38,6 +38,7 @@ mod rail;
 pub mod range_diff;
 mod reads;
 mod rebase;
+mod repository_read;
 pub mod review;
 pub mod search;
 mod settings_page;
@@ -150,12 +151,9 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::FolderChosen(folder) => open_folder(state, folder),
         Message::WorkspaceFileChosen(chosen) => code_workspace::open_code_workspace(state, chosen),
         Message::RepositoriesFound { job, found } => tabs::repositories_found(state, job, found),
-        Message::RepositoryRead {
-            job,
-            folder,
-            result,
-            read_at,
-        } => repository_read(state, job, &folder, (result, read_at)),
+        message @ (Message::RepositoryRead { .. } | Message::FirstRead { .. } | Message::RestRead { .. }) => {
+            repository_read::reduce(state, message)
+        }
         Message::FeatureAsks(question) => changes::asks(state, *question),
         Message::FeatureConfirms(plan) => feature::confirms(state, *plan),
         Message::FeatureEnded { ended, log } => feature_ended(state, ended, log),
@@ -202,32 +200,6 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::UrlNotOpened(said) => github::not_opened(state, said),
         Message::CloseRequested(window) => tasks_tab::close_requested(state, window),
     }
-}
-
-/// A read of the repository ended: shown, unless the schedule throws it away; then the read that follows it, if one
-/// does. At `log.level` `debug`, what git said of a read that failed goes to the Command log.
-fn repository_read(
-    state: &mut State,
-    job: JobId,
-    folder: &std::path::Path,
-    (result, read_at): (ReadResult, i64),
-) -> Vec<Effect> {
-    let (is_shown, follow) = reads::finished(state, job);
-    if let (Err(error), engine::LogLevel::Debug) = (&result, state.log.level()) {
-        state.log.record_failure(model::Timestamp(read_at), error);
-    }
-    let mut effects = if is_shown {
-        let mut effects = workspace::repository_read(state, job, folder, (result, read_at));
-        effects.extend(feature::after_read(state));
-        effects.extend(conflicts::after_read(state));
-        effects.extend(github::after_read(state, read_at));
-        effects
-    } else {
-        let _thrown_away = state.jobs.remove(&job);
-        Vec::new()
-    };
-    effects.extend(follow);
-    effects
 }
 
 /// What a read of a repository found, or what git said.

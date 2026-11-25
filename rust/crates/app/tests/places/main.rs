@@ -104,6 +104,7 @@ mod pointer;
 mod rail;
 mod rail_filter;
 mod range_diff;
+mod read_first;
 mod rebase;
 mod rerere;
 mod rerere_resolved;

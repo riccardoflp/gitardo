@@ -25,6 +25,7 @@ pub fn run(job: &Job, cancel: &CancelToken, send: &mut dyn FnMut(Message)) {
             request,
             kept,
             counted,
+            in_steps,
         } => {
             let read = super::pages::ReadingRepository {
                 folder,
@@ -32,7 +33,11 @@ pub fn run(job: &Job, cancel: &CancelToken, send: &mut dyn FnMut(Message)) {
                 kept: kept.as_deref(),
                 counted,
             };
-            super::pages::read_repository(job.id, &read, cancel, send);
+            if *in_steps {
+                super::steps::read_in_steps(job.id, &read, cancel, send);
+            } else {
+                super::pages::read_repository(job.id, &read, cancel, send);
+            }
         }
         JobKind::ReadTimeline { folder, request } => {
             super::pages::read_timeline(job.id, (folder, request), cancel, send);

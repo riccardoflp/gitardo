@@ -57,6 +57,31 @@ pub enum Message {
         /// When it was read, in seconds since 1970: the lines between days and months are counted from it.
         read_at: i64,
     },
+    /// A job that reads a repository in two steps has read the first step of its state (`repo.read-first`) and the
+    /// first page of its commits; the rest of the state comes as [`Message::RestRead`], and the next pages as
+    /// [`Message::PagesRead`].
+    FirstRead {
+        /// The job.
+        job: JobId,
+        /// The folder read.
+        folder: PathBuf,
+        /// The state with what the first step found, the first page, and what the read before counted, which the
+        /// window keeps until the rest is read; no page when the history is one the timeline already shows.
+        result: super::ReadResult,
+        /// When it was read, in seconds since 1970.
+        read_at: i64,
+    },
+    /// A job that reads a repository in two steps has read the rest of its state (`repo.read-state`).
+    RestRead {
+        /// The job.
+        job: JobId,
+        /// The folder read.
+        folder: PathBuf,
+        /// The whole state, with what was counted in the other worktrees, or what git said when the read failed.
+        result: Result<Box<(RepositoryState, git::read::worktree::CountedWorktrees)>, String>,
+        /// When the first step was read, in seconds since 1970.
+        read_at: i64,
+    },
     /// A job that read another history of the timeline has its first page (`filter.show-only`); the next pages, when
     /// more follow, come as [`Message::PagesRead`].
     TimelineRead {

@@ -87,15 +87,46 @@ pub fn read_list_counting(
     request: &WorktreeListRequest,
     before: &CountedWorktrees,
 ) -> Result<(Vec<Worktree>, CountedWorktrees), GitError> {
-    let listed: Vec<Worktree> = parse_worktrees(&git.in_directory(&request.folder).run_read(&worktrees_arguments())?)?
+    let listed = read_listed(git, request)?;
+    Ok(count_listed(git, listed, &request.folder, before))
+}
+
+/// The worktrees of the repository as git lists them, the one the views show marked and counting what the request
+/// says is not committed there; no other is counted, and no `git status` runs (`repo.read-first`).
+///
+/// # Errors
+///
+/// When git cannot be started or fails, or prints a worktree this does not understand.
+pub(crate) fn read_listed(git: &Git, request: &WorktreeListRequest) -> Result<Vec<Worktree>, GitError> {
+    let listed = parse_worktrees(&git.in_directory(&request.folder).run_read(&worktrees_arguments())?)?;
+    Ok(listed
         .into_iter()
         .map(looked_for)
-        .collect();
+        .map(|worktree| {
+            let is_current = worktree.folder == request.folder;
+            Worktree {
+                is_current,
+                uncommitted: if is_current { request.uncommitted_here } else { None },
+                ..worktree
+            }
+        })
+        .collect())
+}
+
+/// The worktrees listed, each other one that is not missing with the number of its files not committed: the one
+/// `before` has of it when nothing changed in its own git folder since, else counted with `git status`, all at once.
+/// The worktree in `here` keeps the count it has. Gives what was counted, for the read after this one.
+pub(crate) fn count_listed(
+    git: &Git,
+    listed: Vec<Worktree>,
+    here: &Path,
+    before: &CountedWorktrees,
+) -> (Vec<Worktree>, CountedWorktrees) {
     let counts: Vec<Option<(Option<usize>, GitFolderStamp)>> = thread::scope(|scope| {
         let readers: Vec<_> = listed
             .iter()
             .map(|worktree| {
-                let is_other = !worktree.is_missing && worktree.folder != request.folder;
+                let is_other = !worktree.is_missing && worktree.folder != here;
                 is_other.then(|| scope.spawn(|| count_unless_kept(git, &worktree.folder, before)))
             })
             .collect();
@@ -109,26 +140,18 @@ pub fn read_list_counting(
                 .insert(worktree.folder.clone(), (stamp.clone(), *uncommitted));
         }
     }
-    let counts = counts
-        .into_iter()
-        .map(|count| count.and_then(|(uncommitted, _)| uncommitted));
     let worktrees = listed
         .into_iter()
         .zip(counts)
-        .map(|(worktree, uncommitted)| {
-            let is_current = worktree.folder == request.folder;
-            Worktree {
-                is_current,
-                uncommitted: if is_current {
-                    request.uncommitted_here
-                } else {
-                    uncommitted
-                },
+        .map(|(worktree, count)| match count {
+            Some((uncommitted, _)) => Worktree {
+                uncommitted,
                 ..worktree
-            }
+            },
+            None => worktree,
         })
         .collect();
-    Ok((worktrees, counted))
+    (worktrees, counted)
 }
 
 /// A worktree with its folder looked for on disk when it is locked, since git never marks a locked worktree prunable

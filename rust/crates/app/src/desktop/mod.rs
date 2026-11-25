@@ -247,6 +247,7 @@ impl DesktopWindow {
         while let Some(message) = waiting.pop_front() {
             if let Message::RepositoriesFound { job, .. }
             | Message::RepositoryRead { job, .. }
+            | Message::FirstRead { job, .. }
             | Message::DetailsRead { job, .. }
             | Message::CommitPageRead { job, .. } = &message
             {

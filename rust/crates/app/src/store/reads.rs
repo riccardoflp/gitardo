@@ -38,6 +38,9 @@ pub struct Reads {
     /// What the last read counted in the other worktrees, kept by the next read where nothing changed in their git
     /// folders (`repo.read-state`, M15).
     pub counted: CountedWorktrees,
+    /// The read of the repository shown whose first step is shown and whose rest of the state has not come yet
+    /// (`repo.read-first`).
+    pub rest: Option<JobId>,
 }
 
 impl Reads {
@@ -246,6 +249,7 @@ fn start(state: &mut State, started: StartedRead) -> Option<Effect> {
         request,
         kept,
         counted,
+        in_steps: false,
     };
     let _new = state.jobs.insert(id, kind.clone());
     let _counted = state.reads.scheduled.insert(id, started);

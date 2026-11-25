@@ -30,7 +30,8 @@ pub enum JobKind {
         /// The folders.
         folders: Vec<PathBuf>,
     },
-    /// Reads a repository: its state (`repo.read-state`), then its commits, a page at a time (`graph.read-commits`).
+    /// Reads a repository: its state (`repo.read-state`), then its commits, a page at a time (`graph.read-commits`);
+    /// or, in two steps, the first step of its state, then its commits with the rest of its state beside them.
     ReadRepository {
         /// The folder of the repository.
         folder: PathBuf,
@@ -41,6 +42,9 @@ pub enum JobKind {
         kept: Option<std::sync::Arc<RepositoryState>>,
         /// What the read before counted in the other worktrees; empty to count them all again (M15).
         counted: git::read::worktree::CountedWorktrees,
+        /// Whether the state is read and shown in two steps (`repo.read-first`): what the timeline needs with the
+        /// first commits, then the rest. A read that follows a change, and **Refresh**, show it once, whole.
+        in_steps: bool,
     },
     /// Reads the timeline for the branches shown, and nothing else of the repository: the timeline narrowed, or shown
     /// whole again (`filter.show-only`, `filter.show-all`).

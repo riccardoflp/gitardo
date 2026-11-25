@@ -1,10 +1,12 @@
-//! The state of a repository: everything the window shows of it but its commits, read all at once.
+//! The state of a repository: everything the window shows of it but its commits, read all at once, or in two steps for
+//! a repository that shows nothing yet: what the timeline needs first (`first`), then the rest from it (`rest`).
 //!
 //! Each part is a read of its own, its arguments and its parser apart (rule R2.5). The parsers and the arguments are
 //! public so that the golden tests record exactly what the read asks git, and parse it without git.
 
 mod branch_sort;
 mod common_folder;
+mod first;
 mod git_version;
 mod head;
 mod identity;
@@ -14,6 +16,7 @@ mod references;
 mod reflog_subjects;
 mod remotes;
 mod repositories;
+mod rest;
 mod shallow;
 mod stashes;
 pub(crate) mod status;
@@ -21,14 +24,15 @@ pub(crate) mod status;
 use std::path::PathBuf;
 use std::thread::{self, ScopedJoinHandle};
 
-use model::state::{Head, Identity, Operation, RepositoryState, Shallow, Stash, WorkingTree, Worktree};
+use model::state::{Head, RepositoryState};
 
-use crate::read::worktree::{self, CountedWorktrees, WorktreeListRequest};
+use crate::read::worktree::CountedWorktrees;
 use crate::{Git, GitError};
 
 pub use crate::read::worktree::{parse_worktrees, worktrees_arguments};
 pub use branch_sort::{branch_sort_arguments, parse_branch_sort};
 pub use common_folder::{CommonFolderRequest, common_folder_arguments, parse_common_folder, read_common_folder};
+pub use first::{FirstState, read_first};
 pub use git_version::{GitVersionRequest, git_version_arguments, parse_git_version, read_git_version};
 pub use head::{head_branch_arguments, head_commit_arguments, parse_head_branch, parse_head_commit};
 pub use identity::{identity_arguments, parse_identity};
@@ -40,6 +44,7 @@ pub use repositories::{
     RepositoriesRequest, parse_submodule_paths, parse_top_level, read_repositories, submodule_paths_arguments,
     top_level_arguments,
 };
+pub use rest::read_rest;
 pub use shallow::{ShallowRequest, parse_shallow_file, parse_shallow_location, read_shallow, shallow_arguments};
 pub use stashes::{parse_stashes, read_stashes, stashes_arguments};
 pub use status::{parse_status, status_arguments, worktree_status_arguments};
@@ -90,40 +95,14 @@ pub fn read_state_counting(
 ) -> Result<(RepositoryState, CountedWorktrees), GitError> {
     let location = location::read_location(&git.in_directory(&request.folder))?;
     let git = git.in_directory(&location.folder);
-    let (parts, counted) = read_parts(&git, &location, before)?;
-    let rebase_stop = if parts.operation == Some(Operation::Rebase) {
-        let request = crate::read::rebase::StopRequest {
-            git_folder: location.git_folder.clone(),
-        };
-        crate::read::rebase::read_stop(&git, &request)?
-    } else {
-        None
-    };
-    let resolved_as_before = read_resolved_as_before(&git, &location, &parts)?;
-    let state = RepositoryState {
-        rebase_stop,
-        resolved_as_before,
-        ..assemble(location, parts)
-    };
-    Ok((state, counted))
-}
-
-/// The files git resolved as before, while it remembers resolutions and an operation is stopped or files are in
-/// conflict (`rerere.read-resolved`); none otherwise, without starting git.
-fn read_resolved_as_before(
-    git: &Git,
-    location: &Location,
-    parts: &Parts,
-) -> Result<Vec<model::rerere::ResolvedAsBefore>, GitError> {
-    let conflicted = &parts.working_tree.conflicted;
-    if !parts.rerere.is_on || (parts.operation.is_none() && conflicted.is_empty()) {
-        return Ok(Vec::new());
-    }
-    let request = model::rerere::ResolvedRequest {
-        git_folder: location.git_folder.clone(),
-        conflicted: conflicted.iter().map(|file| file.path.clone()).collect(),
-    };
-    crate::read::rerere::read_resolved(git, &request)
+    // Both steps run at once, so that the whole takes about as long as the slowest read of the two.
+    let (found, rest) = thread::scope(|scope| {
+        let rest = scope.spawn(|| rest::read_rest_parts(&git, &location, before));
+        let found = first::read_first_parts(&git, &location, Some(before));
+        (found, joined(rest))
+    });
+    let (found, counted) = found?;
+    rest::complete(&git, first::first_state(location, found), rest?, counted)
 }
 
 /// Which parts of the state a read of the graph needs besides what is checked out.
@@ -165,210 +144,6 @@ pub fn read_timeline_parts(git: &Git, parts: TimelineParts) -> Result<Repository
             ..RepositoryState::default()
         })
     })
-}
-
-/// What each read found.
-struct Parts {
-    references: References,
-    head: Head,
-    stashes: Vec<Stash>,
-    worktrees: Vec<Worktree>,
-    remotes: Vec<String>,
-    identity: Identity,
-    signing: model::commit::SigningConfig,
-    branch_sort: Option<String>,
-    reflog_subjects: Vec<String>,
-    working_tree: WorkingTree,
-    operation: Option<Operation>,
-    bisect: Option<model::bisect::Bisect>,
-    submodules: Vec<model::submodule::Submodule>,
-    shallow: Shallow,
-    skipped: Vec<model::state::SkippedFile>,
-    is_looked_after: bool,
-    commit_graph: model::upkeep::CommitGraph,
-    notes: model::note::Notes,
-    lfs: model::lfs::LfsStatus,
-    rerere: model::rerere::RerereState,
-}
-
-/// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
-/// operation in progress is read from the disk meanwhile.
-fn read_parts(
-    git: &Git,
-    location: &Location,
-    before: &CountedWorktrees,
-) -> Result<(Parts, CountedWorktrees), GitError> {
-    let worktree_request = WorktreeListRequest {
-        folder: location.folder.clone(),
-        uncommitted_here: None,
-    };
-    thread::scope(|scope| {
-        let references = scope.spawn(|| references::read_references(git));
-        let head_commit = scope.spawn(|| head::read_head_commit(git));
-        let head_branch = scope.spawn(|| head::read_head_branch(git));
-        let stashes = scope.spawn(|| stashes::read_stashes(git));
-        let worktrees = scope.spawn(|| worktree::read_list_counting(git, &worktree_request, before));
-        let remotes = scope.spawn(|| remotes::read_remotes(git));
-        let identity = scope.spawn(|| identity::read_identity(git));
-        let signing = scope.spawn(|| crate::read::commit::read_signing(git, &crate::read::commit::SigningRequest));
-        let branch_sort = scope.spawn(|| branch_sort::read_branch_sort(git));
-        let reflog_subjects = scope.spawn(|| reflog_subjects::read_reflog_subjects(git));
-        let working_tree = scope.spawn(|| status::read_status(git));
-        let bisect = scope.spawn(|| read_bisect(git, location));
-        let submodules = scope.spawn(|| read_submodules(git, location));
-        let shallow = scope.spawn(|| read_shallow_of(git, location));
-        let kept = scope.spawn(|| read_kept(git, location, before));
-        let lfs = scope.spawn(|| crate::read::lfs::read_repository_status(git));
-        let rerere = scope.spawn(|| read_rerere(git, location));
-        let operation = operation::read_operation(&location.git_folder);
-        let (worktrees, mut counted) = joined(worktrees)?;
-        let kept = joined(kept)?;
-        let parts = Parts {
-            references: joined(references)?,
-            head: Head {
-                commit: joined(head_commit)?,
-                branch: joined(head_branch)?,
-            },
-            stashes: joined(stashes)?,
-            worktrees,
-            remotes: joined(remotes)?,
-            identity: joined(identity)?,
-            signing: joined(signing)?,
-            branch_sort: joined(branch_sort)?,
-            reflog_subjects: joined(reflog_subjects)?,
-            working_tree: joined(working_tree)?,
-            operation,
-            bisect: joined(bisect)?,
-            submodules: joined(submodules)?,
-            shallow: joined(shallow)?,
-            skipped: kept.skipped.files.clone(),
-            is_looked_after: kept.background.is_registered,
-            commit_graph: kept.commit_graph.graph,
-            notes: kept.notes.clone(),
-            lfs: joined(lfs)?,
-            rerere: joined(rerere)?,
-        };
-        counted.skipped = Some(kept.skipped);
-        counted.background = Some(kept.background);
-        counted.commit_graph = Some(kept.commit_graph);
-        counted.notes = Some(kept.notes);
-        Ok((parts, counted))
-    })
-}
-
-/// What the reads kept from the read before found.
-struct Kept {
-    skipped: crate::read::changes::SkippedRead,
-    background: crate::read::upkeep::BackgroundRead,
-    commit_graph: crate::read::upkeep::CommitGraphRead,
-    notes: model::note::Notes,
-}
-
-/// The bisect under way in the repository at `location`, if any.
-fn read_bisect(git: &Git, location: &Location) -> Result<Option<model::bisect::Bisect>, GitError> {
-    let request = crate::read::bisect::BisectRequest {
-        git_folder: location.git_folder.clone(),
-    };
-    crate::read::bisect::read(git, &request)
-}
-
-/// The submodules of the repository at `location`, and theirs.
-fn read_submodules(git: &Git, location: &Location) -> Result<Vec<model::submodule::Submodule>, GitError> {
-    let request = crate::read::submodule::SubmoduleListRequest {
-        folder: location.folder.clone(),
-    };
-    crate::read::submodule::read_list(git, &request)
-}
-
-/// Where the history of the repository at `location` ends, when it is a shallow clone.
-fn read_shallow_of(git: &Git, location: &Location) -> Result<Shallow, GitError> {
-    let request = ShallowRequest {
-        folder: location.folder.clone(),
-    };
-    read_shallow(git, &request)
-}
-
-/// Whether git remembers how conflicts are resolved in the repository at `location`.
-fn read_rerere(git: &Git, location: &Location) -> Result<model::rerere::RerereState, GitError> {
-    let request = model::rerere::RerereStateRequest {
-        git_folder: location.git_folder.clone(),
-    };
-    crate::read::rerere::read_state(git, &request)
-}
-
-/// The reads kept from the read before while what they read did not change: the files hidden from git, while the index
-/// did not change (`changes.read-skipped`); whether git's maintenance looks after the repository, while the user's
-/// configuration did not (`upkeep.read-background`); whether git keeps its commit-graph file, while the object folder
-/// and the configuration did not change (`upkeep.read-commit-graph`); and the commits with a note, while the reference
-/// of notes did not move (`note.read`).
-fn read_kept(git: &Git, location: &Location, before: &CountedWorktrees) -> Result<Kept, GitError> {
-    let skipped_request = crate::read::changes::SkippedRequest {
-        git_folder: location.git_folder.clone(),
-        before: before.skipped.clone(),
-    };
-    let background_request = crate::read::upkeep::BackgroundRequest {
-        folder: location.folder.clone(),
-        before: before.background.clone(),
-    };
-    let commit_graph_request = crate::read::upkeep::CommitGraphRequest {
-        folder: location.folder.clone(),
-        before: before.commit_graph.clone(),
-    };
-    let notes_request = crate::read::note::NoteRequest {
-        before: before.notes.clone(),
-    };
-    Ok(Kept {
-        skipped: crate::read::changes::read_skipped(git, &skipped_request)?,
-        background: crate::read::upkeep::read_background_kept(git, &background_request)?,
-        commit_graph: crate::read::upkeep::read_commit_graph_kept(git, &commit_graph_request)?,
-        notes: crate::read::note::read(git, &notes_request)?,
-    })
-}
-
-/// The state, from where the repository is and what each read found. The worktree read counts what this read found
-/// not committed, and each remote branch belongs to the longest remote its name starts with.
-fn assemble(location: Location, parts: Parts) -> RepositoryState {
-    let uncommitted = parts.working_tree.file_count();
-    let worktrees = parts
-        .worktrees
-        .into_iter()
-        .map(|worktree| Worktree {
-            uncommitted: if worktree.is_current {
-                Some(uncommitted)
-            } else {
-                worktree.uncommitted
-            },
-            ..worktree
-        })
-        .collect();
-    RepositoryState {
-        folder: location.folder,
-        git_folder: location.git_folder,
-        head: parts.head,
-        branches: parts.references.branches,
-        remote_branches: references::with_remotes(parts.references.remote_branches, &parts.remotes),
-        tags: parts.references.tags,
-        stashes: parts.stashes,
-        worktrees,
-        remotes: parts.remotes,
-        identity: parts.identity,
-        signing: parts.signing,
-        branch_sort: parts.branch_sort,
-        reflog_subjects: parts.reflog_subjects,
-        working_tree: parts.working_tree,
-        operation: parts.operation,
-        rebase_stop: None,
-        bisect: parts.bisect,
-        submodules: parts.submodules,
-        shallow: parts.shallow,
-        skipped: parts.skipped,
-        is_looked_after: parts.is_looked_after,
-        commit_graph: parts.commit_graph,
-        notes: parts.notes,
-        lfs: parts.lfs,
-        rerere: parts.rerere,
-        resolved_as_before: Vec::new(),
-    }
 }
 
 /// What a read on a thread of its own returned. A read that panicked panics here too, as it would have without the

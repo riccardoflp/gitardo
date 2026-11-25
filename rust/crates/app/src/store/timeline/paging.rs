@@ -187,6 +187,7 @@ pub fn read_again(state: &mut State) -> Vec<Effect> {
             request,
             kept: None,
             counted,
+            in_steps: false,
         },
     );
     super::super::reads::adopt(state, job.id, model::repo::ReadCause::Filter);
