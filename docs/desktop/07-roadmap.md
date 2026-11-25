@@ -2012,6 +2012,47 @@ is narrowed, RS16 is accepted, RS1 is left to the stylesheet (Q1700); `controlle
 `test/e2e/suite.ts` passes every step in Xvfb, and `npm run test:ui` 36 of 36 with a `GIT_CONFIG_GLOBAL` holding
 only an identity and `LANGUAGE=en`; the job `performance` of the pipeline has not run yet. Q1590 was asked.
 
+## M51 — The toolbar of the graph fits the width it has
+
+A fix, asked by the maintainer on 2026-11-25: the buttons of the toolbar above the graph of the extension do not follow
+the width of the view as they should. Whether the header of Gitardo Desktop has the same fault is not known, and phase 1
+finds out. Nothing changes in the engine.
+
+Read in the code on 2026-11-25, not yet seen in the apps, which phase 1 does:
+
+| | The extension | Gitardo Desktop |
+| --- | --- | --- |
+| What decides | the width of the view, at three fixed widths (`.toolbar` in `src/webview/styles.css`) | the width of the window, at one (`views::line::is_narrow`, 900 px) |
+| What gives way | under 1200 px the words of the button of the branches shown; under 1040 px the words of every button, and **Refresh**; under 800 px the search, to a line of its own | the words of **Sync**, and the parts of where one is, each cut at its start (`graph.where`) |
+| What is not counted | what the toolbar holds: the repository and the worktree to choose, the name of the branch, up to 220 px and never shrunk, the counts beside **Pull** and **Push**, the words of what is running | what the header holds, and the bar of views and the brand beside it |
+| Tested narrow | by no test | by the snapshot `brand-header-narrow-dark`, for the brand |
+
+So a toolbar with all it may hold can be longer than a view wider than 1040 px, and its last buttons pushed out of
+sight, while one that holds little gives up words it has the room for.
+
+Built in three phases, each one commit, each ending with its tests passing; Gitardo Desktop first, then the extension.
+
+1. **Seen first.** In both apps, with a repository, a worktree and a branch of long names, commits to pull and to push,
+   and an operation running: the toolbar at each width from 1,400 px down to 300 px, in steps of 100 px, in the
+   **Gitardo** view of the panel and in an editor tab for the extension, and in the window for the desktop. What is
+   pushed out of sight, cut, covered or wrapped at each width, and the words given up with room for them, go in a
+   table here, with whether the desktop has the fault. No card changes.
+2. **The header, in Gitardo Desktop.** Only if phase 1 found the fault there: `views::graph::toolbar_view` gives up
+   its words by what the header holds, not by the width of the window alone, and nothing of it is drawn outside the
+   window or over another part. Snapshots of `app/tests/places` at the widths phase 1 found. Cards: `graph.toolbar`,
+   its line of a narrow window and its acceptance; `graph.where`. If phase 1 found nothing, this phase says so here
+   and builds nothing.
+3. **The toolbar, in the extension.** `Toolbar.tsx` and its styles give way by what the toolbar holds, in one order:
+   the words of the button of the branches shown, the words of the other buttons, **Refresh**, which **…** has too,
+   then the search to a line of its own; no button is ever outside the view or under another, and no words are given
+   up while they fit. A step of `npm run test:ui` narrows the view through the widths of phase 1 and finds every
+   button of the toolbar inside it. Cards: `graph.toolbar`, what the extension does when narrow;
+   `extension/CHANGELOG.md` under **Unreleased**, and `rust/CHANGELOG.md` if phase 2 built.
+
+Exit: in the extension, and in Gitardo Desktop if it had the fault, at every width of phase 1 and with the longest
+names, every button of the toolbar is inside the view and can be clicked, none is under another, and the words of a
+button are shown whenever there is room for them.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
