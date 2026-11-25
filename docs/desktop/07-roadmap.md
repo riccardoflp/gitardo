@@ -2017,11 +2017,11 @@ only an identity and `LANGUAGE=en`; the job `performance` of the pipeline has no
 Three fixes of the toolbar above the graph of the extension, asked by the maintainer on 2026-11-25: its buttons do not
 follow the width of the view as they should; the repository is chosen in one way and the worktree in another; and with
 `gitardo.graph.islands` on the buttons are lost in the ground under them. Whether the header of Gitardo Desktop has the
-first fault is not known, and phase 1 finds out; it has not the second, since `graph.where` shows the repository, the
-worktree and the branch as parts of one line, each opening a list of the same kind. Nothing changes in the engine.
+first fault was not known, and phase 1 found it has not; it has not the second, since `graph.where` shows the
+repository, the worktree and the branch as parts of one line, each opening a list of the same kind. Nothing changes in
+the engine.
 
-Read in the code and in the screenshots of `npm run test:ui` on 2026-11-25, not yet seen in the apps of the day, which
-phase 1 does:
+Read in the code and in the screenshots of `npm run test:ui` on 2026-11-25, before phase 1:
 
 | | The extension | Gitardo Desktop |
 | --- | --- | --- |
@@ -2049,18 +2049,16 @@ What was found:
 
 Built in five phases, each one commit, each ending with its tests passing; Gitardo Desktop first, then the extension.
 
-1. **Seen first.** In both apps, with a repository, a worktree and a branch of long names, commits to pull and to push,
-   and an operation running: the toolbar at each width from 1,400 px down to 300 px, in steps of 100 px, in the
-   **Gitardo** view of the panel and in an editor tab for the extension, and in the window for the desktop; and, in the
-   extension, with the islands on in each theme the suite tries, the contrast of each button, of its border and of
-   each box against the ground, measured. What is pushed out of sight, cut, covered or left alone on a line at each
-   width, the words given up with room for them, the contrasts, whether the desktop has the first fault, and whatever
-   else of the toolbar is found at fault, go in a table here. No card changes.
-2. **The header, in Gitardo Desktop.** Only if phase 1 found a fault there: `views::graph::toolbar_view` gives up its
-   words by what the header holds, not by the width of the window alone, and nothing of it is drawn outside the window
-   or over another part. Snapshots of `app/tests/places` at the widths phase 1 found. Cards: `graph.toolbar`, its line
-   of a narrow window and its acceptance; `graph.where`. If phase 1 found nothing, this phase says so here and builds
-   nothing.
+1. **Seen first (done on 2026-11-25).** In both apps, with a repository, a worktree and a branch of long names and
+   commits to pull and to push: the toolbar at each width from 1,400 px down to 300 px, in steps of 100 px, in the
+   **Gitardo** view of the panel of a real VS Code for the extension, and in the window drawn by the tests for the
+   desktop; and, in the extension, with the islands on in six themes, how far each button, its border and each box
+   are from the ground. The tables below say what was seen. An operation running was not tried, nor the graph in an
+   editor tab, which is the same view. No card changes.
+2. **The header, in Gitardo Desktop: nothing to build.** Phase 1 found no fault there: at every width from 1,400 px
+   down to 500 px, and the window is never narrower than 480 px, every button of the header is inside the window and
+   none is over another; the worktree and then the branch are cut at their start to make the room, as `graph.where`
+   says. No card changes.
 3. **The toolbar fits, in the extension.** `Toolbar.tsx` and its styles give way by what the toolbar holds, in one
    order: the words of the button of the branches shown, the words of the other buttons, **Refresh**, which **…** has
    too, then a second line, which the search and the buttons after it take whole; no button is ever outside the view,
@@ -2079,10 +2077,48 @@ Built in five phases, each one commit, each ending with its tests passing; Gitar
    high contrast ones too, by the contrast phase 1 measured against; a button of an icon alone still has no shape
    until the pointer is over it, as in VS Code's own toolbars. The step of the islands of `test/e2e/ui.mjs` measures
    them in each theme. Cards: `graph.islands`, its line of the extension. Then `extension/CHANGELOG.md` under
-   **Unreleased** and the README of the extension where the toolbar is described, and `rust/CHANGELOG.md` if phase 2
-   built.
+   **Unreleased** and the README of the extension where the toolbar is described.
 
-Exit: in the extension, and in Gitardo Desktop if it had the fault, at every width of phase 1 and with the longest
+The toolbar of the extension, seen in phase 1, with the repository `customer-portal-frontend` of a workspace of two, its
+branch `feature/checkout-redesign-with-saved-payment-methods`, a second worktree, three commits to pull and two to push:
+
+| Width of the view | Lines | Outside the view | What else |
+| ---: | ---: | --- | --- |
+| 1,400 px | 1 | nothing | the search is pressed to 188 px, and the names of the repository, of the branch and of the branches shown are cut |
+| 1,300 px | 1 | **View** and **…**, 68 px of the toolbar | the words are still shown |
+| 1,200 px | 1 | part of the search, **Refresh**, **View** and **…**, 116 px | |
+| 1,100 px | 1 | the same, 216 px | the search shows three letters |
+| 1,000 px | 1 | **View** and **…**, 60 px | the words are gone, **Refresh** too |
+| 900 px | 1 | part of the search, **View** and **…**, 160 px | |
+| 800 px | 2 | nothing | the buttons on the first, the search across the second |
+| 700 px | 2 | nothing | **Stash** and **Undo** start the second line, apart from **Branch** |
+| 600 px | 2 | nothing | **Push** starts the second line, apart from **Pull** |
+| 500 px | 3 | nothing | |
+| 400 px | 4 | nothing | the repository is alone on the first line |
+| 300 px | 5 | nothing | 155 px high; the repository, the search and the branches shown each alone on a line |
+
+So from 900 px to 1,300 px the last buttons cannot be reached, with the words or without them; under 800 px nothing is
+lost, and the toolbar breaks wherever it ends. With the short names of the suite it fits at every width the suite
+tries, which is why its step passes. Also seen: the arrow of the list of the repositories is drawn over the end of the
+name, and the name of the branches shown is cut to `All …` in a view 1,440 px wide.
+
+The toolbar on the ground of the islands, at a width of 1,440 px: how far a color is from the ground, as the step of
+the themes of `test/e2e/ui.mjs` counts it against the background of the panel, of 765, where it asks for 30 at least.
+
+| Theme | Buttons with words, filling | Their border | The list and the search box, filling | Their border |
+| --- | ---: | ---: | ---: | ---: |
+| The dark one VS Code starts with | 0 | 97 | 17 | 97 |
+| Dark Modern | 0 | 81 | 90 | 123 |
+| Light 2026 | 3 | 3 | 64 | 22 |
+| Default Light Modern | 6 | 78 | 72 | 75 |
+| Default High Contrast | 0 | 529 | 0 | 529 |
+| Default High Contrast Light | 0 | 543 | 0 | 543 |
+
+In Light 2026 a button with words is words on the ground, with no shape at all, and the border of the boxes is under
+what the suite asks; in the other themes that are not of high contrast the filling of a button is the ground's and only
+its border tells it. The button of the worktree and the buttons of an icon alone have no shape in any theme, as meant.
+
+Exit: in the extension, at every width of phase 1 and with the longest
 names, every button of the toolbar is inside the view and can be clicked, none is under another or alone on a line,
 and the words of a button are shown whenever there is room for them; in the extension the repository, the worktree
 and where to search are chosen from buttons and menus of one look; and with the islands on, in every theme the suite
