@@ -34,9 +34,11 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * the targets `lfsFiles` and `lfsLock` and the answer `names` (milestone M47), and `target` in the follow-up
  * `writeSetting`, the target `setupSettings` and `setup` in `feature/run`, for the settings of new worktrees saved by
  * the engine's plans, and the kinds `input` and `output` of a line of the log, what a step was given on its standard
- * input and what git printed under a step that succeeded (milestone M48).
+ * input and what git printed under a step that succeeded (milestone M48); 1.14 has the state of a repository in two
+ * steps: `first` in `repository/open`, `read/repo.read-first`, and the reason `rest` of `repository/state`, the whole
+ * state read behind the first step answered (milestone M50).
  */
-export const PROTOCOL = '1.13';
+export const PROTOCOL = '1.14';
 
 /** The names of the methods. */
 export const Method = {
@@ -79,11 +81,35 @@ export interface InitializeResult {
 /** The settings, by the desktop's names: the extension's without `gitardo.`. */
 export type Settings = Record<string, unknown>;
 
-/** The notification of a state read again after files changed. */
+/**
+ * The notification of a state read again after files changed, or after a plan ran; with the reason `rest` (1.14), of the
+ * whole state read behind a first step answered (`repo.read-first`).
+ */
 export interface StateParams {
   repository: string;
   state: RepositoryState;
-  reason: 'changed' | 'ran' | 'opened';
+  reason: StateReason;
+}
+
+/** Why the engine sends a state. */
+export type StateReason = 'changed' | 'ran' | 'opened' | 'rest';
+
+/** The parameters of `repository/open`; with `first` (1.14) the answer is the first step of the state, and the rest follows. */
+export interface OpenParams {
+  repository: string;
+  first?: boolean;
+}
+
+/** The answer of `repository/open`; `first` says the state is its first step only (1.14), and is left out of a whole one. */
+export interface OpenResult {
+  state: RepositoryState;
+  first?: true;
+}
+
+/** The parameters of `read/repo.read-first` (1.14); `refresh` counts every other worktree again in the rest. */
+export interface ReadFirstParams {
+  repository: string;
+  refresh?: boolean;
 }
 
 /** A line of the engine's log. */
@@ -341,6 +367,8 @@ export const ReadMethod = {
   lfsFiles: 'read/lfs.read-files',
   lfsLocks: 'read/lfs.read-locks',
   lfsContent: 'read/lfs.read-content',
+  // Version 1.14, milestone M50.
+  readFirst: 'read/repo.read-first',
 } as const;
 
 /**

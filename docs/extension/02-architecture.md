@@ -233,6 +233,16 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
   (`repo.read-state` of the engine), then, for each group of views on it, the commits of the graph with `graphState`;
   the `Controller` hands each group its state (`setState`). The webviews get it in `state` messages, each view the parts
   it shows as they change, and change nothing of it themselves.
+- **A repository that shows nothing yet is read in two steps** (D92, `repo.read-first`): `RepositorySession.open`
+  asks the first step of its state (`reads.firstParts`, which opens the repository in the engine with `first`), and at
+  once the hosting service of its main remote and, when it is not known from `repository/discover` or from the
+  worktree left, the folder its worktrees share, which it watches. `readInSteps` (`src/extension/firstRead.ts`) asks
+  the commits as soon as the first step is answered, hands each group the first step with its first rows, and then
+  the whole state once the engine has read the rest, of which the views get only the parts that changed; the last
+  entry of the journal and the pull requests are asked for the whole state only. The session counts as read, and
+  whoever waits for `RepositoriesShown.point` goes on, once the whole state is shown; the views stop waiting at the
+  first step. Every other read, after a change, by **Refresh**, of a repository kept or read ahead, is whole and
+  shown once.
 - **A session for each repository shown, a group for each place it is shown** (D89): a `RepositorySession` holds what
   is read and watched of one repository, worktree or submodule: its state, its loop of reads, its watchers, its
   services and pull requests. A `ViewGroup` is the panel and the side bar together, the *followers*, or one tab of the

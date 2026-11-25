@@ -209,6 +209,23 @@ export class Reads {
     return { ...state, conflictFiles: conflicts };
   }
 
+  /**
+   * The state of the repository in two steps (`repo.read-first`): `parts` as soon as what the timeline, the references
+   * and the changes show is read, and `rest`, the whole state, once the engine has read it behind them; `rest` is null
+   * when `parts` is whole already. `resolve` and `refresh` are those of `parts`; a repository the engine opens for this
+   * counts every other worktree whatever `refresh` says.
+   */
+  async firstParts(repo: Repository, resolve = false, refresh = false): Promise<{ parts: RepoParts; rest: Promise<RepoParts> | null }> {
+    const client = this.client();
+    const { state, rest } = await client.firstState(repo.root, undefined, refresh);
+    // The files in conflict are of the first step: the rest reads none of them again.
+    const conflicts = resolve && state.workingTree.conflicted.length ? conflictFiles(await client.conflictRules(repo.root, null)) : [];
+    const whole = rest?.then((read) => ({ ...read, conflictFiles: conflicts })) ?? null;
+    // Looked at once the first step is shown: a failure until then is seen there.
+    whole?.catch(() => {});
+    return { parts: { ...state, conflictFiles: conflicts }, rest: whole };
+  }
+
   /** The commit a branch, a tag, a hash or anything else git understands stands for; null when there is none. */
   async resolve(repo: Repository, revision: string): Promise<string | null> {
     // What starts with a dash would be read as an option.

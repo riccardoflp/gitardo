@@ -28,12 +28,17 @@ draw, the one shown ticked (M51).
   `src/extension/controller.ts`. The choice is kept in the workspace state under `gitardo.repository`. The order of the
   list and how far each is indented are `groupRepositories` of `src/shared/repositoryGroups.ts`, from what
   `repository/discover` says of each repository (`RepoInfo.depth`). What a repository left keeps, with
-  `gitardo.repositories.keepOpen` on, is `repo.keep-open`'s.
+  `gitardo.repositories.keepOpen` on, is `repo.keep-open`'s. A repository chosen that kept nothing and was not read
+  ahead is read in two steps (`repo.read-first`, `RepositorySession.open`): the views wait for its first step, which
+  comes with the first rows of the graph, and are sent the rest of its state behind them; `selectRepo` ends once they
+  have the whole state.
 - **Tested by**: `test/e2e/suite.ts`, steps "narrows the graph to the history of a file, switching repository if
   needed", "follows the repository selected in VS Code's Repositories view, selects there the one shown, and
   shows a worktree of another", "lists the worktrees of a repository of the workspace under it in the list of the
   repositories" and "lists the repositories in the Repositories view with their worktrees and what each is on,
-  counts a file changed in one not shown, and shows the row clicked"; `test/repositoryGroups.test.ts`.
+  counts a file changed in one not shown, and shows the row clicked", and "shows a repository chosen for the first
+  time in two steps, its first step with the first rows and then only what the rest of its state changed, the state
+  read once"; `test/repositoryGroups.test.ts`.
 
 Acceptance:
 
@@ -44,6 +49,9 @@ Acceptance:
 - [ ] While the views show a worktree that is not in the workspace, the repository it is of stays chosen in the list;
   the worktree is chosen with the branch in the toolbar of the graph (`worktree.show-in-gitardo`).
 - [ ] The button is disabled while an operation runs.
+- [ ] A repository chosen for the first time, with nothing kept of it, has its state read once: the views are told to
+  wait, sent its first step with the rows, told to wait no more, and then sent the rest, of which the graph gets no
+  row; until then another worktree shows no count of what is not committed there.
 - [ ] The list puts a worktree of a repository and a submodule of it under it, indented, the worktree first, and
   **Gitardo: Select Repository** lists them in the same order.
 - [ ] A click on a row of the Repositories view shows its repository, worktree or submodule in every view and marks

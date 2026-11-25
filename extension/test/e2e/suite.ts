@@ -1249,6 +1249,99 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('shows a repository chosen for the first time in two steps, its first step with the first rows and then only what the rest of its state changed, the state read once', async () => {
+    const fresh = path.join(workspace, 'fresh');
+    const home = path.join(workspace, 'fresh.worktrees');
+    const beside = path.join(home, 'beside');
+    const client = internals.engine?.running as EngineClient;
+    // What is asked of the engine in the repository chosen, in the order it is asked.
+    const asked: string[] = [];
+    const methods = { firstState: 'first step', currentState: 'state', readState: 'state', open: 'state', graphStream: 'commits', commonFolder: 'folder', hosting: 'hosting', journalLast: 'journal' } as const;
+    const engine = client as unknown as Record<string, (repository: string, ...rest: unknown[]) => unknown>;
+    const original = Object.fromEntries(Object.keys(methods).map((method) => [method, engine[method]]));
+    for (const [method, what] of Object.entries(methods)) {
+      engine[method] = (repository, ...rest) => {
+        if (samePath(repository, fresh)) asked.push(what);
+        return original[method].call(client, repository, ...rest);
+      };
+    }
+    // What the Graph view of the panel is sent, part by part.
+    const graph = view('graph');
+    const sent: Extract<HostMessage, { type: 'state' }>[] = [];
+    const postMessage = graph.postMessage.bind(graph);
+    graph.postMessage = (outgoing: HostMessage) => {
+      if (outgoing.type === 'state') sent.push(outgoing);
+      return postMessage(outgoing);
+    };
+    const shown: RepoState[] = [];
+    const listening = controller.onDidChangeState((each) => {
+      if (each && samePath(each.root, fresh)) shown.push(each);
+    });
+    try {
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      // Nothing is read ahead: the repository is read when it is chosen.
+      await keepOpen(false);
+      await until('the views to be told nothing is kept', () => internals.state?.keepOpen === false);
+      fs.mkdirSync(fresh);
+      await git(fresh, ['init', '-b', 'main']);
+      const author = ['-c', 'user.name=Test Author', '-c', 'user.email=author@example.com'];
+      await git(fresh, [...author, 'commit', '--allow-empty', '-m', 'First of fresh']);
+      await git(fresh, [...author, 'commit', '--allow-empty', '-m', 'Second of fresh']);
+      await git(fresh, ['remote', 'add', 'origin', 'https://example.invalid/fresh.git']);
+      await git(fresh, ['worktree', 'add', '-b', 'beside', beside]);
+      fs.writeFileSync(path.join(beside, 'new.txt'), 'new\n');
+      await git(fresh, ['status']);
+      await sleep(1500);
+      await internals.locate();
+      assert.ok(samePath(state().root, app), state().root);
+      assert.ok(!internals.kept.has(fresh), 'nothing is kept of it');
+      assert.deepEqual(asked, [], 'nothing is read of it before it is chosen');
+
+      const from = posted.length;
+      sent.length = 0;
+      await controller.repositories.selectRepo(fresh);
+      assert.ok(samePath(state().root, fresh), state().root);
+      // One read of the state, in two steps: no whole state is asked, the folder the worktrees share is the one found
+      // with the repositories, the commits are asked once, and the journal after them.
+      assert.deepEqual(asked, ['first step', 'hosting', 'commits', 'journal']);
+      // The views wait for the first step only, which comes with the rows; the rest comes behind them.
+      assert.deepEqual(toldFrom(from), ['loading filter', 'state fresh', 'loading null', 'state fresh']);
+      const other = (each: RepoState) => each.worktrees.find((worktree) => !worktree.isCurrent);
+      const [first, whole] = [shown[0], shown[shown.length - 1]];
+      assert.equal(shown.length, 2);
+      assert.deepEqual(first.rows.map((row) => row.subject), ['Second of fresh', 'First of fresh']);
+      assert.deepEqual(first.branches.map((branch) => branch.name).sort(), ['beside', 'main']);
+      // What the rest reads says nothing in the first step: no count for the other worktree, which is not a count of zero.
+      assert.equal(other(first)?.uncommitted, null);
+      assert.deepEqual(first.remotes, []);
+      assert.equal(other(whole)?.uncommitted, 1);
+      assert.deepEqual(whole.remotes, ['origin']);
+      assert.deepEqual(whole.rows, first.rows, 'no row moved');
+      // The Graph view is sent every part with the first step, and of the rest only the parts it changed, no row among them.
+      const told = sent.filter((message) => message.state);
+      assert.equal(told.length, 2, JSON.stringify(told.map((message) => message.parts)));
+      assert.ok(told[0].parts?.includes('rows') && told[0].parts.includes('refs'), JSON.stringify(told[0].parts));
+      const rest = told[1].parts ?? [];
+      assert.ok(rest.includes('repository') && rest.includes('worktrees'), JSON.stringify(rest));
+      // The references come again with the reflog, which is of the rest, and are the same; the labels stay where they are.
+      for (const part of ['rows', 'draft', 'stashes', 'workingTree'] as const) assert.ok(!rest.includes(part), `the rest sends no ${part}: ${JSON.stringify(rest)}`);
+      assert.deepEqual(whole.branches, first.branches);
+      // Nothing is read after it.
+      await sleep(1500);
+      assert.deepEqual(asked, ['first step', 'hosting', 'commits', 'journal']);
+    } finally {
+      listening.dispose();
+      graph.postMessage = postMessage;
+      Object.assign(engine, original);
+      if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      await keepOpen(undefined);
+      await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
+      fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      fs.rmSync(fresh, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await internals.locate();
+    }
+  });
+
   await step('a worktree of the repository shown, chosen for the first time, keeps the rows of its repository and reads no commits, and so does the repository chosen back', async () => {
     const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');
     const taken = `${home}/taken`;

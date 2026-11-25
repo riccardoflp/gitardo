@@ -29,8 +29,14 @@ export interface TabShown {
   scope?: Scope | null;
 }
 
+/** A folder as the repositories are told apart by, whatever its slashes and its case. */
+const key = (root: string) => root.replace(/\\/g, '/').toLowerCase();
+
 /** Points the groups of views at the repositories they show, and opens the tabs of the graph. */
 export class RepositoriesShown {
+  /** The folder the worktrees of each repository of the workspace share, as the engine said when it looked for them. */
+  private readonly sharedFolders = new Map<string, string>();
+
   constructor(
     private readonly host: Pick<
       ControllerHost,
@@ -54,6 +60,15 @@ export class RepositoriesShown {
       | 'whenLocated'
     >,
   ) {}
+
+  /**
+   * The repositories of the workspace were looked for: the folder each shares with its worktrees is known from then on,
+   * and is not asked again when the repository is first shown (`repo.read-first`).
+   */
+  found(repositories: readonly { folder: string; commonFolder: string | null }[]): void {
+    this.sharedFolders.clear();
+    for (const { folder, commonFolder } of repositories) if (commonFolder) this.sharedFolders.set(key(folder), path.resolve(commonFolder));
+  }
 
   /**
    * Switches a group to another repository of the workspace: the panel and the side bar unless another is given, whose
@@ -181,16 +196,28 @@ export class RepositoriesShown {
     if (shown.scope !== undefined) group.scope = shown.scope;
     // A repository chosen that was not watched meanwhile counts every worktree again, as **Refresh** does (Q1744).
     if (made) session.everything = true;
-    const read = () => (made ? session.open() : session.refresh());
+    // The folder its worktrees share is the one of the worktree left, or the one found with the repositories.
+    if (made) session.commonFolder ??= (shares ? before?.commonFolder : undefined) ?? this.sharedFolders.get(key(root));
+    // A repository that shows nothing yet is read in two steps (`repo.read-first`): the views wait for the first, which
+    // comes with the first rows, and the rest of its state comes behind them.
+    let whole: Promise<void> | undefined;
+    const read = () => {
+      if (!made) return session.refresh();
+      const steps = session.open();
+      whole = steps.whole;
+      return steps.first;
+    };
     // A worktree of the repository left asks for the same history when nothing narrows either and both show the same
     // branches: it keeps the rows the views have, which are its own, and reads only what differs in it
     // (`repo.share-history`). The views are not told to wait for commits (Q1743).
     if (shares && sameHistory(narrowed, group)) {
       session.commitsTaken = made;
-      return read();
+      await read();
+      return whole;
     }
     // The commits of the repository before stay in the views until those of this one come.
     await this.host.reload(group, 'filter', read);
+    return whole;
   }
 
   /**

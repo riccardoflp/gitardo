@@ -54,6 +54,9 @@ import {
   type LogLineParams,
   type Matches,
   type MergeSides,
+  type OpenParams,
+  type OpenResult,
+  type ReadFirstParams,
   HelpMethod,
   MermaidMethod,
   RangeDiffMethod,
@@ -74,6 +77,7 @@ import {
   type SetupGiven,
   type Side,
   type StateParams,
+  type StateReason,
   type Submodule,
   SummariesMethod,
   type SummariesResult,
@@ -152,6 +156,16 @@ export interface FeatureResult {
   followUps: FollowUp[];
 }
 
+/**
+ * The state of a repository read in two steps (`repo.read-first`, 1.14): `state` is its first step, and `rest` gives
+ * the whole state once the engine has read it behind that answer. `rest` is null when `state` is whole already, as the
+ * one of an opening that was under way.
+ */
+export interface StateInSteps {
+  state: RepositoryState;
+  rest: Promise<RepositoryState> | null;
+}
+
 /** Where the client stands. */
 export type EngineStatus = 'stopped' | 'starting' | 'running' | 'restarting' | 'given up' | 'refused';
 
@@ -161,9 +175,11 @@ export class EngineClient {
   private connection?: Connection;
   private started?: Promise<InitializeResult>;
   private readonly opened = new Set<string>();
-  private readonly openings = new Map<string, Promise<RepositoryState>>();
+  private readonly openings = new Map<string, Promise<StateInSteps>>();
+  /** Who waits for the rest of a state whose first step was asked, by repository. */
+  private readonly rests = new Map<string, Set<(state: RepositoryState) => void>>();
   private readonly exits: number[] = [];
-  private readonly stateHandlers = new Set<(repository: string, state: RepositoryState) => void>();
+  private readonly stateHandlers = new Set<(repository: string, state: RepositoryState, reason: StateReason) => void>();
   private readonly summaryHandlers = new Set<(summaries: FolderSummary[]) => void>();
   /** The folders the engine was last asked to follow for the Repositories view, which it is asked again after a restart. */
   private followed: string[] = [];
@@ -202,9 +218,64 @@ export class EngineClient {
   /** Opens a repository, and gives its state; it is opened again after a restart. */
   async open(repository: string, signal?: AbortSignal): Promise<RepositoryState> {
     const connection = await this.ready();
-    const { state } = await connection.request<{ state: RepositoryState }>(Method.open, { repository }, signal);
+    const { state } = await connection.request<OpenResult>(Method.open, { repository } satisfies OpenParams, signal);
     this.opened.add(repository);
     return state;
+  }
+
+  /**
+   * The state of a repository in two steps (`repo.read-first`, 1.14): its first step as soon as it is read, and the whole
+   * state behind it. A repository not open yet is opened by the same request, whose rest counts every other worktree;
+   * one open is read again, counting them all only with `refresh`. Asked while the repository is being opened whole,
+   * it gives that state, with no rest.
+   */
+  firstState(repository: string, signal?: AbortSignal, refresh = false): Promise<StateInSteps> {
+    // Said before anything is awaited, so that the reads asked right after this one wait for this opening.
+    if (!this.opened.has(repository)) return this.opening(repository, true);
+    return this.inSteps(repository, async (connection) => {
+      const state = await connection.request<RepositoryState>(ReadMethod.readFirst, { repository, refresh } satisfies ReadFirstParams, signal);
+      return { state, first: true };
+    });
+  }
+
+  /**
+   * Asks for the first step of a state with `ask`, and gives it with the whole state the engine sends once it has read
+   * the rest. The engine sends nothing when that read fails or a plan runs meanwhile: so the state is also asked for as
+   * soon as the first step is answered, which waits for the rest under way and starts no git, and reads the state only
+   * when there is no rest to wait for.
+   */
+  private async inSteps(repository: string, ask: (connection: Connection) => Promise<OpenResult>): Promise<StateInSteps> {
+    const connection = await this.ready();
+    let heard: RepositoryState | undefined;
+    let tell: (state: RepositoryState) => void = (state) => {
+      heard = state;
+    };
+    const listener = (state: RepositoryState) => tell(state);
+    const listeners = this.rests.get(repository) ?? new Set();
+    this.rests.set(repository, listeners.add(listener));
+    const forget = () => {
+      listeners.delete(listener);
+      if (!listeners.size && this.rests.get(repository) === listeners) this.rests.delete(repository);
+    };
+    try {
+      const { state, first } = await ask(connection);
+      if (!first) {
+        forget();
+        return { state, rest: null };
+      }
+      const rest = heard
+        ? Promise.resolve(heard)
+        : new Promise<RepositoryState>((resolve, reject) => {
+            tell = resolve;
+            connection.request<RepositoryState>(Method.readState, { repository, refresh: false }).then(resolve, reject);
+          });
+      // Whoever shows the first step looks at the rest later: a failure meanwhile is theirs to see then.
+      rest.then(forget, forget);
+      return { state, rest };
+    } catch (error) {
+      forget();
+      throw error;
+    }
   }
 
   /**
@@ -247,14 +318,26 @@ export class EngineClient {
    */
   async currentState(repository: string, signal?: AbortSignal, refresh = false): Promise<RepositoryState> {
     if (this.opened.has(repository)) return this.readState(repository, signal, refresh);
-    return this.opening(repository);
+    // An opening in two steps answered its first step: the whole state is the one that follows it.
+    const { state, rest } = await this.opening(repository);
+    return rest ?? state;
   }
 
-  /** The opening of a repository under way, shared by those who ask while it runs. */
-  private opening(repository: string): Promise<RepositoryState> {
+  /**
+   * The opening of a repository under way, shared by those who ask while it runs. With `first`, a repository that is not
+   * being opened is opened in two steps (`repo.read-first`).
+   */
+  private opening(repository: string, first = false): Promise<StateInSteps> {
     let opening = this.openings.get(repository);
     if (!opening) {
-      opening = this.open(repository).finally(() => this.openings.delete(repository));
+      const asked = first
+        ? this.inSteps(repository, async (connection) => {
+            const answer = await connection.request<OpenResult>(Method.open, { repository, first: true } satisfies OpenParams);
+            this.opened.add(repository);
+            return answer;
+          })
+        : this.open(repository).then((state) => ({ state, rest: null }));
+      opening = asked.finally(() => this.openings.delete(repository));
       this.openings.set(repository, opening);
     }
     return opening;
@@ -674,7 +757,7 @@ export class EngineClient {
   }
 
   /** Calls a handler with each state the engine sends after files changed; disposing it stops that. */
-  onState(handler: (repository: string, state: RepositoryState) => void): {
+  onState(handler: (repository: string, state: RepositoryState, reason: StateReason) => void): {
     dispose(): void;
   } {
     this.stateHandlers.add(handler);
@@ -756,8 +839,10 @@ export class EngineClient {
       this.graphRows.get(read)?.(rows);
     });
     connection.on(Method.state, (params) => {
-      const { repository, state } = params as StateParams;
-      for (const handler of this.stateHandlers) handler(repository, state);
+      const { repository, state, reason } = params as StateParams;
+      // The whole state read behind a first step answered is for who asked that step (`repo.read-first`).
+      if (reason === 'rest') for (const tell of [...(this.rests.get(repository) ?? [])]) tell(state);
+      for (const handler of this.stateHandlers) handler(repository, state, reason);
     });
     connection.on(SummariesMethod.summaries, (params) => {
       const { summaries } = params as SummariesResult;

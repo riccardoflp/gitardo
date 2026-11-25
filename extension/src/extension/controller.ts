@@ -266,7 +266,7 @@ export class Controller implements vscode.Disposable {
       hasViews: (session) => this.hasViews(session),
       repositoryNamed: (root) => this.repos.find((each) => samePath(each.root, root))?.name ?? path.basename(root),
       autoResolve: () => autoResolve(),
-      complete: (group, read) => this.complete(group, read),
+      complete: (group, read, first) => this.complete(group, read, first),
       stateRead: (group, state) => this.setState(group, state),
       settleScope: (group, root, scope) => this.repositories.settleScope(group, root, scope),
       changedIn: (root, cause, delay) => this.changesSeen.changedIn(root, cause, delay),
@@ -532,12 +532,12 @@ export class Controller implements vscode.Disposable {
   }
 
   /** The state read for a group, with what the window adds to it: its favorites, its settings, its pull requests. */
-  private complete(group: ViewGroup, state: RepoState): Promise<RepoState> {
-    return this.completeFor(group.session, this.homeOf(group, state.root), state);
+  private complete(group: ViewGroup, state: RepoState, first = false): Promise<RepoState> {
+    return this.completeFor(group.session, this.homeOf(group, state.root), state, first);
   }
 
-  /** A state read of a repository, for the session that read it, with what the window adds to it. */
-  private async completeFor(session: RepositorySession | undefined, home: RepoInfo | null, state: RepoState): Promise<RepoState> {
+  /** A state read of a repository, for the session that read it, with what the window adds to it; the journal is not asked for a `first` step. */
+  private async completeFor(session: RepositorySession | undefined, home: RepoInfo | null, state: RepoState, first = false): Promise<RepoState> {
     const sort = branchSort();
     // The pages of the read that come while the rest is read are laid out under its rows once it is: a read that
     // ended meanwhile would not be told to the views after.
@@ -548,7 +548,7 @@ export class Controller implements vscode.Disposable {
       hosting: session?.hosting ?? null,
       pulls: session?.pulls ?? {},
       agentsWindow: await (this.agentsWindow ??= hasCommand(AGENTS_WINDOW)),
-      undo: await this.newestInJournal(state.root),
+      undo: first ? null : await this.newestInJournal(state.root),
       worktreesRoot: worktreesFolder(state),
       openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? ('worktree' as const) : ('checkout' as const),
       listed: this.history.listedIn(state),
@@ -812,6 +812,7 @@ export class Controller implements vscode.Disposable {
     this.ahead.turns.stop();
     this.ahead.turns.again();
     this.repositoriesView.found(grouped);
+    this.repositories.found(found);
     for (const group of this.allGroups()) this.repositories.retitle(group);
     // A repository that is no longer in the workspace keeps nothing.
     this.kept.forget((root) => !this.repos.some((repo) => samePath(repo.root, root)));

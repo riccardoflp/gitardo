@@ -8,6 +8,7 @@ import { pullWords, readsPullRequests, type Hosting } from '../shared/hosting';
 import { samePath } from '../shared/paths';
 import type { Filter, Loading, PullRequest, RepoInfo, RepoParts, RepoState, Scope, ToViews } from '../shared/protocol';
 import type { Activity } from './activity';
+import { readInSteps } from './firstRead';
 import { githubSession } from './github';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
@@ -267,8 +268,11 @@ export interface SessionHost {
   repositoryNamed(root: string): string;
   /** Whether conflicts are resolved by the rules, which the state says of each file in conflict. */
   autoResolve(): boolean;
-  /** The state read for a group, with what the window adds to it: its favorites, its settings, its pull requests. */
-  complete(group: ViewGroup, read: RepoState): Promise<RepoState>;
+  /**
+   * The state read for a group, with what the window adds to it: its favorites, its settings, its pull requests. With
+   * `first`, for the first step of a state, without what is asked while it is drawn: the last entry of the journal.
+   */
+  complete(group: ViewGroup, read: RepoState, first?: boolean): Promise<RepoState>;
   /** A group was read: its views are sent its state, or told that there is none. */
   stateRead(group: ViewGroup, state: RepoState | null): void;
   /** The branches shown as git took them, without those deleted since they were chosen, for a group. */
@@ -319,6 +323,17 @@ export class RepositorySession {
    * the repository just read, which a worktree shown for the first time takes (`repo.share-history`).
    */
   commitsTaken = false;
+  /**
+   * The next read is shown in two steps (`repo.read-first`): the first step with the first rows, then the rest. Only the
+   * first read of a repository that shows nothing yet is: every other read is shown once, whole.
+   */
+  private inSteps = false;
+  /** Tells whoever opened it that its first step is shown. */
+  private firstShown?: () => void;
+  /** The folder its worktrees share being asked, or known: the commits of its first read wait for it. */
+  private folderAsked: Promise<void> = Promise.resolve();
+  /** The hosting service of its main remote being asked: the whole state of its first read waits for it. */
+  private hostingAsked: Promise<void> = Promise.resolve();
   /** The folder its worktrees share, where its references are (`repo.common-folder`); none until it is asked. */
   commonFolder?: string;
   /** When the last read ended, for the focus (`repo.watch-changes`). */
@@ -365,15 +380,31 @@ export class RepositorySession {
     return this.stateHeard === this.heard;
   }
 
-  /** Looks for its folder of git to watch it and for the hosting service of its main remote, and reads it. */
-  async open(): Promise<void> {
-    const gitDir = await reads.commonDir(this.repo);
-    // Let go of meanwhile: nothing is watched for it.
-    if (this.disposed) return;
-    this.commonFolder = gitDir;
-    this.watcher = this.watch(gitDir);
-    await this.detectHosting();
-    await this.refresh();
+  /**
+   * Reads a repository that shows nothing yet, in two steps (`repo.read-first`, D92): its first step, the folder its
+   * worktrees share, to watch it, and the hosting service of its main remote are asked at once, the first before the
+   * others so that the engine opens the repository with it. `first` ends once the views have the first step and the
+   * first rows, `whole` once they have the whole state. The folder the worktrees share is not asked when it is known
+   * already, as the one of a repository found in the workspace.
+   */
+  open(): { first: Promise<void>; whole: Promise<void> } {
+    this.inSteps = true;
+    const shown = new Promise<void>((resolve) => (this.firstShown = resolve));
+    const read = this.refresh();
+    const watched = (folder: string) => {
+      // Let go of meanwhile: nothing is watched for it.
+      if (this.disposed) return;
+      this.commonFolder = folder;
+      this.watcher = this.watch(folder);
+    };
+    if (this.commonFolder) watched(this.commonFolder);
+    else this.folderAsked = reads.commonDir(this.repo).then(watched);
+    this.hostingAsked = this.detectHosting().catch((error) => this.host.log.warn(`Could not read the remotes of ${this.root}: ${errorText(error)}`));
+    const whole = Promise.all([read, this.folderAsked, this.hostingAsked]).then(() => undefined);
+    // A read that fails before its first step is shown is over too.
+    whole.catch(() => {});
+    this.folderAsked.catch(() => {});
+    return { first: Promise.race([shown, whole]), whole };
   }
 
   /**
@@ -421,9 +452,12 @@ export class RepositorySession {
         const operations = this.host.operations;
         const groups = this.host.groupsOn(this);
         const scopes = groups.map((group) => group.scope);
+        const steps = this.inSteps;
+        this.inSteps = false;
         let read: (RepoState | null)[] | null;
         try {
-          read = await this.readState(groups, everything);
+          const holds = () => !this.host.running && operations === this.host.operations && !this.disposed;
+          read = steps ? await this.readSteps(groups, scopes, everything, holds) : await this.readState(groups, everything);
         } catch (error) {
           // An operation that ran meanwhile can take from under the read what it was reading, such as a conflict
           // resolved while its versions were read: the read is dropped as below, and the one after it says what is there.
@@ -441,15 +475,7 @@ export class RepositorySession {
           this.waiters.unshift(...waiting.splice(0));
           continue;
         }
-        for (const [index, group] of groups.entries()) {
-          const state = read[index]!;
-          // A group pointed at another repository while this one was read is read there.
-          if (group.session !== this) continue;
-          // Unless other branches were chosen while this one was read.
-          if (scopes[index] === group.scope) this.host.settleScope(group, state.root, state.scope);
-          const shown = await this.host.complete(group, state);
-          if (group.session === this) this.host.stateRead(group, shown);
-        }
+        await this.show(groups, read as RepoState[], scopes);
         this.stateHeard = heard;
         for (const resolve of waiting.splice(0)) resolve();
       }
@@ -469,22 +495,67 @@ export class RepositorySession {
     if (this.host.hasViews(this) && !this.disposed) void this.refreshPulls(false);
   }
 
+  /** Sends the groups the states read for them, each with what the window adds to it; `first`, those of a first step. */
+  private async show(groups: ViewGroup[], read: RepoState[], scopes: (Scope | null)[], first = false): Promise<void> {
+    for (const [index, group] of groups.entries()) {
+      const state = read[index];
+      // A group pointed at another repository while this one was read is read there.
+      if (group.session !== this) continue;
+      // Unless other branches were chosen while this one was read.
+      if (scopes[index] === group.scope) this.host.settleScope(group, state.root, state.scope);
+      const shown = await this.host.complete(group, state, first);
+      if (group.session === this) this.host.stateRead(group, shown);
+    }
+  }
+
   /**
    * Reads what the views show but the commits once, and then the commits of the history of each group from what it
    * says (stage 7). Null for a group whose read of the commits was cancelled, for a read that takes its place.
    */
   async readState(groups: ViewGroup[], everything = false): Promise<(RepoState | null)[]> {
+    const commits = this.commitsReader(groups, everything);
+    return commits(await reads.parts(this.repo, this.host.autoResolve(), everything));
+  }
+
+  /**
+   * What reads the commits of the history of each group from the parts of a state read. **Refresh** reads every commit
+   * again; the other reads keep them while the history is the same (Q442). The rows of the commits it finds the same
+   * stay as they are, and the views are sent none of them (Q781).
+   */
+  private commitsReader(groups: ViewGroup[], everything: boolean): (parts: RepoParts) => Promise<(RepoState | null)[]> {
     const client = reads.client();
     const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
-    // **Refresh** reads every commit again; the other reads keep them while the history is the same (Q442). The rows of
-    // the commits it finds the same stay as they are, and the views are sent none of them (Q781).
     const taken = this.commitsTaken;
     this.commitsTaken = false;
-    // The commits are kept by the folder the worktrees share, so that each of them finds those another read.
-    if (this.commonFolder) for (const group of groups) group.graph.keepBy(this.root, this.commonFolder);
-    if (everything && !taken) for (const group of groups) group.graph.readAgain(this.root);
-    const parts = await reads.parts(this.repo, this.host.autoResolve(), everything);
-    return Promise.all(groups.map((group) => group.readGraph(client, this.repo, parts, stashes, this.host.log)));
+    return (parts) => {
+      // The commits are kept by the folder the worktrees share, so that each of them finds those another read.
+      if (this.commonFolder) for (const group of groups) group.graph.keepBy(this.root, this.commonFolder);
+      if (everything && !taken) for (const group of groups) group.graph.readAgain(this.root);
+      return Promise.all(groups.map((group) => group.readGraph(client, this.repo, parts, stashes, this.host.log)));
+    };
+  }
+
+  /**
+   * The first read of a repository that shows nothing yet (`repo.read-first`, D92): the groups are sent the first step
+   * of its state with the first rows of their history, and what this gives, the whole state of each, once the engine
+   * has read the rest. The state is read once: the engine reads the rest from what the first step found. Null when
+   * `holds` says that what was read cannot be shown.
+   */
+  private readSteps(groups: ViewGroup[], scopes: (Scope | null)[], everything: boolean, holds: () => boolean): Promise<(RepoState | null)[] | null> {
+    const commits = this.commitsReader(groups, everything);
+    return readInSteps<RepoParts, RepoState>({
+      first: () => reads.firstParts(this.repo, this.host.autoResolve(), everything),
+      beforeCommits: () => this.folderAsked,
+      commits,
+      holds,
+      showFirst: async (states) => {
+        await this.show(groups, states, scopes, true);
+        this.firstShown?.();
+      },
+      beforeWhole: () => this.hostingAsked,
+      // The rows are those of the first step, with the pages read since: the rest lists no commit.
+      withRest: (state, rest) => ({ ...state, ...rest }),
+    });
   }
 
   /**

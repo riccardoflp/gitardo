@@ -399,8 +399,8 @@ operation that stopped half way.
   counted in the other worktrees, and counts again only those whose git folder changed (Q462). `repository/open` counts
   them all. From version 1.14 a `read/repo.read-state` asked while the engine reads the rest of a state whose first
   step it answered (`repo.read-first`) waits for that rest and reads nothing again, so that a repository opened with
-  `first` has its state read once; the extension does not open with `first` yet. `gitardo.readOnStartup` is the
-  setting `readOnStartup`.
+  `first` has its state read once, as the extension opens a repository that shows nothing yet (`repo.read-first`):
+  it asks no `refresh` after the open. `gitardo.readOnStartup` is the setting `readOnStartup`.
 
 Acceptance:
 
@@ -439,11 +439,29 @@ that a repository chosen shows its first commits after a few reads and not after
   these seven, and the one `git stash list` starts itself.
 - **Uses**: by `repo.read-state`, whose `read_rest` reads the rest from what it found and reads none of it again;
   `graph.read-commits`, asked as soon as it ends; `repo.schedule-reads`; `repo.share-history`.
-- **Extension**: Planned. The engine has it, version 1.14 of [the protocol](../transition/02-protocol.md#the-state-in-two-steps):
+- **Extension**: version 1.14 of [the protocol](../transition/02-protocol.md#the-state-in-two-steps):
   `repository/open` asked with `first: true` answers `{ state, first: true }`, the first step, and
   `read/repo.read-first` answers it for a repository opened; the whole state then comes in a `repository/state` with
-  the reason `rest`. The extension is still to ask them: the views are to be sent the parts of the first step and the
-  first rows, and the other parts when the rest comes.
+  the reason `rest`. `EngineClient.firstState` (`src/engine/client.ts`) asks the first of the two for a repository the
+  engine has not opened, whose rest counts every other worktree, and the second, with `refresh`, for one it has; it
+  gives the first step and a promise of the whole state, which is the notification, or the answer of a
+  `read/repo.read-state` asked as soon as the first step is answered: that one waits for the rest and starts no git,
+  and says so when the rest failed or a plan ran, of which the engine sends nothing. `RepositorySession.open`
+  (`src/extension/repositorySession.ts`) reads this way a repository that shows nothing yet, one a group of views
+  comes to that kept nothing and was not read ahead, a worktree shown for the first time among them: it asks the first
+  step, then at once the hosting service of the main remote, and the folder the worktrees share when it is not known
+  from the repositories found in the workspace (`repository/discover`) or from the worktree left; the commits are
+  asked as soon as the first step is answered. `readInSteps` (`src/extension/firstRead.ts`) sends the views the first
+  step with the first rows, the last entry of the journal left out, and they stop waiting; once the rest and the
+  hosting service are there, they are sent the whole state, of which each gets only the parts that changed
+  (`stateFor`), no row among them, and the pull requests are asked after it. A view that opens meanwhile waits for the
+  whole state: the first step never counts as a state read (`RepositorySession.isFresh`). Nothing is shown of a read
+  an operation ran across, or of a repository left meanwhile, which is marked out of date when it is kept. A read that
+  follows a change, **Refresh**, a repository kept and a repository read ahead read the state whole, as before. Tested
+  by `test/firstRead.test.ts`, `test/engineFirstState.test.ts`, `test/stateParts.test.ts`, the test "sends a graph the
+  first step of a state whole, and of the rest only the parts it changed and no row", and `test/e2e/suite.ts`, the
+  step "shows a repository chosen for the first time in two steps, its first step with the first rows and then only
+  what the rest of its state changed, the state read once".
 
 The rest of the state is read at the same time as the commits: the count of what is not committed in each other
 worktree, the remotes, who commits are made as, the order of the branches, the reflog, the submodules, the bisect in
@@ -1436,8 +1454,9 @@ rows another of them has read, and reads only what is its own
   what is checked out, each worktree having its own (`sameHistory`). The views are then not told to wait for commits,
   and are sent the parts of the state that are the worktree's own: no row when both have the row of the uncommitted
   changes on the same commit, or neither has it, and otherwise the rows laid out again under that row, with no read. A
-  worktree that kept what it showed shows that instead (`repo.keep-open`). The state of the worktree is read whole
-  behind the rows, not its first step alone. Tested by `test/graphPages.test.ts`, the tests "gives a worktree the rows
+  worktree that kept what it showed shows that instead (`repo.keep-open`). The state of the worktree is read in two
+  steps behind the rows (`repo.read-first`): its first step puts what is checked out there and what is not committed
+  in their place, and the rest follows. Tested by `test/graphPages.test.ts`, the tests "gives a worktree the rows
   its repository has read, with no read of the commits, when its HEAD is on a branch", "lays the rows out again under
   the row of the uncommitted changes of the worktree, with no read of the commits", "reads the commits of a worktree
   detached at a commit no reference is on, over the rows of its repository", "reads a worktree as a repository chosen

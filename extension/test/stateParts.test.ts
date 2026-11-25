@@ -173,4 +173,30 @@ describe('the parts of the state each view is sent (D88)', () => {
     // The rows are the same list: the graph draws none of them again.
     expect(graph.shown.rows).toBe(rows);
   });
+
+  it('sends a graph the first step of a state whole, and of the rest only the parts it changed and no row (repo.read-first)', () => {
+    const graph = viewOf('graph');
+    const branches = viewOf('branches');
+    // The first step: no remote read, and no count of what is not committed in the other worktree.
+    const worktrees = (uncommitted: number | null) => [worktreeAt('/work/app', 'main', { isMain: true, isCurrent: true }), worktreeAt('/work/app-fix', 'topic', { uncommitted })];
+    const first = read({ worktrees: worktrees(null) });
+    expect(graph.send(first)?.parts).toEqual(partsOf('graph'));
+    branches.send(first);
+    const rows = graph.shown.rows;
+    expect(graph.shown.worktrees[1].uncommitted).toBeNull();
+
+    // The rest is read anew, every part of it: the remotes, the identity and the count of the other worktree differ.
+    const whole = read({ worktrees: worktrees(2), remotes: ['origin'], identity: { name: 'Test Author', email: 'author@example.com' }, rows: first.rows });
+    const rest = graph.send(whole)!;
+    expect(rest.parts).toEqual(['repository', 'rest', 'worktrees']);
+    expect(rest.state?.rows).toBeUndefined();
+    expect(graph.shown.rows).toBe(rows);
+    expect(graph.shown.remotes).toEqual(['origin']);
+    expect(graph.shown.worktrees[1].uncommitted).toBe(2);
+    // What the first step read stays the same objects: nothing made from it is made again.
+    expect(graph.shown.branches).toBe(first.branches);
+    expect(branches.send(whole)?.parts).toEqual(['repository', 'rest', 'worktrees']);
+    // A rest that changes nothing, as in a repository with no remote and no other worktree, sends nothing.
+    expect(graph.send(read({ worktrees: worktrees(2), remotes: ['origin'], identity: whole.identity, rows: first.rows }))).toBeUndefined();
+  });
 });
