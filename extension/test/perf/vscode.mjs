@@ -1,5 +1,7 @@
 // Opens a repository in a real VS Code and times what a person waits for: node test/perf/vscode.mjs <repository> [--out=<folder>] [--limits] [path to VS Code]
 // Meant for a large one, such as test/perf/big-repo.mjs makes. The only thing it changes there is a file it adds and removes.
+// With --switch the folder is the one test/perf/switch-fixture.mjs made, and what is timed instead is choosing a
+// repository: one shown before, a worktree of the one shown, and one never shown, each in three windows (test/perf/switch.mjs).
 // With --limits it fails when a time is over the one docs/extension/12-quality.md gives its scenario, times one and a
 // half (D91, Q1519): the pipeline runs it so on Linux, whose machines are the steadiest.
 
@@ -13,7 +15,7 @@ import { startWindow } from '../e2e/window.mjs';
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
 const [repository, codePath] = process.argv.slice(2).filter((argument) => !argument.startsWith('--'));
 if (!repository) {
-  console.error('Usage: node test/perf/vscode.mjs <repository> [--out=<folder>] [path to VS Code]');
+  console.error('Usage: node test/perf/vscode.mjs <repository> [--out=<folder>] [--limits] [--switch] [path to VS Code]');
   process.exit(1);
 }
 const LIMITS = options.includes('--limits');
@@ -51,6 +53,21 @@ function limit(scenario, what, measured) {
 }
 
 const out = path.resolve(options.find((option) => option.startsWith('--out='))?.slice(6) ?? path.join(source, 'dist', 'perf'));
+if (options.includes('--switch')) {
+  const { measureSwitches } = await import('./switch.mjs');
+  let failed = false;
+  try {
+    const problems = await measureSwitches({ folder: path.resolve(repository), out, codePath, options, limit });
+    if (problems.length) console.log(`\nErrors inside the views:\n${problems.join('\n')}`);
+    if (over.length) console.log(`\nOver the times of 12-quality.md times ${MARGIN}:\n${over.join('\n')}`);
+    failed = problems.length > 0 || (LIMITS && over.length > 0);
+  } catch (error) {
+    console.error(error.stack ?? String(error));
+    failed = true;
+  }
+  console.log(`\nScreenshots are in ${out}`);
+  process.exit(failed ? 1 : 0);
+}
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-perf-'));
 // The engine the end-to-end suite uses: without the setting, a checkout has none packed to find.
 const engine = engineSetting(temp, options);

@@ -141,6 +141,21 @@ node test/perf/graph-load.mjs ../big --commit
   (D54). QA4, "no key waits", gives no time and has no limit. With `--limits` a time over its limit fails
   the run. The pipeline runs it so on Linux alone, on a repository made by `big-repo.mjs <folder> 50000 2000`, with the
   minified build (`node esbuild.mjs --production`) and the engine in release, `GITARDO_ENGINE` naming it.
+- `switch-fixture.mjs <folder> [commits on main] [changed files]` makes what choosing a repository is timed on, in a
+  folder away from any repository such as `~/.cache/gitardo-perf/m50`: `workspace/large`, the repository of
+  `big-repo.mjs` with the two git commands after it, `workspace/beside`, a repository of 40 commits that is the one
+  shown when the window opens, and `worktrees/worktree-1` to `worktree-3`, three worktrees of the large one, each on
+  one of its branches.
+- `vscode.mjs <folder> --switch` (`switch.mjs`) opens `workspace` of that folder in three windows, one after the
+  other, and in each chooses, in the list of the repositories and in the menu of the worktrees of the graph: the large
+  repository, never shown in the window; one of its worktrees, never shown; the large repository again after the
+  small one, with `gitardo.repositories.keepOpen` as it is by default, and then with it on. Each choice is made once
+  every commit of the history has come and two seconds have passed, and is timed until the view has the first state
+  of the folder chosen with commits, and from there until it has drawn it; it prints the median of the three windows,
+  how many commits each state sent, and the git processes the engine started between the choice and the rows drawn,
+  by command, counted from the events git writes when `GIT_TRACE2_EVENT` names a file, which a shell script that
+  starts the engine sets; on Windows they are not counted. The choices have no limit yet: `CHOICES` of `switch.mjs`
+  names the scenario of each once [12-quality.md](12-quality.md) has one.
 - `graph-load.mjs <repository> [--out=<folder>] [--commit] [--profile]` opens the repository in the same VS Code and
   records how its graph loads, as the eye sees it: every 50 ms, how many commits the list has, where it is scrolled
   to, how many rows are drawn, whether the last row says **Loading more commits…**, how wide the graph is; each message

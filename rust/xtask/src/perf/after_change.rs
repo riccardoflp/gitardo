@@ -132,7 +132,7 @@ fn count_processes(place: &Place<'_>, changed: &Path) -> Result<Vec<BTreeMap<Str
 
 /// The commands of the git processes the engine started, from their `start` events: a process that another git
 /// started has a `sid` with a `/` and is not counted.
-fn started_commands(lines: &[&str]) -> BTreeMap<String, usize> {
+pub(super) fn started_commands(lines: &[&str]) -> BTreeMap<String, usize> {
     let mut commands = BTreeMap::new();
     for line in lines.iter().filter(|line| line.contains("\"event\":\"start\"")) {
         let is_top = line
@@ -166,7 +166,7 @@ fn command_of(line: &str) -> String {
 }
 
 /// The count of the processes, and how many of each command, as `7 (log 1, status 6)`.
-fn said(commands: &BTreeMap<String, usize>) -> String {
+pub(super) fn said(commands: &BTreeMap<String, usize>) -> String {
     let total: usize = commands.values().sum();
     let each: Vec<String> = commands
         .iter()
@@ -176,7 +176,7 @@ fn said(commands: &BTreeMap<String, usize>) -> String {
 }
 
 /// A line of the table: the fastest, median and slowest of the times, and the processes.
-fn line(out: &mut impl Write, name: &str, mut times: Vec<Duration>, processes: &str) -> Result<(), Error> {
+pub(super) fn line(out: &mut impl Write, name: &str, mut times: Vec<Duration>, processes: &str) -> Result<(), Error> {
     times.sort();
     let (Some(fastest), Some(median), Some(slowest)) = (times.first(), times.get(times.len() / 2), times.last()) else {
         return Ok(());

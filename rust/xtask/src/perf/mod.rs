@@ -3,8 +3,10 @@
 //! its answer, as the extension waits for it: a first page of 1,000 rows, the next pages asked with `skip`, a page far
 //! down the history, the position of a commit, two searches and the state. Then the whole history, page after page
 //! as the extension reads it; the first page after the branches shown change, streamed as the extension asks it; a
-//! read after a change as the extension asks it, with the git processes each read starts; and the whole history in the
-//! window, read and laid out as `app` does, then after the branches shown change, by a test of `app` built in release.
+//! read after a change as the extension asks it, with the git processes each read starts; a repository opened for the
+//! first time by an engine just started, its first page and its state, with their git processes; and the whole history
+//! in the window, read and laid out as `app` does, then after the branches shown change, by a test of `app` built in
+//! release.
 //! It prints tables of times; it is not pass or fail (`docs/desktop/06-testing.md`). It says whether git keeps a
 //! commit-graph file of the repository, which makes the reads of the history about twice as fast (D88): run it again
 //! after `git commit-graph write --reachable --changed-paths` to time the repository with one.
@@ -12,6 +14,7 @@
 mod after_change;
 mod engine;
 mod filters;
+mod first_open;
 mod whole;
 
 use std::io::Write;
@@ -106,6 +109,7 @@ pub fn run(root: &Path, arguments: &[String]) -> Result<bool, Error> {
         initialize: &initialize,
     };
     after_change::run(&place, times.max(TIMES * 2), &mut out)?;
+    first_open::run(&place, times, &mut out)?;
     drop(out);
     if engine_only { Ok(true) } else { window(root, &folder) }
 }
@@ -135,10 +139,11 @@ fn commit_graph_said(folder: &Path) -> &'static str {
     }
 }
 
-/// The engine built in release; none, said on the standard error, when it is not built.
+/// The engine built in release, in the folder `CARGO_TARGET_DIR` names when cargo builds elsewhere than in the
+/// workspace; none, said on the standard error, when it is not built.
 fn engine_binary(root: &Path) -> Result<Option<PathBuf>, Error> {
-    let binary = root
-        .join("target")
+    let binary = std::env::var_os("CARGO_TARGET_DIR")
+        .map_or_else(|| root.join("target"), PathBuf::from)
         .join("release")
         .join(format!("gitardo-engine{}", std::env::consts::EXE_SUFFIX));
     if binary.is_file() {

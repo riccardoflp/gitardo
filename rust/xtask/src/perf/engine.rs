@@ -40,6 +40,13 @@ impl Answered {
     /// Whether the engine answered with an error.
     pub fn is_error(&self) -> bool {
         self.body.starts_with("{\"error\":")
+            || self
+                .body
+                .strip_prefix("{\"jsonrpc\":\"2.0\",\"id\":")
+                .is_some_and(|rest| {
+                    rest.trim_start_matches(|digit: char| digit.is_ascii_digit())
+                        .starts_with(",\"error\":")
+                })
     }
 }
 
@@ -123,13 +130,18 @@ impl Engine {
         let started = Instant::now();
         write!(self.input, "Content-Length: {}\r\n\r\n{body}", body.len())?;
         self.input.flush()?;
-        // serde_json writes the fields of a message in the order of their names: an answer starts with its id, or
-        // with its error and ends with its id.
-        let result = format!("{{\"id\":{id},\"jsonrpc\":\"2.0\",\"result\"");
+        // An answer starts with its id, before or after the version of JSON-RPC, whichever order the engine writes
+        // the fields of a message in; one with an error written by the names of its fields ends with its id.
+        let answers = [
+            format!("{{\"id\":{id},\"jsonrpc\":\"2.0\","),
+            format!("{{\"jsonrpc\":\"2.0\",\"id\":{id},"),
+        ];
         let failure = format!(",\"id\":{id},\"jsonrpc\":\"2.0\"}}");
         loop {
             let message = self.read_message()?;
-            if message.starts_with(&result) || (message.starts_with("{\"error\":") && message.ends_with(&failure)) {
+            if answers.iter().any(|start| message.starts_with(start))
+                || (message.starts_with("{\"error\":") && message.ends_with(&failure))
+            {
                 return Ok(Answered {
                     body: message,
                     took: started.elapsed(),

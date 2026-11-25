@@ -114,6 +114,10 @@ Since milestone M15 it also times four things more
   before each (`gitardo-perf-change.txt`, removed at the end), ten times at least; and the git processes each read
   starts, counted from the events that git writes when `GIT_TRACE2_EVENT` names a file, each by its command. A git
   that another git starts is not counted.
+- **A repository opened for the first time**, by an engine just started, a new one for each round: `repository/open`,
+  the first page of `graph.read-commits` and, after them, `repo.read-state`, each timed, with the git processes each
+  starts, counted the same way. It is the engine alone, for the times of milestone M50: no window draws what it
+  answers.
 - **The whole history in the window**, read and laid out as `app` does it: the folder opened, then every next page
   asked for as the list is scrolled to its end, by the test
   `speed::the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page` of `app`, built in release, on
