@@ -32,15 +32,18 @@ pub fn repository_of(repository: &RepositoryState) -> &Path {
         .map_or(repository.folder.as_path(), |worktree| worktree.folder.as_path())
 }
 
-/// Says the notice for the repository shown once its history is read whole, when it counts 10,000 commits or more and
-/// git keeps no commit-graph file of it and would read one; once each time the window opens it, and never for a
-/// repository declined.
+/// Says the notice for the repository shown once its history and its state are read whole, when it counts 10,000
+/// commits or more and git keeps no commit-graph file of it and would read one; once each time the window opens it,
+/// and never for a repository declined.
 pub fn follow(state: &mut State) {
     let timeline = &state.timeline;
     let is_read_whole = timeline.stream.is_none()
         && timeline.more_job.is_none()
         && timeline.narrow_job.is_none()
-        && !timeline.is_reading_again;
+        && !timeline.is_reading_again
+        // Whether git keeps the file is in the rest of the state, which a read in two steps brings after the first
+        // commits and, with a short history or a slow start of git, after the last of them.
+        && state.reads.rest.is_none();
     let Some(read) = state.shown_read().filter(|read| {
         is_read_whole
             && timeline.folder.as_deref() == Some(read.folder.as_path())

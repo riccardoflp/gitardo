@@ -2,6 +2,7 @@
 //! commits made by `git fast-import`, which writes no commit-graph file. The operation **Write it** runs is checked by
 //! the tests of `gitardo-cli`; here git writes the file as it would.
 
+use std::collections::VecDeque;
 use std::path::Path;
 
 use app::persisted::Persisted;
@@ -15,7 +16,7 @@ use views::feature::FeatureIntent;
 use views::text::repo as words;
 
 use super::histories::{imported, line};
-use super::support::{Window, run, says};
+use super::support::{Window, give_held, run, run_holding_rest, says};
 
 /// A window wide enough for the notice and its buttons in the status bar.
 const SIZE: (u32, u32) = (1400, 800);
@@ -113,4 +114,48 @@ fn upkeep_offer_commit_graph__fewer_commits_a_file_or_core_commit_graph_false_sa
     assert_eq!(said(&repository), None, "git keeps the file");
     std::fs::remove_file(repository.path().join(".git/objects/info/commit-graph")).unwrap();
     assert!(said(&repository).is_some(), "10,000 commits and no file");
+}
+
+#[test]
+fn upkeep_offer_commit_graph__says_nothing_before_the_rest_of_the_state_says_whether_git_keeps_the_file() {
+    let repository = imported(&line(10_000));
+    let _ = repository.git(&["commit-graph", "write", "--reachable"]);
+    let mut state = super::window();
+    let mut held = VecDeque::new();
+    let started = Message::Started {
+        folders: vec![repository.path().to_path_buf()],
+    };
+    let _ = run_holding_rest(&mut state, started, &mut held);
+    // The commits come whole before the rest of the state, as they do when git is slow to start.
+    let (mut rest, mut pages): (VecDeque<Message>, VecDeque<Message>) = held
+        .into_iter()
+        .partition(|message| matches!(message, Message::RestRead { .. }));
+    assert_eq!(rest.len(), 1, "the rest of the state is still to come");
+    give_held(&mut state, &mut pages);
+    assert_eq!(state.timeline.loaded(), 10_000);
+    assert_eq!(
+        state.commit_graph.notice, None,
+        "whether git keeps the file is not read yet"
+    );
+    give_held(&mut state, &mut rest);
+    assert!(state.shown_read().unwrap().state.commit_graph.has_file);
+    assert_eq!(state.commit_graph.notice, None, "git keeps the file");
+}
+
+#[test]
+fn upkeep_offer_commit_graph__says_the_notice_once_the_rest_of_the_state_came_after_the_commits() {
+    let repository = imported(&line(10_000));
+    let mut state = super::window();
+    let mut held = VecDeque::new();
+    let started = Message::Started {
+        folders: vec![repository.path().to_path_buf()],
+    };
+    let _ = run_holding_rest(&mut state, started, &mut held);
+    let (mut rest, mut pages): (VecDeque<Message>, VecDeque<Message>) = held
+        .into_iter()
+        .partition(|message| matches!(message, Message::RestRead { .. }));
+    give_held(&mut state, &mut pages);
+    assert_eq!(state.commit_graph.notice, None, "not before the rest");
+    give_held(&mut state, &mut rest);
+    assert!(state.commit_graph.notice.is_some(), "10,000 commits and no file");
 }

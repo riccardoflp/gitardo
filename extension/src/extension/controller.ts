@@ -258,7 +258,9 @@ export class Controller implements vscode.Disposable {
         // The history of a repository shown is read to its end: the others may be read ahead (`repo.watch-hidden`).
         this.ahead.turns.next();
         const ask = (message: string, ...buttons: string[]) => vscode.window.showInformationMessage(message, ...buttons);
-        void offerCommitGraph(group.state, { memento: this.memento, ask, write: () => this.action({ kind: 'writeCommitGraph' }, group) });
+        // Whether git keeps the file comes with the rest of the state, which a read in two steps brings behind the rows.
+        const read = (group.session?.loading ?? Promise.resolve()).catch(() => {});
+        void read.then(() => offerCommitGraph(group.state, { memento: this.memento, ask, write: () => this.action({ kind: 'writeCommitGraph' }, group) }));
       },
     };
     this.followers = new ViewGroup(this.groupHost);
