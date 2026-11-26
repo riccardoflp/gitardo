@@ -159,8 +159,8 @@ Where one is and what applies to the whole repository, in a bar across the top o
   `test/e2e/ui.mjs`, step "the toolbar gives up its words, Refresh, one line and then three buttons as the panel
   narrows, with nothing out of the view, and takes them back", and `test/toolbarMenus.test.ts`, "has Branch, Stash and
   Undo after Refresh while the toolbar is too narrow for their buttons, greyed out as the buttons are" (M51); and by
-  the step "the toolbar of a tab of the graph drawn while the tab is out of sight fits its width again once the tab
-  is shown".
+  `test/e2e/ui.mjs`, step "the toolbar of a tab of the graph drawn while the tab is out of sight fits its width again
+  once the tab is shown".
 
 The header is not an island: it is a bar on the ground of the window, as high as a button and its margins, across the
 whole width on the right of the bar of views, above the side column, the timeline, the inspector and the pages, and it
