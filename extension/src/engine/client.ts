@@ -789,7 +789,10 @@ export class EngineClient {
     return { dispose: () => this.stateHandlers.delete(handler) };
   }
 
-  /** Asks the engine to end, and ends it when it does not within a second. */
+  /**
+   * Asks the engine to end, and ends it when it does not within a second. It is waited for either way, since it watches
+   * the git folders of the repositories it opened, and Windows deletes no folder a process still holds.
+   */
   async dispose(): Promise<void> {
     this.stopping = true;
     const child = this.process;
@@ -803,7 +806,10 @@ export class EngineClient {
       // An engine that cannot answer is ended below.
     }
     await Promise.race([ended, delay(1000)]);
-    if (child.exitCode === null && child.signalCode === null) child.kill();
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill();
+      await Promise.race([ended, delay(2000)]);
+    }
     this.current = 'stopped';
   }
 

@@ -28,7 +28,8 @@ const clients: EngineClient[] = [];
 export function cleanUpAfterEach(): void {
   afterEach(async () => {
     await Promise.all(clients.splice(0).map((client) => client.dispose()));
-    for (const folder of folders.splice(0)) fs.rmSync(folder, { recursive: true, force: true });
+    // On Windows a folder is not deleted while a process that just ended, or a hook of git still running, holds it.
+    for (const folder of folders.splice(0)) fs.rmSync(folder, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
   });
 }
 
