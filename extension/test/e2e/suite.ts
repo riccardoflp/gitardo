@@ -104,6 +104,25 @@ async function closeInVSCodeGit(root: string): Promise<void> {
   if (open) await vscode.commands.executeCommand('git.close', open).then(undefined, () => undefined);
 }
 
+/**
+ * Deletes a repository a step made in the workspace. On Windows a folder is not deleted while a process works in it or
+ * watches it, and VS Code's Git extension opens again a repository it was asked to close while its folder is still
+ * there: it is closed and the deletion tried again until the folder is gone.
+ */
+async function removeRepository(root: string): Promise<void> {
+  const end = Date.now() + 60_000;
+  for (;;) {
+    await closeInVSCodeGit(root);
+    try {
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 250 });
+      if (!fs.existsSync(root)) return;
+    } catch (error) {
+      if (Date.now() > end) throw error;
+    }
+    await sleep(500);
+  }
+}
+
 async function vscodeGit(): Promise<VSCodeGitApi> {
   const extension = vscode.extensions.getExtension<{ getAPI(version: 1): VSCodeGitApi }>('vscode.git');
   assert.ok(extension, "VS Code's Git extension");
@@ -1287,8 +1306,7 @@ export async function run(): Promise<void> {
       await keepOpen(undefined);
       await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
-      await closeInVSCodeGit(ahead);
-      fs.rmSync(ahead, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await removeRepository(ahead);
       await internals.locate();
     }
   });
@@ -1380,9 +1398,8 @@ export async function run(): Promise<void> {
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
       await keepOpen(undefined);
       await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
-      await closeInVSCodeGit(fresh);
       fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
-      fs.rmSync(fresh, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await removeRepository(fresh);
       await internals.locate();
     }
   });
