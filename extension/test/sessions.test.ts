@@ -4,7 +4,7 @@
  * its folder.
  */
 import { describe, expect, it } from 'vitest';
-import { Sessions, keptTab, sameHistory, sharesHistory, tabTitle } from '../src/extension/sessions';
+import { Sessions, keptTab, restoredTab, sameHistory, sharesHistory, tabTitle } from '../src/extension/sessions';
 import { worktreeAt } from './states';
 import type { RepoInfo } from '../src/shared/protocol';
 
@@ -131,6 +131,44 @@ describe('what a tab of the graph comes back on after a reload', () => {
     expect(keptTab({ refsWidth: 200 })).toEqual({});
     expect(keptTab({ tab: { root: 42 } })).toEqual({});
     expect(keptTab({ tab: { root: '/work/web', filter: 'author', scope: [] } })).toEqual({ root: '/work/web' });
+  });
+});
+
+describe('which tab of the graph follows the repository chosen after a reload', () => {
+  const following = { tab: { root: '/work/web', filter: null, scope: null, follows: true } };
+  const keptOn = (root: string, more: object = {}) => ({ tab: { root, filter: null, scope: null, ...more } });
+
+  it('reads whether the page said it followed', () => {
+    expect(keptTab(following)).toEqual({ root: '/work/web', scope: null, follows: true });
+    expect(keptTab(keptOn('/work/web', { follows: false }))).toEqual({ root: '/work/web', scope: null, follows: false });
+    expect(keptTab(keptOn('/work/web', { follows: 'yes' }))).toEqual({ root: '/work/web', scope: null });
+  });
+
+  it('repo.keep-tabs: the tab that followed follows again, whatever it showed, and takes nothing of what its page kept', () => {
+    expect(restoredTab(following, '/work/api', false)).toEqual({ follows: true });
+    expect(restoredTab({ tab: { follows: true } }, undefined, false)).toEqual({ follows: true });
+  });
+
+  it('repo.keep-tabs: a tab kept on a repository comes back on it, the repository chosen too', () => {
+    const kept = keptOn('/work/api', { follows: false, filter: { kind: 'author', query: 'Ada' } });
+    expect(restoredTab(kept, '/work/api', false)).toEqual({ follows: false, root: '/work/api', filter: { kind: 'author', query: 'Ada' }, scope: null });
+    expect(restoredTab(keptOn('/work/web', { follows: false }), '/work/api', false)).toEqual({ follows: false, root: '/work/web', scope: null });
+  });
+
+  it('repo.keep-tabs: of the tabs kept before one followed, the first on the repository chosen follows and the others keep theirs', () => {
+    expect(restoredTab(keptOn('/work/web'), '/work/api', false)).toEqual({ follows: false, root: '/work/web', scope: null });
+    expect(restoredTab(keptOn('\\work\\API'), '/work/api', false)).toEqual({ follows: true });
+    expect(restoredTab(keptOn('/work/api'), '/work/api', true)).toEqual({ follows: false, root: '/work/api', scope: null });
+  });
+
+  it('repo.keep-tabs: a page that kept no folder follows, as it showed the repository of the panel', () => {
+    expect(restoredTab({ refsWidth: 200 }, '/work/api', false)).toEqual({ follows: true });
+    expect(restoredTab(undefined, undefined, false)).toEqual({ follows: true });
+    expect(restoredTab({ refsWidth: 200 }, '/work/api', true)).toEqual({ follows: false });
+  });
+
+  it('repo.tab-follows: there is one tab that follows at most, and a second one that says it did keeps what it showed', () => {
+    expect(restoredTab(following, '/work/api', true)).toEqual({ follows: false, root: '/work/web', scope: null });
   });
 });
 

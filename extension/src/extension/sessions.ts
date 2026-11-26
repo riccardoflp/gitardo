@@ -131,19 +131,44 @@ export function tabTitle(root: string | undefined, repos: readonly RepoInfo[], h
 }
 
 /**
- * What a tab of the graph brought back after a reload is to show, from the state its page kept (`repo.keep-tabs`): the
- * folder it showed, with its filter and the branches it showed; nothing of what is not there or not of the right kind,
- * as from a page kept before tabs kept what they show, which opens on the repository the panel shows.
+ * What the page of a tab of the graph kept, read from its state (`repo.keep-tabs`): the folder it showed, with its filter
+ * and the branches it showed, and whether it followed the repository chosen; nothing of what is not there or not of the
+ * right kind, as from a page kept before tabs kept what they show. A page kept before one tab followed says nothing of
+ * following.
  */
-export function keptTab(kept: unknown): { root?: string; filter?: Filter; scope?: Scope | null } {
+export function keptTab(kept: unknown): { root?: string; filter?: Filter; scope?: Scope | null; follows?: boolean } {
   const tab = typeof kept === 'object' && kept !== null ? (kept as { tab?: unknown }).tab : undefined;
   if (typeof tab !== 'object' || tab === null) return {};
-  const { root, filter, scope } = tab as { root?: unknown; filter?: unknown; scope?: unknown };
-  if (typeof root !== 'string' || !root) return {};
+  const { root, filter, scope, follows } = tab as { root?: unknown; filter?: unknown; scope?: unknown; follows?: unknown };
+  const following = typeof follows === 'boolean' ? { follows } : {};
+  if (typeof root !== 'string' || !root) return following;
   const kind = (value: unknown) => (typeof value === 'object' && value !== null ? (value as { kind?: unknown }).kind : undefined);
   return {
     root,
     ...(typeof kind(filter) === 'string' ? { filter: filter as Filter } : {}),
     ...(scope === null || typeof kind(scope) === 'string' ? { scope: scope as Scope | null } : {}),
+    ...following,
   };
+}
+
+/** A tab of the graph brought back: the one that follows the repository chosen, or one kept on a folder with what it showed. */
+export interface RestoredTab {
+  follows: boolean;
+  root?: string;
+  filter?: Filter;
+  scope?: Scope | null;
+}
+
+/**
+ * What a tab of the graph brought back after a reload becomes, from the state its page kept (`repo.keep-tabs`, D94).
+ * The one that followed the repository chosen follows again, and the others come back on what they showed. A page kept
+ * before one tab followed says neither: the first such tab on the repository chosen, or that kept no folder, becomes
+ * the one that follows, and the others keep theirs. `following` is whether a tab follows already, there being one at
+ * most: a tab brought back after it keeps the repository it showed, or the one chosen when it kept none.
+ */
+export function restoredTab(kept: unknown, chosen: string | undefined, following: boolean): RestoredTab {
+  const { follows, ...tab } = keptTab(kept);
+  const onChosen = !tab.root || (!!chosen && samePath(tab.root, chosen));
+  if (!following && (follows ?? onChosen)) return { follows: true };
+  return { follows: false, ...tab };
 }

@@ -162,15 +162,17 @@ One tab of the graph in the editor shows the repository chosen, as the panel and
 them ([D94](../../08-decisions.md#d94--in-the-extension-one-graph-follows-the-repository-chosen-and-a-tab-opened-on-a-repository-keeps-it-proposed)).
 
 - **Kind**: View
-- **Function**: `RepositoriesShown.openFollowing()`, which opens the tab in the group of views of the panel and
+- **Function**: `RepositoriesShown.openFollowing(panel)`, which opens the tab in the group of views of the panel and
   the side bar (`followers`), or brings forward the one open.
 - **Entry points**: **Gitardo** in the status bar; **Gitardo: Open Graph in Editor**.
 - **Offered when**: the workspace has a repository.
 - **Uses**: `repo.select`, `repo.follow-source-control`, `repo.keep-open`, `repo.tab-repository`, `repo.keep-tabs`.
-- **Implemented in**: `src/extension/repositoriesShown.ts` (`openFollowing`), `src/extension/extension.ts`
-  (`openInEditor`).
-- **Tested by**: `test/e2e/suite.ts`, step "opens one tab of the graph that follows the repository chosen with the
-  panel and the side bar, and chooses for the window".
+- **Implemented in**: `src/extension/repositoriesShown.ts` (`openFollowing`, `restoreTab`),
+  `src/extension/extension.ts` (`openInEditor`), `src/extension/sessions.ts` (`restoredTab`), `src/webview/App.tsx`.
+- **Tested by**: `test/e2e/suite.ts`, steps "opens one tab of the graph that follows the repository chosen with the
+  panel and the side bar, and chooses for the window" and "brings the tabs of the graph back after a reload, the one
+  that follows following and the others on what their pages kept, and says so of a folder that is no longer there";
+  `test/sessions.test.ts`, "which tab of the graph follows the repository chosen after a reload".
 
 Its title is `Gitardo`. The button of the repository and the menu of the worktrees in its toolbar choose for the
 window, as the panel's do. A tab opened on a repository (`repo.tab-repository`) is not changed by it and changes
@@ -191,24 +193,32 @@ Acceptance:
 
 ### `repo.keep-tabs` — The tabs of the graph come back after a reload
 
-A tab of the graph comes back when VS Code opens the workspace again, on what it showed.
+A tab of the graph comes back when VS Code opens the workspace again: the one that follows the repository chosen
+following it, the others on what they showed
+([D94](../../08-decisions.md#d94--in-the-extension-one-graph-follows-the-repository-chosen-and-a-tab-opened-on-a-repository-keeps-it-proposed)).
 
 - **Kind**: View
 - **Function**: a `WebviewPanelSerializer` of `gitardo.graphEditor`, registered in `activate`
-  (`src/extension/extension.ts`) with the activation event `onWebviewPanel:gitardo.graphEditor`, which reattaches the
-  page with what `keptTab` finds in its state; the page writes it there as `tab` (`TabKept`).
+  (`src/extension/extension.ts`) with the activation event `onWebviewPanel:gitardo.graphEditor`, which gives the
+  tab and the state of its page to `RepositoriesShown.restoreTab`; `restoredTab` says from that state whether the tab
+  follows or which folder it is kept on; the page writes it there as `tab` (`TabKept`).
 - **Entry points**: opening the workspace, or reloading the window, with tabs of the graph open.
 - **Offered when**: a tab of the graph was open when the window closed.
-- **Uses**: `repo.tab-repository`.
-- **Implemented in**: `src/extension/extension.ts`, `src/extension/sessions.ts` (`keptTab`),
-  `src/extension/repositoriesShown.ts` (`openTab`), `src/extension/controller.ts` (`goneTab`), `src/webview/App.tsx`,
+- **Uses**: `repo.tab-repository`, `repo.tab-follows`.
+- **Implemented in**: `src/extension/extension.ts`, `src/extension/sessions.ts` (`keptTab`, `restoredTab`),
+  `src/extension/repositoriesShown.ts` (`restoreTab`, `openFollowing`, `openTab`), `src/extension/controller.ts` (`goneTab`), `src/webview/App.tsx`,
   `src/webview/Placeholder.tsx` (`Gone`).
-- **Tested by**: `test/sessions.test.ts`, "what a tab of the graph comes back on after a reload"; `test/e2e/suite.ts`,
-  step "brings a tab of the graph back after a reload on what its page kept, and says so of a folder that is no longer
-  there".
+- **Tested by**: `test/sessions.test.ts`, "what a tab of the graph comes back on after a reload" and "which tab of the graph
+  follows the repository chosen after a reload"; `test/e2e/suite.ts`, step "brings the tabs of the graph back after a
+  reload, the one that follows following and the others on what their pages kept, and says so of a folder that is no
+  longer there".
 
 The page keeps, in its own state (`setState`), the root of its repository, its worktree or submodule, its filter and
-the branches shown. A tab whose folder is no longer there says **`<folder>` is no longer there.** with **Close** (Q1523).
+the branches shown, and whether it follows the repository chosen (`follows`). The tab that follows comes back titled
+`Gitardo` on the repository chosen, with the filter and the branches the panel shows, not those its page kept. A page
+kept by a version in which every tab kept its repository says nothing of following: the first such tab brought back
+that showed the repository chosen becomes the one that follows, and the others keep theirs, as does a tab that says it
+followed when one follows already. A tab kept on a repository whose folder is no longer there says **`<folder>` is no longer there.** with **Close** (Q1523).
 Nothing is added to the workspace state.
 
 Acceptance:
@@ -216,3 +226,7 @@ Acceptance:
 - [ ] A tab on `web` with a filter by author, after **Developer: Reload Window**, shows `web` with the same filter, and
   the panel shows what it showed.
 - [ ] A tab on a worktree removed while VS Code was closed says the folder is no longer there, and **Close** closes it.
+- [ ] The tab that follows, after **Developer: Reload Window**, is titled `Gitardo` and shows the repository chosen;
+  a tab kept on the repository chosen beside it comes back kept on it.
+- [ ] Of three tabs kept by a version before one followed, on `web`, `api` and `api`, with `api` chosen: the first on
+  `api` follows, the tab on `web` and the second on `api` keep theirs.

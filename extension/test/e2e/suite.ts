@@ -8,7 +8,6 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CONFLICT, INDEX, contentUri } from '../../src/extension/content';
 import type { EngineClient } from '../../src/engine/client';
-import { keptTab } from '../../src/extension/sessions';
 import { reads } from '../../src/engine/reads';
 import type { GitardoApi } from '../../src/extension/extension';
 import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
@@ -5292,22 +5291,24 @@ export async function run(): Promise<void> {
     }
   });
 
-  await step('brings a tab of the graph back after a reload on what its page kept, and says so of a folder that is no longer there', async () => {
+  await step('brings the tabs of the graph back after a reload, the one that follows following and the others on what their pages kept, and says so of a folder that is no longer there', async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
     // What VS Code gives the serializer of the tabs of the graph after a reload: a tab, and the state its page kept.
     const restore = (kept: unknown) => {
-      const panel = vscode.window.createWebviewPanel('gitardo.graphEditor', 'Gitardo', vscode.ViewColumn.Active, { retainContextWhenHidden: true });
-      const { root, ...shown } = keptTab(kept);
-      return { panel, opened: controller.repositories.openTab(root, panel, shown) };
+      const panel = vscode.window.createWebviewPanel('gitardo.graphEditor', 'Gitardo · before', vscode.ViewColumn.Active, { retainContextWhenHidden: true });
+      return { panel, opened: controller.repositories.restoreTab(panel, kept) };
     };
+    /** What the page of a tab was told it is, on its body. */
+    const follows = (panel: vscode.WebviewPanel) => panel.webview.html.includes('data-follows="true"');
     try {
       const filter = { kind: 'message', query: 'lib' } as const;
-      const back = restore({ refsWidth: 240, tab: { root: lib, filter, scope: null } });
+      const back = restore({ refsWidth: 240, tab: { root: lib, filter, scope: null, follows: false } });
       await back.opened;
       const tab = await until('the tab back on lib', () => tabShowing(lib));
       assert.equal(tab.panel, back.panel);
       assert.equal(back.panel.title, 'Gitardo · workspace/lib');
+      assert.ok(!follows(back.panel));
       assert.deepEqual(tab.filter, filter);
       await until('the filter read', () => tab.state?.filter?.kind === 'message');
       assert.deepEqual(
@@ -5319,15 +5320,51 @@ export async function run(): Promise<void> {
       assert.equal(internals.filter, null);
       back.panel.dispose();
 
-      // A page kept before tabs kept what they show opens on the repository the panel shows.
-      const older = restore({ refsWidth: 240 });
-      await older.opened;
-      await until('the older tab on app', () => tabShowing(app));
-      older.panel.dispose();
+      // The tab that followed comes back following: on the repository chosen now, whatever it showed, as `Gitardo`.
+      const following = restore({ tab: { root: lib, filter, scope: null, follows: true } });
+      await following.opened;
+      assert.equal(followingTab(), following.panel);
+      assert.equal(following.panel.title, 'Gitardo');
+      assert.ok(follows(following.panel));
+      assert.equal(graphTabs().length, 0);
+      assert.equal(internals.filter, null);
+      assert.deepEqual(sessionNames(), ['app']);
+      // A tab kept on the repository chosen comes back kept on it, beside the one that follows.
+      const beside = restore({ tab: { root: app, filter: null, scope: null, follows: false } });
+      await beside.opened;
+      const onApp = await until('the tab kept on app', () => tabShowing(app));
+      assert.equal(onApp.panel, beside.panel);
+      assert.equal(beside.panel.title, 'Gitardo · workspace/app');
+      assert.equal(followingTab(), following.panel);
+      beside.panel.dispose();
+      following.panel.dispose();
+      await until('no tab that follows', () => !followingTab());
+
+      // Tabs kept by a version in which every tab kept its repository: the first on the repository chosen becomes the
+      // one that follows, and the others keep theirs, a second one on the repository chosen too.
+      const olderLib = restore({ tab: { root: lib, filter: null, scope: null } });
+      const olderApp = restore({ tab: { root: app, filter: null, scope: null } });
+      const olderAppToo = restore({ tab: { root: app, filter: null, scope: null } });
+      await Promise.all([olderLib.opened, olderApp.opened, olderAppToo.opened]);
+      assert.equal(followingTab(), olderApp.panel);
+      assert.equal(olderApp.panel.title, 'Gitardo');
+      assert.ok(follows(olderApp.panel));
+      assert.equal(tabShowing(lib)?.panel, olderLib.panel);
+      assert.equal(olderLib.panel.title, 'Gitardo · workspace/lib');
+      assert.equal(tabShowing(app)?.panel, olderAppToo.panel);
+      assert.ok(!follows(olderLib.panel) && !follows(olderAppToo.panel));
+      for (const each of [olderLib, olderApp, olderAppToo]) each.panel.dispose();
+      await until('no tab that follows', () => !followingTab());
+
+      // A page kept before tabs kept what they show showed the repository of the panel: it follows.
+      const oldest = restore({ refsWidth: 240 });
+      await oldest.opened;
+      assert.equal(followingTab(), oldest.panel);
+      oldest.panel.dispose();
 
       // A worktree removed while VS Code was closed: the tab says so, reads nothing, and Close closes it.
       const folder = path.join(workspace, 'app.worktrees', 'removed');
-      const gone = restore({ tab: { root: folder, filter: null, scope: null } });
+      const gone = restore({ tab: { root: folder, filter: null, scope: null, follows: false } });
       await gone.opened;
       assert.ok(gone.panel.webview.html.includes('data-gone='), 'the page says the folder is no longer there');
       assert.equal(gone.panel.title, 'Gitardo · removed');
@@ -5338,7 +5375,7 @@ export async function run(): Promise<void> {
       assert.ok(closed, 'Close closes the tab');
     } finally {
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-      await until('the tabs of the graph to close', () => graphTabs().length === 0);
+      await until('the tabs of the graph to close', () => graphTabs().length === 0 && !followingTab());
     }
   });
 

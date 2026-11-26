@@ -14,7 +14,7 @@ import { submoduleFolder } from '../shared/submodules';
 import type { ControllerHost } from './controllerHost';
 import type { KeptRepository } from './keptRepositories';
 import { type RepositorySession, ViewGroup, errorText, keepOpen } from './repositorySession';
-import { sameHistory, sharesHistory, tabTitle } from './sessions';
+import { restoredTab, sameHistory, sharesHistory, tabTitle } from './sessions';
 
 /** The repository of the workspace the panel and the side bar show, which they show again when the window opens. */
 export const REPO_KEY = 'gitardo.repository';
@@ -283,13 +283,14 @@ export class RepositoriesShown {
    * **Gitardo** in the status bar and **Gitardo: Open Graph in Editor**: opens the tab of the graph that follows the
    * repository chosen, or brings it forward when it is open (`repo.tab-follows`, D94). It is of the group of the panel
    * and the side bar: it shows what they show, is read with them, and its toolbar chooses for the window as the panel's
-   * does.
+   * does. `panel` is that tab as VS Code brings it back after a reload (`repo.keep-tabs`).
    */
-  openFollowing(): void {
-    if (this.following) return this.following.reveal();
-    const tab = vscode.window.createWebviewPanel(GRAPH_TAB, 'Gitardo', vscode.ViewColumn.Active, { retainContextWhenHidden: true });
+  openFollowing(panel?: vscode.WebviewPanel): void {
+    if (this.following && !panel) return this.following.reveal();
+    const tab = panel ?? vscode.window.createWebviewPanel(GRAPH_TAB, 'Gitardo', vscode.ViewColumn.Active, { retainContextWhenHidden: true });
+    tab.title = 'Gitardo';
     this.following = tab;
-    const attachment = this.host.attach(tab.webview, 'graph', { tab: 'graph' });
+    const attachment = this.host.attach(tab.webview, 'graph', { tab: 'graph', follows: 'true' });
     tab.onDidDispose(() => {
       attachment.dispose();
       if (this.following === tab) this.following = undefined;
@@ -323,6 +324,17 @@ export class RepositoriesShown {
     // A choice of the panel's is the panel's: the tab starts with the history as the panel shows it, read for itself.
     await this.point(group, root, false, shown);
     this.retitle(group);
+  }
+
+  /**
+   * A tab of the graph VS Code brings back after a reload, with the state its page kept (`repo.keep-tabs`): the one
+   * that followed follows again, the others come back on what they showed. Of the tabs kept before one followed, the
+   * first on the repository chosen becomes the one that follows (D94).
+   */
+  async restoreTab(panel: vscode.WebviewPanel, kept: unknown): Promise<void> {
+    await this.host.whenLocated();
+    const { follows, root, ...shown } = restoredTab(kept, this.host.followers.repo?.root, !!this.following);
+    return follows ? this.openFollowing(panel) : this.openTab(root, panel, shown);
   }
 
   /** Says in the title of the tab of a group what it shows: `Gitardo · api`, `Gitardo · api › feature/login` (Q1520). */

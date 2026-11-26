@@ -34,7 +34,7 @@ across restarts. Written through `saveUiState` (`src/webview/vscode.ts`), which 
 | View | Holds |
 | --- | --- |
 | Graph, Gitardo Graph | The widths of the references, the details and the graph, the height of the details, whether the references are put away; the folded merges, for up to 20 repositories and 200 merges each (`rememberFolds`); whether the search lists only what it finds. |
-| Tab of the graph | As the graph, and what it shows (`tab`, a `TabKept`): the folder of its repository, worktree or submodule, its filter and the branches it shows, which its serializer brings it back on after a reload (`repo.keep-tabs`). |
+| Tab of the graph | As the graph, and what it shows (`tab`, a `TabKept`): the folder of its repository, worktree or submodule, its filter and the branches it shows, which its serializer brings it back on after a reload (`repo.keep-tabs`), and `follows`, whether it is the tab that follows the repository chosen (`repo.tab-follows`), which comes back following whatever folder it kept. A state kept before `follows` was written has none: the first such tab on the repository chosen follows, the others stay on their folder (D94). |
 | Changes view | The draft of the commit message; which folders of its files are open. |
 | Details, tab of a commit | Which folders of the files are open. |
 | References, Branches view | Which sections are open, for the session (`openedIn`). |

@@ -97,12 +97,14 @@ export type Search = Extract<Filter, { query: string }>;
 /** One of the repositories of the workspace. */
 /**
  * What a tab of the graph keeps in the state of its page, to come back on after a reload (`repo.keep-tabs`): the folder of
- * the repository, the worktree or the submodule it shows, what narrows its graph and the branches it shows.
+ * the repository, the worktree or the submodule it shows, what narrows its graph and the branches it shows, and whether
+ * it is the tab that follows the repository chosen (`repo.tab-follows`), which a page kept before one did does not say.
  */
 export interface TabKept {
   root: string;
   filter: Filter | null;
   scope: Scope | null;
+  follows?: boolean;
 }
 
 export interface RepoInfo {

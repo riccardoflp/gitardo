@@ -268,8 +268,8 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
   under `gitardo.repository`; the tab of the graph that **Gitardo** in the status bar opens is one of their views, one
   at most, and its toolbar chooses for them all (`RepositoriesShown.openFollowing`, `repo.tab-follows`). A tab opened
   on a repository shows it (`RepositoriesShown.openTab`, `repo.tab-repository`), moved by its own toolbar alone; in
-  focus it moves nothing. A tab kept on a repository says what it shows in the state of its page, from which the
-  serializer of `gitardo.graphEditor` brings it back after a reload (`repo.keep-tabs`). The commands of the Command Palette act on the
+  focus it moves nothing. Each tab says in the state of its page whether it follows and what it shows, from which the
+  serializer of `gitardo.graphEditor` brings it back after a reload (`RepositoriesShown.restoreTab`, `repo.keep-tabs`). The commands of the Command Palette act on the
   followers' repository.
 - **One operation at a time**, in the whole window: while `Controller.runOnEngine` runs one (`operation`), another,
   from any tab, is refused, with
@@ -324,5 +324,5 @@ is. Nothing a user starts can be cancelled once its commands run; a question can
 | The look of a view | the component in `src/webview`, and `src/webview/styles.css` |
 | Which repository is shown, and VS Code's Repositories view | `RepositoriesShown.selectRepo` in `src/extension/repositoriesShown.ts`, `src/extension/sourceControlSelection.ts` |
 | What is read and watched of a repository shown, and which group of views is on it | `RepositorySession` and `ViewGroup` in `src/extension/repositorySession.ts`, `Sessions` in `src/extension/sessions.ts` |
-| The tabs of the graph: the one that follows the repository chosen, those kept on a repository and their title, coming back after a reload | `RepositoriesShown.openFollowing`, `openTab` in `src/extension/repositoriesShown.ts`, `tabTitle` and `keptTab` in `src/extension/sessions.ts` |
+| The tabs of the graph: the one that follows the repository chosen, those kept on a repository and their title, coming back after a reload | `RepositoriesShown.openFollowing`, `openTab`, `restoreTab` in `src/extension/repositoriesShown.ts`, `tabTitle`, `keptTab` and `restoredTab` in `src/extension/sessions.ts` |
 | The rows of the Repositories view, what each is on, and what its watchers tell the engine | `src/shared/repositories.ts`, `src/shared/summaries.ts`, `RepositoriesView` in `src/extension/repositoriesView.ts`, `src/webview/RepositoriesApp.tsx` |

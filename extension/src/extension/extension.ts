@@ -11,7 +11,6 @@ import { BlameAnnotator, BlameSource } from './blame';
 import { GitFileSystem, SCHEME } from './content';
 import { Controller } from './controller';
 import { GRAPH_TAB } from './repositoriesShown';
-import { keptTab } from './sessions';
 import { FileBlame } from './fileBlame';
 import { hostingTokenKey, tokenOfHost } from './github';
 import { registerAskGitardo } from './help';
@@ -279,10 +278,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     vscode.window.registerWebviewViewProvider(GRAPH_VIEW, graphProvider, webviewOptions),
     // The tabs of the graph come back after a reload, on what their pages kept (`repo.keep-tabs`).
     vscode.window.registerWebviewPanelSerializer(GRAPH_TAB, {
-      deserializeWebviewPanel: (panel, kept: unknown) => {
-        const { root, ...shown } = keptTab(kept);
-        return controller.repositories.openTab(root, panel, shown);
-      },
+      deserializeWebviewPanel: (panel, kept: unknown) => controller.repositories.restoreTab(panel, kept),
     }),
     vscode.window.registerWebviewViewProvider(REPOSITORIES_VIEW, repositoriesProvider, webviewOptions),
     // Hidden until it is asked for: VS Code has its own list of changes just above.

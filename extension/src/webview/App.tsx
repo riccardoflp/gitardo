@@ -72,6 +72,8 @@ interface Find {
 
 /** Whether the page is a tab of the graph in the editor, which VS Code brings back after a reload. */
 const IN_TAB = document.body.dataset.tab === 'graph';
+/** Whether that tab is the one that follows the repository chosen, not one kept on a repository (`repo.tab-follows`). */
+const FOLLOWS = document.body.dataset.follows === 'true';
 
 /** A filter as a tab keeps it: the names a file had before are found again when it is read. */
 const withoutRenames = (filter: Filter | null): Filter | null => {
@@ -240,7 +242,7 @@ export function App({ compact = false }: { compact?: boolean }) {
   const keptScope = state?.scope;
   useEffect(() => {
     if (!IN_TAB || !keptRoot) return;
-    const tab: TabKept = { root: keptRoot, filter: withoutRenames(keptFilter ?? null), scope: keptScope ?? null };
+    const tab: TabKept = { root: keptRoot, filter: withoutRenames(keptFilter ?? null), scope: keptScope ?? null, follows: FOLLOWS };
     saveUiState({ tab });
   }, [keptRoot, keptFilter, keptScope]);
 
