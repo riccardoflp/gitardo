@@ -1,7 +1,9 @@
 //! The watcher of the repository shown (`repo.watch-changes`), and of those of the tabs not shown
 //! (`repo.watch-hidden`): its working tree, and its common git folder when that is outside it, as a worktree's is. Each batch of changes the system reports goes to the store as one message, with
 //! the paths made relative to the folder they are in; the store decides which ask for a read. A folder whose time was
-//! written is left out: the files created or deleted in it are said on their own.
+//! written is left out: the files created or deleted in it are said on their own. What it says of the git folder, and
+//! that it lost changes, it also says to the thread that looks again at the git folder (`repo.watch-git`), which then
+//! does not find the same change a second time.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,7 +13,7 @@ use std::time::{Duration, Instant};
 use model::repo::Change;
 use platform::{WatchDeliver, WatchEvent, Watcher};
 
-use super::Deliver;
+use super::{Deliver, GitFolderSaid};
 use crate::store::Message;
 
 /// The folders of a repository watched, until it is dropped.
@@ -25,14 +27,34 @@ impl RepositoryWatch {
     /// moment the window opened. None when the system cannot watch them.
     #[must_use]
     pub fn new(tree: &Path, origin: Instant, deliver: &Deliver) -> Option<RepositoryWatch> {
-        RepositoryWatch::saying(tree, (origin, deliver), |changes, at| Message::Changed { changes, at })
+        RepositoryWatch::telling(tree, origin, deliver, None)
+    }
+
+    /// Watches a working tree and its common git folder as [`RepositoryWatch::new`] does, and says what it sees of
+    /// the git folder to the thread that looks again at it.
+    #[must_use]
+    pub fn telling(
+        tree: &Path,
+        origin: Instant,
+        deliver: &Deliver,
+        said: Option<GitFolderSaid>,
+    ) -> Option<RepositoryWatch> {
+        RepositoryWatch::saying(tree, (origin, deliver), said, |changes, at| Message::Changed {
+            changes,
+            at,
+        })
     }
 
     /// Watches the working tree of a tab not shown and its common git folder: its changes are said with its folder.
     #[must_use]
-    pub fn for_tab(tree: &Path, origin: Instant, deliver: &Deliver) -> Option<RepositoryWatch> {
+    pub fn for_tab(
+        tree: &Path,
+        origin: Instant,
+        deliver: &Deliver,
+        said: Option<GitFolderSaid>,
+    ) -> Option<RepositoryWatch> {
         let folder = tree.to_path_buf();
-        RepositoryWatch::saying(tree, (origin, deliver), move |changes, at| Message::TabChanged {
+        RepositoryWatch::saying(tree, (origin, deliver), said, move |changes, at| Message::TabChanged {
             folder: folder.clone(),
             changes,
             at,
@@ -43,6 +65,7 @@ impl RepositoryWatch {
     fn saying(
         tree: &Path,
         (origin, deliver): (Instant, &Deliver),
+        said: Option<GitFolderSaid>,
         message: impl Fn(Vec<Change>, Duration) -> Message + Send + Sync + 'static,
     ) -> Option<RepositoryWatch> {
         let git_folder = common_git_folder(tree);
@@ -58,6 +81,11 @@ impl RepositoryWatch {
                 .filter(|event| !is_folder_written(event))
                 .filter_map(|event| change_of(&tree, git_folder.as_deref(), event))
                 .collect();
+            if let Some(said) = &said
+                && (events.iter().any(is_lost) || changes.iter().any(|change| matches!(change, Change::GitFolder(_))))
+            {
+                said.said(&tree);
+            }
             if !changes.is_empty() {
                 deliver(message(changes, origin.elapsed()));
             }
@@ -73,6 +101,12 @@ impl RepositoryWatch {
 /// read of its own.
 fn is_folder_written(event: &WatchEvent) -> bool {
     matches!(event, WatchEvent::Changed(path) if path.is_dir())
+}
+
+/// Whether the watcher lost changes: a folder that reported more than it could say, or that is gone. Its git folder
+/// may have changed with them.
+fn is_lost(event: &WatchEvent) -> bool {
+    matches!(event, WatchEvent::Overflowed(_) | WatchEvent::Gone(_))
 }
 
 /// A change the system reported, as the store takes it: in the git folder, relative to it; in the working tree,

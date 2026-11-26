@@ -59,7 +59,7 @@ earns it.
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
 | [`repo.read-git-version`](01-repositories.md#reporead-git-version--read-the-version-of-git) | Read the version of git | Read | Built | Built |
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Built | Built |
-| [`repo.watch-git`](01-repositories.md#repowatch-git--find-the-changes-of-the-git-folder-nobody-said) | Find the changes of the git folder nobody said | Read | Specified | Planned |
+| [`repo.watch-git`](01-repositories.md#repowatch-git--find-the-changes-of-the-git-folder-nobody-said) | Find the changes of the git folder nobody said | Read | Built | Planned |
 | [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Built | Built |
 | [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Built | Built |
 | [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-status-bar) | What is running, in the status bar | View | Built | Built |

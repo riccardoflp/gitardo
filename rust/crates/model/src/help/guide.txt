@@ -117,6 +117,11 @@ title: Which changes ask for a read
 place: Repositories, in the side column
 show: none
 The repository is read again on its own when it or its files change, from Gitardo, a terminal or another program. This says which changes count, and how soon.
+@card desktop repo.watch-git
+title: Find the changes of the git folder nobody said
+place: Repositories, in the side column
+show: none
+What changed in the git folder of a repository shown since it was last looked at, found by looking at its files and not by being told: a watcher can lose a change, start late or say nothing on some disks, and a commit, a branch or a worktree made outside must still be shown.
 @card desktop repo.schedule-reads
 title: Read again when something changed
 place: Repositories, in the side column

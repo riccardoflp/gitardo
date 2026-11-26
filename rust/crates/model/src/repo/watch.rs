@@ -60,7 +60,9 @@ pub enum TreeChange {
 /// Something that changed, as the window learns it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Change {
-    /// A file or a folder of the common git folder (`git rev-parse --git-common-dir`), by its path from it.
+    /// A file or a folder of the common git folder (`git rev-parse --git-common-dir`), by its path from it. An empty
+    /// path is the git folder itself: its watcher said more changed than it could tell, or something was found
+    /// changed in it that no watcher said (`repo.watch-git`).
     GitFolder(PathBuf),
     /// A file or a folder of the working tree, by its path from its top.
     WorkingTree(PathBuf),
@@ -251,13 +253,14 @@ pub(crate) fn is_watched(parts: &[String]) -> bool {
     !is_daemon && !is_lock
 }
 
-/// Whether a path of the common git folder is one the window reads: the files of [`GIT_FILES`], anything under
-/// `refs/` and `worktrees/`, `logs/refs/stash`, and the `HEAD` and references of the submodules under `modules/`.
+/// Whether a path of the common git folder is one the window reads: the git folder itself, the files of
+/// [`GIT_FILES`], anything under `refs/` and `worktrees/`, `logs/refs/stash`, and the `HEAD` and references of the
+/// submodules under `modules/`.
 fn is_git_file_read(parts: &[String]) -> bool {
     let names: Vec<&str> = parts.iter().map(String::as_str).collect();
     match names.as_slice() {
         [name] => GIT_FILES.contains(name),
-        ["refs" | "worktrees", _, ..] | ["logs", "refs", "stash"] => true,
+        [] | ["refs" | "worktrees", _, ..] | ["logs", "refs", "stash"] => true,
         ["modules", ..] => crate::submodule::is_reference_of_submodule(&names),
         _ => false,
     }
@@ -293,6 +296,19 @@ mod tests {
             assert_eq!(request.delay, Duration::from_millis(400), "{path}");
             assert_eq!(request.cause, ReadCause::GitFile(PathBuf::from(path)));
         }
+    }
+
+    #[test]
+    fn repo_watch_changes__the_git_folder_itself_lost_by_its_watcher_or_found_changed_asks_for_a_read_after_400_ms() {
+        let request = git("").unwrap();
+        assert_eq!(request.delay, Duration::from_millis(400));
+        assert_eq!(request.cause, ReadCause::GitFile(PathBuf::new()));
+        let tree = watch_changes(&Change::WorkingTree(PathBuf::from("."))).unwrap();
+        assert_eq!(
+            tree.delay,
+            Duration::from_millis(1_000),
+            "the working tree lost by its watcher"
+        );
     }
 
     #[test]

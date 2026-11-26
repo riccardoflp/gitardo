@@ -159,6 +159,7 @@ mod under_pointer;
 mod upkeep;
 mod views_drawn;
 mod watch;
+mod watch_git;
 mod where_one_is;
 mod worktrees;
 

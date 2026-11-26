@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- A commit, a branch, a tag, a stash or a worktree made outside Gitardo is shown within three seconds even when the
+  system said nothing of it, as on some network disks or when more files changed at once than it could tell: the git
+  folder of the repository shown is looked at again every two seconds, with no git command, and a tab is looked at
+  once when it is shown again. The Activity tab says such a read is because `.git changed`, and one after the system
+  lost changes of the files because `files changed`.
 - A worktree chosen in the tab of its repository for the first time shows the commits at once: it takes the rows the
   repository, or the worktree shown before it, has read, and then marks what it has checked out and its own
   uncommitted changes. Its commits are read only when it is detached at a commit no branch or tag is at, or shows

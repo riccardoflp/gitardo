@@ -581,6 +581,9 @@ What is watched, and what each change asks for:
 | --- | --- | --- | --- |
 | In the common git folder (`git rev-parse --git-common-dir`): `HEAD`, `FETCH_HEAD`, `ORIG_HEAD`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `index`, `config`, `packed-refs`, `shallow`, anything under `refs/`, `logs/refs/stash`, anything under `worktrees/`, and `modules/**/HEAD`, `modules/**/refs/**` of the submodules | yes | 400 ms | `.git/<path> changed` |
 | A file of the working tree, anywhere but in a `.git`, that git does not ignore and that is not in the folder of another worktree nested in this one | yes | 1,000 ms (builds and installs write many files at once) | `<path> changed` |
+| The watcher lost changes of the working tree: the system says more changed than it could tell, or the folder is gone | yes | 1,000 ms | `files changed` |
+| The watcher lost changes of a git folder it watches apart from the working tree, as a worktree's is | yes | 400 ms | `.git changed` |
+| Something of the git folder differs from what it was two seconds before, with nothing said of it by the watcher (`repo.watch-git`) | yes | 400 ms | `.git changed` |
 | A file of the working tree that git ignores (`git check-ignore --stdin`, asked once for the files of a burst), such as the output of a build | no | | |
 | A file in the folder of another worktree nested in this one, such as `.claude/worktrees/<name>/` | no | | |
 | A file saved by Gitardo's own editor | yes | 400 ms | `<path> was saved` |
@@ -618,6 +621,9 @@ Acceptance:
 - [ ] With `core.fsmonitor=true` and nothing changing, the repository is read once and then not again.
 - [ ] A fetch that changes `.git/shallow` asks for a read after 400 ms, said as `.git/shallow changed`
       (`repo.read-shallow`).
+- [ ] A watcher that lost changes asks for a read: of the working tree after 1,000 ms, said as `files changed`; of a
+      git folder watched apart after 400 ms, said as `.git changed`.
+- [ ] The git folder itself, found changed with nothing said of it, asks for a read after 400 ms.
 
 ### `repo.watch-git` — Find the changes of the git folder nobody said
 
@@ -626,27 +632,36 @@ not by being told: a watcher can lose a change, start late or say nothing on som
 worktree made outside must still be shown ([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed)).
 
 - **Kind**: Read
-- **Function**: `git::read::worktree::git_folder_changed(worktree: &Path, before: Option<&GitFolderStamp>) -> GitFolderCheck`
+- **Function**: `git::read::worktree::git_folder_changed(worktree: &Path, before: Option<&GitFolderStamp>) -> GitFolderCheck`,
+  whose `is_anything_changed` says it.
 - **Reads**: no process of git. The size and the time of each file of the worktree's own git folder, and in the common
-  git folder of `packed-refs` and of the folders of the branches, the remote branches, the tags, the stashes and the
-  worktrees, with the folders under them.
-- **Uses**: by `repo.watch-changes`, for which what it finds is a change of the git folder; by `repo.watch-hidden`
-  and `repo.worktree-summary`, which ask it already.
+  git folder of `packed-refs`, of the folders of the branches, the remote branches and the tags, with the folders
+  under them, of `refs/stash` and `logs/refs/stash`, of the folder `worktrees` and of the files directly in the own
+  git folder of each worktree there.
+- **Uses**: by `repo.watch-changes`, for which what it finds is a change of the git folder itself; by
+  `repo.watch-hidden` and `repo.worktree-summary`, which ask it already for the worktree's own git folder and for the
+  branches, and read no more often for what it looks at now.
 - **Extension**: Planned: `gitardo-engine` watches the git folders of each repository open itself, compares them every
   two seconds for those a view shows, and says what it sees in a notification of version 1.15 of the protocol, for
   which `RepositorySession` asks for a read as for a change of its own watchers.
 
-The repository shown is looked at every two seconds, behind the watcher; a tab not shown once, when it is shown again.
-What the daemon of `core.fsmonitor` writes and the locks are left out, as `repo.watch-changes` leaves them out.
+In Gitardo Desktop a thread looks at the repository shown every two seconds, behind the watcher (`GitFolderWatch` of
+`crates/app/src/work/git_folder_watch.rs`, `LOOK_INTERVAL`), and what differs is a change of the git folder for
+`repo.watch-changes`, said as `.git changed`. What the watcher says of a git folder is looked at as soon as it is said,
+so that it is not found again two seconds later. A tab not shown is not looked at: what its git folder was is kept,
+its watcher saying what it sees, and it is compared once when the tab is shown again. What the daemon of
+`core.fsmonitor` writes and the locks are left out, as `repo.watch-changes` leaves them out.
 
 Acceptance:
 
 - [ ] A commit, a new branch, a branch deleted, a tag, a stash and a worktree added each make it say the folder
       changed; nothing written, it says it did not.
-- [ ] `git status` run in the worktree, which rewrites nothing but the files of `fsmonitor`, makes it say nothing.
+- [ ] `git status` run in the worktree, which rewrites nothing but the files of `fsmonitor`, makes it say nothing; nor
+      do a lock and what the daemon of `fsmonitor` writes in the git folder of a worktree.
 - [ ] It starts no process of git.
 - [ ] With the watcher giving nothing, a commit made outside is shown within three seconds.
 - [ ] A change both the watcher and the comparison saw asks for one read.
+- [ ] A tab not shown is compared once when it is shown again, and what its watcher said meanwhile is not found again.
 
 ### `repo.schedule-reads` — Read again when something changed
 

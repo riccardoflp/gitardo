@@ -9,6 +9,7 @@ pub mod diagram;
 pub mod diff;
 pub mod file_search;
 pub mod file_view;
+mod git_folder_watch;
 pub mod github;
 pub mod jobs;
 pub mod large_files;
@@ -45,6 +46,7 @@ use crate::store::search::SearchJob;
 use crate::store::{Job, JobId, JobKind, Message};
 
 pub use commands::CommandsWork;
+pub use git_folder_watch::{GitFolderSaid, GitFolderWatch, LOOK_INTERVAL, Looks};
 pub use operations::Operations;
 pub use persist::PersistedWriter;
 pub use repository_watch::{RepositoryWatch, change_of, common_git_folder};

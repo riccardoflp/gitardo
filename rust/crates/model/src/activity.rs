@@ -143,7 +143,9 @@ fn read_detail(cause: Option<&ReadCause>, in_a_row: u32) -> Option<String> {
 #[must_use]
 pub fn cause_words(cause: &ReadCause) -> String {
     match cause {
+        ReadCause::GitFile(path) if path.as_os_str().is_empty() => String::from(".git changed"),
         ReadCause::GitFile(path) => format!(".git/{} changed", slashes(path)),
+        ReadCause::File(path) if path.as_os_str() == "." => String::from("files changed"),
         ReadCause::File(path) => format!("{} changed", slashes(path)),
         ReadCause::Saved(path) => format!("{} was saved", slashes(path)),
         ReadCause::Files(FilesChange::Created) => String::from("files were created"),

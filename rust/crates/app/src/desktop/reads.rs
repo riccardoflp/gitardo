@@ -4,6 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use model::Timestamp;
@@ -13,7 +14,7 @@ use model::repo::{Change, FocusChange, name_repositories};
 use platform::{Context, InputEvent, TimerId};
 
 use crate::store::{Job, JobId, JobKind, Message, State};
-use crate::work::{Deliver, RepositoryWatch};
+use crate::work::{Deliver, GitFolderWatch, RepositoryWatch};
 
 /// The timer of the next scheduled read.
 pub const READ_TIMER: TimerId = TimerId(2);
@@ -28,6 +29,9 @@ pub struct ReadClock {
     watch: Option<RepositoryWatch>,
     /// The watchers of the tabs not shown, by their working trees.
     tabs: BTreeMap<PathBuf, RepositoryWatch>,
+    /// The thread that looks again at the git folder of the repository shown, for what its watcher lost
+    /// (`repo.watch-git`); none until a repository is watched.
+    looks: Option<GitFolderWatch>,
     /// The moment the store asked to be woken at, until the timer is set.
     wake_at: Option<Duration>,
     /// Whether the window is minimized.
@@ -50,6 +54,7 @@ impl ReadClock {
             origin: Instant::now(),
             watch: None,
             tabs: BTreeMap::new(),
+            looks: None,
             wake_at: None,
             is_minimized: false,
             started: HashMap::new(),
@@ -59,23 +64,34 @@ impl ReadClock {
         }
     }
 
-    /// Watches the working tree of the repository shown, in place of the one before.
+    /// Watches the working tree of the repository shown, in place of the one before, and looks again at its git folder
+    /// every two seconds behind the watcher.
     pub fn watch(&mut self, folder: Option<&Path>, deliver: &Deliver) {
         self.watch = None;
         self.watched = folder.map(Path::to_path_buf);
-        self.watch = folder.and_then(|folder| RepositoryWatch::new(folder, self.origin, deliver));
+        let origin = self.origin;
+        let looks = self
+            .looks
+            .get_or_insert_with(|| GitFolderWatch::new(origin, Arc::clone(deliver)));
+        let said = looks.said();
+        self.watch = folder.and_then(|folder| RepositoryWatch::telling(folder, origin, deliver, said));
+        looks.show(folder);
     }
 
     /// Watches the working trees of the tabs not shown, in place of those watched before: a watcher already there is
     /// kept, so that no change is missed.
     pub fn watch_tabs(&mut self, folders: &[PathBuf], deliver: &Deliver) {
         self.tabs.retain(|folder, _| folders.contains(folder));
+        let said = self.looks.as_ref().and_then(GitFolderWatch::said);
         for folder in folders {
             if !self.tabs.contains_key(folder)
-                && let Some(watch) = RepositoryWatch::for_tab(folder, self.origin, deliver)
+                && let Some(watch) = RepositoryWatch::for_tab(folder, self.origin, deliver, said.clone())
             {
                 let _new = self.tabs.insert(folder.clone(), watch);
             }
+        }
+        if let Some(looks) = &self.looks {
+            looks.keep(folders);
         }
     }
 
