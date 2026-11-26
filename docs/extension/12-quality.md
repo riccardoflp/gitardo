@@ -51,6 +51,8 @@ Q1519): a time changed here changes the limit.
 | QA15 | A repository shown before is chosen again in the large workspace, in the menu of the repositories of the graph | Its first commits are drawn as it was left, and no process of git starts before them | about 100 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
 | QA16 | A worktree of the repository shown is chosen for the first time | The commits of its repository are under its name, none sent again; what it has checked out is marked once its first step is read | about 100 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
 | QA17 | A repository never shown in the window is chosen | Its first page of commits is drawn; read ahead, it starts no process of git, and otherwise at most eight before them | about 300 ms | `test/perf/vscode.mjs --switch`, with `--limits` at most 1.5 times this |
+| QA18 | A commit, a branch or a worktree is made by git outside in the first seconds of a window on a workspace of thirty repositories with their builds, where VS Code's watcher says nothing yet | The graph shows it: Gitardo's engine watches the git folders itself and looks at them again every two seconds | about 2 s at worst, about half a second mostly | `test/perf/vscode.mjs --changes`, with `--limits` the worst at most 1.5 times this, none missed |
+| QA19 | The same while thousands of files a second are written elsewhere in the workspace, as a build does, and in the seconds after | The graph shows it, though VS Code's watcher drops what it is told of | about 2 s at worst | `test/perf/vscode.mjs --changes`, with `--limits` the worst at most 1.5 times this, none missed |
 
 Measured again on 2026-11-24, after milestone M44, with VS Code in Xvfb on Linux: QA1 2.8 s; QA2 900 ms until the
 view has a new state, since a refresh that finds the same history now sends nothing until the whole history is read
@@ -69,3 +71,11 @@ the repository having been read ahead. No process of git started before the rows
 those of QA16. Before the milestone: 1,892 ms, 227 ms and 279 ms. They are checked by hand, with
 `test/perf/vscode.mjs <folder> --switch --limits`; whether the pipeline should is Q1745. The details are in the
 [roadmap](../desktop/07-roadmap.md#m50--a-repository-chosen-is-shown-at-once-done).
+
+QA18 and QA19, measured on 2026-11-26 after milestone M52, with the minified build and the engine in release, in Xvfb
+on Linux, on the workspace `test/perf/changes-fixture.mjs` makes, two runs: QA18 the worst 1,022 ms and 899 ms, none of
+25 missed, where 2 and 3 of 25 were not shown in 5 s before; QA19 the worst 462 ms and 461 ms, none of 15 missed, where
+7 of 9 were not shown in 6 s before. The machine was busy with another build, and the writer wrote 20 files a second,
+not 5,000: QA19 is to be measured again. They are checked by hand, with `test/perf/vscode.mjs <folder> --changes
+--limits`. The details are in the
+[roadmap](../desktop/07-roadmap.md#m52--changes-seen-at-once-and-one-graph-that-follows-the-repository-chosen-done).

@@ -18,13 +18,13 @@ import { startWindow } from '../e2e/window.mjs';
  * The moments the changes are made in. Each makes `changes` of them, one every `every` milliseconds whether those
  * before were shown or not, and gives up on one not shown after `giveUp`: a change not shown yet when the next is made
  * may be shown by the read that one asks for, as it would be for a person. `scenario` is the one of
- * docs/extension/12-quality.md whose time the worst of the moment may not pass with --limits: none yet (QA18 and QA19
- * come with the last phase of milestone M52).
+ * docs/extension/12-quality.md whose time, times the margin, the worst of the moment may not pass with --limits, a change
+ * not seen passing it too.
  */
 const MOMENTS = {
-  start: { what: 'from the first rows of the graph, one a second for 25 seconds', changes: 25, every: 1000, giveUp: 5000, scenario: null },
-  written: { what: 'while files are written beside the repositories, one every 4 seconds', changes: 9, every: 4000, giveUp: 6000, scenario: null },
-  after: { what: 'in the 15 seconds after the writing stopped, one every 2.5 seconds', changes: 6, every: 2500, giveUp: 6000, scenario: null },
+  start: { what: 'from the first rows of the graph, one a second for 25 seconds', changes: 25, every: 1000, giveUp: 5000, scenario: 'QA18' },
+  written: { what: 'while files are written beside the repositories, one every 4 seconds', changes: 9, every: 4000, giveUp: 6000, scenario: 'QA19' },
+  after: { what: 'in the 15 seconds after the writing stopped, one every 2.5 seconds', changes: 6, every: 2500, giveUp: 6000, scenario: 'QA19' },
 };
 /** The kinds of change, made in turn. */
 const KINDS = ['commit', 'branch', 'worktree'];

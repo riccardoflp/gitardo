@@ -199,8 +199,8 @@ node test/perf/graph-load.mjs ../big --commit
   and how many times `fileWatcher.log` of the window says *started ignoring events due to too many file change events
   at once*, which is VS Code dropping what it is told of. It leaves the repository as the fixture made it. `MOMENTS`
   of `changes.mjs` names the scenario of [12-quality.md](12-quality.md) of each moment, whose time the worst may not
-  pass with `--limits`: none yet, QA18 and QA19 coming with the last phase of milestone M52. The pipeline does not
-  run it.
+  pass times one and a half with `--limits`, a change not seen failing it too: QA18 the start of the window, QA19
+  while files are written and after. The pipeline does not run it.
 - `graph-load.mjs <repository> [--out=<folder>] [--commit] [--profile]` opens the repository in the same VS Code and
   records how its graph loads, as the eye sees it: every 50 ms, how many commits the list has, where it is scrolled
   to, how many rows are drawn, whether the last row says **Loading more commits…**, how wide the graph is; each message

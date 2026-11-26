@@ -1687,30 +1687,6 @@ Measured on 2026-11-23 with the release build of `gitardo-engine` and `node dist
 The state with 1,000 commits is 644 KB, of which 285 KB are not rows: the references, the stashes, the worktrees and
 the working tree, sent again whole to each view at each read.
 
-Measured on 2026-11-26 with `test/perf/vscode.mjs --changes`, the tool of phase 1, on the workspace
-`test/perf/changes-fixture.mjs` makes with what it has by default, thirty repositories with 210,000 folders of builds:
-what is on `main` before anything of the milestone, the minified build and the engine in release, in a real VS Code in
-Xvfb on Linux, the workspace on the system's disk. A commit, a branch and a worktree are made in turn, each timed from
-when git has made it until the graph shows it; the two numbers are those of two runs, one after the other. Other lanes
-were building and running their suites on the machine meanwhile.
-
-| | Before | After |
-| --- | ---: | ---: |
-| The graph has its first rows, after the window started | 7.3 s, 7.8 s | |
-| From those rows, a change every second for 25 seconds: not seen in 5 s | 3 of 25, 2 of 25 | |
-| The same: the last change not seen in 5 s, after the window started | 9.4 s, 8.8 s | |
-| The same: the worst of those seen | 4,596 ms, 4,714 ms | |
-| The same: the median of those seen | 530 ms, 558 ms | |
-| While 5,000 files a second are written beside the repositories, nine changes: not seen in 6 s | 7 of 9, 7 of 9 | |
-| The same: those seen | 1,550 and 5,589 ms; 274 and 4,229 ms | |
-| In the 15 seconds after the writing stopped, six changes: not seen in 6 s | 0 of 6, 3 of 6 | |
-| The same: the median and the worst of those seen | 2,006 and 5,133 ms; 2,212 and 4,652 ms | |
-| Times the watcher of the window said it *started ignoring events* | 68, 68 | |
-
-On this fixture the window hears of nothing made before some fourteen seconds after it started, and from there of
-every change in about half a second until files are written. With 60,000 folders of builds instead, 2,000 in each
-repository, nothing is lost at the start: the first change is shown in about 1.5 s and the others in half a second.
-
 Built in seven phases, each one commit or more, each ending with its cards built and their tests passing; Gitardo
 Desktop first, then the extension.
 
@@ -2280,7 +2256,7 @@ and the words of a button are shown whenever there is room for them; in the exte
 and where to search are chosen from buttons and menus of one look; and with the islands on, in every theme the suite
 tries, each button with words and each box of the toolbar is told from the ground.
 
-## M52 — Changes seen at once, and one graph that follows the repository chosen
+## M52 — Changes seen at once, and one graph that follows the repository chosen (done)
 
 Two things asked by the maintainer on 2026-11-26. What git changes outside Gitardo, a commit, a branch, a worktree, is
 in the graph of the extension about a second later, whatever the workspace is and whatever is written in it: the
@@ -2297,9 +2273,9 @@ commit made by git outside, timed until the graph shows it.
 | Two small repositories, nothing else written | 520 ms | |
 | The same, in a tab or a panel out of sight, once it is shown | at once | |
 | A clone of this repository, 200 files a second written in a worktree nested in it | 0.8 to 1.0 s | |
-| A folder of 34 repositories, in the first 17 seconds of the window | not in 5 s, 2 of 2 | |
-| The same folder, files written elsewhere in it | 1.7 to 4.7 s, and not in 6 s 3 times of 8 | |
-| The same folder, in the 15 seconds after the writing stopped | not in 6 s, 3 times of 4 | |
+| A folder of 34 repositories, in the first 17 seconds of the window | not in 5 s, 2 of 2 | not tried: the graph had its rows 25 s after the window started |
+| The same folder, files written elsewhere in it | 1.7 to 4.7 s, and not in 6 s 3 times of 8 | 485 to 512 ms, eight of eight |
+| The same folder, in the 15 seconds after the writing stopped | not in 6 s, 3 times of 4 | 494 to 519 ms, four of four |
 
 Measured on 2026-11-26 with `test/perf/vscode.mjs --changes`, the tool of phase 1, on the workspace
 `test/perf/changes-fixture.mjs` makes with what it has by default, thirty repositories with 210,000 folders of builds:
@@ -2310,16 +2286,16 @@ were building and running their suites on the machine meanwhile.
 
 | | Before | After |
 | --- | ---: | ---: |
-| The graph has its first rows, after the window started | 7.3 s, 7.8 s | |
-| From those rows, a change every second for 25 seconds: not seen in 5 s | 3 of 25, 2 of 25 | |
-| The same: the last change not seen in 5 s, after the window started | 9.4 s, 8.8 s | |
-| The same: the worst of those seen | 4,596 ms, 4,714 ms | |
-| The same: the median of those seen | 530 ms, 558 ms | |
-| While 5,000 files a second are written beside the repositories, nine changes: not seen in 6 s | 7 of 9, 7 of 9 | |
-| The same: those seen | 1,550 and 5,589 ms; 274 and 4,229 ms | |
-| In the 15 seconds after the writing stopped, six changes: not seen in 6 s | 0 of 6, 3 of 6 | |
-| The same: the median and the worst of those seen | 2,006 and 5,133 ms; 2,212 and 4,652 ms | |
-| Times the watcher of the window said it *started ignoring events* | 68, 68 | |
+| The graph has its first rows, after the window started | 7.3 s, 7.8 s | 12.3 s, 9.4 s |
+| From those rows, a change every second for 25 seconds: not seen in 5 s | 3 of 25, 2 of 25 | 0 of 25, 0 of 25 |
+| The same: the last change not seen in 5 s, after the window started | 9.4 s, 8.8 s | none |
+| The same: the worst of those seen | 4,596 ms, 4,714 ms | 1,022 ms, 899 ms |
+| The same: the median of those seen | 530 ms, 558 ms | 104 ms, 396 ms |
+| While 5,000 files a second are written beside the repositories, nine changes: not seen in 6 s | 7 of 9, 7 of 9 | 0 of 9, 0 of 9, with 20 files a second written |
+| The same: those seen | 1,550 and 5,589 ms; 274 and 4,229 ms | the median 417 ms, 409 ms; the worst 462 ms, 457 ms |
+| In the 15 seconds after the writing stopped, six changes: not seen in 6 s | 0 of 6, 3 of 6 | 0 of 6, 0 of 6 |
+| The same: the median and the worst of those seen | 2,006 and 5,133 ms; 2,212 and 4,652 ms | 430 and 457 ms; 446 and 461 ms |
+| Times the watcher of the window said it *started ignoring events* | 68, 68 | 0, 0 |
 
 On this fixture the window hears of nothing made before some fourteen seconds after it started, and from there of
 every change in about half a second until files are written. With 60,000 folders of builds instead, 2,000 in each
@@ -2365,6 +2341,28 @@ are written beside them and after; in Gitardo Desktop a change its watcher lost 
 repository is chosen in a window of VS Code, and the panel, the side bar and the tab that follows show it; a tab
 opened on a repository keeps it and moves nothing; QA15 to QA17 are as quick as on 2026-11-26, and every card of the
 milestone passes its tests.
+
+Phase 7, measured on 2026-11-26 with the same tool and fixture, the *After* of the second table. Every change is
+shown, at the start of the window too, where VS Code's watcher still says nothing for some fourteen seconds: the
+engine says them. Short of the exit, or not measured:
+
+- The machine was building another project all the while, at a load of 200 and more, so the writer of the tool wrote
+  20 files a second and not 5,000, and VS Code's watcher was never made to drop what it is told of: the moment *while
+  files are written* did not try what it is for. That the graph is told with VS Code's watcher silent is tried by the
+  step of `test/e2e/suite.ts` that disposes of it, and by the tests of the server with the engine's own watcher off.
+  The measure is to be made again on a quiet machine, with `--limits`.
+- The times are from when git has made a change, and on a busy machine git ends late, which flatters them.
+- The trial in the maintainer's own folder of 34 repositories, the first table, was made again once: every one of 26
+  commits was shown, the fourteen before the writing in 0.6 to 1.4 s. On the busy machine the graph had its rows only
+  25 seconds after the window started, past the seconds in which VS Code's watcher says nothing, and that watcher did
+  not say it dropped anything while the files were written: the two faults of before were not met again there.
+- The engine watches the whole common git folder, `objects/` with it, since its watcher leaves nothing out.
+- A change both the watcher and the look of every two seconds report, which a busy machine makes more likely, is said
+  twice, and read twice when the two are more than 400 ms apart.
+- The rows of the **Gitardo Repositories** view and the files of the working tree still hear only VS Code's watcher
+  (Q1794).
+- The watcher moved to the crate `system` is compiled on Linux only here; Windows and macOS are the pipeline's. QA15
+  to QA17 were not measured again. Gitardo Desktop's look is checked by its tests, not timed in a window.
 
 ## Before a release
 
