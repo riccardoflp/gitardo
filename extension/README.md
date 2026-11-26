@@ -32,7 +32,7 @@ To build it yourself instead, build Gitardo's engine for your system, pack it an
 cargo build --release -p server --manifest-path ../rust/Cargo.toml
 npm install
 npm run package
-code --install-extension gitardo-win32-x64-1.3.0.vsix
+code --install-extension gitardo-win32-x64-1.4.0.vsix
 ```
 
 Reload the VS Code window afterwards. To update, run the last two commands again; to remove it, `code --uninstall-extension RiccardoFilippozzi.gitardo`.

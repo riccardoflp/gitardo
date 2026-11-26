@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.0 - 2026-11-26
 
 - A commit, a branch, a tag, a stash or a worktree made outside Gitardo is shown within three seconds even when the
   system said nothing of it, as on some network disks or when more files changed at once than it could tell: the git

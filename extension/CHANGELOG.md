@@ -2,7 +2,7 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 1.4.0 - 2026-11-26
 
 ### Added
 
@@ -28,9 +28,6 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - A worktree of the repository shown, chosen for the first time, shows the commits at once: they are those of its repository, which the graph keeps where they are, and only what is checked out in the worktree and what is not committed there is read. The repository chosen back from one of its worktrees does the same.
 - The repository shown is chosen as the worktree is: a button of the toolbar of the graph, and of the **Gitardo Changes** view, names it and opens a menu of the repositories of the workspace, their worktrees and submodules under each, the one shown ticked. Where the search looks, **Loaded**, **Message** and the others, is chosen from a menu of the same kind. Both were lists of the system before, which looked like nothing else in the toolbar.
 - The labels of a commit that do not fit on its row are counted in `+N`, as in Gitardo Desktop: the row shows as many as fit whole, in their order, its message keeping up to three fifths of a line of its own and the author and the date up to a third of the line under the message. Resting the pointer on `+N`, or on any label of such a row, opens the list of all of them, each with its menu, its double click and its history brought out. Before, the wide graph cut each label to 180 pixels and to its icon in a narrow panel, and Gitardo Graph named two of them and the others in a tooltip.
-
-### Changed
-
 - The question of editing the message of an older commit shows the new message, and that of squashing commits the message of the commit they become.
 - Cherry-picking several commits, or a merge commit, works out first which files it will stop on, as picking one commit does, and asks first naming them.
 - Choosing the model that resolves conflicts offers the models as Gitardo Desktop does: **The first model**, then each model by its name, then how much it thinks, **As the model is set up** first.
