@@ -160,19 +160,28 @@ export async function measureChanges({ folder, out, codePath, options, limit }) 
       const timed = [];
       const started = Date.now();
       let made = 0;
+      /** How many changes git has not made yet: on a machine that is busy git falls behind the times of the changes. */
+      let unmade = 0;
+      let failure;
       let making = Promise.resolve();
-      while (made < changes || waiting.length) {
+      while (made < changes || unmade || waiting.length) {
+        if (failure) throw failure;
         if (made < changes && Date.now() - started >= made * every) {
           const kind = KINDS[made % KINDS.length];
           const name = `${id}-${String(made + 1).padStart(2, '0')}-${kind}`;
           made++;
-          // One git at a time, and the graph looked at meanwhile.
-          making = making.then(async () => {
-            await change(kind, name);
-            waiting.push({ kind, name, at: Date.now(), since: sinceWindow() });
-          });
+          unmade++;
+          // One git at a time, and the graph looked at meanwhile, also while the last changes are still being made.
+          making = making
+            .then(async () => {
+              await change(kind, name);
+              waiting.push({ kind, name, at: Date.now(), since: sinceWindow() });
+              unmade--;
+            })
+            .catch((error) => {
+              failure ??= error;
+            });
         }
-        if (made === changes) await making;
         const there = waiting.length ? await graph.evaluate(`(${SHOWN})(${JSON.stringify(waiting.map((each) => each.name))})`).catch(() => []) : [];
         const now = Date.now();
         for (const each of [...waiting]) {
