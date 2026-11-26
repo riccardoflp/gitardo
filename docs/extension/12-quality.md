@@ -76,6 +76,9 @@ QA18 and QA19, measured on 2026-11-26 after milestone M52, with the minified bui
 on Linux, on the workspace `test/perf/changes-fixture.mjs` makes, two runs: QA18 the worst 1,022 ms and 899 ms, none of
 25 missed, where 2 and 3 of 25 were not shown in 5 s before; QA19 the worst 462 ms and 461 ms, none of 15 missed, where
 7 of 9 were not shown in 6 s before. The machine was busy with another build, and the writer wrote 20 files a second,
-not 5,000: QA19 is to be measured again. They are checked by hand, with `test/perf/vscode.mjs <folder> --changes
+not 5,000. Measured again the same day with the machine quiet, two runs, the writer at 4,998 files a second and VS
+Code's watcher dropping what it was told of 55 times in each: QA18 the worst 468 ms and 466 ms, none of 25 missed;
+QA19 the worst 468 ms and 465 ms, none of 15 missed. QA15 to QA17 then: 28 ms, 16 ms and 46 ms. They are checked by
+hand, with `test/perf/vscode.mjs <folder> --changes
 --limits`. The details are in the
 [roadmap](../desktop/07-roadmap.md#m52--changes-seen-at-once-and-one-graph-that-follows-the-repository-chosen-done).

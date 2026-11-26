@@ -2350,7 +2350,11 @@ engine says them. Short of the exit, or not measured:
   20 files a second and not 5,000, and VS Code's watcher was never made to drop what it is told of: the moment *while
   files are written* did not try what it is for. That the graph is told with VS Code's watcher silent is tried by the
   step of `test/e2e/suite.ts` that disposes of it, and by the tests of the server with the engine's own watcher off.
-  The measure is to be made again on a quiet machine, with `--limits`.
+  Made again on 2026-11-26 with the machine quiet, on what is on `main`, with `--limits`, two runs: the writer wrote
+  4,998 files a second, the watcher of the window said 55 times in each run that it *started ignoring events*, and
+  every one of the 80 changes was shown, in the first 25 seconds of the window, while the files were written and
+  after: the medians 457 to 464 ms, the worst 468 ms. The graph had its first rows 6.3 and 5.9 s after the window
+  started.
 - The times are from when git has made a change, and on a busy machine git ends late, which flatters them.
 - The trial in the maintainer's own folder of 34 repositories, the first table, was made again once: every one of 26
   commits was shown, the fourteen before the writing in 0.6 to 1.4 s. On the busy machine the graph had its rows only
@@ -2362,7 +2366,8 @@ engine says them. Short of the exit, or not measured:
 - The rows of the **Gitardo Repositories** view and the files of the working tree still hear only VS Code's watcher
   (Q1794).
 - The watcher moved to the crate `system` is compiled on Linux only here; Windows and macOS are the pipeline's. QA15
-  to QA17 were not measured again. Gitardo Desktop's look is checked by its tests, not timed in a window.
+  to QA17, measured again on the quiet machine with `--limits`: a repository chosen again 28 ms, a worktree chosen
+  for the first time 16 ms, and 153 ms until it shows what it has checked out, a repository never shown 46 ms. Gitardo Desktop's look is checked by its tests, not timed in a window.
 
 ## Before a release
 
