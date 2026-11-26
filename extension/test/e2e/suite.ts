@@ -104,23 +104,39 @@ async function closeInVSCodeGit(root: string): Promise<void> {
   if (open) await vscode.commands.executeCommand('git.close', open).then(undefined, () => undefined);
 }
 
+/** What may hold the folder of a repository of the workspace: what Gitardo keeps of it, and Gitardo's engine. */
+interface Holders {
+  kept: { forget(which: (root: string) => boolean): void };
+  engine?: { close(repository: string): Promise<void> };
+}
+
 /**
  * Deletes a repository a step made in the workspace. On Windows a folder is not deleted while a process works in it or
  * watches it, and VS Code's Git extension opens again a repository it was asked to close while its folder is still
- * there: it is closed and the deletion tried again until the folder is gone.
+ * there: it is closed and the deletion tried again for some seconds. A folder still held then is let go of by what
+ * Gitardo keeps of it, then by its engine, and the step fails saying which held it: a person could not delete it.
  */
-async function removeRepository(root: string): Promise<void> {
-  const end = Date.now() + 60_000;
-  for (;;) {
-    await closeInVSCodeGit(root);
-    try {
-      fs.rmSync(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 250 });
-      if (!fs.existsSync(root)) return;
-    } catch (error) {
-      if (Date.now() > end) throw error;
+async function removeRepository(root: string, holders: Holders): Promise<void> {
+  const removed = async (within: number) => {
+    const end = Date.now() + within;
+    for (;;) {
+      await closeInVSCodeGit(root);
+      try {
+        fs.rmSync(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 250 });
+        if (!fs.existsSync(root)) return true;
+      } catch {
+        // Tried again below.
+      }
+      if (Date.now() > end) return false;
+      await sleep(500);
     }
-    await sleep(500);
-  }
+  };
+  if (await removed(10_000)) return;
+  holders.kept.forget((kept) => samePath(kept, root));
+  if (await removed(10_000)) throw new Error(`${root} was deleted only once what Gitardo kept of it was let go`);
+  await holders.engine?.close(root).catch(() => undefined);
+  if (await removed(10_000)) throw new Error(`${root} was deleted only once Gitardo's engine closed it`);
+  throw new Error(`${root} could not be deleted, whatever of Gitardo let go of it`);
 }
 
 async function vscodeGit(): Promise<VSCodeGitApi> {
@@ -1306,7 +1322,7 @@ export async function run(): Promise<void> {
       await keepOpen(undefined);
       await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
-      await removeRepository(ahead);
+      await removeRepository(ahead, { kept: internals.kept, engine: internals.engine?.running as EngineClient | undefined });
       await internals.locate();
     }
   });
@@ -1399,7 +1415,7 @@ export async function run(): Promise<void> {
       await keepOpen(undefined);
       await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
       fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
-      await removeRepository(fresh);
+      await removeRepository(fresh, { kept: internals.kept, engine: internals.engine?.running as EngineClient | undefined });
       await internals.locate();
     }
   });
