@@ -117,7 +117,7 @@ the commit of the step that stages a file.
 
 ## Large repositories
 
-Four scripts in `test/perf` show how Gitardo behaves when there is a lot of everything. They print numbers to read; the
+The scripts in `test/perf` show how Gitardo behaves when there is a lot of everything. They print numbers to read; the
 numbers that matter are the scenarios of [12-quality.md](12-quality.md), and `vscode.mjs --limits` fails when one of
 QA1 to QA3 takes longer than the time that page gives it, times one and a half
 ([D91](../08-decisions.md#d91--the-checks-pass-on-every-system-and-what-was-found-weak-is-checked-again-proposed),
@@ -171,6 +171,33 @@ node test/perf/graph-load.mjs ../big --commit
   of a choice is over the time of its scenario of [12-quality.md](12-quality.md) times one and a half: QA15 a
   repository chosen again, QA16 a worktree chosen for the first time, QA17 a repository never shown; `CHOICES` of
   `switch.mjs` names the scenario of each. The pipeline does not run it (Q1745).
+- `changes-fixture.mjs <folder> [repositories] [folders of a build in each] [files in each folder]` makes what changes
+  made by git outside are timed on, in a folder away from any repository such as `~/.cache/gitardo-perf/m52`:
+  `workspace/repository-01` to `repository-30`, thirty repositories of five commits, each with a folder `build` it
+  ignores, of 7,000 folders with a file each, and `workspace/written`, a folder that is no repository. The builds are
+  what the watcher VS Code starts over the workspace has to go through before it says anything, and it is the folders
+  that count: with 210,000 of them, about 800 MB made in some seconds, a window on a fast disk on Linux hears nothing
+  until fourteen to eighteen seconds after it started, some seven after the graph has its first rows; with 60,000 it
+  hears of everything from the first rows. On Linux each folder takes one of the watches of `fs.inotify.max_user_watches`.
+  The first repository is the one shown when the window opens and the one the measure changes; its tag `fixture` is
+  where each measure starts from, and `worktrees`, beside `workspace`, is where the measure adds its worktrees.
+- `vscode.mjs <folder> --changes` (`changes.mjs`) opens `workspace` of that folder in one window, with the graph of the
+  panel on the first repository and the section **Local** of its references open, and makes there, with git from
+  outside, a commit, a branch and a worktree in turn, each timed from when git has made it until the graph shows its
+  name: the subject of the commit in a row, the branch, or the branch of the worktree, in the list. It does so in
+  three moments: from the first rows of the graph after the window starts, a change every second for 25 seconds, each
+  given up after 5; while a process of its own writes files without end in `workspace/written`, ten in one of 400
+  folders at each turn and the ten of 400 turns before removed, 5,000 a second if the machine lets it, a change every
+  4 seconds from the eighth, nine of them, each given up after 6; and in the 15 seconds after that process is stopped,
+  a change every 2.5 seconds, each given up after 6. A change is made at its time whether those before were shown or
+  not, so one not shown yet may be shown by the read the next asks for, as it would be for a person. It prints each
+  time, or `not seen`, with how long after the window started the change was made; for each moment the median of
+  those seen, the worst, how many were not seen, and the median of each kind; how many files were written a second;
+  and how many times `fileWatcher.log` of the window says *started ignoring events due to too many file change events
+  at once*, which is VS Code dropping what it is told of. It leaves the repository as the fixture made it. `MOMENTS`
+  of `changes.mjs` names the scenario of [12-quality.md](12-quality.md) of each moment, whose time the worst may not
+  pass with `--limits`: none yet, QA18 and QA19 coming with the last phase of milestone M52. The pipeline does not
+  run it.
 - `graph-load.mjs <repository> [--out=<folder>] [--commit] [--profile]` opens the repository in the same VS Code and
   records how its graph loads, as the eye sees it: every 50 ms, how many commits the list has, where it is scrolled
   to, how many rows are drawn, whether the last row says **Loading more commits…**, how wide the graph is; each message

@@ -2,6 +2,9 @@
 // Meant for a large one, such as test/perf/big-repo.mjs makes. The only thing it changes there is a file it adds and removes.
 // With --switch the folder is the one test/perf/switch-fixture.mjs made, and what is timed instead is choosing a
 // repository: one shown before, a worktree of the one shown, and one never shown, each in three windows (test/perf/switch.mjs).
+// With --changes the folder is the one test/perf/changes-fixture.mjs made, and what is timed is how long the graph takes
+// to show a commit, a branch and a worktree made by git outside: when the window starts, while files are written beside
+// the repositories, and after (test/perf/changes.mjs).
 // With --limits it fails when a time is over the one docs/extension/12-quality.md gives its scenario, times one and a
 // half (D91, Q1519): the pipeline runs it so on Linux, whose machines are the steadiest.
 
@@ -15,7 +18,7 @@ import { startWindow } from '../e2e/window.mjs';
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
 const [repository, codePath] = process.argv.slice(2).filter((argument) => !argument.startsWith('--'));
 if (!repository) {
-  console.error('Usage: node test/perf/vscode.mjs <repository> [--out=<folder>] [--limits] [--switch] [path to VS Code]');
+  console.error('Usage: node test/perf/vscode.mjs <repository> [--out=<folder>] [--limits] [--switch] [--changes] [path to VS Code]');
   process.exit(1);
 }
 const LIMITS = options.includes('--limits');
@@ -53,11 +56,16 @@ function limit(scenario, what, measured) {
 }
 
 const out = path.resolve(options.find((option) => option.startsWith('--out='))?.slice(6) ?? path.join(source, 'dist', 'perf'));
-if (options.includes('--switch')) {
-  const { measureSwitches } = await import('./switch.mjs');
+/** The measures made on a folder of their own, each by the option that asks for it. */
+const ON_A_FIXTURE = {
+  '--switch': async (given) => (await import('./switch.mjs')).measureSwitches(given),
+  '--changes': async (given) => (await import('./changes.mjs')).measureChanges(given),
+};
+const onAFixture = Object.keys(ON_A_FIXTURE).find((option) => options.includes(option));
+if (onAFixture) {
   let failed = false;
   try {
-    const problems = await measureSwitches({ folder: path.resolve(repository), out, codePath, options, limit });
+    const problems = await ON_A_FIXTURE[onAFixture]({ folder: path.resolve(repository), out, codePath, options, limit });
     if (problems.length) console.log(`\nErrors inside the views:\n${problems.join('\n')}`);
     if (over.length) console.log(`\nOver the times of 12-quality.md times ${MARGIN}:\n${over.join('\n')}`);
     failed = problems.length > 0 || (LIMITS && over.length > 0);
