@@ -6196,10 +6196,11 @@ planned; each is built as it says until the maintainer answers otherwise.
 - **Q1520** — `repo.tab-repository`: the title of a tab names its repository, and its worktree or submodule after
   `›`. With two tabs on the same repository, should their titles differ, by the branch checked out or by a number?
 - **Q1521** — `repo.follow-tab`: the panel and the side bar follow the tab of the graph last in focus. Should a tab of
-  a commit or of a comparison, which belongs to a repository too, move them as well?
+  a commit or of a comparison, which belongs to a repository too, move them as well? Since D94 no tab moves them, and
+  the card is no longer in the catalog.
 - **Q1522** — `repo.tab-repository`: a command of the Command Palette that runs on "the repository shown", such as
-  **Gitardo: Fetch**, runs on the repository of the panel and of the side bar, which is that of the tab last in
-  focus. Is that the reading, or should it ask which, when tabs show different repositories?
+  **Gitardo: Fetch**, runs on the repository of the panel and of the side bar, which was that of the tab last in
+  focus and since D94 is the repository chosen. Is that the reading, or should it ask which, when tabs show different repositories?
 - **Q1523** — `repo.keep-tabs`: a tab whose repository is gone after a reload says so, with **Close**. Should it be
   closed without a word instead?
 - **Q1524** — D89: the tabs of the graph in the editor are made with `retainContextWhenHidden`, as every view now. Ten

@@ -1,7 +1,8 @@
 /**
- * Which repository each group of views shows: the panel and the side bar, chosen in Gitardo or in VS Code's Repositories
- * view and remembered for the workspace, and each tab of the graph in the editor, which keeps its own; a worktree or a
- * submodule of one, for as long as the window lasts; and what a repository left keeps of what it showed.
+ * Which repository each group of views shows: the panel, the side bar and the tab of the graph that follows them, chosen
+ * in Gitardo or in VS Code's Repositories view and remembered for the workspace, and each tab of the graph opened on a
+ * repository, which keeps its own (D94); a worktree or a submodule of one, for as long as the window lasts; and what a
+ * repository left keeps of what it showed.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -36,6 +37,8 @@ const key = (root: string) => root.replace(/\\/g, '/').toLowerCase();
 export class RepositoriesShown {
   /** The folder the worktrees of each repository of the workspace share, as the engine said when it looked for them. */
   private readonly sharedFolders = new Map<string, string>();
+  /** The tab of the graph that follows the repository chosen, while it is open: there is one at most (`repo.tab-follows`). */
+  private following?: vscode.WebviewPanel;
 
   constructor(
     private readonly host: Pick<
@@ -106,7 +109,7 @@ export class RepositoriesShown {
     this.chose(on, root);
   }
 
-  /** A group shows what was chosen: what the panel shows is selected in VS Code's Repositories view, a tab says it in its title. */
+  /** A group shows what was chosen: what the panel shows is selected in VS Code's Repositories view, a tab kept on a repository says it in its title. */
   private chose(on: ViewGroup, root: string): void {
     if (on === this.host.followers) this.host.chosen(root);
     else this.retitle(on);
@@ -277,11 +280,28 @@ export class RepositoriesShown {
   }
 
   /**
-   * Opens a tab of the graph in the editor on a repository, a worktree or a submodule: the one the panel shows unless
-   * another is given (`repo.tab-repository`). The tab keeps it, whatever the other views show, and is read with them.
-   * `panel` is a tab VS Code brings back after a reload, with what it showed (`repo.keep-tabs`).
+   * **Gitardo** in the status bar and **Gitardo: Open Graph in Editor**: opens the tab of the graph that follows the
+   * repository chosen, or brings it forward when it is open (`repo.tab-follows`, D94). It is of the group of the panel
+   * and the side bar: it shows what they show, is read with them, and its toolbar chooses for the window as the panel's
+   * does.
    */
-  async openTab(root?: string, panel?: vscode.WebviewPanel, shown: TabShown = {}): Promise<void> {
+  openFollowing(): void {
+    if (this.following) return this.following.reveal();
+    const tab = vscode.window.createWebviewPanel(GRAPH_TAB, 'Gitardo', vscode.ViewColumn.Active, { retainContextWhenHidden: true });
+    this.following = tab;
+    const attachment = this.host.attach(tab.webview, 'graph', { tab: 'graph' });
+    tab.onDidDispose(() => {
+      attachment.dispose();
+      if (this.following === tab) this.following = undefined;
+    });
+  }
+
+  /**
+   * Opens a tab of the graph in the editor kept on a repository, a worktree or a submodule (`repo.tab-repository`): it
+   * is a group of its own, which keeps what it shows whatever is chosen elsewhere, and coming into focus it moves
+   * nothing (Q1796). `panel` is a tab VS Code brings back after a reload, with what it showed (`repo.keep-tabs`).
+   */
+  async openTab(root: string | undefined, panel?: vscode.WebviewPanel, shown: TabShown = {}): Promise<void> {
     await this.host.whenLocated();
     if (panel && root && !fs.existsSync(root)) return this.host.goneTab(panel, root);
     const tab =
@@ -291,14 +311,6 @@ export class RepositoriesShown {
       });
     const group = new ViewGroup(this.host.groupHost, tab);
     const attachment = this.host.attach(tab.webview, 'graph', { tab: 'graph' }, group);
-    // The panel and the side bar follow the tab that comes into focus, not one opened (`repo.follow-tab`): VS Code also
-    // says a tab is active as it is first shown, which is not a change.
-    let active = tab.active;
-    tab.onDidChangeViewState(({ webviewPanel }) => {
-      const came = webviewPanel.active && !active;
-      active = webviewPanel.active;
-      if (came) void this.followTab(group);
-    });
     tab.onDidDispose(() => {
       attachment.dispose();
       this.host.sessions.leave(group);
@@ -311,20 +323,6 @@ export class RepositoriesShown {
     // A choice of the panel's is the panel's: the tab starts with the history as the panel shows it, read for itself.
     await this.point(group, root, false, shown);
     this.retitle(group);
-  }
-
-  /**
-   * The panel and the side bar show the repository of a tab of the graph that came into focus, as if it were chosen
-   * there, and VS Code's Repositories view selects it (`repo.follow-tab`). The repository chosen stays the one kept in
-   * the workspace state, which they show again when the window opens; while an operation runs they stay where they are,
-   * as choosing would.
-   */
-  private async followTab(group: ViewGroup): Promise<void> {
-    const root = group.session?.root;
-    if (!root || this.host.running || (this.host.followers.session && samePath(this.host.followers.session.root, root))) return;
-    this.host.followers.home = group.home;
-    await this.point(this.host.followers, root);
-    this.chose(this.host.followers, root);
   }
 
   /** Says in the title of the tab of a group what it shows: `Gitardo · api`, `Gitardo · api › feature/login` (Q1520). */

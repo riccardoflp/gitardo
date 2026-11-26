@@ -8,11 +8,11 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CONFLICT, INDEX, contentUri } from '../../src/extension/content';
 import type { EngineClient } from '../../src/engine/client';
+import { keptTab } from '../../src/extension/sessions';
 import { reads } from '../../src/engine/reads';
 import type { GitardoApi } from '../../src/extension/extension';
 import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
 import { git } from '../git';
-import { keptTab } from '../../src/extension/sessions';
 import { samePath } from '../../src/shared/paths';
 import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type SentState, type ToViews, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
 import type { Hosting } from '../../src/shared/hosting';
@@ -33,7 +33,7 @@ interface Internals {
   compareTabs: { tabs: Map<unknown, CompareTab> };
   hosting: Hosting | null;
   onMessage(webview: unknown, message: WebviewMessage): Promise<void>;
-  post(message: ToViews, to?: unknown): void;
+  post(message: ToViews, to?: unknown, group?: unknown): void;
   scheduleRefresh(cause: string, delay?: number): void;
   /** The read of the repository under way, while there is one. */
   loading?: Promise<void>;
@@ -150,10 +150,11 @@ export async function run(): Promise<void> {
     return unanswered.has(message.type) ? Promise.resolve() : onMessage(webview, message);
   };
   const post = internals.post.bind(controller);
-  internals.post = (message, to) => {
+  internals.post = (message, to, group) => {
     posted.push(message);
     addressed.push(to);
-    post(message, to);
+    // A message for a group of views goes to its views alone.
+    post(message, to, group);
   };
   const fromWebview = (message: WebviewMessage) => internals.onMessage([...internals.views.keys()][0], message);
   const kinds = () => [...internals.views.values()].sort();
@@ -5076,7 +5077,7 @@ export async function run(): Promise<void> {
     }
   });
 
-  // The tabs of the graph in the editor, each a group of views of its own on a repository (D89).
+  // The tabs of the graph in the editor kept on a repository, each a group of views of its own (D89, D94).
   const graphTabs = () => [...new Set(internals.groups.values())].filter((group) => group.panel);
   const tabShowing = (root: string, besides?: ViewGroup) => graphTabs().find((group) => group !== besides && !!group.state && samePath(group.state.root, root));
   const pageOf = (group: ViewGroup) => {
@@ -5162,58 +5163,131 @@ export async function run(): Promise<void> {
     }
   });
 
-  await step('shows in the panel and the side bar the repository of the tab of the graph that comes into focus, and moves no tab from them', async () => {
-    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-    if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
-    // What the Changes view of the side bar is sent, as its page gets it.
-    const changes = view('changes') as vscode.Webview & { postMessage(message: unknown): Thenable<boolean> };
-    const toChanges: HostMessage[] = [];
-    const postToChanges = changes.postMessage.bind(changes);
-    changes.postMessage = (message: unknown) => {
-      toChanges.push(message as HostMessage);
-      return postToChanges(message);
+  /** The tab of the graph that follows the repository chosen, while it is open (`repo.tab-follows`). */
+  const followingTab = () => (controller.repositories as unknown as { following?: vscode.WebviewPanel }).following;
+  /** The pages of the group of the panel and the side bar that draw a graph in a tab: that of the tab that follows. */
+  const followingPages = () => [...internals.groups].filter(([page, group]) => group === (internals.followers as unknown) && page === followingTab()?.webview).map(([page]) => page as vscode.Webview);
+  /** What a page is sent from now on, as it gets it; `stop` puts the page back as it was. */
+  const sentTo = (page: vscode.Webview) => {
+    const target = page as vscode.Webview & { postMessage(message: unknown): Thenable<boolean> };
+    const messages: HostMessage[] = [];
+    const postMessage = target.postMessage.bind(target);
+    target.postMessage = (message: unknown) => {
+      messages.push(message as HostMessage);
+      return postMessage(message);
     };
-    /** Whether the state the Changes view was sent last names a repository. */
-    const changesShow = (root: string) => () => {
-      const named = toChanges.filter((message) => message.type === 'state' && message.state?.root).at(-1);
+    /** Whether the state the page was sent last names a repository. */
+    const shows = (root: string) => () => {
+      const named = messages.filter((message) => message.type === 'state' && message.state?.root).at(-1);
       return named?.type === 'state' && !!named.state?.root && samePath(named.state.root, root);
     };
+    return { messages, shows, stop: () => void (target.postMessage = postMessage) };
+  };
+
+  await step('opens one tab of the graph that follows the repository chosen with the panel and the side bar, and chooses for the window', async () => {
+    await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+    if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
     const chosen: string[] = [];
     const listening = controller.onDidChooseRepo((root) => chosen.push(root));
+    const stops: (() => void)[] = [];
     try {
-      await controller.repositories.openTab(lib);
-      const onLib = await until('a tab on lib', () => tabShowing(lib));
-      await controller.repositories.openTab(app);
-      const onApp = await until('a tab on app', () => tabShowing(app, onLib));
-      // Opened, a tab moves nothing: the panel shows what it showed.
-      assert.ok(samePath(state().root, app));
+      // **Gitardo** in the status bar and **Gitardo: Open Graph in Editor** run this command.
+      await vscode.commands.executeCommand('gitardo.openInEditor');
+      const tab = await until('the tab that follows', () => followingTab());
+      assert.equal(tab.title, 'Gitardo');
+      const page = (await until('its page', () => followingPages()[0])) as vscode.Webview;
+      // It is of the group of the panel and the side bar: no group of its own, and no second read of the repository.
+      assert.equal(graphTabs().length, 0);
+      assert.deepEqual(sessionNames(), ['app']);
+      const toTab = sentTo(page);
+      stops.push(toTab.stop);
 
-      onLib.panel!.reveal();
-      await until('the panel to show lib', () => samePath(state().root, lib));
-      await until('the Changes view to show lib', changesShow(lib));
-      assert.ok(chosen.some((root) => samePath(root, lib)), "VS Code's Repositories view is told to select lib");
-      onApp.panel!.reveal();
-      await until('the panel to show app again', () => samePath(state().root, app));
-      await until('the Changes view to show app', changesShow(app));
+      // Asked again, with another tab in front, it is brought forward: no second one opens.
+      await controller.commitTabs.openCommit(state().head.commit!);
+      await until('the tab of the commit in front', () => !tab.active);
+      const tabsBefore = vscode.window.tabGroups.all.flatMap((group) => group.tabs).length;
+      await vscode.commands.executeCommand('gitardo.openInEditor');
+      await until('the tab that follows in front again', () => tab.active);
+      assert.equal(followingTab(), tab);
+      assert.equal(followingPages().length, 1);
+      assert.equal(vscode.window.tabGroups.all.flatMap((group) => group.tabs).length, tabsBefore);
 
-      // Choosing in the panel moves the panel and the side bar, and neither tab.
+      // The repository chosen in the panel changes the tab that follows, with the side bar.
+      const toChanges = sentTo(view('changes'));
+      stops.push(toChanges.stop);
       await internals.onMessage(view('graph'), { type: 'selectRepo', root: lib });
       await until('the panel to show lib', () => samePath(state().root, lib));
-      assert.ok(onApp.state && samePath(onApp.state.root, app));
-      assert.ok(onLib.state && samePath(onLib.state.root, lib));
+      await until('the tab that follows to show lib', toTab.shows(lib));
+      await until('the Changes view to show lib', toChanges.shows(lib));
+      assert.equal(tab.title, 'Gitardo');
+      // One read for the panel and the tab: they are on one session.
+      assert.deepEqual(sessionNames(), ['lib']);
 
-      // A tab of a commit does not move them (Q1521).
+      // Its toolbar chooses for the window, as the panel's does: the panel and the side bar change with it, the choice
+      // is remembered for the workspace and VS Code's Repositories view is told.
+      chosen.length = 0;
+      await internals.onMessage(page, { type: 'selectRepo', root: app });
+      await until('the panel to show app', () => samePath(state().root, app));
+      await until('the Changes view to show app', toChanges.shows(app));
+      await until('the tab that follows to show app', toTab.shows(app));
+      assert.ok(samePath(internals.memento.get<string>('gitardo.repository') ?? '', app));
+      assert.ok(chosen.some((root) => samePath(root, app)), "VS Code's Repositories view is told to select app");
+
+      // **Gitardo: Select Repository**, **Show in Gitardo** and VS Code's Repositories view choose it too.
+      await controller.repositories.selectRepo(lib);
+      await until('the tab that follows to show lib', toTab.shows(lib));
+      await controller.repositories.followSourceControl(app);
+      await until('the tab that follows to show app', toTab.shows(app));
+
+      // A tab kept on a repository is changed by none of this, and coming into focus it moves nothing (Q1796).
+      await internals.onMessage(view('repositories'), { type: 'openInTab', root: lib });
+      const kept = await until('a tab kept on lib', () => tabShowing(lib));
+      assert.equal(kept.panel!.title, 'Gitardo · workspace/lib');
+      assert.ok(kept.panel!.active);
+      tab.reveal();
+      await until('the tab that follows in front', () => tab.active);
+      chosen.length = 0;
+      kept.panel!.reveal();
+      await until('the tab kept in front', () => kept.panel!.active);
+      await sleep(500);
+      assert.ok(samePath(state().root, app), 'the panel stays on the repository chosen');
+      assert.ok(toChanges.shows(app)(), 'the side bar stays on the repository chosen');
+      assert.ok(toTab.shows(app)(), 'the tab that follows stays on the repository chosen');
+      assert.deepEqual(chosen, []);
+      // The repository chosen while the tab kept is in front changes the tab that follows, not the tab kept.
+      await internals.onMessage(view('graph'), { type: 'selectRepo', root: lib });
+      await until('the tab that follows to show lib', toTab.shows(lib));
+      await internals.onMessage(view('graph'), { type: 'selectRepo', root: app });
+      await until('the tab that follows to show app', toTab.shows(app));
+      assert.ok(kept.state && samePath(kept.state.root, lib));
+      assert.equal(kept.panel!.title, 'Gitardo · workspace/lib');
+      // The toolbar of the tab kept moves it alone (Q1797).
+      await internals.onMessage(pageOf(kept), { type: 'selectRepo', root: app });
+      await until('the tab kept to show app', () => kept.state && samePath(kept.state.root, app));
+      assert.equal(kept.panel!.title, 'Gitardo · workspace/app');
+      await internals.onMessage(view('graph'), { type: 'selectRepo', root: lib });
+      await until('the panel to show lib', () => samePath(state().root, lib));
+      assert.ok(kept.state && samePath(kept.state.root, app), 'the tab kept keeps the repository its toolbar chose');
       await internals.onMessage(view('graph'), { type: 'selectRepo', root: app });
       await until('the panel to show app', () => samePath(state().root, app));
+
+      // A tab of a commit does not move them either (Q1521).
       await controller.commitTabs.openCommit(state().head.commit!);
-      await until('the tab of the commit', () => [...internals.views.values()].includes('commit'));
-      await sleep(500);
+      await sleep(300);
       assert.ok(samePath(state().root, app));
+
+      // Closed, the tab that follows is opened anew by the command, and the panel is as it was.
+      tab.dispose();
+      await until('the tab that follows to close', () => !followingTab());
+      assert.ok(samePath(state().root, app));
+      await vscode.commands.executeCommand('gitardo.openInEditor');
+      const anew = await until('a new tab that follows', () => followingTab());
+      assert.notEqual(anew, tab);
     } finally {
-      changes.postMessage = postToChanges;
+      for (const stop of stops) stop();
       listening.dispose();
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-      await until('the tabs of the graph to close', () => graphTabs().length === 0);
+      await until('the tabs of the graph to close', () => graphTabs().length === 0 && !followingTab());
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
     }
   });

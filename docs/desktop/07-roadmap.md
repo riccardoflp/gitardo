@@ -1820,7 +1820,8 @@ Built in five phases, each one commit or more, each ending with its cards built 
    suite with two repositories in two tabs. Cards: `repo.tab-repository`.
 3. **The panel and the side bar follow the tab in focus.** `followTab` on `onDidChangeViewState`; the panel and the
    views of the side bar move to the session of that tab; `SourceControlSelection` selects it in VS Code's
-   Repositories view as it selects the repository chosen. Cards: `repo.follow-tab`.
+   Repositories view as it selects the repository chosen. Cards: `repo.follow-tab`, which milestone M52 took out of the
+   catalog (D94).
 4. **Kept across a reload.** The `WebviewPanelSerializer` of `gitardo.graphEditor`, the page's state with its
    repository and its filter, and the page of a folder that is gone. A step of the suite reloads the window. Cards:
    `repo.keep-tabs`.

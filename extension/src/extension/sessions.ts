@@ -4,8 +4,9 @@ import type { Filter, RepoInfo, RepoState, Scope } from '../shared/protocol';
 /**
  * Which repository each group of views shows, and the session of each repository shown (D89, `repo.tab-repository`):
  * one session for each repository a group shows, made when the first group comes to it and let go when the last one
- * leaves it. A group is the panel and the side bar together, or a tab of the graph in the editor. Nothing here reads
- * or watches anything: the sessions do, and this only says which is which.
+ * leaves it. A group is the panel, the side bar and the tab of the graph that follows them together, or a tab of the
+ * graph kept on a repository (D94). Nothing here reads or watches anything: the sessions do, and this only says which
+ * is which.
  */
 
 /** A folder as the sessions are told apart by, whatever its slashes and its case, as `samePath` compares them. */
@@ -115,7 +116,7 @@ function memberName(repository: string, folder: string): string {
 }
 
 /**
- * The title of a tab of the graph (`repo.tab-repository`, Q1520): `Gitardo · <repository>`, and after ` › ` the worktree
+ * The title of a tab of the graph kept on a repository (`repo.tab-repository`, Q1520): `Gitardo · <repository>`, and after ` › ` the worktree
  * or the submodule it shows, named as the rows of the Repositories view name them. `home` is the repository of the
  * workspace a worktree or a submodule outside the list is of.
  */

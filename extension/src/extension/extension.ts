@@ -105,8 +105,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     },
   };
 
-  /** A tab of the graph in the editor, on the repository the panel shows, which it keeps (`repo.tab-repository`). */
-  const openInEditor = () => controller.repositories.openTab();
+  /** The tab of the graph in the editor that follows the repository chosen, opened or brought forward (`repo.tab-follows`). */
+  const openInEditor = () => controller.repositories.openFollowing();
 
   /** Turns a setting that is on or off into the other, for the user wherever they work. */
   const toggleSetting = (name: string) => () => {

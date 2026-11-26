@@ -7,8 +7,9 @@ desktop's cards, in [../01-repositories.md](../01-repositories.md), each with a 
 
 ### `repo.select` — Choose the repository shown
 
-The list of the repositories of the workspace, which points every view at the one chosen and remembers it for the
-workspace. It is the menu of a button that names the repository shown, with the icon of a repository before the name
+The list of the repositories of the workspace, which points at the one chosen the panel, the side bar and the tab of
+the graph that follows them (`repo.tab-follows`), and remembers it for the workspace; a tab of the graph kept on a
+repository is not changed by it, and its own list moves it alone (`repo.tab-repository`). It is the menu of a button that names the repository shown, with the icon of a repository before the name
 and a chevron after it, as the button of the worktree beside it is (`worktree.show-in-gitardo`): the menu the webviews
 draw, the one shown ticked (M51).
 
@@ -22,7 +23,7 @@ draw, the one shown ticked (M51).
   the same `selectRepo`, for a repository, a worktree or a submodule, of the repository shown or of another.
 - **Offered when**: the workspace has two repositories or more; **Gitardo: Select Repository** also while the views
   show a worktree that is not in the workspace.
-- **Uses**: `worktree.show-in-gitardo`, `repo.follow-source-control`.
+- **Uses**: `worktree.show-in-gitardo`, `repo.follow-source-control`, `repo.tab-follows`.
 - **Implemented in**: `RepoSelect`, used by `Toolbar` (`src/webview/Toolbar.tsx`) and `ChangesApp`
   (`src/webview/ChangesApp.tsx`); `selectRepo` and `pickRepo` in `src/extension/repositoriesShown.ts`, `open` in
   `src/extension/controller.ts`. The choice is kept in the workspace state under `gitardo.repository`. The order of the
@@ -38,7 +39,8 @@ draw, the one shown ticked (M51).
   repositories" and "lists the repositories in the Repositories view with their worktrees and what each is on,
   counts a file changed in one not shown, and shows the row clicked", and "shows a repository chosen for the first
   time in two steps, its first step with the first rows and then only what the rest of its state changed, the state
-  read once"; `test/repositoryGroups.test.ts`.
+  read once", and "opens one tab of the graph that follows the repository chosen with the panel and the side bar, and
+  chooses for the window"; `test/repositoryGroups.test.ts`.
 
 Acceptance:
 
@@ -106,11 +108,12 @@ Acceptance:
   again until the window is reloaded.
 - [ ] What Gitardo selects in the view is not followed back.
 
-### `repo.tab-repository` — Each tab of the graph shows a repository of its own
+### `repo.tab-repository` — A tab of the graph opened on a repository keeps it
 
-A tab of the graph in the editor shows the repository, the worktree or the submodule it was opened on, and keeps it,
-whatever the other views show
-([D89](../../08-decisions.md#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed)).
+A tab of the graph opened on a repository, a worktree or a submodule shows it and keeps it, whatever is chosen
+elsewhere ([D89](../../08-decisions.md#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed),
+[D94](../../08-decisions.md#d94--in-the-extension-one-graph-follows-the-repository-chosen-and-a-tab-opened-on-a-repository-keeps-it-proposed)).
+The tab opened by **Gitardo** in the status bar is another: it follows the repository chosen (`repo.tab-follows`).
 
 - **Kind**: View
 - **Function**: `RepositoriesShown.openTab(root, panel, shown)`, which makes the tab a group of views of its own
@@ -119,23 +122,26 @@ whatever the other views show
   the list of the toolbar posts `selectRepo`, which moves its own group; `tabTitle` names the tab.
 - **Entry points**: **Open in a new tab** in the context menu of a row of the **Gitardo Repositories** view (`repo.tabs`),
   on a repository, a worktree or a submodule; **Gitardo: Open Repository in a New Tab** in the Command Palette, a picker
-  of the repositories, worktrees and submodules as **Gitardo: Select Repository** lists them; **Gitardo** in the status
-  bar and **Gitardo: Open Graph in Editor**, on the repository the panel shows.
+  of the repositories, worktrees and submodules as **Gitardo: Select Repository** lists them.
 - **Offered when**: the workspace has a repository.
-- **Uses**: `repo.select`, `worktree.show-in-gitardo`, `repo.keep-open`, `repo.follow-tab`.
+- **Uses**: `repo.select`, `worktree.show-in-gitardo`, `repo.keep-open`, `repo.tab-follows`.
 - **Implemented in**: `src/extension/repositoriesShown.ts` (`openTab`, `pickTab`, `point`, `retitle`),
   `src/extension/controller.ts` (`groupOf`), `src/extension/repositorySession.ts`, `src/extension/sessions.ts`,
   `src/webview/menus.ts` (`repositoryRowMenu`).
 - **Tested by**: `test/sessions.test.ts`; `test/menus.test.ts`, "repo.tab-repository: opens any row in a new tab of
-  the graph"; `test/e2e/suite.ts`, step "opens a tab of the graph on another repository, which its own toolbar moves
-  and its operations act on alone".
+  the graph"; `test/e2e/suite.ts`, steps "opens a tab of the graph on another repository, which its own toolbar moves
+  and its operations act on alone" and "opens one tab of the graph that follows the repository chosen with the panel
+  and the side bar, and chooses for the window".
 
 The title of the tab is `Gitardo · <repository>`, with `› <worktree>` or `› <submodule>` after it, as the rows of the
 Repositories view name them (Q1520). Its toolbar, its menus, its keys and the banners in it act on its repository: an
 operation runs there, a commit opened from it opens in that repository, **Show in graph** from another view does not
-move it. The list of the repositories and the menu of the worktrees in its toolbar move this tab alone. Two tabs on the
-same repository each keep their selection, their filter, the branches shown, their scroll and their folds; the
-repository is read once for both.
+move it. The list of the repositories and the menu of the worktrees in its toolbar move this tab alone
+(Q1797). Coming into focus, it moves nothing: the panel, the side bar and the tab that follows stay on the repository
+chosen (Q1796, Q1799), and a tab of a commit, of a comparison or of conflicts moves nothing either (Q1521). The
+commands of the Command Palette that act on the repository shown act on the one chosen (Q1522). Two tabs on the same
+repository each keep their selection, their filter, the branches shown, their scroll and their folds; the repository
+is read once for both.
 
 Acceptance:
 
@@ -147,37 +153,8 @@ Acceptance:
 - [ ] Two tabs on `api` with different filters keep them; a file saved in `api` asks one read, and both tabs show it.
 - [ ] Closing the last view of a repository stops watching it, unless `gitardo.repositories.keepOpen` is on.
 - [ ] An operation asked in one tab while another runs in a second is refused with *… is running in …*.
-
-### `repo.follow-tab` — The panel and the side bar follow the tab in focus
-
-The **Graph** view of the panel and the views of the side bar show the repository of the tab of the graph last in
-focus, as they show the repository chosen.
-
-- **Kind**: View
-- **Function**: `RepositoriesShown.followTab(group)`, on `onDidChangeViewState` of a tab of the graph when it becomes
-  active, which puts the group of the panel and the side bar on the session of the tab's repository.
-- **Entry points**: a click in a tab of the graph, or any way to bring one into focus.
-- **Offered when**: a tab of the graph is open.
-- **Uses**: `repo.tab-repository`, `repo.select`, `repo.follow-source-control`.
-- **Implemented in**: `src/extension/repositoriesShown.ts` (`openTab`, `followTab`).
-- **Tested by**: `test/e2e/suite.ts`, step "shows in the panel and the side bar the repository of the tab of the graph
-  that comes into focus, and moves no tab from them".
-
-The panel and the views **Gitardo Changes**, **Commits**, **Gitardo Graph**, **Branches** and **Stashes** follow the
-tab of the graph that last came into focus; until one has, they show the repository chosen as before (`repo.select`),
-and the workspace state keeps it under `gitardo.repository`. Choosing another in the panel or in the side bar, or
-following VS Code's Repositories view (`repo.follow-source-control`), moves them and no tab. A tab of a commit, of a
-comparison or of conflicts does not move them (Q1521). The commands of the Command Palette that act on the repository
-shown act on theirs (Q1522).
-
-Acceptance:
-
-- [ ] With a tab on `api` and one on `web`, a click in the tab of `web` shows `web` in the panel and in **Gitardo
-  Changes**; a click in the tab of `api` shows `api` there.
-- [ ] Choosing `docs` in the list of the panel's toolbar shows `docs` in the panel and the side bar, and neither tab
-  changes.
-- [ ] With `scm.repositories.selectionMode` set to `single`, bringing the tab of `web` into focus selects `web` in VS
-  Code's Repositories view, as `repo.follow-source-control` selects the repository chosen.
+- [ ] With the panel on `api`, a click in a tab opened on `web` leaves the panel and **Gitardo Changes** on `api`,
+  and selects nothing in VS Code's Repositories view.
 
 ### `repo.tab-follows` — The tab of the graph that follows the repository chosen
 
@@ -185,15 +162,21 @@ One tab of the graph in the editor shows the repository chosen, as the panel and
 them ([D94](../../08-decisions.md#d94--in-the-extension-one-graph-follows-the-repository-chosen-and-a-tab-opened-on-a-repository-keeps-it-proposed)).
 
 - **Kind**: View
-- **Function**: `RepositoriesShown.openTab()` with no repository, which opens the tab in the group of views of the
-  panel and the side bar, or brings forward the one open.
+- **Function**: `RepositoriesShown.openFollowing()`, which opens the tab in the group of views of the panel and
+  the side bar (`followers`), or brings forward the one open.
 - **Entry points**: **Gitardo** in the status bar; **Gitardo: Open Graph in Editor**.
 - **Offered when**: the workspace has a repository.
 - **Uses**: `repo.select`, `repo.follow-source-control`, `repo.keep-open`, `repo.tab-repository`, `repo.keep-tabs`.
+- **Implemented in**: `src/extension/repositoriesShown.ts` (`openFollowing`), `src/extension/extension.ts`
+  (`openInEditor`).
+- **Tested by**: `test/e2e/suite.ts`, step "opens one tab of the graph that follows the repository chosen with the
+  panel and the side bar, and chooses for the window".
 
 Its title is `Gitardo`. The button of the repository and the menu of the worktrees in its toolbar choose for the
 window, as the panel's do. A tab opened on a repository (`repo.tab-repository`) is not changed by it and changes
-nothing of it.
+nothing of it. The tab is one more view of the group of the panel and the side bar: it has their filter and their
+branches shown, is sent what they are sent, and the repository is read and watched once for them all. There is one at
+most in a window; closed, it is opened anew by the same entry points.
 
 Acceptance:
 
