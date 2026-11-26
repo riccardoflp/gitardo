@@ -619,6 +619,35 @@ Acceptance:
 - [ ] A fetch that changes `.git/shallow` asks for a read after 400 ms, said as `.git/shallow changed`
       (`repo.read-shallow`).
 
+### `repo.watch-git` — Find the changes of the git folder nobody said
+
+What changed in the git folder of a repository shown since it was last looked at, found by looking at its files and
+not by being told: a watcher can lose a change, start late or say nothing on some disks, and a commit, a branch or a
+worktree made outside must still be shown ([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed)).
+
+- **Kind**: Read
+- **Function**: `git::read::worktree::git_folder_changed(worktree: &Path, before: Option<&GitFolderStamp>) -> GitFolderCheck`
+- **Reads**: no process of git. The size and the time of each file of the worktree's own git folder, and in the common
+  git folder of `packed-refs` and of the folders of the branches, the remote branches, the tags, the stashes and the
+  worktrees, with the folders under them.
+- **Uses**: by `repo.watch-changes`, for which what it finds is a change of the git folder; by `repo.watch-hidden`
+  and `repo.worktree-summary`, which ask it already.
+- **Extension**: Planned: `gitardo-engine` watches the git folders of each repository open itself, compares them every
+  two seconds for those a view shows, and says what it sees in a notification of version 1.15 of the protocol, for
+  which `RepositorySession` asks for a read as for a change of its own watchers.
+
+The repository shown is looked at every two seconds, behind the watcher; a tab not shown once, when it is shown again.
+What the daemon of `core.fsmonitor` writes and the locks are left out, as `repo.watch-changes` leaves them out.
+
+Acceptance:
+
+- [ ] A commit, a new branch, a branch deleted, a tag, a stash and a worktree added each make it say the folder
+      changed; nothing written, it says it did not.
+- [ ] `git status` run in the worktree, which rewrites nothing but the files of `fsmonitor`, makes it say nothing.
+- [ ] It starts no process of git.
+- [ ] With the watcher giving nothing, a commit made outside is shown within three seconds.
+- [ ] A change both the watcher and the comparison saw asks for one read.
+
 ### `repo.schedule-reads` — Read again when something changed
 
 Decides when the repository is read: once after a burst of changes, never twice at once, again while something keeps

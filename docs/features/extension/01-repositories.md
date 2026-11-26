@@ -179,6 +179,33 @@ Acceptance:
 - [ ] With `scm.repositories.selectionMode` set to `single`, bringing the tab of `web` into focus selects `web` in VS
   Code's Repositories view, as `repo.follow-source-control` selects the repository chosen.
 
+### `repo.tab-follows` — The tab of the graph that follows the repository chosen
+
+One tab of the graph in the editor shows the repository chosen, as the panel and the side bar do, and changes with
+them ([D94](../../08-decisions.md#d94--in-the-extension-one-graph-follows-the-repository-chosen-and-a-tab-opened-on-a-repository-keeps-it-proposed)).
+
+- **Kind**: View
+- **Function**: `RepositoriesShown.openTab()` with no repository, which opens the tab in the group of views of the
+  panel and the side bar, or brings forward the one open.
+- **Entry points**: **Gitardo** in the status bar; **Gitardo: Open Graph in Editor**.
+- **Offered when**: the workspace has a repository.
+- **Uses**: `repo.select`, `repo.follow-source-control`, `repo.keep-open`, `repo.tab-repository`, `repo.keep-tabs`.
+
+Its title is `Gitardo`. The button of the repository and the menu of the worktrees in its toolbar choose for the
+window, as the panel's do. A tab opened on a repository (`repo.tab-repository`) is not changed by it and changes
+nothing of it.
+
+Acceptance:
+
+- [ ] With the panel on `api`, **Gitardo** in the status bar opens a tab titled `Gitardo` showing `api`; chosen
+  again, it brings that tab forward and opens no second one.
+- [ ] Choosing `web` in the panel, in the **Gitardo Repositories** view or in the toolbar of that tab shows `web` in
+  the tab, in the panel and in **Gitardo Changes**.
+- [ ] With a tab opened on `docs` beside it, choosing `web` leaves that tab on `docs`; a click in the tab of `docs`
+  leaves the panel, the side bar and the tab that follows on `web`.
+- [ ] The repository is read once for the panel and the tab that follows.
+- [ ] After a reload of the window the tab comes back, titled `Gitardo`, on the repository chosen.
+
 ### `repo.keep-tabs` — The tabs of the graph come back after a reload
 
 A tab of the graph comes back when VS Code opens the workspace again, on what it showed.

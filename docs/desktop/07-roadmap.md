@@ -2255,6 +2255,68 @@ and the words of a button are shown whenever there is room for them; in the exte
 and where to search are chosen from buttons and menus of one look; and with the islands on, in every theme the suite
 tries, each button with words and each box of the toolbar is told from the ground.
 
+## M52 — Changes seen at once, and one graph that follows the repository chosen
+
+Two things asked by the maintainer on 2026-11-26. What git changes outside Gitardo, a commit, a branch, a worktree, is
+in the graph of the extension about a second later, whatever the workspace is and whatever is written in it: the
+engine hears of the git folder itself and looks again for what it was not told
+([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed), Q1792–Q1795). And one tab of the graph follows the repository chosen, with the panel
+and the side bar, while a tab opened on a repository keeps it and moves nothing
+([D94](../08-decisions.md#d94--in-the-extension-one-graph-follows-the-repository-chosen-and-a-tab-opened-on-a-repository-keeps-it-proposed), Q1796–Q1799).
+
+Tried on 2026-11-26, before anything was built, in a real VS Code in Xvfb on Linux, version 1.3.0 with its engine: a
+commit made by git outside, timed until the graph shows it.
+
+| | Before | After |
+| --- | ---: | ---: |
+| Two small repositories, nothing else written | 520 ms | |
+| The same, in a tab or a panel out of sight, once it is shown | at once | |
+| A clone of this repository, 200 files a second written in a worktree nested in it | 0.8 to 1.0 s | |
+| A folder of 34 repositories, in the first 17 seconds of the window | not in 5 s, 2 of 2 | |
+| The same folder, files written elsewhere in it | 1.7 to 4.7 s, and not in 6 s 3 times of 8 | |
+| The same folder, in the 15 seconds after the writing stopped | not in 6 s, 3 times of 4 | |
+
+Built in seven phases, each one commit or more, each ending with its cards built and their tests passing; Gitardo
+Desktop first, then the engine under the extension, then the extension.
+
+1. **Measured first.** `test/perf/changes.mjs`, from the trials of 2026-11-26: on a workspace `test/perf` makes, of
+   thirty repositories with a folder beside them where files are written without end, it makes a commit, a branch and
+   a worktree from outside, at the start of the window, while the files are written and after, and times each until
+   the graph shows it; `vscode.mjs --changes` runs it. The times of `main` go in the table above. For Gitardo
+   Desktop, a test of `app` that the watcher saying it overflowed asks for a read. No card changes.
+2. **Looking again, in Gitardo Desktop.** `git::read::worktree::git_folder_changed` looks also at the folders of the
+   tags, of the stashes and of the worktrees; the repository shown is compared every two seconds, behind its watcher,
+   and what differs with nothing said of it is a change; an overflow of the watcher is one too. Unit tests of what the
+   comparison sees and of what it costs, no process of git. Cards: `repo.watch-git`; `repo.watch-changes`, its rows
+   of an overflow and of a change found.
+3. **The engine watches, under the extension.** In the crate `server`, a watcher of the git folders of each repository
+   open and the comparison of every two seconds for those a view shows, which the extension says with the views it
+   has; the notification of a change seen, in version 1.15 of [the protocol](../transition/02-protocol.md). Tests of
+   the server: a reference written is said, one written while the watcher is not there is found within three seconds,
+   and what the engine's own operations write is not said twice. Cards: `repo.watch-git`, its **Extension** line.
+4. **The extension listens.** `RepositorySession` asks for a read at the engine's notification as at its own watcher's,
+   one read for the two; a repository kept is marked out of date; one chosen that was kept is compared once before
+   what it kept is shown as it is. Steps of `test/e2e/suite.ts`: a commit made while VS Code's watcher is given
+   nothing to say, by a git folder outside the workspace, is shown. Cards: `repo.watch-git` Built in the extension;
+   `repo.watch-hidden`.
+5. **The tab that follows.** `RepositoriesShown.openTab` without a repository opens, or brings forward, the tab that
+   is of the group of the panel and the side bar, titled `Gitardo`; with one, a tab of its own group, as today.
+   `followTab` goes: a tab in focus moves nothing. Steps of the suite: the repository chosen in the panel changes the
+   tab that follows and no tab kept on a repository; a tab kept, in focus, leaves the side bar where it is. Cards:
+   `repo.tab-follows`; `repo.tab-repository`, its entry points; `repo.follow-tab`, removed from the catalog;
+   `repo.select`.
+6. **Kept across a reload.** The tabs saved say which follows; those saved before are read as D94 says. Cards:
+   `repo.keep-tabs`; [11-data.md](../extension/11-data.md), the key of the tabs.
+7. **Measured and said.** The table above, as *After*; QA18 and QA19 of [12-quality.md](../extension/12-quality.md)
+   with their limits in `test/perf/changes.mjs`; the README and the CHANGELOG of each app; the testing pages.
+
+Exit: in the extension, on the workspace of thirty repositories, a commit, a branch and a worktree made by git outside
+are in the graph in about a second, and never after more than three, in the first seconds of the window, while files
+are written beside them and after; in Gitardo Desktop a change its watcher lost is shown within three seconds; one
+repository is chosen in a window of VS Code, and the panel, the side bar and the tab that follows show it; a tab
+opened on a repository keeps it and moves nothing; QA15 to QA17 are as quick as on 2026-11-26, and every card of the
+milestone passes its tests.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

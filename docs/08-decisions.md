@@ -2504,6 +2504,100 @@ said); an engine process for each repository (one process already keeps an `Engi
 repository ever shown with no end (Q1740 asks where the end is); showing the rows of the repository left, dimmed, under
 the name of the one chosen (the rows of another repository under the wrong name, for the time of one read).
 
+## D93 — The engine hears of the git folder itself, and looks again for what it was not told (proposed)
+
+*Asked by the maintainer on 2026-11-26 for milestone M52: "changes are not seen by the graph, it takes very long to
+show them: commits, new branches, even new worktrees; to be sure I see the right graph I have to close it and open it
+again". The details proposed while planning. It adds to `repo.watch-changes` and to
+[D37](#d37--one-engine-the-rust-one-for-both-apps); it changes nothing of what a change asks for.*
+
+Tried on 2026-11-26 in a real VS Code, in Xvfb on Linux, with a commit, a branch and a worktree made by git outside
+it, each timed until the graph showed it. In a workspace of two small repositories, on the system's disk and on the
+one of the maintainer's projects, with version 1.3.0 and with what is on `main`, every change is shown in about half a
+second: with the repository shown, left and chosen again, on a worktree, with a tab of the graph beside the panel, and
+in a tab or a panel out of sight when it is shown again. In a clone of this repository with a worktree nested in it
+and 200 files written a second there, in under a second. In the folder the maintainer opens, 34 repositories with
+their builds and their packages, with version 1.3.0:
+
+| When the commit was made | Shown after |
+| --- | --- |
+| In the first 17 seconds of the window | not in 5 seconds, two of two |
+| After them, nothing else being written | 520 to 580 ms, twelve of twelve |
+| While files are written elsewhere in the folder, as a build does | 1.7 to 4.7 s, five of eight; not in 6 seconds, three of eight |
+| In the 15 seconds after the writing stopped | not in 6 seconds, three of four |
+
+The extension hears of a change in one way: `vscode.workspace.createFileSystemWatcher`, of the common git folder and of
+the working tree (`RepositorySession.watch`). For a folder of the workspace that is the watcher of the workspace, which
+VS Code starts over everything in it: it says nothing until it has gone through the folder, and with many files
+changing at once it says in its log *started ignoring events due to too many file change events at once* and drops
+them, those of a git folder with the others. A change dropped is never asked for again: the only other read is the
+one of the window getting the focus more than a minute after the last. The logs the maintainer's own windows kept, of
+three days, have no such line, so which of the two they met is not known; both are real, and neither is the fault of
+the tabs of [D89](#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed), which the trials did not slow.
+
+- **The engine watches the git folder itself.** For every repository the extension has open in it, `gitardo-engine`
+  watches the common git folder and the worktree's own with the watcher Gitardo Desktop uses (`platform::Watcher`):
+  those folders alone, never the working tree, so that what a build writes cannot fill it. What it sees it says to the
+  extension in a notification, with the paths, and the extension asks for a read by the rules of `repo.watch-changes`
+  and `repo.schedule-reads`, as for a change of its own watchers; the two saying the same change ask for one read.
+- **And looks again.** A watcher can lose changes: the system's queue overflows, a disk of the network says nothing,
+  the watcher was not there yet. So every two seconds, for each repository a view shows, the engine compares what
+  `git::read::worktree::git_folder_changed` looks at, the files of the worktree's own git folder, `packed-refs` and the
+  folders of the branches and of the remote branches, with also those of the tags, of the stashes and of the
+  worktrees, by their sizes and times: some tens of calls to the system and no process of git. What differs with
+  nothing said of it is said as a change. Gitardo Desktop does the same behind its own watcher, and reads again when
+  its watcher says it overflowed.
+- **A repository kept, not shown.** It is watched the same way and only marked out of date, as `repo.watch-hidden`
+  says; it is not looked at again every two seconds, but once when it is chosen, before what it kept is trusted.
+- **The files of the working tree stay with VS Code's watcher.** A file edited outside and not staged changes nothing
+  in the git folder; the engine watching whole working trees would bring back what this decision removes. Until
+  [Q1794](#of-changes-seen-at-once-and-of-the-graph-that-follows-from-q1792) is answered, such a change dropped by VS
+  Code is seen at the next change that is not, at the window getting the focus, or with **Refresh**.
+- **Measured.** A change made by git outside is in the graph in about a second, at any moment of the window and
+  whatever else is written in the workspace, and never later than three: QA18 and QA19 of the extension, timed by a
+  tool of `test/perf` on a workspace of many repositories with files written beside them.
+
+Why not ask VS Code for a watcher of its own for each git folder: a watcher of a path inside the workspace is served by
+the one of the workspace, with its start and its limits, and `files.watcherExclude` is the user's to set. Why not read
+every repository again every few seconds: a read is some twenty processes of git, and the comparison above costs
+none.
+
+## D94 — In the extension, one graph follows the repository chosen, and a tab opened on a repository keeps it (proposed)
+
+*Asked by the maintainer on 2026-11-26 for milestone M52: "I want to go back from every tab having a project of its
+own: always one tab, very quick at changing branch and project, and if needed other tabs where other projects are
+open; but there must always be one tab that changes because it has the project, the repository or the worktree,
+selected". The details proposed while planning. It changes [D89](#d89--in-the-extension-each-tab-of-the-graph-shows-a-repository-of-its-own-proposed): which tab keeps its repository, and what
+the panel and the side bar follow. Gitardo Desktop does not change.*
+
+With D89 every tab of the graph keeps the repository it was opened on, its toolbar moves that tab alone, and the panel
+and the side bar follow whichever tab last came into focus. So no view is the one that shows the repository chosen:
+the side bar changes repository when a tab is clicked, and the tab opened by **Gitardo** in the status bar stays on
+what it showed when another repository is chosen beside it.
+
+- **One repository is chosen in a window**, as before D89 (`repo.select`): in the toolbar of a graph that follows, in
+  the **Gitardo Repositories** view, with **Gitardo: Select Repository**, with **Show in Gitardo**, or by VS Code's
+  Repositories view (`repo.follow-source-control`). The panel, the views of the side bar and the tab of the graph that
+  follows all show it, and choosing in any of them changes them all.
+- **The tab that follows.** **Gitardo** in the status bar and **Gitardo: Open Graph in Editor** open the tab that
+  follows the repository chosen, or bring it forward when it is open: there is one at most. Its title is `Gitardo`,
+  and its toolbar chooses the repository and the worktree for the window, as the panel's does.
+- **A tab kept on a repository.** **Open in a new tab**, in the menu of a row of **Gitardo Repositories**, and
+  **Gitardo: Open Repository in a New Tab** open a tab on a repository, a worktree or a submodule, titled
+  `Gitardo · api` or `Gitardo · api › feature/login`, which keeps it whatever is chosen elsewhere. Its own toolbar
+  still moves it alone, and what it runs, runs on its repository, as D89 says. Coming into focus, it moves nothing: the
+  panel and the side bar stay on the repository chosen.
+- **As quick as M50 made it.** The tab that follows changes repository as the panel does: what the repository kept or
+  was read ahead with is shown at once, a worktree takes the rows of its repository
+  ([D92](#d92--a-repository-chosen-is-shown-at-once-and-read-behind-what-it-shows-proposed)), and the same repository
+  shown by the panel and by the tab is read once.
+- **Kept across a reload.** The tab that follows comes back following, the others on what they showed
+  (`repo.keep-tabs`). Of the tabs saved before this decision, the first on the repository chosen becomes the one that
+  follows, and the others keep theirs.
+- **What D89 keeps.** Two tabs on the same repository each with their selection, filter, branches shown, scroll and
+  folds; one read and one watch for each repository shown; one operation at a time in a window; the tab whose folder
+  is gone.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -6218,3 +6312,30 @@ each is built as it says until the maintainer answers otherwise.
   keeps its length and its scroll, and shows the rows there once their piece comes, a moment later, empty until
   then. Should the first message carry the rows in sight instead, which the extension host does not know, or the
   page keep the rows of the repositories it showed, some megabytes for each? Built with the first page.
+
+### Of changes seen at once, and of the graph that follows, from Q1792
+
+Questions of milestone M52 ([D93](#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed), [D94](#d94--in-the-extension-one-graph-follows-the-repository-chosen-and-a-tab-opened-on-a-repository-keeps-it-proposed)), asked while it is planned; each is built as it says until the
+maintainer answers otherwise.
+
+- **Q1792** — D93: the engine looks at the git folder of each repository a view shows every two seconds. Is that
+  often enough, and is it too often on a disk of the network or on battery? Built at two seconds, as a constant.
+- **Q1793** — D93: the watcher is in the crate `platform`, with what draws the window of Gitardo Desktop, and the crate
+  `server` must not bring the libraries of a window into the engine. Should the watcher move to a crate of its own
+  that both use? Built that way if `platform` cannot be used without them.
+- **Q1794** — D93: a file of the working tree edited outside, whose change VS Code's watcher drops, is not seen until
+  another change, the focus or **Refresh**. Should the engine also compare `git status` now and then while the
+  **Gitardo Changes** view is in sight, one process of git each time? Not built.
+- **Q1795** — D93: should the extension say, in the status bar or in the log, that VS Code is dropping changes of the
+  workspace, with a pointer to `files.watcherExclude`? It cannot know it from VS Code; it can know that the engine
+  found a change it was told nothing of. Built as a line in the log, at the debug level.
+- **Q1796** — D94: a tab kept on a repository, in focus, does not move the side bar. Should **Gitardo Changes** at
+  least follow it, so that one can commit in the repository one is looking at? Built as said: nothing follows it; its
+  own uncommitted row and its menus act on its repository.
+- **Q1797** — D94: the toolbar of a tab kept on a repository still chooses another repository for that tab alone.
+  Should it instead show its repository with nothing to choose, so that only the tab that follows changes? Built as
+  D89 has it.
+- **Q1798** — D94: the tab that follows is titled `Gitardo`, since what it shows changes. Should it name the
+  repository too, as the tabs kept on one do, and tell itself from them by an icon? Built as `Gitardo`.
+- **Q1799** — D94: `repo.follow-tab`, the panel and the side bar following the tab in focus, goes. Should it stay as
+  a setting, off by default, for whoever worked that way? Not built.
