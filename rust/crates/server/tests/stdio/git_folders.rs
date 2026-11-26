@@ -121,6 +121,24 @@ fn repo_watch_git__with_the_watcher_giving_nothing_a_commit_made_outside_is_foun
 }
 
 #[test]
+fn repo_watch_git__a_commit_the_watcher_said_is_not_found_again_by_looking() {
+    let mut repository = repository();
+    let mut engine = opened(Engine::start(), &repository);
+    let shown = engine.ask(SHOWN, &json!({ "repositories": [folder(&repository)] }));
+    assert!(shown.get("result").is_some(), "{shown}");
+    // A commit writes its message and the reflog of `HEAD` beside the branch, which ask for no read.
+    let _made = repository.commit("Made outside", &[("outside.txt", "outside\n")]);
+    let first = engine.notification_of(CHANGED);
+    assert_eq!(first["params"]["found"], json!(false), "{first}");
+    // Two looks later nothing was found: what differs is what the watcher saw.
+    let after = engine.notifications(CHANGED, Duration::from_millis(4500));
+    assert!(
+        after.iter().all(|said| said["params"]["found"] == json!(false)),
+        "nothing is found by looking: {after:?}"
+    );
+}
+
+#[test]
 fn repo_watch_git__a_repository_not_shown_is_not_looked_at_again_and_is_compared_once_when_it_is_shown() {
     let repository = repository();
     let mut engine = opened(Engine::start_unwatched(), &repository);

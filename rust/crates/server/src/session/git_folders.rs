@@ -79,6 +79,9 @@ struct Entry {
     git_folders: Vec<PathBuf>,
     /// What its git folder was when it was last looked at, or a change of it was last said.
     stamp: GitFolderStamp,
+    /// Whether its watcher said anything since it was last looked at, be it a file that asks for no read: what differs
+    /// then is what the watcher saw, and what asked for a read of it was said.
+    is_heard: bool,
     /// Whether an operation of the engine runs in it.
     is_operating: bool,
     /// The paths seen while the operation runs.
@@ -104,11 +107,14 @@ impl Entry {
         self.stamp = git_folder_changed(&self.folder, None).stamp;
     }
 
-    /// Looks at its git folder again. Says whether it changed since it was last looked at.
+    /// Looks at its git folder again. Says whether it changed since it was last looked at with nothing said of it by
+    /// its watcher: git writes other files after those that ask for a read, such as the message of a commit, and they
+    /// are no change found.
     fn look(&mut self) -> bool {
         let check = git_folder_changed(&self.folder, Some(&self.stamp));
         self.stamp = check.stamp;
-        check.is_anything_changed
+        let is_heard = std::mem::take(&mut self.is_heard);
+        check.is_anything_changed && !is_heard
     }
 }
 
@@ -155,6 +161,7 @@ impl Session {
             folder: folder.to_path_buf(),
             git_folders: folders,
             stamp: git_folder_changed(folder, None).stamp,
+            is_heard: false,
             is_operating: false,
             held: Vec::new(),
             quiet_until: None,
@@ -237,6 +244,10 @@ impl Session {
                     if !entry.git_folders.contains(&git_folder) {
                         continue;
                     }
+                    entry.is_heard = true;
+                    if paths.is_empty() {
+                        continue;
+                    }
                     if entry.is_operating {
                         add_new(&mut entry.held, &paths);
                     } else if entry.quiet_until.is_none_or(|until| until <= now) {
@@ -285,7 +296,7 @@ impl Session {
 }
 
 /// Where the watcher of a git folder says what it saw: the paths that ask for a read (`repo.watch-changes`), as the
-/// protocol writes them. A folder whose time was written is left out, since the file created or deleted in it is said
+/// protocol writes them, none when it saw only files that ask for none. A folder whose time was written is left out, since the file created or deleted in it is said
 /// on its own; a watcher that lost changes, or whose folder is gone, says the git folder itself.
 fn telling(git_folder: &Path, told: &Sender<Told>) -> WatchDeliver {
     let (git_folder, told) = (git_folder.to_path_buf(), told.clone());
@@ -296,7 +307,8 @@ fn telling(git_folder: &Path, told: &Sender<Told>) -> WatchDeliver {
                 add_new(&mut paths, &[path]);
             }
         }
-        if !paths.is_empty() {
+        // Also when none asks for a read: the look that follows must know the watcher saw what differs.
+        if !events.is_empty() {
             let _sent = told.send(Told::Seen {
                 git_folder: git_folder.clone(),
                 paths,
