@@ -153,10 +153,14 @@ Where one is and what applies to the whole repository, in a bar across the top o
   buttons; **Refresh**, which **…** has too; one line, the search and what follows it going across a second, where
   the names of the repository and of the branch are cut before a button goes; **Branch**, **Stash** and **Undo**,
   which **…** then has; and last the first line, which breaks between where one is and the buttons. No button is
-  outside the view, over another or alone on a line, and what was given up comes back as soon as it fits. Tested by
+  outside the view, over another or alone on a line, and what was given up comes back as soon as it fits. A toolbar
+  drawn while its tab is out of sight, where VS Code keeps the page at a width of its own, is fitted again at the
+  first frame of the tab shown (`fitAgain`). Tested by
   `test/e2e/ui.mjs`, step "the toolbar gives up its words, Refresh, one line and then three buttons as the panel
   narrows, with nothing out of the view, and takes them back", and `test/toolbarMenus.test.ts`, "has Branch, Stash and
-  Undo after Refresh while the toolbar is too narrow for their buttons, greyed out as the buttons are" (M51).
+  Undo after Refresh while the toolbar is too narrow for their buttons, greyed out as the buttons are" (M51); and by
+  the step "the toolbar of a tab of the graph drawn while the tab is out of sight fits its width again once the tab
+  is shown".
 
 The header is not an island: it is a bar on the ground of the window, as high as a button and its margins, across the
 whole width on the right of the bar of views, above the side column, the timeline, the inspector and the pages, and it

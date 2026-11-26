@@ -1429,13 +1429,13 @@ try {
     await shot('compare-tab-path');
     await tab.click('.compare-path .clear');
     await until('all the files again', async () => (await inTab()).paths.join() === all.join());
-    await command('View: Close Editor');
+    await command('View: Revert and Close Editor');
 
     // The comparison in the view opens in a tab as well.
     await branches.click('.detail .button', 'Open in a tab');
     const opened = await webview('compare');
     await until('the comparison of feature with main', async () => (await opened.evaluate(`[...document.querySelectorAll('.compare-side .name')].map((side) => side.textContent).join()`)) === 'feature,main');
-    await command('View: Close Editor');
+    await command('View: Revert and Close Editor');
     await branches.click('.detail .close');
   });
 
@@ -1541,6 +1541,31 @@ try {
     assert(bar.fits && bar.branch === 'main', `toolbar: ${JSON.stringify(bar)}`);
   });
 
+  await step('the toolbar of a tab of the graph drawn while the tab is out of sight fits its width again once the tab is shown', async () => {
+    const graph = await webview('graph', (frame) => frame.y < 300);
+    const before = await toolbar(graph);
+    // Another tab over it, and not a file, whose opening would have the views drawn again once it is closed: VS Code
+    // keeps the page of a tab that is not shown, at a width of its own.
+    await command('Preferences: Open Keyboard Shortcuts');
+    await sleep(1500);
+    try {
+      // What the tab shows changes meanwhile, and its toolbar is drawn again at that width.
+      git(app, 'branch', 'made-out-of-sight');
+      await until('the branch in the tab out of sight', () => graph.evaluate(`document.body.textContent.includes('made-out-of-sight')`));
+      await sleep(500);
+      await command('View: Open Previous Editor');
+      await sleep(1500);
+      const bar = await toolbar(graph);
+      assert(bar.fits && bar.give === before.give && bar.lines === before.lines, `toolbar: ${JSON.stringify(bar)}, before: ${JSON.stringify(before)}`);
+    } finally {
+      git(app, 'branch', '-D', 'made-out-of-sight');
+      // The other tab is closed, and the tab of the graph is the one in sight again.
+      await command('View: Open Next Editor');
+      await command('View: Revert and Close Editor');
+      await until('the branch gone', () => graph.evaluate(`!document.body.textContent.includes('made-out-of-sight')`));
+    }
+  });
+
   await step('a commit opens in an editor tab, with its whole message, its files as a tree or as a list, and what it changed in each', async () => {
     // A commit with something to show: a message of several lines, directories, and a file changed as well as added ones.
     const file = (name, content) => {
@@ -1628,10 +1653,10 @@ try {
       page.evaluate(`[...document.querySelectorAll('.tabs-container .tab.active')].some((tab) => tab.textContent.startsWith('notes.txt ('))`),
     );
     await shot('commit-tab-diff');
-    await command('View: Close Editor');
+    await command('View: Revert and Close Editor');
 
     // The first tab is closed before: a tab that is behind another keeps its page, and would be taken for the new one.
-    await command('View: Close Editor');
+    await command('View: Revert and Close Editor');
     await until('the tab closed', async () => !(await page.evaluate(`[...document.querySelectorAll('.tabs-container .tab')].some((tab) => tab.textContent.includes('Add parts'))`)));
     await graph.click('.row', 'Add notes');
     await graph.click('.detail .open-tab');
