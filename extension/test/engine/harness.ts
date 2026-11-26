@@ -47,6 +47,10 @@ export async function repository(commit = true): Promise<string> {
   await git(root, ['config', 'user.name', 'Gitardo Test']);
   await git(root, ['config', 'user.email', 'test@gitardo.invalid']);
   await git(root, ['config', 'commit.gpgsign', 'false']);
+  // No maintenance behind a commit: git starts it apart from the command, and it writes and removes files in the
+  // objects while a test copies the repository or compares it with another.
+  await git(root, ['config', 'maintenance.auto', 'false']);
+  await git(root, ['config', 'gc.auto', '0']);
   if (commit) await commitFile(root, 'a.txt', 'one\n', 'First commit');
   return root;
 }
