@@ -136,7 +136,76 @@ async function removeRepository(root: string, holders: Holders): Promise<void> {
   if (await removed(10_000)) throw new Error(`${root} was deleted only once what Gitardo kept of it was let go`);
   await holders.engine?.close(root).catch(() => undefined);
   if (await removed(10_000)) throw new Error(`${root} was deleted only once Gitardo's engine closed it`);
-  throw new Error(`${root} could not be deleted, whatever of Gitardo let go of it`);
+  throw new Error(`${root} could not be deleted, whatever of Gitardo let go of it. ${whatHolds(root)}`);
+}
+
+/**
+ * What of a folder cannot be deleted, each with the error of the system, and on Windows the processes that have the
+ * first such file open and those of git and of Gitardo's engine that run: said when a step could not delete a folder.
+ */
+function whatHolds(root: string): string {
+  const refused: string[] = [];
+  const files: string[] = [];
+  const remove = (entry: string) => {
+    let isFolder = false;
+    try {
+      isFolder = fs.lstatSync(entry).isDirectory();
+      if (isFolder) for (const name of fs.readdirSync(entry)) remove(path.join(entry, name));
+      if (isFolder) fs.rmdirSync(entry);
+      else fs.unlinkSync(entry);
+    } catch (error) {
+      refused.push(`${path.relative(root, entry) || '.'}${isFolder ? '/' : ''}: ${(error as NodeJS.ErrnoException).code}`);
+      if (!isFolder) files.push(entry);
+    }
+  };
+  remove(root);
+  const said = [`Refused: ${refused.slice(0, 12).join('; ')}${refused.length > 12 ? `; and ${refused.length - 12} more` : ''}.`];
+  if (process.platform !== 'win32') return said.join(' ');
+  const powershell = (script: string) => {
+    try {
+      return execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', timeout: 60_000 }).trim().slice(0, 3000);
+    } catch (error) {
+      return `could not be asked: ${String(error).slice(0, 300)}`;
+    }
+  };
+  if (files.length) said.push(`Open in: ${powershell(holdersOfFile(files[0]))}.`);
+  const running = "Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^(git|gitardo|sh|bash)' } | ForEach-Object { \"$($_.Name) $($_.ProcessId) of $($_.ParentProcessId): $($_.CommandLine)\" }";
+  said.push(`Running: ${powershell(running).replace(/\r?\n/g, ' | ')}.`);
+  return said.join(' ');
+}
+
+/** A script of PowerShell that names the processes which have a file open, as the Restart Manager of Windows knows them. */
+function holdersOfFile(file: string): string {
+  const source = `
+using System;
+using System.Runtime.InteropServices;
+public static class Holders {
+  [StructLayout(LayoutKind.Sequential)] struct UniqueProcess { public int Id; public System.Runtime.InteropServices.ComTypes.FILETIME Start; }
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] struct ProcessInfo {
+    public UniqueProcess Process;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)] public string Name;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)] public string Service;
+    public int Kind; public uint Status; public uint Session; [MarshalAs(UnmanagedType.Bool)] public bool Restartable;
+  }
+  [DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)] static extern int RmStartSession(out uint handle, int flags, string key);
+  [DllImport("rstrtmgr.dll")] static extern int RmEndSession(uint handle);
+  [DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)] static extern int RmRegisterResources(uint handle, uint files, string[] names, uint apps, [In] UniqueProcess[] processes, uint services, string[] serviceNames);
+  [DllImport("rstrtmgr.dll")] static extern int RmGetList(uint handle, out uint needed, ref uint count, [In, Out] ProcessInfo[] found, ref uint reasons);
+  public static string Of(string file) {
+    uint handle; RmStartSession(out handle, 0, Guid.NewGuid().ToString());
+    try {
+      RmRegisterResources(handle, 1, new[] { file }, 0, null, 0, null);
+      uint needed = 0, count = 0, reasons = 0;
+      RmGetList(handle, out needed, ref count, null, ref reasons);
+      var found = new ProcessInfo[needed]; count = needed;
+      RmGetList(handle, out needed, ref count, found, ref reasons);
+      var said = file + ":";
+      for (int index = 0; index < count; index++) said += " " + found[index].Name + " (" + found[index].Process.Id + ")";
+      return count == 0 ? said + " no process" : said;
+    } finally { RmEndSession(handle); }
+  }
+}`;
+  return `Add-Type -TypeDefinition @'\n${source}\n'@; [Holders]::Of('${file.replace(/'/g, "''")}')`;
 }
 
 async function vscodeGit(): Promise<VSCodeGitApi> {
