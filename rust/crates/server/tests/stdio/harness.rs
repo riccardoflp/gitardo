@@ -27,22 +27,32 @@ pub struct Engine {
 impl Engine {
     /// Starts `gitardo-engine --stdio`, and a thread that reads its messages.
     pub fn start() -> Engine {
-        Engine::start_with(None)
+        Engine::start_with(None, true)
+    }
+
+    /// Starts `gitardo-engine --stdio` as [`Engine::start`] does, told to watch no folder: what changes in a git
+    /// folder is then found only by looking at it again, as on a disk whose changes the system does not say.
+    pub fn start_unwatched() -> Engine {
+        Engine::start_with(None, false)
     }
 
     /// Starts `gitardo-engine --stdio` as [`Engine::start`] does, every git it runs writing its trace2 events to a file.
     pub fn start_traced(trace: &Path) -> Engine {
-        Engine::start_with(Some(trace))
+        Engine::start_with(Some(trace), true)
     }
 
-    /// Starts `gitardo-engine --stdio`, with the file of git's trace2 events when there is one.
-    fn start_with(trace: Option<&Path>) -> Engine {
+    /// Starts `gitardo-engine --stdio`, with the file of git's trace2 events when there is one, watching the git
+    /// folders of the repositories opened or not.
+    fn start_with(trace: Option<&Path>, watches: bool) -> Engine {
         let mut command = Command::new(env!("CARGO_BIN_EXE_gitardo-engine"));
         let _ = command
             .arg("--stdio")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
+        if !watches {
+            let _ = command.env("GITARDO_ENGINE_WATCH", "off");
+        }
         if let Some(trace) = trace {
             let _ = command.env("GIT_TRACE2_EVENT", trace);
         }

@@ -20,6 +20,8 @@ json = { path = "../json" }
 model = { path = "../model" }
 protocol = { path = "../protocol" }
 settings = { path = "../settings" }
+# The watcher of folders, for the git folders of the repositories opened (D93): `system` links no library of a window.
+system = { path = "../system" }
 text = { path = "../text" }
 serde = "1.0.229"
 serde_json = "1.0.154"

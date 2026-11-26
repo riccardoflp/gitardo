@@ -42,9 +42,10 @@ fn summaries() -> Vec<WorktreeSummary> {
 #[test]
 fn version_1_10_is_spoken_by_an_engine_of_version_1_and_is_not_read_as_1_1() {
     assert_eq!(
-        VERSION, "1.14",
-        "1.14 added the state in two steps: `first` of `repository/open` and `read/repo.read-first` (milestone M50)"
+        VERSION, "1.15",
+        "1.15 added the git folders the engine watches: `repository/gitFolderChanged` and `repository/shown` (milestone M52)"
     );
+    assert!(is_compatible("1.14"));
     assert!(is_compatible("1.13"));
     assert!(is_compatible("1.12"));
     assert!(is_compatible("1.11"));

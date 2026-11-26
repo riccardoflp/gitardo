@@ -1,6 +1,6 @@
 //! The operating system without a window, as Gitardo's engine needs it: secrets kept in the credential store of the
-//! system, links to folders for the worktrees it sets up, and the processes a task started, to end together. It links
-//! no library of the window, so that the engine, and `gitardo-engine` with it, can run where there is none
+//! system, links to folders for the worktrees it sets up, the processes a task started, to end together, and folders
+//! watched for changes. It links no library of the window, so that the engine, and `gitardo-engine` with it, can run where there is none
 //! (`docs/transition/01-engine.md`).
 //!
 //! What it asks of the system is declared by hand, one file per system library, and is the reason it may use `unsafe`
@@ -25,6 +25,7 @@ mod process_tree;
 mod pseudo_terminal;
 #[cfg(unix)]
 mod unix;
+mod watch;
 #[cfg(windows)]
 pub mod windows;
 
@@ -33,3 +34,4 @@ pub use error::SystemError;
 pub use links::link_folder;
 pub use process_tree::ProcessTree;
 pub use pseudo_terminal::open_program_side;
+pub use watch::{WatchDeliver, WatchEvent, Watcher};

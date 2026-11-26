@@ -7,6 +7,7 @@
 mod ai;
 mod feature;
 mod first;
+mod git_folders;
 mod harness;
 mod help;
 mod hosting;

@@ -1,6 +1,6 @@
 [package]
 name = "platform"
-description = "The operating system, as the window of Gitardo Desktop sees it: windows, input, clipboard, timers, file watching, dialogs, opening and revealing."
+description = "The operating system, as the window of Gitardo Desktop sees it: windows, input, clipboard, timers, dialogs, opening and revealing."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -7,7 +7,7 @@ use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::path::{Path, PathBuf};
 
 use super::kernel32::{self, HANDLE, OVERLAPPED};
-use crate::error::PlatformError;
+use crate::error::SystemError;
 use crate::watch::Waited;
 
 /// How many 32-bit words the buffer of the changes holds: 64 KiB, the most the system takes for a folder of the network.
@@ -54,7 +54,7 @@ unsafe impl Send for DirectoryWatch {}
 
 impl DirectoryWatch {
     /// Opens a folder to watch it and everything under it, and asks for its first changes.
-    pub(crate) fn open(folder: &Path) -> Result<DirectoryWatch, PlatformError> {
+    pub(crate) fn open(folder: &Path) -> Result<DirectoryWatch, SystemError> {
         let name: Vec<u16> = folder.as_os_str().encode_wide().chain(Some(0)).collect();
         // SAFETY: `name` ends with a NUL and lives for the call; the other arguments are flags and null pointers the
         // documentation allows.
@@ -70,13 +70,13 @@ impl DirectoryWatch {
             )
         };
         if directory.is_null() || directory as isize == -1 {
-            return Err(PlatformError::system("CreateFileW", &last_error()));
+            return Err(SystemError::system("CreateFileW", &last_error()));
         }
         let directory = Handle(directory);
         // SAFETY: a manual-reset event, not set, with no name and no attributes.
         let event = unsafe { kernel32::CreateEventW(std::ptr::null_mut(), 1, 0, std::ptr::null()) };
         if event.is_null() {
-            return Err(PlatformError::system("CreateEventW", &last_error()));
+            return Err(SystemError::system("CreateEventW", &last_error()));
         }
         let mut watch = DirectoryWatch {
             directory,
@@ -94,7 +94,7 @@ impl DirectoryWatch {
         // The first changes are asked for at once, so that what changes from now on is said, before the thread that
         // waits for them runs; the overlapped and the buffer are boxed, and stay where they are when the value moves.
         if !watch.ask() {
-            return Err(PlatformError::system("ReadDirectoryChangesW", &last_error()));
+            return Err(SystemError::system("ReadDirectoryChangesW", &last_error()));
         }
         Ok(watch)
     }

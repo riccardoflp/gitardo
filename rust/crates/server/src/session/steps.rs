@@ -90,12 +90,14 @@ impl Session {
     }
 
     /// The repository of a folder the extension named, opened now unless it was.
-    fn opened_or_new(&self, repository: &str, folder: PathBuf) -> Arc<Repository> {
-        Arc::clone(
+    fn opened_or_new(self: &Arc<Self>, repository: &str, folder: PathBuf) -> Arc<Repository> {
+        let opened = Arc::clone(
             locked(&self.repositories)
                 .entry(repository.to_owned())
                 .or_insert_with(|| Arc::new(Repository::new(folder))),
-        )
+        );
+        self.watch_git_folders(repository, opened.folder());
+        opened
     }
 
     /// Reads the first step of the state of a repository (`repo.read-first`), shown as running while it does, and

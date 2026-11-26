@@ -52,20 +52,23 @@ pub fn run(
     } else {
         TaskSteps::InPlace
     };
-    let finished = repository
-        .with_engine(move |engine| {
-            engine.state_read(Arc::clone(&context.repository));
-            engine.cancel_with(token.clone());
-            engine.run_tasks(tasks);
-            if let Some(host) = host_questions(&asking, &token, &context) {
-                engine.ask_host_with(host);
-            }
-            let mut asker = HostAsker::new(&asking, run, given, token);
-            let finished = engine.run_feature_from(feature, operation, (&context, known), &mut asker);
-            (finished, engine.take_log(asking.log_level()))
-        })
-        .map_err(|_busy| ResponseError::new(codes::BUSY, "Another operation runs in this repository."))?;
-    let (finished, log) = finished;
+    let name = params.repository.clone();
+    let finished = repository.with_engine(move |engine| {
+        // What the operation writes in the git folder is not said as a change seen (`repo.watch-git`).
+        asking.operation_starts(&name);
+        engine.state_read(Arc::clone(&context.repository));
+        engine.cancel_with(token.clone());
+        engine.run_tasks(tasks);
+        if let Some(host) = host_questions(&asking, &token, &context) {
+            engine.ask_host_with(host);
+        }
+        let mut asker = HostAsker::new(&asking, run, given, token);
+        let finished = engine.run_feature_from(feature, operation, (&context, known), &mut asker);
+        (finished, engine.take_log(asking.log_level()))
+    });
+    let (finished, log) =
+        finished.map_err(|_busy| ResponseError::new(codes::BUSY, "Another operation runs in this repository."))?;
+    session.operation_over(&params.repository, has_run(&finished));
     session.send_log(&params.repository, log);
     match finished {
         Ok(Finished::BackedOut) if cancel.is_cancelled() => Err(cancelled()),
@@ -87,6 +90,12 @@ pub fn run(
             Err(engine_failure(&error))
         }
     }
+}
+
+/// Whether steps of a plan ran, to their end or until one failed: the state of the repository is then read and sent,
+/// and what the steps wrote in the git folder is not said as a change seen there.
+fn has_run(finished: &Result<Finished, EngineError>) -> bool {
+    matches!(finished, Ok(Finished::Ran { .. }) | Err(EngineError::Step(_)))
 }
 
 /// The settings of one run: the session's, with the inputs of a branch name given and, while the extension gives what

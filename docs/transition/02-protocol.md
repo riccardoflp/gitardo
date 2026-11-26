@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.14** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.15** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -168,6 +168,16 @@ needed to show a repository chosen after a few reads (`repo.read-first`): `first
 extension asks neither and is never sent the reason; an older engine leaves `first` aside and answers the whole state,
 with no `first` in its answer, which is how the extension tells.
 
+Version 1.15 adds what milestone M52
+([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed))
+needed for the engine to hear of the git folders itself (`repo.watch-git`):
+[`repository/gitFolderChanged`](#the-git-folders-the-engine-watches), a notification of the engine saying what it saw
+change in the git folder of a repository opened, and [`repository/shown`](#the-git-folders-the-engine-watches), a
+request of the extension naming the repositories its views show. An older extension leaves the notification aside, as
+JSON-RPC has it, and never asks the request, so that nothing is looked at again; an older engine answers the request
+with the error of a method it does not have and sends no notification, which the extension takes as an engine that
+watches nothing.
+
 ## Transport
 
 - **JSON-RPC 2.0** (D41) over the standard input and output of the engine, each message framed as the Language Server
@@ -288,7 +298,7 @@ of the state, with `first: true` beside it, and sends the whole state in a `repo
 
 ### `repository/close`
 
-`{ repository }` → `null`. Drops the `Engine`, its journal and its log.
+`{ repository }` → `null`. Drops the `Engine`, its journal and its log, and stops watching its git folders (1.15).
 
 ### `repository/changed`
 
@@ -346,6 +356,68 @@ params: { repository: string, state: RepositoryState, reason: "rest" }
   `read/graph.read-commits`, `read/repo.watch-changes` and `journal/last` asked right after the answer take what is
   checked out, the references, the stashes and the worktrees from it and ask git nothing again; the whole state takes
   its place when the rest is read.
+
+### The git folders the engine watches
+
+Version 1.15, `repo.watch-git`
+([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed)).
+From `repository/open` to `repository/close` the engine watches the git folder of the repository itself: the common
+git folder, and the worktree's own when it is not inside it; never the working tree. Nothing is asked for it.
+
+```ts
+// repository/gitFolderChanged, a notification from the engine
+params: {
+  repository: string,     // as repository/open named it
+  paths: string[],        // never empty
+  found: boolean,         // true: found by looking again, the watcher having said nothing
+}
+
+// repository/shown, a request from the extension
+params: { repositories: string[] }   // the repositories a view shows now, each as repository/open named it
+result: { changed: string[] }        // those of them, not shown before, whose git folder changed unsaid
+```
+
+- **`repository/gitFolderChanged`** says that something changed in the git folder of a repository opened, made by
+  something other than a plan of the engine. The extension takes it as it takes a change of its own watcher of the
+  git folder: it asks for a read by the rules of `repo.watch-changes` and `repo.schedule-reads`, one read for a burst
+  whoever said it, and only marks out of date a repository it keeps and does not show. The engine reads nothing for
+  it and sends no `repository/state`: `repository/changed` is still what asks the engine to read again.
+  - `paths` are written as `repository/changed` writes those of a git folder: from the common git folder, with `/`
+    and a leading `.git/`, such as `.git/refs/heads/main`, `.git/HEAD`, `.git/packed-refs`, `.git/logs/refs/stash`
+    or `.git/worktrees/feature/HEAD`. Only paths that ask for a read are sent (`repo.watch-changes`): not git's locks,
+    its objects, its logs but the one of the stashes, nor what `fsmonitor` writes; a batch of those alone sends
+    nothing. The first of them makes the words of the cause, `.git/refs/heads/main changed`.
+  - `paths` is `[".git"]`, the git folder itself, when the files cannot be named: the system said more changed than
+    it could tell or the folder is gone (`found: false`), or the change was found by looking again (`found: true`).
+    Its cause is said as `.git changed`.
+  - A repository and a worktree of it, both opened, share the watcher of their common git folder, and each is sent
+    the notification with its own name.
+  - One change can be said twice, by the watcher and, when the look falls in the same moment, with `found: true`;
+    several notifications come for one command of git, a batch for each group of files the system reports. The
+    extension's burst makes one read of them.
+- **Looking again.** Every two seconds the engine compares, for each repository named in the last `repository/shown`
+  and opened, what `git_folder_changed` looks at with what it was: the files of the worktree's own git folder,
+  `packed-refs`, the folders of the branches, of the remote branches and of the tags, the files of the stashes, and
+  the folder of the worktrees with the files of each; sizes and times, no process of git. What differs with nothing
+  said of it since is sent with `found: true`. So a change the watcher lost, or made where the system says nothing,
+  is said within two seconds and the time of the look. A repository opened that is not named is watched, and not
+  looked at again.
+- **`repository/shown`** names every repository a view shows, in place of those named before; an empty list stops the
+  looking. A name that is not of a repository opened is left aside, and looked at once it is opened. Each repository
+  named that was not named in the request before is compared once, at once, with what its git folder was when the
+  engine last looked at it or last said a change of it, and is in `changed` when it differs: what the extension kept
+  of it is then out of date, and no notification says so too. The extension asks it whenever the repositories its
+  views show change, and waits for the answer before it trusts what it kept of a repository shown again. A
+  repository named in two requests in a row is never in `changed` of the second.
+- **What the engine itself writes is not said.** From the moment a `feature/run` has the engine of its repository to
+  its end, what is seen in its git folder waits. When steps of a plan ran, to the end or until one failed, it is
+  dropped, with what the watcher says in the 300 ms after, and the git folder is taken as looked at: the
+  `repository/state` with the reason `"ran"` carries it. When no step ran, as a feature backed out of after a
+  question, what was seen was written by something else meanwhile and is sent then.
+- A git folder that cannot be watched, as past the system's limit of watches, is only looked at again while shown.
+  With the variable `GITARDO_ENGINE_WATCH=off` in its environment the engine watches none, which its tests use.
+- After a restart of the engine the extension opens its repositories and asks `repository/shown` again; the first
+  answer after a restart has an empty `changed`, the engine having nothing from before to compare with.
 
 ### What the repositories are on
 

@@ -14,7 +14,7 @@ use std::time::Duration;
 use super::core_services as fs;
 use super::libsystem;
 use super::objects;
-use crate::error::PlatformError;
+use crate::error::SystemError;
 use crate::watch::Waited;
 
 /// How long the stream gathers changes before it calls back, in seconds: a moment, so that a checkout writing many
@@ -89,10 +89,10 @@ pub(crate) struct DirectoryWatch {
 
 impl DirectoryWatch {
     /// Opens a folder to watch it and everything under it. What changes from now on is said.
-    pub(crate) fn open(folder: &Path) -> Result<DirectoryWatch, PlatformError> {
-        let root = std::fs::canonicalize(folder)
-            .map_err(|error| PlatformError::system("opening a folder to watch", &error))?;
-        let text = root.to_str().ok_or(PlatformError::Unsupported {
+    pub(crate) fn open(folder: &Path) -> Result<DirectoryWatch, SystemError> {
+        let root =
+            std::fs::canonicalize(folder).map_err(|error| SystemError::system("opening a folder to watch", &error))?;
+        let text = root.to_str().ok_or(SystemError::Unsupported {
             what: "watch a folder whose path is not UTF-8",
         })?;
         let path = objects::string(text)?;
@@ -103,7 +103,7 @@ impl DirectoryWatch {
         // work at a time.
         let queue = unsafe { libsystem::dispatch_queue_create(c"folder watcher".as_ptr(), core::ptr::null()) };
         if queue.is_null() {
-            return Err(PlatformError::system("dispatch_queue_create", &"no queue was made"));
+            return Err(SystemError::system("dispatch_queue_create", &"no queue was made"));
         }
         let queue = Queue(queue);
         let context = fs::FSEventStreamContext {
@@ -130,7 +130,7 @@ impl DirectoryWatch {
             )
         };
         if stream.is_null() {
-            return Err(PlatformError::system("FSEventStreamCreate", &"no stream was made"));
+            return Err(SystemError::system("FSEventStreamCreate", &"no stream was made"));
         }
         // SAFETY: the stream and the queue were just made, and the queue outlives the stream in `Stream`.
         unsafe { fs::FSEventStreamSetDispatchQueue(stream, queue.0) };
@@ -142,7 +142,7 @@ impl DirectoryWatch {
         // SAFETY: the stream is set on its queue, as starting it asks.
         stream.started = unsafe { fs::FSEventStreamStart(stream.events) } != 0;
         if !stream.started {
-            return Err(PlatformError::system("FSEventStreamStart", &"the stream did not start"));
+            return Err(SystemError::system("FSEventStreamStart", &"the stream did not start"));
         }
         Ok(DirectoryWatch {
             received,

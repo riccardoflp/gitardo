@@ -17,7 +17,7 @@ use crate::read::repo::{joined, parse_status, worktree_status_arguments};
 use crate::{Git, GitError};
 
 pub use folder_links::{FolderLinksRequest, folder_links_arguments, parse_folder_entries, read_folder_links};
-pub use git_folder::{GitFolderCheck, GitFolderStamp, git_folder_changed};
+pub use git_folder::{GitFolderCheck, GitFolderStamp, GitFolders, git_folder_changed, git_folders};
 
 /// What is being read, for the errors.
 const WHAT: &str = "the worktrees";

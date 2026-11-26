@@ -43,9 +43,9 @@ crates/
   editor/     the text editor: buffer, cursor, selection, undo, wrap, highlighting hooks
   render/     pixels: the frame buffer, shapes and text drawn into it, the fonts of the program, icons, themes
   platform/   the operating system for the window: windows, input, the frame shown, clipboard, timers, the screen
-              reader, file dialogs, file watching, open/reveal
-  system/     the operating system without a window: the credential store, links to folders, and the bindings of the
-              system libraries that `platform` shares
+              reader, file dialogs, open/reveal
+  system/     the operating system without a window: the credential store, links to folders, the folders watched
+              for changes, and the bindings of the system libraries that `platform` shares
   settings/   the settings files: where they are, their keys, and what the features read of them
   features/   every operation, as a function that asks questions and returns a plan
   engine/     runs plans: preview, steps, log, undo journal, activity, follow-ups
@@ -84,13 +84,16 @@ app ──► views ──► ui ──► render ──► platform ──► s
 
 server ──► protocol ──► model, git, engine, text (the types it converts), serde, serde_json (D42)
    ├─────► engine, features (the operations of feature/run), settings, git, model, json
-   └─────► text, http (the reads of stage 5: the rules of the conflicts, the pull requests)
+   ├─────► text, http (the reads of stage 5: the rules of the conflicts, the pull requests)
+   └─────► system (the git folders it watches, D93)
 ```
 
 - Nothing depends on `app`, and `app` may use any crate but `testkit`, `xtask`, `protocol` and `server`
   ([D15](../08-decisions.md#d15--app-may-use-every-crate-below-it)). Nothing below `views` knows about the places of the window or its pages.
-- Nothing depends on `server`. It and the crates it uses link no library of the window: `system` is what `engine` asks
-  of the operating system, apart from `platform`
+- Nothing depends on `server`. It and the crates it uses link no library of the window: `system` is what `engine` and
+  `server` ask of the operating system, apart from `platform`. The watcher of folders is there for that, and `platform`
+  hands it on to the window as its own `Watcher`
+  ([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed))
   ([transition/01-engine.md](../transition/01-engine.md#what-the-engine-is)).
 - The types of the feature contract are in `model`
   ([D14](../08-decisions.md#d14--the-types-of-the-contract-are-in-model)).

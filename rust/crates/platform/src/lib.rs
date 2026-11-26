@@ -1,6 +1,6 @@
-//! The operating system, as the window of Gitardo Desktop sees it: windows, input, clipboard, timers, file watching,
-//! dialogs, opening and revealing. What the engine asks of the system without a window, the credential store and the
-//! links to folders, is in the crate `system`, whose bindings of the system libraries this crate uses too.
+//! The operating system, as the window of Gitardo Desktop sees it: windows, input, clipboard, timers, dialogs, opening
+//! and revealing. What the engine asks of the system without a window, the credential store, the links to folders and
+//! the folders watched, is in the crate `system`, whose bindings of the system libraries this crate uses too.
 //!
 //! The window, its input, the clipboard, the dialogs and the screen reader come from the libraries of decision D16
 //! (`winit`, `softbuffer`, `arboard`, `rfd`, `accesskit_winit`), none of whose types appear here but the tree of
@@ -42,7 +42,6 @@ mod system;
 mod theme;
 mod timers;
 mod translate;
-mod watch;
 mod window;
 mod window_state;
 #[cfg(windows)]
@@ -69,5 +68,6 @@ pub use present::Frame;
 pub use shell::open_url;
 pub use system::utc_offset;
 pub use theme::{Appearance, SystemTheme};
-pub use watch::{WatchDeliver, WatchEvent, Watcher};
+// The folders watched are the crate `system`'s, which the engine without a window watches with too (D93).
+pub use ::system::{WatchDeliver, WatchEvent, Watcher};
 pub use window::{TextInputArea, Visibility, Window, WindowOptions};

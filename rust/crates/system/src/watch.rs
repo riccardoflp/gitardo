@@ -1,12 +1,13 @@
 //! Watching folders for changes: a thread for each folder waits for the system to say what changed under it, and hands
-//! each batch of paths to the program. The program decides which changes count.
+//! each batch of paths to the program. The program decides which changes count. The window of Gitardo Desktop watches
+//! the repositories it shows with it, and `gitardo-engine` the git folders of those the extension has open (D93).
 
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
-use crate::error::PlatformError;
+use crate::error::SystemError;
 
 /// How often the thread of a folder looks whether it is to stop, in milliseconds.
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
@@ -61,9 +62,9 @@ impl Watcher {
     ///
     /// # Errors
     ///
-    /// `PlatformError::System` when a folder cannot be opened, and `PlatformError::Unsupported` on a system whose part
+    /// `SystemError::System` when a folder cannot be opened, and `SystemError::Unsupported` on a system whose part
     /// is not written yet.
-    pub fn new(folders: &[PathBuf], deliver: &WatchDeliver) -> Result<Watcher, PlatformError> {
+    pub fn new(folders: &[PathBuf], deliver: &WatchDeliver) -> Result<Watcher, SystemError> {
         let stop = Arc::new(AtomicBool::new(false));
         let mut threads = Vec::new();
         for folder in folders {
@@ -74,7 +75,7 @@ impl Watcher {
             let thread = thread::Builder::new()
                 .name(String::from("folder watcher"))
                 .spawn(move || run(watch, &folder, &stop, &deliver))
-                .map_err(|error| PlatformError::system("spawning the folder watcher", &error))?;
+                .map_err(|error| SystemError::system("spawning the folder watcher", &error))?;
             threads.push(thread);
         }
         Ok(Watcher { stop, threads })
@@ -93,7 +94,7 @@ impl Drop for Watcher {
 
 /// Opens a folder to watch it.
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
-fn open(folder: &std::path::Path) -> Result<DirectoryWatch, PlatformError> {
+fn open(folder: &std::path::Path) -> Result<DirectoryWatch, SystemError> {
     DirectoryWatch::open(folder)
 }
 
@@ -120,8 +121,8 @@ fn run(mut watch: DirectoryWatch, folder: &std::path::Path, stop: &AtomicBool, d
 
 /// Watching folders is written for Windows, Linux and macOS only.
 #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-fn open(_folder: &std::path::Path) -> Result<(), PlatformError> {
-    Err(PlatformError::Unsupported {
+fn open(_folder: &std::path::Path) -> Result<(), SystemError> {
+    Err(SystemError::Unsupported {
         what: "watch folders for changes yet",
     })
 }

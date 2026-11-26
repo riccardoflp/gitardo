@@ -32,6 +32,7 @@ use serde_json::{Map, Value};
 use crate::outgoing::Outgoing;
 use crate::repository::{Next, Repository};
 
+mod git_folders;
 mod steps;
 mod summaries;
 
@@ -61,6 +62,8 @@ pub struct Session {
     host: Mutex<HostAbilities>,
     /// What the folders the extension's Repositories view lists are on (`repo.worktree-summary`).
     summaries: summaries::Summaries,
+    /// The git folders of the repositories opened, which the engine watches itself (`repo.watch-git`).
+    git_folders: git_folders::GitFoldersWatched,
 }
 
 /// Why the state of a repository is read, and whether every other worktree is counted again (**Refresh**).
@@ -99,6 +102,7 @@ impl Session {
             runs_tasks: AtomicBool::new(false),
             host: Mutex::new(HostAbilities::default()),
             summaries: summaries::Summaries::default(),
+            git_folders: git_folders::GitFoldersWatched::default(),
         }
     }
 
@@ -207,6 +211,7 @@ impl Session {
             protocol::help::methods::ASK => crate::help::ask(self, id, &parameters(params)?, cancel),
             protocol::summaries::methods::WORKTREE_SUMMARY => summaries::follow(self, &parameters(params)?, cancel),
             protocol::range_diff::methods::RANGE_DIFF_PAIRS => crate::range_diff::pairs(self, params, cancel),
+            protocol::git_folders::methods::SHOWN => self.shown(parameters(params)?),
             read if crate::reads::is_read(read) => crate::reads::answer(self, id, read, params, cancel),
             // Area 6 of stage 4: the reads that ask a language model of VS Code.
             read if crate::ai::is_ai_read(read) => crate::ai::answer(self, id, read, params, cancel),
@@ -221,6 +226,7 @@ impl Session {
                     .remove(&repository)
                     .ok_or_else(|| not_open(&repository))?;
                 closed.close();
+                self.forget_git_folders(&repository);
                 Ok(Value::Null)
             }
             methods::READ_STATE => {

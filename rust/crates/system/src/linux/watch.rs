@@ -11,7 +11,7 @@ use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::path::{Path, PathBuf};
 
 use super::libc;
-use crate::error::PlatformError;
+use crate::error::SystemError;
 use crate::watch::Waited;
 
 /// How many bytes are read at a time: 64 KiB, room for a thousand changes with long names.
@@ -60,11 +60,11 @@ pub(crate) struct DirectoryWatch {
 impl DirectoryWatch {
     /// Opens a folder to watch it and everything under it. What changes from now on is said, also under the folders
     /// it has now.
-    pub(crate) fn open(folder: &Path) -> Result<DirectoryWatch, PlatformError> {
+    pub(crate) fn open(folder: &Path) -> Result<DirectoryWatch, SystemError> {
         // SAFETY: the call takes only flags.
         let descriptor = unsafe { libc::inotify_init1(libc::IN_NONBLOCK | libc::IN_CLOEXEC) };
         if descriptor < 0 {
-            return Err(PlatformError::system("inotify_init1", &std::io::Error::last_os_error()));
+            return Err(SystemError::system("inotify_init1", &std::io::Error::last_os_error()));
         }
         // SAFETY: the descriptor was just opened by the system for this value, which alone owns and closes it.
         let file = File::from(unsafe { OwnedFd::from_raw_fd(descriptor) });
@@ -77,7 +77,7 @@ impl DirectoryWatch {
         };
         watch.root = watch
             .add(Path::new(""))
-            .map_err(|error| PlatformError::system("inotify_add_watch", &error))?;
+            .map_err(|error| SystemError::system("inotify_add_watch", &error))?;
         let mut found = Vec::new();
         watch.add_under(Path::new(""), &mut found);
         Ok(watch)

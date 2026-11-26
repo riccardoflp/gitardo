@@ -69,8 +69,13 @@ one per `Git`. Every request names its repository by the folder of its root, as 
 different repositories run at the same time; in one repository one operation runs at a time, as today in the
 extension (`Controller.run`) and in the window (`Q110` of the desktop), and reads go on while it runs.
 
-The engine watches no files in the extension: VS Code's file system watchers do it already, and the extension sends
-`repository/changed` when they fire. The engine reads again, once per burst, and sends the new state.
+The engine watches no file of a working tree in the extension: VS Code's file system watchers do it already, and the
+extension sends `repository/changed` when they fire. The engine reads again, once per burst, and sends the new state.
+The git folder of each repository opened it watches itself, and looks again every two seconds at those a view shows,
+since VS Code's watcher of a workspace starts late and drops changes while many files are written
+([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed)):
+what it sees it says in `repository/gitFolderChanged`, and the extension asks for the read as for a change of its own
+watchers. The watcher is the one of Gitardo Desktop, in the crate `system`.
 
 ### What the engine asks of the extension
 

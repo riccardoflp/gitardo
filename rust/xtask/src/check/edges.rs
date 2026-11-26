@@ -34,7 +34,7 @@ const ALLOWED: [(&str, &[&str]); 21] = [
     (
         "server",
         &[
-            "protocol", "engine", "features", "settings", "git", "model", "json", "text", "http",
+            "protocol", "engine", "features", "settings", "git", "model", "json", "text", "http", "system",
         ],
     ),
     ("testkit", &[]),
@@ -119,6 +119,7 @@ mod tests {
             ("terminal", "system", UseKind::Normal, Some(true)),
             ("terminal", "platform", UseKind::Normal, Some(false)),
             ("server", "platform", UseKind::Normal, Some(false)),
+            ("server", "system", UseKind::Normal, Some(true)),
             ("app", "server", UseKind::Normal, Some(false)),
             ("somewhere", "json", UseKind::Normal, None),
         ];

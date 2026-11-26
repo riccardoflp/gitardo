@@ -18,7 +18,7 @@ libraries of the window for most of it, and on each system for the rest. Windows
 | Cursor | Arrow, text beam, hand, resize east-west and north-south, grab, not allowed. |
 | Event loop | One `EventLoop` per program, on the UI thread, for every window it opens; `run(handler)` gives the handler a `Context` and each event: first `Event::Started`, where windows are opened, then the events of each window, tagged with it, and the messages another thread sends (`Waker`). The `Context` quits the loop and starts and stops timers (`start_timer`, `stop_timer`) for blinking carets, delayed reads and animations. |
 | Clipboard | Read and write text. |
-| Files | Watching folders for changes (`Watcher`), the configuration and state folders of the user, the temporary folder, the trash. |
+| Files | Watching folders for changes (`Watcher`, in `system`, for the engine without a window too), the configuration and state folders of the user, the temporary folder, the trash. |
 | Links | `link_folder(link, target)`: a junction on Windows, a symbolic link elsewhere; in `system`, for the engine. |
 | Shell | Open a URL in the browser, reveal a path in the file manager, open a path in the external editor or a terminal. |
 | Dialogs | Choose a folder, choose a file to open, choose where to save. Everything else is drawn by Gitardo. |

@@ -1,4 +1,4 @@
-//! The functions, types and constants of `CoreServices` that Gitardo Desktop asks for itself, with the names Apple's
+//! The functions, types and constants of `CoreServices` that Gitardo asks for itself, with the names Apple's
 //! documentation gives them: the streams of `FSEvents`, which say what changed under a folder.
 
 #![allow(

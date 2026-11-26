@@ -641,9 +641,13 @@ worktree made outside must still be shown ([D93](../08-decisions.md#d93--the-eng
 - **Uses**: by `repo.watch-changes`, for which what it finds is a change of the git folder itself; by
   `repo.watch-hidden` and `repo.worktree-summary`, which ask it already for the worktree's own git folder and for the
   branches, and read no more often for what it looks at now.
-- **Extension**: Planned: `gitardo-engine` watches the git folders of each repository open itself, compares them every
-  two seconds for those a view shows, and says what it sees in a notification of version 1.15 of the protocol, for
-  which `RepositorySession` asks for a read as for a change of its own watchers.
+- **Extension**: Planned. The engine's part is built (`crates/server/src/session/git_folders.rs`, version 1.15 of
+  [the protocol](../transition/02-protocol.md#the-git-folders-the-engine-watches)): `gitardo-engine` watches the git
+  folders of each repository opened itself, never the working tree, and says what it sees in
+  `repository/gitFolderChanged`; it compares every two seconds those the extension named in `repository/shown`, whose
+  answer names the repositories shown again that changed meanwhile; what a plan of its own writes it does not say.
+  Tested by `crates/server/tests/stdio/git_folders.rs`. What is left is the extension's: `RepositorySession` asking
+  for a read at the notification as for a change of its own watchers, and naming the repositories its views show.
 
 In Gitardo Desktop a thread looks at the repository shown every two seconds, behind the watcher (`GitFolderWatch` of
 `crates/app/src/work/git_folder_watch.rs`, `LOOK_INTERVAL`), and what differs is a change of the git folder for

@@ -89,8 +89,11 @@ pub mod methods {
 /// settings of new worktrees saved by the engine's plans; and the kinds `input` and `output` of a line of the log, what
 /// a step was given on its standard input and what git printed under a step that succeeded; 1.14 what milestone M50
 /// needs: the state in two steps, `first` in `repository/open` and in its answer, `read/repo.read-first`, and the
-/// reason `rest` of `repository/state`, the whole state of a repository whose first step was answered.
-pub const VERSION: &str = "1.14";
+/// reason `rest` of `repository/state`, the whole state of a repository whose first step was answered; 1.15 what
+/// milestone M52 needs ([`crate::git_folders`]): `repository/gitFolderChanged`, the engine saying what it saw change in
+/// the git folder of a repository opened, which it watches itself, and `repository/shown`, the extension saying which
+/// repositories its views show, whose git folders the engine then looks at again every two seconds.
+pub const VERSION: &str = "1.15";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

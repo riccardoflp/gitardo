@@ -6323,7 +6323,11 @@ maintainer answers otherwise.
   often enough, and is it too often on a disk of the network or on battery? Built at two seconds, as a constant.
 - **Q1793** — D93: the watcher is in the crate `platform`, with what draws the window of Gitardo Desktop, and the crate
   `server` must not bring the libraries of a window into the engine. Should the watcher move to a crate of its own
-  that both use? Built that way if `platform` cannot be used without them.
+  that both use? Built that way if `platform` cannot be used without them. Built on 2026-11-26 by moving the watcher
+  to the crate `system`, which is the operating system without a window and which `engine` uses already; `platform`
+  hands it on to the window under the same names, and `server` may use `system`
+  ([the architecture](desktop/02-architecture.md#who-may-use-whom)). `gitardo-engine` grew by half a megabyte in a
+  build for development, and links no library of a window.
 - **Q1794** — D93: a file of the working tree edited outside, whose change VS Code's watcher drops, is not seen until
   another change, the focus or **Refresh**. Should the engine also compare `git status` now and then while the
   **Gitardo Changes** view is in sight, one process of git each time? Not built.

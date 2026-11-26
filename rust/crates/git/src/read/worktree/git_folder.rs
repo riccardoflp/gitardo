@@ -97,6 +97,28 @@ pub fn git_folder_changed(worktree: &Path, before: Option<&GitFolderStamp>) -> G
     }
 }
 
+/// The git folders of a worktree: its own, and the one its repository shares, which is the same for a main worktree.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitFolders {
+    /// The git folder `.git` names: `.git` itself for the main worktree, `.git/worktrees/<name>` for a linked one.
+    pub own: PathBuf,
+    /// The git folder the worktrees of the repository share, where the references are.
+    pub common: PathBuf,
+}
+
+/// The git folders of the worktree in `worktree`, found by reading `.git` and `commondir` and with no process of git,
+/// each as the system writes it whole; none when the folder is not a worktree. They are what is watched to hear of a
+/// change of the repository made outside (`repo.watch-git`).
+#[must_use]
+pub fn git_folders(worktree: &Path) -> Option<GitFolders> {
+    let own = own_git_folder(worktree)?;
+    let common = common_git_folder(&own);
+    Some(GitFolders {
+        own: fs::canonicalize(&own).ok()?,
+        common: fs::canonicalize(&common).ok()?,
+    })
+}
+
 /// The own git folder of a worktree: `.git` when it is a folder, else the folder its `gitdir:` line names.
 fn own_git_folder(worktree: &Path) -> Option<PathBuf> {
     let dot_git = worktree.join(".git");
