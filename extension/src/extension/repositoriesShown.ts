@@ -47,6 +47,7 @@ export class RepositoriesShown {
       | 'attach'
       | 'chosen'
       | 'followers'
+      | 'gitFolders'
       | 'goneTab'
       | 'groupHost'
       | 'homeOf'
@@ -189,6 +190,8 @@ export class RepositoriesShown {
     }
     const { session, made } = this.host.sessions.move(group, root);
     group.session = session;
+    // The engine looks again at the git folder of a repository shown, and says whether one kept changed unseen (D93).
+    void this.host.gitFolders.tellShown();
     const kept = made && keepOpen() ? this.host.kept.take(root) : undefined;
     group.reset(this.host.memento.get<Record<string, Scope>>(SCOPE_KEY, {})[root] ?? null);
     // A tab brought back after a reload shows what its page kept, not what the repository kept when it was left.
@@ -235,6 +238,7 @@ export class RepositoriesShown {
   letGo(session: RepositorySession, last: ViewGroup): void {
     // A change seen just before is the repository left's, not the next one's.
     const pending = session.takePending();
+    void this.host.gitFolders.tellShown();
     const state = last.state;
     // A folder that is no longer there, as a worktree removed, has nothing to come back to.
     if (!state || !samePath(state.root, session.root) || !keepOpen() || !fs.existsSync(session.root)) return session.dispose();

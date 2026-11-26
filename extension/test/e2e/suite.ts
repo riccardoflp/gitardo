@@ -306,6 +306,40 @@ export async function run(): Promise<void> {
     assert.equal(state().rows[0].subject, 'Uncommitted changes (1)');
   });
 
+  await step("shows a commit made outside, and its undoing, while VS Code's watchers say nothing: the engine saw the git folder change", async () => {
+    const session = internals.followers.session as unknown as {
+      watcher?: vscode.Disposable;
+      commonFolder?: string;
+      watch(gitFolder: string): vscode.Disposable;
+      scheduleRefresh(cause: string, delay?: number): void;
+    };
+    assert.ok(session.watcher && session.commonFolder, 'the repository shown is watched');
+    const gitFolder = session.commonFolder;
+    /** What each read asked for meanwhile was asked for. */
+    const causes: string[] = [];
+    const schedule = session.scheduleRefresh;
+    session.scheduleRefresh = (cause, delay) => {
+      causes.push(cause);
+      schedule.call(session, cause, delay);
+    };
+    // The watchers of VS Code of this repository are stopped, as when the watcher of a large workspace is late or drops
+    // what changed: from here only the engine hears of its git folder (`repo.watch-git`).
+    session.watcher.dispose();
+    session.watcher = undefined;
+    try {
+      await git(app, ['commit', '--allow-empty', '-m', 'Seen by the engine alone']);
+      await until('the commit made outside, within three seconds', () => subjects().includes('Seen by the engine alone'), 3000);
+      await git(app, ['reset', '--hard', 'HEAD~1']);
+      await until('the commit undone outside, within three seconds', () => !subjects().includes('Seen by the engine alone'), 3000);
+      // Said as the watcher of VS Code says a change of the git folder, or as found by looking again.
+      const said = causes.filter((cause) => /^\.git(\/\S+)? changed$/.test(cause) || /found by looking again that \.git changed$/.test(cause));
+      assert.ok(said.length > 0, `the engine said the git folder changed; the reads were asked for by: ${causes.join(', ') || 'nothing'}`);
+    } finally {
+      session.scheduleRefresh = schedule;
+      session.watcher = session.watch(gitFolder);
+    }
+  });
+
   await step('stages and commits without asking when the preview is off', async () => {
     asked.length = 0;
     await controller.action({ kind: 'stageAll' });

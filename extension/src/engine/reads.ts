@@ -13,6 +13,7 @@ import type {
   StoredPointer,
   ComparisonSide,
   DiscoveredRepository,
+  GitFolderChangedParams,
   HostingPage,
   PathStatus,
   SetupPreview as EngineSetupPreview,
@@ -179,6 +180,19 @@ export class Reads {
   /** Calls a handler with what the folders followed are on, each time the engine read some again. */
   onSummaries(handler: (summaries: FolderSummary[]) => void): { dispose(): void } {
     return this.client().onSummaries(handler);
+  }
+
+  /**
+   * Says which repositories a view shows now, whose git folders the engine looks at again every two seconds, and gives
+   * those newly shown whose git folder changed with nothing said of it (`repo.watch-git`).
+   */
+  shown(repositories: string[]): Promise<string[]> {
+    return this.client().shown(repositories);
+  }
+
+  /** Calls a handler with each change the engine itself sees in the git folder of a repository opened. */
+  onGitFolderChanged(handler: (change: GitFolderChangedParams) => void): { dispose(): void } {
+    return this.client().onGitFolderChanged(handler);
   }
 
   /**

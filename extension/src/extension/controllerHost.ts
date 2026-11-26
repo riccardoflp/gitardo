@@ -19,6 +19,7 @@ import type { CompareTabs } from './compareTabs';
 import type { ConflictReviewTab } from './conflictReview';
 import type { FileDiffs } from './fileDiffs';
 import type { FileIcons } from './fileIcons';
+import type { GitFoldersHeard } from './gitFoldersHeard';
 import type { HistoryShown } from './historyShown';
 import type { KeptRepositories } from './keptRepositories';
 import type { LargeFilesTabs } from './largeFiles';
@@ -110,6 +111,8 @@ export interface ControllerHost {
   requireState(on?: ViewGroup): Promise<RepoState | null>;
   /** The state of a group, sent to its views. */
   setState(group: ViewGroup, state: RepoState | null): void;
+  /** What the engine says of the git folders it watches, which is told the repositories a view shows (`repo.watch-git`). */
+  readonly gitFolders: GitFoldersHeard;
   /** A session for a repository no group shows, which reads it ahead and is let go (`repo.watch-hidden`). */
   makeSession(root: string): RepositorySession;
   /** The state read ahead of a repository of the list, with what the window adds to it, as a group that shows it has it. */

@@ -8,6 +8,7 @@ import { pullWords, readsPullRequests, type Hosting } from '../shared/hosting';
 import { samePath } from '../shared/paths';
 import type { Filter, Loading, PullRequest, RepoInfo, RepoParts, RepoState, Scope, ToViews } from '../shared/protocol';
 import type { Activity } from './activity';
+import { Burst } from './burst';
 import { readInSteps } from './firstRead';
 import { githubSession } from './github';
 
@@ -346,9 +347,8 @@ export class RepositorySession {
   private filesTimer?: ReturnType<typeof setTimeout>;
   /** Counts the reads started, so that an answer about the files asked before one is not waited for any more. */
   private readsStarted = 0;
-  private timer?: ReturnType<typeof setTimeout>;
-  /** When `timer` fires. */
-  private due = 0;
+  /** The read the changes heard of wait for: one for a burst of them, whichever watcher said each (`repo.schedule-reads`). */
+  private readonly burst = new Burst(() => void this.refresh());
   /** The watchers of its folder of git and of its working tree. */
   watcher?: vscode.Disposable;
   /** Its session was let go: what it reads is no longer shown. */
@@ -441,8 +441,7 @@ export class RepositorySession {
         const cause = this.cause;
         this.cause = undefined;
         // The read that starts now sees what the changes seen until now did: the read they had asked for is this one.
-        clearTimeout(this.timer);
-        this.timer = undefined;
+        this.burst.drop();
         task.describe(readDetail(reads, cause), this.readTitle());
         // The read sees what changed until now: the files waiting to be asked about, and a change the focus missed.
         this.readStarted();
@@ -624,21 +623,13 @@ export class RepositorySession {
     if (!views) this.missed = true;
     if (!views || this.host.running) return;
     this.cause = cause;
-    const due = Date.now() + delay;
-    if (this.timer && this.due <= due) return;
-    clearTimeout(this.timer);
-    this.due = due;
-    this.timer = setTimeout(() => {
-      this.timer = undefined;
-      void this.refresh();
-    }, delay);
+    this.burst.heard(delay);
   }
 
   /** A change seen just before it is left, which is its own and not the next one's; none when nothing waits to be read. */
   takePending(): string | undefined {
-    const pending = this.timer !== undefined ? (this.cause ?? 'something changed') : undefined;
-    clearTimeout(this.timer);
-    this.timer = undefined;
+    const pending = this.burst.waits ? (this.cause ?? 'something changed') : undefined;
+    this.burst.drop();
     this.cause = undefined;
     return pending;
   }
@@ -792,9 +783,8 @@ export class RepositorySession {
    */
   dispose(keepWatcher = false): void {
     this.disposed = true;
-    clearTimeout(this.timer);
+    this.burst.drop();
     clearTimeout(this.filesTimer);
-    this.timer = undefined;
     if (!keepWatcher) this.watcher?.dispose();
     this.watcher = undefined;
     for (const resolve of this.waiters.splice(0)) resolve();

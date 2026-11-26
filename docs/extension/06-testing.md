@@ -81,7 +81,10 @@ answered by stubs that record what they were asked. Among other things it checks
 load, that only the views that list commits are sent them, that the commands shown in a confirmation are the ones that
 run and the ones logged, that diffs and the merge editor open with the right content, that nothing about resolving
 conflicts automatically is offered or run until its setting is on, and that with a language model standing in for a
-real one its answers show as they come and are written only when accepted.
+real one its answers show as they come and are written only when accepted. One step stops the watchers of VS Code of
+the repository shown (`RepositorySession.watcher`), makes a commit with git and undoes it, and waits three seconds
+at most for each to be in the graph: only the engine's own watcher of the git folder can have said it
+(`repo.watch-git`); the step starts the watchers again when it ends.
 
 `npm run test:vsix` runs the same suite on the packaged extension: the `.vsix` is unpacked into the throwaway folder and
 loaded from there, which catches a file left out of the package or broken by minification.

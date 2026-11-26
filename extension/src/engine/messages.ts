@@ -36,9 +36,11 @@ export type { CommitDetail, Signature, Submodule } from '../shared/state';
  * the engine's plans, and the kinds `input` and `output` of a line of the log, what a step was given on its standard
  * input and what git printed under a step that succeeded (milestone M48); 1.14 has the state of a repository in two
  * steps: `first` in `repository/open`, `read/repo.read-first`, and the reason `rest` of `repository/state`, the whole
- * state read behind the first step answered (milestone M50).
+ * state read behind the first step answered (milestone M50); 1.15 has `repository/gitFolderChanged`, what the engine
+ * itself sees change in the git folder of a repository opened, and `repository/shown`, the repositories a view shows,
+ * which it looks at again every two seconds (milestone M52).
  */
-export const PROTOCOL = '1.14';
+export const PROTOCOL = '1.15';
 
 /** The names of the methods. */
 export const Method = {
@@ -845,6 +847,32 @@ export const SummariesMethod = {
 /** The answer of `read/repo.worktree-summary`, and the parameters of `repository/summaries`. */
 export interface SummariesResult {
   summaries: FolderSummary[];
+}
+
+// Milestone M52, from 1.15 (`rust/crates/protocol/src/git_folders.rs`): the git folders the engine watches itself
+// (`repo.watch-git`, D93).
+
+/** The names of the messages of the git folders watched. */
+export const GitFoldersMethod = {
+  /** The engine's notification: something other than a plan of its own changed the git folder of a repository opened. */
+  changed: 'repository/gitFolderChanged',
+  /** The extension's request: the repositories a view shows now, which the engine looks at again every two seconds. */
+  shown: 'repository/shown',
+} as const;
+
+/** The parameters of `repository/gitFolderChanged`. */
+export interface GitFolderChangedParams {
+  /** The repository, as `repository/open` named it. */
+  repository: string;
+  /** What changed, from the common git folder with `.git/` before it; `.git` alone when the files cannot be named. */
+  paths: string[];
+  /** Whether the engine found the change by looking again, its watcher having said nothing. */
+  found: boolean;
+}
+
+/** The answer of `repository/shown`: the repositories newly shown whose git folder changed with nothing said of it. */
+export interface ShownResult {
+  changed: string[];
 }
 
 // Milestone M31, from 1.11 (`rust/crates/protocol/src/help.rs`): a question of VS Code's Chat to Ask Gitardo, answered

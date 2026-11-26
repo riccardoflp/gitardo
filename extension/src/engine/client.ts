@@ -57,6 +57,8 @@ import {
   type OpenParams,
   type OpenResult,
   type ReadFirstParams,
+  type GitFolderChangedParams,
+  GitFoldersMethod,
   HelpMethod,
   MermaidMethod,
   RangeDiffMethod,
@@ -75,6 +77,7 @@ import {
   type SetupPreview,
   type Settings,
   type SetupGiven,
+  type ShownResult,
   type Side,
   type StateParams,
   type StateReason,
@@ -183,6 +186,9 @@ export class EngineClient {
   private readonly summaryHandlers = new Set<(summaries: FolderSummary[]) => void>();
   /** The folders the engine was last asked to follow for the Repositories view, which it is asked again after a restart. */
   private followed: string[] = [];
+  private readonly gitFolderHandlers = new Set<(change: GitFolderChangedParams) => void>();
+  /** The repositories the engine was last told a view shows, which it is told again after a restart. */
+  private shownLast: string[] = [];
   /** The askers of the runs waiting for their answer, by the id of their `feature/run`. */
   private readonly askers = new Map<number, FeatureAsker>();
   /** The follow-ups of the runs, sent before their answers. */
@@ -688,6 +694,25 @@ export class EngineClient {
     return { dispose: () => this.summaryHandlers.delete(handler) };
   }
 
+  /**
+   * Says which repositories a view shows now, in place of those said before: the engine looks at the git folder of each
+   * again every two seconds (`repo.watch-git`, 1.15). It gives those of them, not shown before, whose git folder changed
+   * with nothing said of it, which what was kept of them is out of date for. An engine older than 1.15 answers with the
+   * error of a method it does not have: it watches nothing, and VS Code's watchers go on alone.
+   */
+  async shown(repositories: string[], signal?: AbortSignal): Promise<string[]> {
+    this.shownLast = repositories;
+    const connection = await this.ready();
+    const { changed } = await connection.request<ShownResult>(GitFoldersMethod.shown, { repositories }, signal);
+    return changed;
+  }
+
+  /** Calls a handler with each change the engine itself sees in the git folder of a repository opened; disposing it stops that. */
+  onGitFolderChanged(handler: (change: GitFolderChangedParams) => void): { dispose(): void } {
+    this.gitFolderHandlers.add(handler);
+    return { dispose: () => this.gitFolderHandlers.delete(handler) };
+  }
+
   // Area 6 of stage 4: the reads that ask a language model of VS Code.
 
   /** The draft of a commit message from the changes, matching the style of these subjects (`commit.draft-message`). */
@@ -848,6 +873,9 @@ export class EngineClient {
       const { summaries } = params as SummariesResult;
       for (const handler of this.summaryHandlers) handler(summaries);
     });
+    connection.on(GitFoldersMethod.changed, (params) => {
+      for (const handler of this.gitFolderHandlers) handler(params as GitFolderChangedParams);
+    });
     const failed = new Promise<never>((_, reject) => {
       child.once('error', (error) => reject(new EngineError(ENDED, `Gitardo's engine could not be started: ${error.message}`)));
     });
@@ -927,6 +955,8 @@ export class EngineClient {
         this.options.log.warn(`Gitardo's engine could not open ${repository} again: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+    // The engine started again has nothing from before to compare with: it only looks again from now on.
+    if (this.shownLast.length) await this.shown(this.shownLast).catch(() => []);
   }
 
   private logLine({ repository, entry }: LogLineParams): void {

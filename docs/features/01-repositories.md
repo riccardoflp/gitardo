@@ -566,14 +566,16 @@ This says which changes count, and how soon.
 - **Kind**: Derivation
 - **Function**: `model::repo::watch_changes(change: &Change) -> Option<ReadRequest>`
 - **Uses**: by `repo.schedule-reads`.
-- **Extension**: the watchers of `Controller.watch` in `src/extension/controller.ts`, of the common git folder and of
-  the working tree. A file of the working tree in the folder of another worktree of `RepoState.worktrees` inside the
-  repository asks for nothing; the others of a burst are given, a second after the first of them, to
-  `read/repo.watch-changes` of Gitardo's engine (version 1.8), which leaves out those in nested worktrees and those
-  `git check-ignore` ignores, a `.gitignore` never, and the repository is read at once when one is left. A file saved,
-  created, deleted or renamed in VS Code's editor stands for Gitardo's own editor. VS Code getting the focus stands for
-  the window getting it, and a change that came while no view of Gitardo was open for one that came while it was
-  minimized; the minute is counted from the end of the last read of the repository shown.
+- **Extension**: the watchers of the common git folder and of the working tree (`RepositorySession.watch`,
+  `src/extension/repositorySession.ts`), and for the git folder also what the engine itself sees there and says in
+  `repository/gitFolderChanged` (`repo.watch-git`), a change both say asking for one read. A file of the working tree
+  in the folder of another worktree of `RepoState.worktrees` inside the repository asks for nothing; the others of a
+  burst are given, a second after the first of them, to `read/repo.watch-changes` of Gitardo's engine (version 1.8),
+  which leaves out those in nested worktrees and those `git check-ignore` ignores, a `.gitignore` never, and the
+  repository is read at once when one is left. A file saved, created, deleted or renamed in VS Code's editor stands
+  for Gitardo's own editor. VS Code getting the focus stands for the window getting it, and a change that came while
+  no view of Gitardo was open for one that came while it was minimized; the minute is counted from the end of the last
+  read of the repository shown.
 
 What is watched, and what each change asks for:
 
@@ -641,13 +643,24 @@ worktree made outside must still be shown ([D93](../08-decisions.md#d93--the-eng
 - **Uses**: by `repo.watch-changes`, for which what it finds is a change of the git folder itself; by
   `repo.watch-hidden` and `repo.worktree-summary`, which ask it already for the worktree's own git folder and for the
   branches, and read no more often for what it looks at now.
-- **Extension**: Planned. The engine's part is built (`crates/server/src/session/git_folders.rs`, version 1.15 of
-  [the protocol](../transition/02-protocol.md#the-git-folders-the-engine-watches)): `gitardo-engine` watches the git
-  folders of each repository opened itself, never the working tree, and says what it sees in
-  `repository/gitFolderChanged`; it compares every two seconds those the extension named in `repository/shown`, whose
-  answer names the repositories shown again that changed meanwhile; what a plan of its own writes it does not say.
-  Tested by `crates/server/tests/stdio/git_folders.rs`. What is left is the extension's: `RepositorySession` asking
-  for a read at the notification as for a change of its own watchers, and naming the repositories its views show.
+- **Extension**: `gitardo-engine` watches the git folders of each repository opened itself, never the working tree,
+  and says what it sees in `repository/gitFolderChanged`; it compares every two seconds those the extension named in
+  `repository/shown`, whose answer names the repositories shown again that changed meanwhile; what a plan of its own
+  writes it does not say (`crates/server/src/session/git_folders.rs`, version 1.15 of
+  [the protocol](../transition/02-protocol.md#the-git-folders-the-engine-watches), tested by
+  `crates/server/tests/stdio/git_folders.rs`). The extension takes the notification as a change of its own watcher of
+  the git folder (`GitFoldersHeard.heard` of `src/extension/gitFoldersHeard.ts`): the session of the repository the
+  engine names asks for a read, said as `.git/<path> changed` from the first path, in the burst of what VS Code's
+  watcher says of the same change, so that the two make one read (`Burst` of `src/extension/burst.ts`), and a
+  repository kept that no view shows is only marked out of date. A change the engine found by looking again is said
+  as `Gitardo's engine found by looking again that .git changed`, and is a line of the log at the debug level (Q1795).
+  Whenever the repositories a view shows change, a view opened or closed, a group pointed elsewhere, a repository
+  left, the extension names them all in `repository/shown` (`GitFoldersHeard.tellShown`), once for what changes
+  together; a repository the answer names is read again at once, said as `its git folder changed while it was not
+  shown`, so that what it kept is not trusted. VS Code's own watchers stay as they are, and are the only ones of the
+  working tree. A change VS Code's watcher says more than 400 ms after the engine did, as in a large workspace, is
+  read a second time. Tested by `test/e2e/suite.ts`, step "shows a commit made outside, and its undoing, while
+  VS Code's watchers say nothing: the engine saw the git folder change", and by `test/gitFolders.test.ts`.
 
 In Gitardo Desktop a thread looks at the repository shown every two seconds, behind the watcher (`GitFolderWatch` of
 `crates/app/src/work/git_folder_watch.rs`, `LOOK_INTERVAL`), and what differs is a change of the git folder for
@@ -1588,15 +1601,22 @@ How the repositories of the tabs not shown follow their changes without reading 
   first time, it is shown at once from what it keeps, with no read when nothing changed: the first page of its commits
   first, and the rest behind it in pieces (QA6). A repository whose read
   ahead failed is read when it is chosen, the failure said in the log. With the setting off, nothing is read ahead.
-  The watchers of the repositories kept stay, and a change marks them out of date (`ChangesSeen.changedIn`); one out
-  of date that is shown is read again without counting every other worktree again, having been watched (Q1744).
+  The watchers of the repositories kept stay, and a change marks them out of date (`ChangesSeen.changedIn`), as does
+  a change of their git folder the engine says (`GitFoldersHeard.heard`, `repo.watch-git`); one out
+  of date that is shown is read again without counting every other worktree again, having been watched (Q1744). A
+  repository kept is not looked at again every two seconds: when it is shown, the engine compares its git folder
+  once with what it was when a change of it was last said, in the answer of `repository/shown`, and one that differs
+  is read again at once behind what it kept
+  ([D93](../08-decisions.md#d93--the-engine-hears-of-the-git-folder-itself-and-looks-again-for-what-it-was-not-told-proposed)).
   Tested by `test/e2e/suite.ts`, steps "with keeping repositories open on, a commit made in a terminal in a repository
   not shown reads nothing, and showing it reads it once", "with keeping repositories open on, shows a repository
   chosen again at once as it was left, and reads nothing for it when nothing changed" and "reads ahead a repository of
   the workspace never shown, and shows it at once when it is chosen, with no read of its state or of its commits after
   the choice"; `test/readAhead.test.ts`, the turns: one after the other, none while an operation runs or a repository
   shown is read, the one stopped given its turn again; `test/kept.test.ts`, "note the last change seen in a repository
-  while it is read ahead, which what it keeps is then out of date for". What the rows of its Repositories view say of
+  while it is read ahead, which what it keeps is then out of date for"; `test/gitFolders.test.ts`, "only marks out of
+  date a repository kept that no view shows" and "reads again at once a repository shown again whose git folder
+  changed with nothing said". What the rows of its Repositories view say of
   the repositories not shown is not their state: it is read by the engine in the background, as
   `repo.worktree-summary` says, whatever the setting, and never while an operation runs or a state is read.
 

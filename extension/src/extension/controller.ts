@@ -35,6 +35,7 @@ import { ROWS_PIECE, RowsBehind } from './rowsBehind';
 import { partsOf } from '../shared/stateParts';
 import { Commands, defaultPull } from './commands';
 import { ChangesSeen } from './changesSeen';
+import { GitFoldersHeard } from './gitFoldersHeard';
 import { CommitTabs } from './commitTabs';
 import { CompareTabs } from './compareTabs';
 import type { ControllerHost } from './controllerHost';
@@ -115,6 +116,8 @@ export class Controller implements vscode.Disposable {
   /** Whether this VS Code has the Agents window, which is looked up once: it comes and goes with VS Code itself. */
   private agentsWindow?: Promise<boolean>;
   private readonly views = new Map<vscode.Webview, ViewKind>();
+  /** What the engine says of the git folders it watches, and which repositories it is told a view shows (`repo.watch-git`). */
+  private readonly gitFolders: GitFoldersHeard;
   /** What the last **Check tags on `<remote>`** of each repository said, by its folder, until VS Code is closed (`tag.remote-marks`). */
   private readonly tagMarks = new Map<string, TagMarks>();
   /** Which repository each group of views shows, and the tabs of the graph in the editor. */
@@ -269,7 +272,7 @@ export class Controller implements vscode.Disposable {
         return controller.operations;
       },
       groupsOn: (session) => this.sessions.groupsOn(session),
-      hasViews: (session) => this.hasViews(session),
+      hasViews: (session) => this.gitFolders.hasViews(session),
       repositoryNamed: (root) => this.repos.find((each) => samePath(each.root, root))?.name ?? path.basename(root),
       autoResolve: () => autoResolve(),
       complete: (group, read, first) => this.complete(group, read, first),
@@ -295,6 +298,7 @@ export class Controller implements vscode.Disposable {
       post: (message, to) => this.post(message, to),
     });
     this.repositoriesView = new RepositoriesView(log);
+    this.gitFolders = new GitFoldersHeard({ log, views: this.views, groups: this.groups, followers: this.followers, sessions: this.sessions, kept: this.kept });
     const host: ControllerHost = {
       log,
       memento,
@@ -344,6 +348,7 @@ export class Controller implements vscode.Disposable {
       stateOf: (repo) => this.stateOf(repo),
       requireState: (on) => this.requireState(on),
       setState: (group, state) => this.setState(group, state),
+      gitFolders: this.gitFolders,
       makeSession: (root) => new RepositorySession(root, sessionHost),
       completeAhead: (session, read) => this.completeFor(session, null, read),
       hostingOf: (root) => this.sessions.find(root)?.hosting,
@@ -474,14 +479,6 @@ export class Controller implements vscode.Disposable {
     return shows(this.followers) ? this.followers : this.allGroups().find(shows);
   }
 
-  /** Whether a view is there to show what is read of a session. */
-  private hasViews(session: RepositorySession): boolean {
-    const groups = this.sessions.groupsOn(session);
-    // The panel's views include the tabs of commits and the Repositories view, as they did when one repository was shown.
-    if (groups.includes(this.followers)) return this.views.size > 0;
-    return [...this.groups].some(([view, group]) => groups.includes(group) && this.views.has(view));
-  }
-
   /** Sends a message to the views of a group. */
   private postToGroup(group: ViewGroup, message: ToViews): void {
     this.post(message, undefined, group);
@@ -495,6 +492,7 @@ export class Controller implements vscode.Disposable {
     webview.html = this.html(webview, dist, { view: kind, session: vscode.env.sessionId, ...data });
     this.views.set(webview, kind);
     if (kind !== 'repositories') this.groups.set(webview, group);
+    void this.gitFolders.tellShown();
     const listener = webview.onDidReceiveMessage((message: WebviewMessage) => this.onMessage(webview, message));
     // The Repositories view is sent its rows, which the engine follows the folders of while it is open.
     const rows = kind === 'repositories' ? this.repositoriesView.open(webview) : undefined;
@@ -503,6 +501,7 @@ export class Controller implements vscode.Disposable {
       rows?.dispose();
       this.views.delete(webview);
       this.groups.delete(webview);
+      void this.gitFolders.tellShown();
       this.messages.signatureReads.delete(webview);
       this.colored.delete(webview);
       this.iconed.delete(webview);
