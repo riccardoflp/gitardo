@@ -78,7 +78,9 @@ impl DirectoryWatch {
         if event.is_null() {
             return Err(SystemError::system("CreateEventW", &last_error()));
         }
-        let mut watch = DirectoryWatch {
+        // The changes are first asked for by the thread that waits for them, in `wait`: the system gives up what a
+        // thread asked for when that thread ends, and the one that opens the folder may end long before the watcher.
+        Ok(DirectoryWatch {
             directory,
             overlapped: Box::new(OVERLAPPED {
                 Internal: 0,
@@ -90,13 +92,7 @@ impl DirectoryWatch {
             event: Handle(event),
             buffer: vec![0; BUFFER_WORDS].into_boxed_slice(),
             is_pending: false,
-        };
-        // The first changes are asked for at once, so that what changes from now on is said, before the thread that
-        // waits for them runs; the overlapped and the buffer are boxed, and stay where they are when the value moves.
-        if !watch.ask() {
-            return Err(SystemError::system("ReadDirectoryChangesW", &last_error()));
-        }
-        Ok(watch)
+        })
     }
 
     /// Waits at most some milliseconds for the changes of the folder.
@@ -119,6 +115,8 @@ impl DirectoryWatch {
         if done == 0 {
             // SAFETY: the call takes nothing.
             return match unsafe { kernel32::GetLastError() } {
+                // A folder someone deleted stays, and says nothing more, until this handle of it is closed: it is gone.
+                kernel32::WAIT_TIMEOUT | kernel32::ERROR_IO_INCOMPLETE if self.is_being_deleted() => Waited::Gone,
                 kernel32::WAIT_TIMEOUT | kernel32::ERROR_IO_INCOMPLETE => Waited::Nothing,
                 kernel32::ERROR_NOTIFY_ENUM_DIR => {
                     self.is_pending = false;
@@ -142,6 +140,23 @@ impl DirectoryWatch {
             .take(length)
             .collect();
         Waited::Changes(parse_changes(&bytes))
+    }
+
+    /// Whether the folder was deleted and only waits for its handles to be closed, as one deleted while it is watched
+    /// does: nothing can be made where it was until then, and the folder over it cannot be deleted.
+    fn is_being_deleted(&self) -> bool {
+        let mut information = kernel32::FILE_STANDARD_INFO::default();
+        let size = u32::try_from(size_of::<kernel32::FILE_STANDARD_INFO>()).unwrap_or_default();
+        // SAFETY: the handle is alive, and `information` is a `FILE_STANDARD_INFO` of the size said, alive for the call.
+        let read = unsafe {
+            kernel32::GetFileInformationByHandleEx(
+                self.directory.0,
+                kernel32::FILE_STANDARD_INFO_CLASS,
+                (&raw mut information).cast::<c_void>(),
+                size,
+            )
+        };
+        read != 0 && information.DeletePending != 0
     }
 
     /// Asks the system for the next changes; false when it refuses.

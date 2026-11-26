@@ -5,9 +5,14 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use crate::error::SystemError;
+
+/// How long a watcher made waits for the thread of a folder to have asked the system for its changes.
+const STARTED_WITHIN: Duration = Duration::from_secs(2);
 
 /// How often the thread of a folder looks whether it is to stop, in milliseconds.
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
@@ -72,10 +77,13 @@ impl Watcher {
             let stop = Arc::clone(&stop);
             let deliver = Arc::clone(deliver);
             let folder = folder.clone();
+            let (started, is_started) = mpsc::channel();
             let thread = thread::Builder::new()
                 .name(String::from("folder watcher"))
-                .spawn(move || run(watch, &folder, &stop, &deliver))
+                .spawn(move || run(watch, &folder, &stop, &deliver, &started))
                 .map_err(|error| SystemError::system("spawning the folder watcher", &error))?;
+            // What changes from now on is said: the thread has asked the system for the changes once this returns.
+            let _started = is_started.recv_timeout(STARTED_WITHIN);
             threads.push(thread);
         }
         Ok(Watcher { stop, threads })
@@ -100,9 +108,21 @@ fn open(folder: &std::path::Path) -> Result<DirectoryWatch, SystemError> {
 
 /// What the thread of a folder does until it is to stop or the folder is gone.
 #[cfg(any(windows, target_os = "linux", target_os = "macos"))]
-fn run(mut watch: DirectoryWatch, folder: &std::path::Path, stop: &AtomicBool, deliver: &WatchDeliver) {
+fn run(
+    mut watch: DirectoryWatch,
+    folder: &std::path::Path,
+    stop: &AtomicBool,
+    deliver: &WatchDeliver,
+    started: &Sender<()>,
+) {
+    // The first wait is the one that asks the system for the changes, on this thread, and does not wait.
+    let mut is_first = true;
     while !stop.load(Ordering::SeqCst) {
-        match watch.wait(STOP_CHECK) {
+        let waited = watch.wait(if is_first { 0 } else { STOP_CHECK });
+        if std::mem::take(&mut is_first) {
+            let _told = started.send(());
+        }
+        match waited {
             Waited::Nothing => {}
             Waited::Changes(paths) => deliver(
                 paths
@@ -129,4 +149,4 @@ fn open(_folder: &std::path::Path) -> Result<(), SystemError> {
 
 /// Watching folders is written for Windows, Linux and macOS only.
 #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-fn run(_watch: (), _folder: &std::path::Path, _stop: &AtomicBool, _deliver: &WatchDeliver) {}
+fn run(_watch: (), _folder: &std::path::Path, _stop: &AtomicBool, _deliver: &WatchDeliver, _started: &Sender<()>) {}

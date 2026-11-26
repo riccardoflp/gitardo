@@ -36,8 +36,26 @@ pub struct FILETIME {
     pub dwHighDateTime: u32,
 }
 
+/// What the system says of a file or a folder open: its sizes, its links, and whether it is to be deleted once every
+/// handle of it is closed.
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct FILE_STANDARD_INFO {
+    pub AllocationSize: i64,
+    pub EndOfFile: i64,
+    pub NumberOfLinks: u32,
+    pub DeletePending: u8,
+    pub Directory: u8,
+}
+
 #[link(name = "kernel32")]
 unsafe extern "system" {
+    pub fn GetFileInformationByHandleEx(
+        hFile: HANDLE,
+        FileInformationClass: u32,
+        lpFileInformation: *mut c_void,
+        dwBufferSize: u32,
+    ) -> BOOL;
     pub fn GetSystemTimeAsFileTime(lpSystemTimeAsFileTime: *mut FILETIME);
     pub fn FileTimeToLocalFileTime(lpFileTime: *const FILETIME, lpLocalFileTime: *mut FILETIME) -> BOOL;
     pub fn CreateFileW(
@@ -115,6 +133,8 @@ pub const FILE_NOTIFY_CHANGE_LAST_WRITE: u32 = 0x0000_0010;
 pub const FILE_NOTIFY_CHANGE_CREATION: u32 = 0x0000_0040;
 pub const PROCESS_TERMINATE: u32 = 0x0001;
 pub const PROCESS_SET_QUOTA: u32 = 0x0100;
+/// The class of `GetFileInformationByHandleEx` that fills a `FILE_STANDARD_INFO`.
+pub const FILE_STANDARD_INFO_CLASS: u32 = 1;
 pub const WAIT_TIMEOUT: u32 = 258;
 pub const ERROR_IO_INCOMPLETE: u32 = 996;
 pub const ERROR_NOTIFY_ENUM_DIR: u32 = 1022;
