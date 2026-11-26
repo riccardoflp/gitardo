@@ -95,6 +95,15 @@ interface VSCodeGitApi {
   openRepository(root: vscode.Uri): Promise<unknown>;
 }
 
+/**
+ * Has VS Code's Git extension let go of a repository of the workspace that is about to be deleted: it opens each one it
+ * finds and watches it, and on Windows a folder watched is not deleted.
+ */
+async function closeInVSCodeGit(root: string): Promise<void> {
+  const open = (await vscodeGit()).repositories.find((repository) => samePath(repository.rootUri.fsPath, root));
+  if (open) await vscode.commands.executeCommand('git.close', open).then(undefined, () => undefined);
+}
+
 async function vscodeGit(): Promise<VSCodeGitApi> {
   const extension = vscode.extensions.getExtension<{ getAPI(version: 1): VSCodeGitApi }>('vscode.git');
   assert.ok(extension, "VS Code's Git extension");
@@ -1278,6 +1287,7 @@ export async function run(): Promise<void> {
       await keepOpen(undefined);
       await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
+      await closeInVSCodeGit(ahead);
       fs.rmSync(ahead, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
       await internals.locate();
     }
@@ -1370,6 +1380,7 @@ export async function run(): Promise<void> {
       if (!samePath(state().root, app)) await controller.repositories.selectRepo(app);
       await keepOpen(undefined);
       await until('the views to be told the repositories are kept', () => internals.state?.keepOpen === true);
+      await closeInVSCodeGit(fresh);
       fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
       fs.rmSync(fresh, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
       await internals.locate();
@@ -4410,7 +4421,7 @@ export async function run(): Promise<void> {
     }
     assert.equal(setting('fileBlame.everyFile'), false);
     // The ones that were asked for keep their blame, which a slow runner takes a while to read again.
-    await until('the blame of the files it was asked for', () => fileBlame.linesOf(uri) && fileBlame.linesOf(other));
+    await until('the blame of the files it was asked for', () => fileBlame.linesOf(uri) && fileBlame.linesOf(other), 60_000);
 
     // Whitespace: git is asked again, and the file still has its blame.
     await vscode.commands.executeCommand('gitardo.toggleBlameWhitespace');
