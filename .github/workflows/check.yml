@@ -40,8 +40,8 @@ jobs:
         working-directory: rust
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: The libraries the window needs on Linux, Xvfb and Weston
@@ -53,7 +53,7 @@ jobs:
       # rustup installs the toolchain rust-toolchain.toml names, with rustfmt and clippy, on first use.
       - name: The toolchain
         run: rustup show active-toolchain
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -92,7 +92,7 @@ jobs:
           cargo build --workspace --target x86_64-apple-darwin
       - name: The desktop, in release
         run: cargo build --release -p app
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.system }}
           path: |
@@ -135,13 +135,13 @@ jobs:
         working-directory: rust
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: The C compiler for musl
         if: matrix.target == 'alpine-x64'
         run: sudo apt-get update && sudo apt-get install -y musl-tools
       - name: The target
         run: rustup target add ${{ matrix.triple }}
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -155,7 +155,7 @@ jobs:
           mkdir -p ../binaries/${{ matrix.target }}
           cp target/${{ matrix.triple }}/release/gitardo-engine* ../binaries/${{ matrix.target }}/
           rm -f ../binaries/${{ matrix.target }}/*.d ../binaries/${{ matrix.target }}/*.pdb
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: engine-${{ matrix.target }}
           path: binaries/${{ matrix.target }}
@@ -179,13 +179,13 @@ jobs:
         working-directory: extension
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
           cache-dependency-path: extension/package-lock.json
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: The libraries VS Code needs on Linux, and a screen for it
@@ -195,7 +195,7 @@ jobs:
           sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64             libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev             libfontconfig1-dev libdbus-1-dev pkg-config
           # Ubuntu's AppArmor refuses the namespaces the sandbox of Electron makes, and VS Code is killed as it starts.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -254,8 +254,8 @@ jobs:
         working-directory: extension
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
@@ -267,7 +267,7 @@ jobs:
           # Ubuntu's AppArmor refuses the namespaces the sandbox of Electron makes, and VS Code is killed as it starts.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: engine-linux-x64
           path: binaries/linux-x64
@@ -301,14 +301,14 @@ jobs:
       run:
         working-directory: extension
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
           cache-dependency-path: extension/package-lock.json
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: engine-*
           path: binaries
@@ -320,7 +320,7 @@ jobs:
           ls -R
       - name: npm run package
         run: npm run package -- --every-target --binaries ../binaries
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: vsix
           path: extension/*.vsix

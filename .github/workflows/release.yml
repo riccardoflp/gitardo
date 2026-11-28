@@ -27,7 +27,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       # The whole history, for the check that the tag is on main.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: The tag names the version of the extension, which has its section in the CHANGELOG, on main
@@ -80,15 +80,15 @@ jobs:
       run:
         working-directory: extension
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "26"
           cache: npm
           cache-dependency-path: extension/package-lock.json
       # vsce at the version of package-lock.json, which has --oidc from 4.1.
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: vsix
           path: vsix
@@ -117,12 +117,12 @@ jobs:
       TAG: ${{ github.ref_name }}
       VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: desktop-*
           path: desktop
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: vsix
           path: release
