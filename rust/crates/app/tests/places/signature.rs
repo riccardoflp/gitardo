@@ -118,7 +118,9 @@ fn details_signature__the_message_and_files_are_shown_before_the_signature_is_re
     ));
     let tree = drawn(&state);
     assert!(says(&tree, "Sign the parser"), "the message is shown");
-    assert!(says(&tree, "Checking the signature\u{2026}"));
+    assert!(!says(&tree, "Signature"), "no line until the signature is read");
+    let _ = finish(&mut state, &after, |kind| matches!(kind, JobKind::ReadSignature { .. }));
+    assert!(says(&drawn(&state), "Signature"));
 }
 
 #[test]
@@ -197,7 +199,7 @@ fn fixed(verdict: SignatureVerdict) -> CommitSignature {
 fn line(theme: ThemeName, signature: &CommitSignature) -> (Window, platform::accesskit::TreeUpdate) {
     let mut window = Window::new(theme, (420, 28));
     let state = SignatureState {
-        read: SignatureRead::Read(signature),
+        read: SignatureRead(signature),
         key_width: 84.0,
     };
     let (_, tree) = window.frame(&[], |ui| signature_view(&state, ui));

@@ -1741,8 +1741,6 @@ try {
     await until('a directory folded', async () => (await rows()).join() === '> docs/guide,> lib,util.txt');
     await graph.click('.row', 'Add parts');
     await until('the tree of another commit', async () => (await rows()).join() === '> src,> parts,list.txt,main.txt,notes.txt');
-    // The line that says the signature is checked goes away for a commit not signed, and the buttons under it move up.
-    await until('the signature read', () => graph.evaluate(`!document.querySelector('.detail dl')?.textContent.includes('Checking the signature')`));
     await graph.click('.detail h3 button[aria-label="Files as a list"]');
     await until('the list again', async () => (await rows()).join() === 'notes.txt,main.txt in src,list.txt in src/parts');
 

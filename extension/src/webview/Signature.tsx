@@ -4,18 +4,19 @@ import type { CommitSignature } from '../shared/state';
 import { Icon } from './Icon';
 import { onMessage, post } from './vscode';
 
-/** What is known of the signature of a commit shown: being read, or what git said of it. */
-type Read = { hash: string; signature: CommitSignature | null | 'checking' };
+/** What git said of the signature of a commit shown. */
+type Read = { hash: string; signature: CommitSignature | null };
 
 /**
  * The signature of a commit, asked once its details are shown, so that they never wait for it (`details.signature`):
  * none asked for the uncommitted changes. A commit selected after it asks again, and its read cancels the one before.
+ * Until git answers there is none, and no line: the lines under it would move down for it and up again for every commit
+ * that is not signed.
  */
-export function useSignature(hash: string, shown: boolean): CommitSignature | null | 'checking' {
+export function useSignature(hash: string, shown: boolean): CommitSignature | null {
   const [read, setRead] = useState<Read | null>(null);
   useEffect(() => {
     if (!shown) return;
-    setRead({ hash, signature: 'checking' });
     const stop = onMessage((message) => {
       if (message.type === 'signature' && message.hash === hash) setRead({ hash, signature: message.signature });
     });
@@ -30,16 +31,8 @@ export function useSignature(hash: string, shown: boolean): CommitSignature | nu
  * the kind, the key, its fingerprint and its trust in its tooltip. A commit not signed, or whose signature could not be
  * read, has no line.
  */
-export function SignatureLine({ signature }: { signature: CommitSignature | null | 'checking' }) {
+export function SignatureLine({ signature }: { signature: CommitSignature | null }) {
   if (signature === null) return null;
-  if (signature === 'checking') {
-    return (
-      <>
-        <dt>Signature</dt>
-        <dd className="muted">Checking the signature…</dd>
-      </>
-    );
-  }
   const words = signatureWords(signature);
   if (!words) return null;
   return (

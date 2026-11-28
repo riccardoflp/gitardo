@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The details and the page of a commit no longer say **Checking the signature…** while git reads it: the line
+  **Signature** comes once git says the commit is signed, so the parents and the files under it no longer move down
+  and up again at every commit that is not signed.
+
 ## 1.4.0 - 2026-11-26
 
 - A commit, a branch, a tag, a stash or a worktree made outside Gitardo is shown within three seconds even when the

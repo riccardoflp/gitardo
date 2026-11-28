@@ -44,13 +44,12 @@ pub(super) fn check(state: &mut State, folder: PathBuf, commit: CommitId) -> (Si
     (SignatureCheck::Checking(job.id), Effect::Start(job))
 }
 
-/// What the views draw of a signature read or being read.
+/// What the views draw of a signature: nothing until it is read, so that the lines under it do not move twice.
 #[must_use]
 pub fn shown(check: Option<&SignatureCheck>) -> Option<SignatureRead<'_>> {
     match check? {
-        SignatureCheck::Checking(_) => Some(SignatureRead::Checking),
-        SignatureCheck::Read(signature) => Some(SignatureRead::Read(signature)),
-        SignatureCheck::Failed => None,
+        SignatureCheck::Read(signature) => Some(SignatureRead(signature)),
+        SignatureCheck::Checking(_) | SignatureCheck::Failed => None,
     }
 }
 

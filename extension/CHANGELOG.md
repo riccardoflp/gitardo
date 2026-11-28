@@ -2,6 +2,12 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Changed
+
+- The details and the tab of a commit no longer say **Checking the signature…** while Git reads it: the line **Signature** comes once Git says the commit is signed, so the parents and the files under it no longer move down and up again at every commit that is not signed.
+
 ## 1.4.0 - 2026-11-26
 
 ### Added

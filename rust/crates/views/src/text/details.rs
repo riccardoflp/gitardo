@@ -161,8 +161,6 @@ pub fn page_title(short_hash: &str, subject: &str) -> String {
 
 /// The line of the signature of a commit (`details.signature`).
 pub const SIGNATURE: &str = "Signature";
-/// What the line of the signature says while it is read.
-pub const CHECKING_SIGNATURE: &str = "Checking the signature\u{2026}";
 
 /// What the line of the signature says of what git said of it: `Good, Ada <ada@example.com>`, `Good, expired key`,
 /// `Bad`; nothing for a commit not signed, which has no line.

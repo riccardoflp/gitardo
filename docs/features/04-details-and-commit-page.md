@@ -154,7 +154,9 @@ Says, in the inspector and in the tab of a commit, whether the commit is signed 
   **Signed, not checked** and **Cannot be checked**, muted, with why when git said it. Its tooltip has the kind of
   signature, the key, its fingerprint and the trust git gave it.
 - **Not signed** is said by no line: most commits are not signed, and a line on each would say nothing (Q1091).
-- While the signature is read, the line says **Checking the signature…**; the stashes and the draft have none.
+- While the signature is read there is no line, so that the lines under it move once, for a signed commit, and never
+  for one that is not signed; the activity of Gitardo Desktop says **Checking the signature of a commit** meanwhile.
+  The stashes and the draft have none.
 - When git cannot read it, there is no line, and what git said is the last error of the window.
 - Nothing is drawn in the timeline for the signature (Q1092).
 
