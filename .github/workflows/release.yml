@@ -83,7 +83,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "26"
           cache: npm
           cache-dependency-path: extension/package-lock.json
       # vsce at the version of package-lock.json, which has --oidc from 4.1.
